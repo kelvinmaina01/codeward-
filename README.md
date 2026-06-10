@@ -11,7 +11,7 @@
 
 **The automated principal engineer sitting on every pull request.**
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-7c6fff.svg)](https://opensource.org/licenses/MIT)
+[![License: All Rights Reserved](https://img.shields.io/badge/License-All%20Rights%20Reserved-red.svg)](LICENSE)
 [![Node.js](https://img.shields.io/badge/Node.js-22-3fb950.svg)](https://nodejs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178c6.svg)](https://typescriptlang.org)
 [![Powered by Claude](https://img.shields.io/badge/Powered%20by-Claude%20Sonnet%204.5-7c6fff.svg)](https://anthropic.com)
@@ -808,9 +808,12 @@ Codeward takes security seriously. If you discover a vulnerability, please **do 
 
 ## License
 
-MIT License — see [LICENSE](LICENSE) for details.
+Copyright (c) 2026 Codeward. **All rights reserved.**
 
-The Codeward name, logo, and brand assets are not covered by the MIT license and may not be used without written permission.
+This software is proprietary. Copying, reproduction, distribution, and modification are strictly and severely prohibited. 
+See the [LICENSE](LICENSE) file for the full proprietary terms.
+
+The Codeward name, logo, and brand assets may not be used without written permission.
 
 ---
 

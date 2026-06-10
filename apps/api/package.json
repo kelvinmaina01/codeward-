@@ -1,0 +1,25 @@
+{
+  "name": "@codeward/api",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.11.1",
+    "bullmq": "^5.7.8",
+    "dotenv": "^16.4.5",
+    "drizzle-orm": "^0.45.2",
+    "hono": "^4.4.0",
+    "ioredis": "^5.4.1",
+    "postgres": "^3.4.9"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.2",
+    "drizzle-kit": "^0.31.10",
+    "tsx": "^4.22.4",
+    "typescript": "^5.4.5"
+  }
+}
