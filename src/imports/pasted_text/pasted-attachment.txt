@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Codeward — Full App + Debt Agent</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#f5f5f3;--bg2:#fff;--bg3:#f0f0ee;--txt:#1a1a18;--txt2:#555;--txt3:#999;--bdr:#ddd;--blue:#3B6FD4;--green:#16A34A;--red:#DC2626;--amber:#D97706;--teal:#0F766E;--purple:#6D28D9}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--txt);font-size:13px;line-height:1.5}
+/* APP SHELL */
+.app-shell{display:flex;height:100vh;overflow:hidden}
+/* SIDEBAR */
+.sidebar{width:210px;min-width:210px;background:var(--bg2);border-right:0.5px solid var(--bdr);display:flex;flex-direction:column;overflow-y:auto}
+.logo{padding:14px 16px 12px;font-size:16px;font-weight:500;letter-spacing:-.03em;border-bottom:0.5px solid var(--bdr)}
+.logo span{color:var(--blue)}
+.nav-group{padding:10px 10px 4px;font-size:10px;font-weight:500;color:var(--txt3);letter-spacing:.07em;text-transform:uppercase}
+.nav-item{display:flex;align-items:center;gap:8px;padding:6px 14px;font-size:12px;color:var(--txt2);cursor:pointer;border-radius:6px;margin:1px 6px;transition:background .1s}
+.nav-item:hover{background:var(--bg3)}
+.nav-item.active{background:var(--bg3);color:var(--txt);font-weight:500}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--bdr);flex-shrink:0}
+.dot.g{background:var(--green)}.dot.a{background:var(--amber)}.dot.r{background:var(--red)}.dot.b{background:var(--blue)}.dot.p{background:var(--purple)}
+.badge{margin-left:auto;font-size:10px;padding:1px 5px;border-radius:3px;background:#FEE2E2;color:var(--red);font-weight:500}
+.sidebar-foot{margin-top:auto;padding:12px 14px;border-top:0.5px solid var(--bdr);display:flex;align-items:center;gap:8px}
+.av{width:28px;height:28px;border-radius:50%;background:var(--blue);display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;font-weight:500;flex-shrink:0}
+.av-name{font-size:12px;color:var(--txt2)}
+/* MAIN */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.topbar{padding:10px 20px;border-bottom:0.5px solid var(--bdr);display:flex;align-items:center;justify-content:space-between;background:var(--bg2);flex-shrink:0}
+.tb-title{font-size:14px;font-weight:500}
+.tb-sub{font-size:11px;color:var(--txt3)}
+.tb-actions{display:flex;gap:6px}
+.btn{font-size:11px;padding:5px 11px;border-radius:6px;border:0.5px solid var(--bdr);background:var(--bg2);color:var(--txt2);cursor:pointer;transition:background .1s}
+.btn:hover{background:var(--bg3)}
+.btn-primary{background:var(--blue);color:#fff;border-color:var(--blue)}
+.btn-primary:hover{background:#2d5ab8}
+.btn-green{background:var(--green);color:#fff;border-color:var(--green)}
+.content{flex:1;overflow-y:auto;padding:16px 20px}
+/* SCREENS */
+.screen{display:none}.screen.active{display:block}
+/* GRID LAYOUTS */
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+/* CARDS */
+.card{background:var(--bg2);border:0.5px solid var(--bdr);border-radius:10px;padding:12px 14px;margin-bottom:10px}
+.card-title{font-size:11px;font-weight:500;color:var(--txt3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px}
+/* STAT CARDS */
+.stat{background:var(--bg3);border-radius:8px;padding:12px}
+.stat-n{font-size:24px;font-weight:500;margin-bottom:2px}
+.stat-l{font-size:11px;color:var(--txt2)}
+.stat-t{font-size:10px;margin-top:3px}
+.up{color:var(--green)}.down{color:var(--red)}
+/* RUN ITEMS */
+.run{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:0.5px solid var(--bg3);font-size:11px}
+.run:last-child{border:none}
+.run-name{font-weight:500;color:var(--txt);flex:1}
+.run-meta{color:var(--txt3)}
+.chip{font-size:10px;padding:2px 6px;border-radius:3px;font-weight:500}
+.chip-g{background:#DCFCE7;color:#166534}
+.chip-r{background:#FEE2E2;color:#991B1B}
+.chip-a{background:#FEF3C7;color:#92400E}
+.chip-b{background:#DBEAFE;color:#1E40AF}
+/* LOG */
+.log-wrap{background:#0f1117;border-radius:8px;padding:10px 12px;font-family:'Courier New',monospace;font-size:11px;line-height:1.7;overflow-y:auto;max-height:460px}
+.ll{display:flex;gap:10px;margin-bottom:1px}
+.lts{color:#555;flex-shrink:0}
+.lok{color:#22C55E}.lerr{color:#EF4444}.linf{color:#60A5FA}.lwarn{color:#F59E0B}.lplain{color:#aaa}
+.cursor{display:inline-block;width:7px;height:11px;background:#e8e8e6;animation:blink .8s infinite;vertical-align:middle;border-radius:1px}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+/* DIFF */
+.diff-file{margin-bottom:12px}
+.diff-head{background:var(--bg3);border:0.5px solid var(--bdr);border-radius:8px 8px 0 0;padding:6px 10px;font-size:11px;font-weight:500;display:flex;justify-content:space-between;align-items:center}
+.diff-body{border:0.5px solid var(--bdr);border-top:none;border-radius:0 0 8px 8px;overflow:hidden}
+.dl{font-size:11px;font-family:'Courier New',monospace;padding:2px 8px;line-height:1.5}
+.dl-add{background:#F0FDF4;color:#166534}
+.dl-rem{background:#FEF2F2;color:#991B1B}
+.dl-ctx{color:var(--txt3)}
+.dl-why{background:#EFF6FF;color:#1E40AF;font-size:10px;padding:3px 8px;font-style:italic;font-family:inherit}
+.diff-actions{display:flex;gap:6px;margin-top:6px}
+/* ISSUES */
+.issue{display:flex;gap:10px;padding:10px 12px;border-radius:8px;margin-bottom:7px;border:0.5px solid var(--bdr);align-items:flex-start}
+.issue-crit{background:#FEF2F2}
+.issue-high{background:#FFFBEB}
+.issue-med{background:#EFF6FF}
+.issue-title{font-size:12px;font-weight:500;margin-bottom:3px}
+.issue-desc{font-size:11px;color:var(--txt2);line-height:1.4}
+.issue-fix{margin-top:6px}
+/* AI AGENT */
+.chat-wrap{display:flex;flex-direction:column;height:calc(100vh - 120px);max-height:600px}
+.chat-messages{flex:1;overflow-y:auto;padding:10px 0;display:flex;flex-direction:column;gap:10px}
+.msg{display:flex;gap:10px;align-items:flex-start}
+.msg-ai{flex-direction:row}
+.msg-user{flex-direction:row-reverse}
+.msg-av{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;flex-shrink:0}
+.msg-av-ai{background:var(--blue);color:#fff}
+.msg-av-user{background:var(--bg3);color:var(--txt2)}
+.msg-bubble{background:var(--bg2);border:0.5px solid var(--bdr);border-radius:10px;padding:8px 12px;font-size:12px;line-height:1.6;max-width:80%;color:var(--txt)}
+.msg-bubble-user{background:var(--blue);color:#fff;border-color:var(--blue)}
+.msg-bubble code{background:rgba(0,0,0,.07);padding:1px 5px;border-radius:3px;font-size:11px;font-family:monospace}
+.msg-bubble-user code{background:rgba(255,255,255,.2)}
+.agent-action{background:var(--bg3);border:0.5px solid var(--bdr);border-radius:6px;padding:6px 10px;font-size:11px;color:var(--txt2);margin-top:6px;display:flex;align-items:center;gap:6px}
+.agent-dot{width:5px;height:5px;border-radius:50%;background:var(--green);animation:blink .8s infinite}
+.chat-input-row{display:flex;gap:8px;margin-top:10px;padding-top:10px;border-top:0.5px solid var(--bdr)}
+.chat-input{flex:1;padding:8px 12px;border:0.5px solid var(--bdr);border-radius:8px;font-size:12px;background:var(--bg2);color:var(--txt);outline:none}
+.chat-input:focus{border-color:var(--blue)}
+.chat-send{padding:8px 14px;background:var(--blue);color:#fff;border:none;border-radius:8px;font-size:12px;cursor:pointer}
+/* STAGING */
+.staging-card{background:var(--bg2);border:0.5px solid var(--bdr);border-radius:12px;padding:18px;margin-bottom:12px}
+.checks-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:12px 0}
+.check{background:var(--bg3);border-radius:8px;padding:10px;text-align:center}
+.check-icon{font-size:18px;margin-bottom:3px}
+.check-label{font-size:10px;color:var(--txt2)}
+.approval-btns{display:flex;gap:8px;margin-top:12px}
+.preview-link{display:flex;align-items:center;gap:7px;background:#EFF6FF;border:0.5px solid #BFDBFE;border-radius:7px;padding:7px 12px;font-size:11px;color:var(--blue);margin-bottom:10px;cursor:pointer}
+/* CERT */
+.cert-big{text-align:center;background:linear-gradient(160deg,#F0FDF4,#ECFDF5);border:0.5px solid #BBF7D0;border-radius:12px;padding:24px;margin-bottom:12px}
+.cert-num{font-size:60px;font-weight:500;color:var(--green);line-height:1}
+/* REPO ROWS */
+.repo-row{display:flex;align-items:center;gap:10px;padding:8px 12px;border:0.5px solid var(--bdr);border-radius:8px;margin-bottom:7px;background:var(--bg2)}
+.repo-name{font-weight:500;font-size:12px;flex:1}
+.repo-bar-wrap{width:80px;height:4px;background:var(--bg3);border-radius:2px}
+.repo-bar{height:4px;border-radius:2px}
+/* SETTINGS */
+.set-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:0.5px solid var(--bg3)}
+.set-row:last-child{border:none}
+.set-label{font-size:12px;font-weight:500}
+.set-desc{font-size:11px;color:var(--txt3);margin-top:1px}
+.toggle{width:36px;height:20px;border-radius:10px;background:var(--bdr);position:relative;cursor:pointer;transition:background .2s;flex-shrink:0}
+.toggle.on{background:var(--blue)}
+.toggle-thumb{width:16px;height:16px;border-radius:50%;background:#fff;position:absolute;top:2px;left:2px;transition:left .15s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.toggle.on .toggle-thumb{left:18px}
+/* DEBT REPORT */
+.debt-cat{border-radius:8px;overflow:hidden;margin-bottom:8px;border:0.5px solid var(--bdr)}
+.dcat-head{padding:8px 12px;font-size:12px;font-weight:500;display:flex;justify-content:space-between;align-items:center}
+.dcat-body{display:grid;grid-template-columns:1fr 1fr;gap:5px;padding:8px}
+.dcat-item{background:var(--bg2);border:0.5px solid var(--bdr);border-radius:6px;padding:7px 9px}
+.dcat-item-t{font-size:11px;font-weight:500;color:var(--txt);margin-bottom:2px}
+.dcat-item-d{font-size:10px;color:var(--txt2);line-height:1.4}
+/* HISTORY */
+.hist-row{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:0.5px solid var(--bg3);font-size:11px}
+.hist-row:last-child{border:none}
+.hist-sha{font-family:monospace;color:var(--blue);min-width:55px}
+/* BAR */
+.bar-row{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.bar-label{font-size:11px;color:var(--txt2);min-width:100px}
+.bar-wrap{flex:1;height:5px;background:var(--bg3);border-radius:3px;overflow:hidden}
+.bar-fill{height:5px;border-radius:3px}
+.bar-val{font-size:10px;color:var(--txt3);min-width:55px;text-align:right}
+</style>
+</head>
+<body>
+<div class="app-shell">
+<!-- SIDEBAR -->
+<div class="sidebar">
+  <div class="logo">Code<span>ward</span></div>
+  <div class="nav-group">Overview</div>
+  <div class="nav-item active" onclick="show('dashboard',this)"><div class="dot g"></div>Dashboard</div>
+  <div class="nav-item" onclick="show('livefeed',this)"><div class="dot a"></div>Live feed<span class="badge">1</span></div>
+  <div class="nav-group">Analysis</div>
+  <div class="nav-item" onclick="show('diff',this)"><div class="dot b"></div>Diff viewer</div>
+  <div class="nav-item" onclick="show('security',this)"><div class="dot r"></div>Security<span class="badge">3</span></div>
+  <div class="nav-item" onclick="show('debt',this)"><div class="dot a"></div>Debt report</div>
+  <div class="nav-group">AI Agent</div>
+  <div class="nav-item" onclick="show('agent',this)"><div class="dot p"></div>Codeward AI</div>
+  <div class="nav-group">Deploy</div>
+  <div class="nav-item" onclick="show('staging',this)"><div class="dot a"></div>Staging</div>
+  <div class="nav-item" onclick="show('history',this)"><div class="dot"></div>Deploy history</div>
+  <div class="nav-group">Health</div>
+  <div class="nav-item" onclick="show('repos',this)"><div class="dot"></div>Repositories</div>
+  <div class="nav-item" onclick="show('cert',this)"><div class="dot g"></div>Certificate</div>
+  <div class="nav-item" onclick="show('settings',this)"><div class="dot"></div>Settings</div>
+  <div class="sidebar-foot">
+    <div class="av">JK</div>
+    <div class="av-name">James K. · acme-corp</div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+<!-- DASHBOARD -->
+<div class="screen active" id="screen-dashboard">
+<div class="topbar"><div><div class="tb-title">Dashboard</div><div class="tb-sub">acme-corp · 4 repos guarded · all systems normal</div></div><div class="tb-actions"><button class="btn">This week ▾</button><button class="btn btn-primary">+ Add repo</button></div></div>
+<div class="content">
+<div class="g4">
+  <div class="stat"><div class="stat-n" style="color:var(--green)">87</div><div class="stat-l">Codebase health score</div><div class="stat-t up">↑ 4 pts this week</div></div>
+  <div class="stat"><div class="stat-n">142</div><div class="stat-l">Runs this week</div><div class="stat-t up">↑ 12% vs last week</div></div>
+  <div class="stat"><div class="stat-n" style="color:var(--red)">3</div><div class="stat-l">Critical blocks this week</div><div class="stat-t up">All auto-resolved</div></div>
+  <div class="stat"><div class="stat-n" style="color:var(--amber)">−4.2%</div><div class="stat-l">Codebase size change</div><div class="stat-t up">Getting leaner</div></div>
+</div>
+<div class="g2">
+  <div class="card"><div class="card-title">Active runs</div>
+    <div class="run"><div class="dot a"></div><span class="run-name">my-api</span><span class="run-meta">commit 3fa2c1 · 2m 14s</span><span class="chip chip-a">Running</span></div>
+    <div class="run"><div class="dot g"></div><span class="run-name">frontend</span><span class="run-meta">4m ago</span><span class="chip chip-g">94/100</span></div>
+    <div class="run"><div class="dot g"></div><span class="run-name">auth-service</span><span class="run-meta">1h ago</span><span class="chip chip-g">91/100</span></div>
+    <div class="run"><div class="dot r"></div><span class="run-name">payments-api</span><span class="run-meta">3h ago</span><span class="chip chip-r">Blocked</span></div>
+  </div>
+  <div class="card"><div class="card-title">Debt removed this week</div>
+    <div class="bar-row"><span class="bar-label">Duplicate functions</span><div class="bar-wrap"><div class="bar-fill" style="width:72%;background:var(--green)"></div></div><span class="bar-val" style="color:var(--green)">−18</span></div>
+    <div class="bar-row"><span class="bar-label">Dead code lines</span><div class="bar-wrap"><div class="bar-fill" style="width:90%;background:var(--green)"></div></div><span class="bar-val" style="color:var(--green)">−247</span></div>
+    <div class="bar-row"><span class="bar-label">Security issues</span><div class="bar-wrap"><div class="bar-fill" style="width:40%;background:var(--red)"></div></div><span class="bar-val" style="color:var(--red)">−3 crit</span></div>
+    <div class="bar-row"><span class="bar-label">N+1 queries fixed</span><div class="bar-wrap"><div class="bar-fill" style="width:55%;background:var(--teal)"></div></div><span class="bar-val" style="color:var(--teal)">−6</span></div>
+    <div class="bar-row"><span class="bar-label">AI-era issues</span><div class="bar-wrap"><div class="bar-fill" style="width:30%;background:var(--purple)"></div></div><span class="bar-val" style="color:var(--purple)">−2</span></div>
+  </div>
+</div>
+<div class="card"><div class="card-title">Recent activity</div>
+  <div class="run"><div class="dot g"></div><span class="run-name">frontend</span><span style="flex:2;font-size:11px;color:var(--txt2)">deployed to staging · all 94 tests passed · preview ready</span><span class="run-meta">4m ago</span></div>
+  <div class="run"><div class="dot r"></div><span class="run-name">payments-api</span><span style="flex:2;font-size:11px;color:var(--txt2)">blocked · hardcoded Stripe key in config.js line 14</span><span class="run-meta">3h ago</span></div>
+  <div class="run"><div class="dot g"></div><span class="run-name">auth-service</span><span style="flex:2;font-size:11px;color:var(--txt2)">merged to production · post-deploy monitoring active</span><span class="run-meta">1h ago</span></div>
+  <div class="run"><div class="dot p"></div><span class="run-name">Codeward AI</span><span style="flex:2;font-size:11px;color:var(--txt2)">suggested architecture refactor · N+1 pattern in 3 repos</span><span class="run-meta">2h ago</span></div>
+</div>
+</div>
+</div>
+
+<!-- LIVE FEED -->
+<div class="screen" id="screen-livefeed">
+<div class="topbar"><div><div class="tb-title">Live run feed</div><div class="tb-sub">my-api · commit 3fa2c1 · running now</div></div><div class="tb-actions"><button class="btn">Download log</button></div></div>
+<div class="content">
+<div class="log-wrap">
+<div class="ll"><span class="lts">14:23:01</span><span class="linf">Webhook received · commit 3fa2c1 · branch: main · 14 files changed</span></div>
+<div class="ll"><span class="lts">14:23:01</span><span class="linf">Signature verified · HMAC-SHA256 ✓</span></div>
+<div class="ll"><span class="lts">14:23:03</span><span class="linf">Stack detected: Node 20 + Postgres 16 + Redis 7</span></div>
+<div class="ll"><span class="lts">14:23:03</span><span class="linf">Provisioning Firecracker microVM · isolated environment</span></div>
+<div class="ll"><span class="lts">14:23:38</span><span class="lok">Sandbox ready · boot 35s · zero external network access ✓</span></div>
+<div class="ll"><span class="lts">14:23:39</span><span class="linf">Installing dependencies · 847 packages · node_modules from cache</span></div>
+<div class="ll"><span class="lts">14:23:44</span><span class="lok">Dependencies installed ✓</span></div>
+<div class="ll"><span class="lts">14:23:45</span><span class="linf">Loading seed DB · 12,400 anonymised rows · migrations running</span></div>
+<div class="ll"><span class="lts">14:23:52</span><span class="lok">DB seeded · all migrations passed ✓</span></div>
+<div class="ll"><span class="lts">14:23:53</span><span class="linf">AST engine · scanning 14 changed files · tree-sitter parsing</span></div>
+<div class="ll"><span class="lts">14:24:01</span><span class="lwarn">BLOAT · validateEmail() in auth/validators.js duplicates utils/validators.js:42</span></div>
+<div class="ll"><span class="lts">14:24:01</span><span class="lok">  → refactored · import rewritten to use existing helper ✓</span></div>
+<div class="ll"><span class="lts">14:24:03</span><span class="lwarn">BLOAT · formatDate() appears in 4 files · extracting to utils/dates.js</span></div>
+<div class="ll"><span class="lts">14:24:05</span><span class="lok">  → 3 files updated · 52 duplicate lines removed ✓</span></div>
+<div class="ll"><span class="lts">14:24:08</span><span class="linf">Security scan · OWASP top 10 · secrets detection · CVE audit</span></div>
+<div class="ll"><span class="lts">14:24:22</span><span class="lok">No secrets detected · 847 files + full git log scanned ✓</span></div>
+<div class="ll"><span class="lts">14:24:24</span><span class="lok">No critical CVEs · 3 low-severity flagged in report ✓</span></div>
+<div class="ll"><span class="lts">14:24:26</span><span class="linf">Auth check · firing unauthenticated requests at all 34 routes</span></div>
+<div class="ll"><span class="lts">14:24:28</span><span class="lok">All routes return 401 without valid token ✓</span></div>
+<div class="ll"><span class="lts">14:24:28</span><span class="linf">Rate limit check · 100 rapid requests → /api/auth/login</span></div>
+<div class="ll"><span class="lts">14:24:30</span><span class="lok">Rate limiting active · 429 returned at request 11 ✓</span></div>
+<div class="ll"><span class="lts">14:24:31</span><span class="linf">Test runner starting · Jest · 142 tests</span></div>
+<div class="ll"><span class="lts">14:25:12</span><span class="lok">142/142 tests passed · 0 failures ✓</span></div>
+<div class="ll"><span class="lts">14:25:14</span><span class="linf">Performance · EXPLAIN ANALYZE on all queries · load test</span></div>
+<div class="ll"><span class="lts">14:25:44</span><span class="lwarn">ARCH · N+1 detected · /api/users fires 1 query per row · suggest JOIN</span></div>
+<div class="ll"><span class="lts">14:25:46</span><span class="linf">AI-era scan · LLM endpoints · prompt injection · token limits</span></div>
+<div class="ll"><span class="lts">14:25:49</span><span class="lwarn">AI-ERA · /api/chat has no max_tokens guard · adversarial cost risk</span></div>
+<div class="ll"><span class="lts">14:25:51</span><span class="lok">Debt score: 91/100 · all gates passed ✓</span></div>
+<div class="ll"><span class="lts">14:25:52</span><span class="lok">Promoting to staging · ephemeral environment deploying ✓</span></div>
+<div class="ll"><span class="lts">14:25:58</span><span class="lok">Staging live · staging-3fa2c1.codeward.app ✓</span></div>
+<div class="ll"><span class="lts">14:25:58</span><span class="linf">Waiting for approval · auto-approve in 2h if no action <span class="cursor"></span></span></div>
+</div>
+</div>
+</div>
+
+<!-- DIFF VIEWER -->
+<div class="screen" id="screen-diff">
+<div class="topbar"><div><div class="tb-title">Diff viewer</div><div class="tb-sub">my-api · commit 3fa2c1 · 3 files changed by agent</div></div><div class="tb-actions"><button class="btn btn-primary">Accept all</button><button class="btn" style="color:var(--red)">Reject all</button></div></div>
+<div class="content">
+<div class="diff-file">
+  <div class="diff-head"><span>auth/validators.js</span><span class="chip chip-a">duplicate removed</span></div>
+  <div class="diff-body">
+    <div class="dl dl-rem">- function validateEmail(str) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(str); }</div>
+    <div class="dl dl-rem">- function validatePhone(str) { return /^\+?[1-9]\d{1,14}$/.test(str); }</div>
+    <div class="dl dl-add">+ import { validateEmail, validatePhone } from '../utils/validators';</div>
+    <div class="dl dl-why">↳ Reason: identical functions exist in utils/validators.js lines 42–48. Removed 8 lines of duplication. Reuse score: 100%.</div>
+  </div>
+  <div class="diff-actions"><button class="btn btn-primary" style="font-size:10px;padding:3px 9px">Accept</button><button class="btn" style="font-size:10px;padding:3px 9px">Reject</button></div>
+</div>
+<div class="diff-file">
+  <div class="diff-head"><span>config/api.js</span><span class="chip chip-r">security fix — critical</span></div>
+  <div class="diff-body">
+    <div class="dl dl-rem">- const STRIPE_KEY = "sk_live_REDACTED_API_KEY";</div>
+    <div class="dl dl-rem">- const OPENAI_KEY = "sk-proj-REDACTED_API_KEY";</div>
+    <div class="dl dl-add">+ const STRIPE_KEY = process.env.STRIPE_SECRET_KEY;</div>
+    <div class="dl dl-add">+ const OPENAI_KEY = process.env.OPENAI_API_KEY;</div>
+    <div class="dl dl-why">↳ Critical: live API keys hardcoded in source. Visible in git history for 47 commits. Moved to environment variables.</div>
+  </div>
+  <div class="diff-actions"><button class="btn btn-primary" style="font-size:10px;padding:3px 9px">Accept</button><button class="btn" style="font-size:10px;padding:3px 9px">Reject</button></div>
+</div>
+<div class="diff-file">
+  <div class="diff-head"><span>api/users.js</span><span class="chip chip-a">dead code removed</span></div>
+  <div class="diff-body">
+    <div class="dl dl-rem">- // Old user sync — deprecated Jan 2025</div>
+    <div class="dl dl-rem">- // async function syncUsersFromLegacyDB(batch) { ... 52 lines</div>
+    <div class="dl dl-ctx">  export async function getUser(id) {</div>
+    <div class="dl dl-why">↳ 52 lines of commented-out dead code removed. Never called. Last modified 14 months ago.</div>
+  </div>
+  <div class="diff-actions"><button class="btn btn-primary" style="font-size:10px;padding:3px 9px">Accept</button><button class="btn" style="font-size:10px;padding:3px 9px">Reject</button></div>
+</div>
+</div>
+</div>
+
+<!-- SECURITY -->
+<div class="screen" id="screen-security">
+<div class="topbar"><div><div class="tb-title">Security panel</div><div class="tb-sub">3 critical · 2 high · 1 medium · last scan 4 min ago</div></div><div class="tb-actions"><button class="btn btn-primary">Fix all auto-fixable</button></div></div>
+<div class="content">
+<div class="issue issue-crit">
+  <div style="font-size:20px">🔴</div>
+  <div><div class="issue-title">Hardcoded API keys — config/api.js lines 3–4</div>
+  <div class="issue-desc">Two live API keys (Stripe, OpenAI) found hardcoded. Visible in git history for 47 commits. Anyone with repo read access has these keys right now.</div>
+  <div class="issue-fix"><button class="btn btn-primary" style="font-size:10px">Auto-fix: move to .env</button></div></div>
+</div>
+<div class="issue issue-crit">
+  <div style="font-size:20px">🔴</div>
+  <div><div class="issue-title">Missing authentication — GET /api/admin/users</div>
+  <div class="issue-desc">Endpoint returns full user records with no auth check. Agent confirmed: 200 response with all user data when called with no token.</div>
+  <div class="issue-fix"><button class="btn btn-primary" style="font-size:10px">View suggested fix</button></div></div>
+</div>
+<div class="issue issue-crit">
+  <div style="font-size:20px">🔴</div>
+  <div><div class="issue-title">Database RLS missing — users table (Supabase)</div>
+  <div class="issue-desc">Row-level security not enabled. Any authenticated user can query all rows. Critical for multi-tenant apps.</div>
+  <div class="issue-fix"><button class="btn btn-primary" style="font-size:10px">Auto-fix: apply RLS policy</button></div></div>
+</div>
+<div class="issue issue-high">
+  <div style="font-size:20px">🟡</div>
+  <div><div class="issue-title">No rate limiting — POST /api/auth/login</div>
+  <div class="issue-desc">100 rapid requests all returned 200. Brute-force attack is trivially possible on this endpoint.</div>
+  <div class="issue-fix"><button class="btn" style="font-size:10px">View fix</button></div></div>
+</div>
+<div class="issue issue-high" style="border-left:3px solid var(--purple)">
+  <div style="font-size:20px">🟣</div>
+  <div><div class="issue-title">AI-era: no max_tokens guard — /api/chat (LLM endpoint)</div>
+  <div class="issue-desc">OpenAI API called with no max_tokens set. Adversarial user input can trigger extremely long completions, draining your API budget in minutes.</div>
+  <div class="issue-fix"><button class="btn btn-primary" style="font-size:10px">Auto-fix: add max_tokens: 1000</button></div></div>
+</div>
+<div class="issue issue-med">
+  <div style="font-size:20px">🔵</div>
+  <div><div class="issue-title">Outdated dependency — lodash 4.17.15 · 3 known CVEs</div>
+  <div class="issue-desc">CVE-2021-23337 (high), CVE-2020-28500 (medium). Update to lodash@4.17.21.</div>
+  <div class="issue-fix"><button class="btn btn-primary" style="font-size:10px">Auto-update</button></div></div>
+</div>
+</div>
+</div>
+
+<!-- DEBT REPORT -->
+<div class="screen" id="screen-debt">
+<div class="topbar"><div><div class="tb-title">Debt report</div><div class="tb-sub">my-api · all categories · this month</div></div><div class="tb-actions"><button class="btn">Export PDF</button></div></div>
+<div class="content">
+<div class="g4" style="margin-bottom:14px">
+  <div class="stat"><div class="stat-n" style="color:var(--red)">3</div><div class="stat-l">Critical security</div></div>
+  <div class="stat"><div class="stat-n" style="color:var(--amber)">8</div><div class="stat-l">Duplicate functions</div></div>
+  <div class="stat"><div class="stat-n">247</div><div class="stat-l">Dead code lines</div></div>
+  <div class="stat"><div class="stat-n" style="color:var(--green)">91</div><div class="stat-l">Health score</div></div>
+</div>
+<div class="debt-cat">
+  <div class="dcat-head" style="background:#FEF2F2"><span style="color:var(--red)">Security debt</span><span class="chip chip-r">Critical · 3 issues · all auto-fixed</span></div>
+  <div class="dcat-body">
+    <div class="dcat-item"><div class="dcat-item-t">Hardcoded API keys</div><div class="dcat-item-d">2 live keys in config.js · moved to .env · git history flagged</div></div>
+    <div class="dcat-item"><div class="dcat-item-t">Missing route auth</div><div class="dcat-item-d">/api/admin/users unprotected · auth middleware added</div></div>
+    <div class="dcat-item"><div class="dcat-item-t">RLS missing on users table</div><div class="dcat-item-d">Supabase policy added · per-user row isolation enforced</div></div>
+    <div class="dcat-item"><div class="dcat-item-t">AI: no max_tokens guard</div><div class="dcat-item-d">LLM endpoint exposed to cost attack · limit added</div></div>
+  </div>
+</div>
+<div class="debt-cat">
+  <div class="dcat-head" style="background:#FFFBEB"><span style="color:var(--amber)">Bloat debt</span><span class="chip chip-a">High · 8 duplicates · 247 lines removed</span></div>
+  <div class="dcat-body">
+    <div class="dcat-item"><div class="dcat-item-t">validateEmail() × 3</div><div class="dcat-item-d">Found in auth/, api/, utils/ · merged to utils/validators.js</div></div>
+    <div class="dcat-item"><div class="dcat-item-t">formatDate() × 4</div><div class="dcat-item-d">4 files had identical logic · extracted to utils/dates.js</div></div>
+    <div class="dcat-item"><div class="dcat-item-t">Commented dead code</div><div class="dcat-item-d">52 lines in api/users.js · last modified 14 months ago · removed</div></div>
+    <div class="dcat-item"><div class="dcat-item-t">Unused package: moment.js</div><div class="dcat-item-d">Never imported after date-fns migration · removed from package.json</div></div>
+  </div>
+</div>
+<div class="debt-cat">
+  <div class="dcat-head" style="background:#EFF6FF"><span style="color:var(--blue)">Architecture debt</span><span class="chip chip-b">Medium · N+1 pattern · 2 missing indexes</span></div>
+  <div class="dcat-body">
+    <div class="dcat-item"><div class="dcat-item-t">N+1 on /api/users</div><div class="dcat-item-d">1 query per user row · fix: JOIN profiles in main query</div></div>
+    <div class="dcat-item"><div class="dcat-item-t">Missing index: orders.user_id</div><div class="dcat-item-d">Full scan on 84k rows · CREATE INDEX suggested</div></div>
+  </div>
+</div>
+</div>
+</div>
+
+<!-- AI AGENT -->
+<div class="screen" id="screen-agent">
+<div class="topbar"><div><div class="tb-title">Codeward AI</div><div class="tb-sub">Your autonomous engineering agent — not just a chatbot</div></div><div class="tb-actions"><button class="btn">New conversation</button><button class="btn btn-primary">Run agent task</button></div></div>
+<div class="content">
+<div style="background:#F5F3FF;border:0.5px solid #C4B5FD;border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:11px;color:var(--purple)">
+  <strong>Codeward AI is not a chatbot.</strong> It reads your full codebase, understands context across all repos, executes real actions (refactors, security fixes, architecture proposals), and can be triggered to run autonomously on a schedule or on push events.
+</div>
+<div class="chat-wrap">
+  <div class="chat-messages" id="chat-messages">
+    <div class="msg msg-ai">
+      <div class="msg-av msg-av-ai">CW</div>
+      <div class="msg-bubble">
+        I've finished analysing <code>acme-corp/my-api</code>. Here's what I found across your 4 repos:<br><br>
+        <strong>Immediate action needed:</strong> 3 critical security issues including 2 hardcoded API keys and an unprotected admin endpoint.<br><br>
+        <strong>Architecture pattern I noticed:</strong> The same N+1 query pattern on user profile fetching appears in <code>my-api</code>, <code>auth-service</code>, and <code>frontend-api</code>. This is going to become a serious problem at scale — I can fix all three in one operation.<br><br>
+        <strong>AI-era risk:</strong> Your <code>/api/chat</code> endpoint has no token limit. I simulated an adversarial user and projected a $340/hour API cost at scale. One line fix.
+        <div class="agent-action"><div class="agent-dot"></div>Watching: 4 repos · 847 files · last scan 4 min ago</div>
+      </div>
+    </div>
+    <div class="msg msg-user">
+      <div class="msg-av msg-av-user">JK</div>
+      <div class="msg-bubble msg-bubble-user">Fix all three N+1 problems across the repos and show me what you changed</div>
+    </div>
+    <div class="msg msg-ai">
+      <div class="msg-av msg-av-ai">CW</div>
+      <div class="msg-bubble">
+        Running now. I'll spin up sandboxes for all three repos in parallel, apply the JOIN refactor, run the full test suite in each, and show you the diffs before committing anything.
+        <div class="agent-action"><div class="agent-dot"></div>Spinning up 3 sandboxes in parallel · estimated 90 seconds</div>
+        <div class="agent-action"><div class="agent-dot"></div>my-api: rewriting /api/users — SELECT * JOIN profiles in single query</div>
+        <div class="agent-action"><div class="agent-dot"></div>auth-service: rewriting /api/sessions — same N+1 pattern</div>
+        <div class="agent-action" style="background:#F0FDF4;border-color:#BBF7D0"><div class="agent-dot"></div>frontend-api: ✓ done · 142 tests passing · diff ready for review</div>
+      </div>
+    </div>
+    <div class="msg msg-user">
+      <div class="msg-av msg-av-user">JK</div>
+      <div class="msg-bubble msg-bubble-user">What's the state of our codebase compared to 30 days ago?</div>
+    </div>
+    <div class="msg msg-ai">
+      <div class="msg-av msg-av-ai">CW</div>
+      <div class="msg-bubble">
+        <strong>30-day comparison — acme-corp:</strong><br><br>
+        Health score: 71 → <strong style="color:var(--green)">87</strong> (+16 pts)<br>
+        Codebase size: −4.2% (leaner, not bigger)<br>
+        Critical security issues: 9 → 0 (all resolved)<br>
+        Duplicate functions: 23 → 5 (−78%)<br>
+        Dead code lines: 1,240 → 0<br>
+        Test coverage: 68% → 84%<br><br>
+        The biggest improvements came from the security sweep in week 2 and the duplicate function cleanup in week 3. Your <code>payments-api</code> is the laggard — health score only 52. Want me to do a full audit and fix pass on it?
+      </div>
+    </div>
+    <div class="msg msg-user">
+      <div class="msg-av msg-av-user">JK</div>
+      <div class="msg-bubble msg-bubble-user">Yes — and also check if our LLM integrations are safe from prompt injection</div>
+    </div>
+    <div class="msg msg-ai">
+      <div class="msg-av msg-av-ai">CW</div>
+      <div class="msg-bubble">
+        On it. Running two parallel tasks:<br><br>
+        <strong>1. payments-api full audit:</strong> Sandbox spinning up · I'll scan all 5 debt categories and propose a prioritised fix list with effort estimates.<br><br>
+        <strong>2. Prompt injection sweep:</strong> Testing all 8 LLM-connected endpoints across your repos with standard and advanced override payloads. I'll also check for PII passing through to model context and unbounded token spend.
+        <div class="agent-action"><div class="agent-dot"></div>payments-api sandbox: provisioning Node 18 + Postgres 15</div>
+        <div class="agent-action"><div class="agent-dot"></div>Prompt injection test: firing payloads at /api/chat, /api/assist, /api/suggest</div>
+        <div class="agent-action" style="background:#FEF2F2;border-color:#FECACA"><div class="agent-dot" style="background:var(--red)"></div>FINDING: /api/assist accepts "ignore previous instructions" payload — system prompt override confirmed</div>
+      </div>
+    </div>
+  </div>
+  <div class="chat-input-row">
+    <input class="chat-input" id="chat-input" placeholder="Ask the agent anything about your codebase, or tell it to take action..." onkeydown="sendMsg(event)">
+    <button class="chat-send" onclick="sendMsg({key:'Enter'})">Send</button>
+  </div>
+</div>
+</div>
+</div>
+
+<!-- STAGING -->
+<div class="screen" id="screen-staging">
+<div class="topbar"><div><div class="tb-title">Staging</div><div class="tb-sub">1 deployment awaiting approval</div></div></div>
+<div class="content">
+<div class="staging-card">
+  <div style="font-size:15px;font-weight:500;margin-bottom:3px">my-api · commit 3fa2c1</div>
+  <div style="font-size:11px;color:var(--txt3);margin-bottom:12px">Deployed 4 minutes ago · all 142 tests passed · 3 debt items fixed by agent</div>
+  <div class="preview-link">🔗 staging-3fa2c1.codeward.app — open live preview</div>
+  <div class="checks-row">
+    <div class="check"><div class="check-icon">✅</div><div class="check-label">142/142 tests passed</div></div>
+    <div class="check"><div class="check-icon">🔒</div><div class="check-label">0 critical vulns</div></div>
+    <div class="check"><div class="check-icon">📉</div><div class="check-label">−247 lines removed</div></div>
+    <div class="check"><div class="check-icon">⚡</div><div class="check-label">p99 &lt; 120ms</div></div>
+  </div>
+  <div style="font-size:12px;color:var(--txt2);margin-bottom:10px">Score: <strong style="color:var(--green)">91/100</strong> · Security: ✓ · Broken code: ✓ · Architecture: 1 warning (N+1 on /api/users)</div>
+  <div class="approval-btns">
+    <button class="btn btn-green" onclick="alert('Merged to production! Post-deploy monitoring active.')">✓ Approve — merge to production</button>
+    <button class="btn">✕ Reject</button>
+    <button class="btn">View full diff</button>
+  </div>
+  <div style="font-size:10px;color:var(--txt3);margin-top:7px">Auto-approves in 1h 52m if no action taken (configurable in Settings)</div>
+</div>
+</div>
+</div>
+
+<!-- HISTORY -->
+<div class="screen" id="screen-history">
+<div class="topbar"><div><div class="tb-title">Deploy history</div><div class="tb-sub">all repos · last 30 days</div></div></div>
+<div class="content">
+<div class="card">
+  <div class="hist-row" style="font-size:10px;color:var(--txt3);font-weight:500"><span style="min-width:55px">SHA</span><span style="flex:1">REPO</span><span style="min-width:60px">SCORE</span><span style="min-width:70px">STATUS</span><span style="min-width:60px">TIME</span></div>
+  <div class="hist-row"><span class="hist-sha">3fa2c1</span><span style="flex:1">my-api</span><span class="chip chip-g" style="min-width:60px">91/100</span><span style="font-size:10px;min-width:70px;color:var(--amber)">Staging ⏳</span><span style="font-size:10px;color:var(--txt3)">4m ago</span></div>
+  <div class="hist-row"><span class="hist-sha">aa01b2</span><span style="flex:1">frontend</span><span class="chip chip-g" style="min-width:60px">94/100</span><span style="font-size:10px;min-width:70px;color:var(--green)">Prod ✓</span><span style="font-size:10px;color:var(--txt3)">1h ago</span></div>
+  <div class="hist-row"><span class="hist-sha">7aa312</span><span style="flex:1">payments-api</span><span class="chip chip-r" style="min-width:60px">0/100</span><span style="font-size:10px;min-width:70px;color:var(--red)">Blocked 🛑</span><span style="font-size:10px;color:var(--txt3)">3h ago</span></div>
+  <div class="hist-row"><span class="hist-sha">9c3d11</span><span style="flex:1">auth-service</span><span class="chip chip-g" style="min-width:60px">89/100</span><span style="font-size:10px;min-width:70px;color:var(--green)">Prod ✓</span><span style="font-size:10px;color:var(--txt3)">5h ago</span></div>
+  <div class="hist-row"><span class="hist-sha">f12b44</span><span style="flex:1">my-api</span><span class="chip chip-a" style="min-width:60px">76/100</span><span style="font-size:10px;min-width:70px;color:var(--green)">Prod ✓</span><span style="font-size:10px;color:var(--txt3)">1d ago</span></div>
+  <div class="hist-row"><span class="hist-sha">c33f91</span><span style="flex:1">frontend</span><span class="chip chip-r" style="min-width:60px">0/100</span><span style="font-size:10px;min-width:70px;color:var(--red)">Rollback 🔄</span><span style="font-size:10px;color:var(--txt3)">2d ago</span></div>
+</div>
+</div>
+</div>
+
+<!-- REPOS -->
+<div class="screen" id="screen-repos">
+<div class="topbar"><div><div class="tb-title">Repositories</div><div class="tb-sub">4 repos · health score last 30 days</div></div><div class="tb-actions"><button class="btn btn-primary">+ Add repo</button></div></div>
+<div class="content">
+<div class="repo-row"><span class="repo-name">my-api</span><div class="repo-bar-wrap"><div class="repo-bar" style="width:91%;background:var(--green)"></div></div><span style="font-size:12px;font-weight:500;min-width:28px;text-align:right">91</span><span class="stat-t up" style="min-width:35px;margin-left:6px">↑ +6</span><button class="btn" style="font-size:10px;margin-left:8px">View</button></div>
+<div class="repo-row"><span class="repo-name">frontend</span><div class="repo-bar-wrap"><div class="repo-bar" style="width:87%;background:var(--green)"></div></div><span style="font-size:12px;font-weight:500;min-width:28px;text-align:right">87</span><span class="stat-t up" style="min-width:35px;margin-left:6px">↑ +4</span><button class="btn" style="font-size:10px;margin-left:8px">View</button></div>
+<div class="repo-row"><span class="repo-name">auth-service</span><div class="repo-bar-wrap"><div class="repo-bar" style="width:79%;background:var(--amber)"></div></div><span style="font-size:12px;font-weight:500;min-width:28px;text-align:right">79</span><span class="stat-t down" style="min-width:35px;margin-left:6px">↓ −2</span><button class="btn" style="font-size:10px;margin-left:8px">View</button></div>
+<div class="repo-row"><span class="repo-name">payments-api</span><div class="repo-bar-wrap"><div class="repo-bar" style="width:52%;background:var(--red)"></div></div><span style="font-size:12px;font-weight:500;min-width:28px;text-align:right">52</span><span class="stat-t down" style="min-width:35px;margin-left:6px">↓ −14</span><button class="btn" style="font-size:10px;margin-left:8px">View</button></div>
+</div>
+</div>
+
+<!-- CERT -->
+<div class="screen" id="screen-cert">
+<div class="topbar"><div><div class="tb-title">Health certificate</div><div class="tb-sub">shareable · updates on every scan</div></div></div>
+<div class="content">
+<div class="cert-big">
+  <div class="cert-num">91</div>
+  <div style="font-size:13px;color:var(--txt2);margin-top:6px">Codeward health score · acme-corp/my-api</div>
+  <div style="display:inline-block;background:#DCFCE7;border:0.5px solid #BBF7D0;border-radius:6px;padding:4px 14px;font-size:11px;color:var(--green);margin:10px 0">✓ Passed Codeward security &amp; quality review</div>
+  <div style="font-size:11px;color:var(--txt3)">Last scan: 4 minutes ago · 0 critical · 0 high · 1 medium</div>
+</div>
+<div class="card">
+  <div class="card-title">Share this certificate</div>
+  <div style="background:var(--bg3);border-radius:6px;padding:7px 10px;font-family:monospace;font-size:11px;color:var(--txt2);margin-bottom:8px">https://codeward.io/cert/acme-corp/my-api</div>
+  <div style="display:flex;gap:6px"><button class="btn btn-primary">Copy link</button><button class="btn">Embed badge</button><button class="btn">Download PDF</button></div>
+  <div style="font-size:11px;color:var(--txt3);margin-top:8px">Show this on your landing page, investor decks, or README. Every visitor who clicks it and wants the same for their codebase is your next customer.</div>
+</div>
+</div>
+</div>
+
+<!-- SETTINGS -->
+<div class="screen" id="screen-settings">
+<div class="topbar"><div><div class="tb-title">Settings</div><div class="tb-sub">acme-corp · my-api · trust &amp; automation</div></div></div>
+<div class="content">
+<div class="card" style="margin-bottom:10px">
+  <div class="card-title">Trust mode</div>
+  <div class="set-row"><div><div class="set-label">Auto-refactor low-risk files</div><div class="set-desc">Utilities, helpers, test files. Never touches business logic without asking.</div></div><div class="toggle on" onclick="this.classList.toggle('on')"><div class="toggle-thumb"></div></div></div>
+  <div class="set-row"><div><div class="set-label">Auto-deploy to staging</div><div class="set-desc">After sandbox passes all gates, deploy to ephemeral staging automatically.</div></div><div class="toggle on" onclick="this.classList.toggle('on')"><div class="toggle-thumb"></div></div></div>
+  <div class="set-row"><div><div class="set-label">Auto-merge to production</div><div class="set-desc">Merge after staging approval. Off = always require human click.</div></div><div class="toggle" onclick="this.classList.toggle('on')"><div class="toggle-thumb"></div></div></div>
+  <div class="set-row"><div><div class="set-label">Codeward AI autonomous mode</div><div class="set-desc">Allow the agent to proactively suggest and execute refactors on a schedule.</div></div><div class="toggle" onclick="this.classList.toggle('on')"><div class="toggle-thumb"></div></div></div>
+</div>
+<div class="card" style="margin-bottom:10px">
+  <div class="card-title">Production gate</div>
+  <div class="set-row"><div><div class="set-label">Staging approval mode</div></div><select style="font-size:11px;padding:4px 8px;border-radius:6px;border:0.5px solid var(--bdr);background:var(--bg2)"><option>Manual approval required</option><option>Auto-approve after 2 hours</option><option>Auto-approve after 30 min</option></select></div>
+  <div class="set-row"><div><div class="set-label">Post-deploy monitoring window</div></div><select style="font-size:11px;padding:4px 8px;border-radius:6px;border:0.5px solid var(--bdr);background:var(--bg2)"><option>10 minutes</option><option>30 minutes</option><option>1 hour</option></select></div>
+  <div class="set-row"><div><div class="set-label">Auto-rollback on anomaly</div><div class="set-desc">Rollback if error rate spikes 3× baseline within monitoring window.</div></div><div class="toggle on" onclick="this.classList.toggle('on')"><div class="toggle-thumb"></div></div></div>
+</div>
+<div class="card">
+  <div class="card-title">Notifications</div>
+  <div class="set-row"><div><div class="set-label">Slack</div></div><div class="toggle on" onclick="this.classList.toggle('on')"><div class="toggle-thumb"></div></div></div>
+  <div class="set-row"><div><div class="set-label">Email digest (weekly)</div></div><div class="toggle on" onclick="this.classList.toggle('on')"><div class="toggle-thumb"></div></div></div>
+  <div class="set-row"><div><div class="set-label">Push notifications (mobile)</div></div><div class="toggle" onclick="this.classList.toggle('on')"><div class="toggle-thumb"></div></div></div>
+  <div class="set-row"><div><div class="set-label">Codeward AI proactive alerts</div><div class="set-desc">Agent notifies you when it spots a pattern worth discussing across repos.</div></div><div class="toggle on" onclick="this.classList.toggle('on')"><div class="toggle-thumb"></div></div></div>
+</div>
+</div>
+</div>
+
+</div><!-- /main -->
+</div><!-- /app-shell -->
+
+<script>
+function show(id, el){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('screen-'+id).classList.add('active');
+  if(el) el.classList.add('active');
+}
+const replies = {
+  'scan my repo': "Scanning now. I'll check all 5 debt categories across your full codebase. Results in about 90 seconds.",
+  'what is the biggest risk': "Your biggest risk right now is <code>payments-api</code> — health score 52/100. It has 2 unprotected endpoints and no rate limiting on the payment confirmation route. I'd prioritise this immediately.",
+  'fix the n+1': "Running N+1 fix across all 3 affected repos. Rewriting profile fetch to use a single JOIN query in each. I'll show you the diffs before committing anything.",
+  'show me the security issues': "Switching to Security panel now.",
+  default: "I've noted that. Let me check across your full codebase and come back with findings and a recommended action plan. Give me 60 seconds."
+};
+function sendMsg(e){
+  if(e.key!=='Enter') return;
+  const input = document.getElementById('chat-input');
+  const val = input.value.trim();
+  if(!val) return;
+  input.value = '';
+  const msgs = document.getElementById('chat-messages');
+  const userMsg = document.createElement('div');
+  userMsg.className = 'msg msg-user';
+  userMsg.innerHTML = `<div class="msg-av msg-av-user">JK</div><div class="msg-bubble msg-bubble-user">${val}</div>`;
+  msgs.appendChild(userMsg);
+  setTimeout(()=>{
+    const key = Object.keys(replies).find(k=>val.toLowerCase().includes(k)) || 'default';
+    const aiMsg = document.createElement('div');
+    aiMsg.className = 'msg msg-ai';
+    aiMsg.innerHTML = `<div class="msg-av msg-av-ai">CW</div><div class="msg-bubble">${replies[key]}<div class="agent-action"><div class="agent-dot"></div>Agent working · watching all 4 repos</div></div>`;
+    msgs.appendChild(aiMsg);
+    msgs.scrollTop = msgs.scrollHeight;
+  }, 700);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+</script>
+</body>
+</html>

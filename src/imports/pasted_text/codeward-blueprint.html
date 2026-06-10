@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Codeward — Full Engineering Blueprint</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f1117;--bg2:#161b27;--bg3:#1e2535;--bg4:#252d3d;
+  --txt:#e8e8e6;--txt2:#aaa;--txt3:#666;
+  --bdr:#2a3040;--bdr2:#3a4255;
+  --blue:#4B7BEC;--green:#22C55E;--red:#EF4444;
+  --amber:#F59E0B;--purple:#8B5CF6;--teal:#14B8A6;
+  --pink:#EC4899;--orange:#F97316;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--txt);line-height:1.6;font-size:13px}
+.page{max-width:1200px;margin:0 auto;padding:2rem 1.5rem}
+
+/* NAV TABS */
+.tabs{display:flex;gap:4px;margin-bottom:2rem;border-bottom:0.5px solid var(--bdr);padding-bottom:0;flex-wrap:wrap}
+.tab{padding:8px 16px;font-size:12px;font-weight:500;cursor:pointer;color:var(--txt2);border-bottom:2px solid transparent;transition:all .15s;margin-bottom:-1px}
+.tab:hover{color:var(--txt)}
+.tab.active{color:var(--blue);border-bottom-color:var(--blue)}
+.tab-content{display:none}.tab-content.active{display:block}
+
+/* HEADERS */
+h1{font-size:26px;font-weight:500;letter-spacing:-.03em;margin-bottom:.25rem}
+h2{font-size:18px;font-weight:500;margin:1.75rem 0 .75rem;color:var(--txt)}
+h3{font-size:13px;font-weight:500;color:var(--txt2);text-transform:uppercase;letter-spacing:.07em;margin:1.25rem 0 .6rem}
+.sub{font-size:13px;color:var(--txt3);margin-bottom:2rem}
+
+/* CARDS */
+.card{background:var(--bg2);border:0.5px solid var(--bdr);border-radius:10px;padding:14px 16px;margin-bottom:10px}
+.card-title{font-size:12px;font-weight:500;color:var(--txt2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px}
+
+/* GRIDS */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+
+/* TAGS */
+.tag{display:inline-block;font-size:10px;padding:2px 8px;border-radius:4px;font-weight:500;margin:2px}
+.tag-blue{background:rgba(75,123,236,.15);color:#93B4F8;border:0.5px solid rgba(75,123,236,.3)}
+.tag-green{background:rgba(34,197,94,.12);color:#86EFAC;border:0.5px solid rgba(34,197,94,.25)}
+.tag-red{background:rgba(239,68,68,.12);color:#FCA5A5;border:0.5px solid rgba(239,68,68,.25)}
+.tag-amber{background:rgba(245,158,11,.12);color:#FCD34D;border:0.5px solid rgba(245,158,11,.25)}
+.tag-purple{background:rgba(139,92,246,.12);color:#C4B5FD;border:0.5px solid rgba(139,92,246,.25)}
+.tag-teal{background:rgba(20,184,166,.12);color:#5EEAD4;border:0.5px solid rgba(20,184,166,.25)}
+.tag-gray{background:var(--bg3);color:var(--txt2);border:0.5px solid var(--bdr)}
+.tag-free{background:rgba(34,197,94,.15);color:#86EFAC;border:0.5px solid rgba(34,197,94,.3);font-size:9px;padding:1px 5px}
+.tag-paid{background:rgba(245,158,11,.1);color:#FCD34D;border:0.5px solid rgba(245,158,11,.25);font-size:9px;padding:1px 5px}
+
+/* TRUTH BOXES */
+.truth{border-left:3px solid var(--red);background:rgba(239,68,68,.07);border-radius:0 8px 8px 0;padding:10px 14px;margin:10px 0}
+.truth-t{font-size:12px;font-weight:500;color:#FCA5A5;margin-bottom:4px}
+.good{border-left:3px solid var(--green);background:rgba(34,197,94,.07);border-radius:0 8px 8px 0;padding:10px 14px;margin:10px 0}
+.good-t{font-size:12px;font-weight:500;color:#86EFAC;margin-bottom:4px}
+.warn{border-left:3px solid var(--amber);background:rgba(245,158,11,.07);border-radius:0 8px 8px 0;padding:10px 14px;margin:10px 0}
+.warn-t{font-size:12px;font-weight:500;color:#FCD34D;margin-bottom:4px}
+
+/* BODY TEXT */
+p{font-size:13px;color:var(--txt2);line-height:1.7;margin-bottom:.75rem}
+.mono{font-family:'Courier New',monospace;font-size:11px;background:var(--bg3);padding:1px 6px;border-radius:3px;color:var(--teal)}
+
+/* ARCH DIAGRAM */
+.arch{display:flex;flex-direction:column;gap:2px}
+.arch-layer{border:0.5px dashed var(--bdr2);border-radius:10px;padding:12px 14px;position:relative}
+.arch-layer-label{position:absolute;top:-9px;left:14px;background:var(--bg);padding:0 8px;font-size:10px;font-weight:500;letter-spacing:.07em;text-transform:uppercase}
+.arch-boxes{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
+.abox{border-radius:7px;padding:8px 12px;border:0.5px solid;min-width:120px}
+.abox-title{font-size:12px;font-weight:500;margin-bottom:2px}
+.abox-sub{font-size:10px;opacity:.7;line-height:1.4}
+.abox-tech{font-size:9px;font-family:'Courier New',monospace;margin-top:4px;opacity:.55;background:rgba(255,255,255,.05);padding:1px 5px;border-radius:3px;display:inline-block}
+.l-purple{border-color:rgba(139,92,246,.4);background:rgba(139,92,246,.07)}.l-purple .arch-layer-label{color:#C4B5FD}
+.l-blue{border-color:rgba(75,123,236,.4);background:rgba(75,123,236,.06)}.l-blue .arch-layer-label{color:#93B4F8}
+.l-teal{border-color:rgba(20,184,166,.4);background:rgba(20,184,166,.06)}.l-teal .arch-layer-label{color:#5EEAD4}
+.l-orange{border-color:rgba(249,115,22,.4);background:rgba(249,115,22,.06)}.l-orange .arch-layer-label{color:#FDBA74}
+.l-gray{border-color:var(--bdr2);background:var(--bg2)}.l-gray .arch-layer-label{color:var(--txt2)}
+.l-green{border-color:rgba(34,197,94,.3);background:rgba(34,197,94,.05)}.l-green .arch-layer-label{color:#86EFAC}
+.l-purple2{border-color:rgba(236,72,153,.3);background:rgba(236,72,153,.05)}.l-purple2 .arch-layer-label{color:#F9A8D4}
+.l-agent{border-color:rgba(139,92,246,.5);background:rgba(139,92,246,.08);border-style:solid}.l-agent .arch-layer-label{color:#C4B5FD;font-size:11px}
+
+/* AGENT CARDS */
+.agent-card{background:var(--bg3);border:0.5px solid rgba(139,92,246,.4);border-radius:10px;padding:12px 14px;margin-bottom:8px}
+.agent-name{font-size:13px;font-weight:500;color:#C4B5FD;margin-bottom:4px;display:flex;align-items:center;gap:8px}
+.agent-role{font-size:11px;color:var(--txt2);line-height:1.5;margin-bottom:6px}
+.agent-tools{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+.agent-model{font-size:10px;padding:2px 8px;border-radius:4px;background:rgba(75,123,236,.15);color:#93B4F8;border:0.5px solid rgba(75,123,236,.3);font-weight:500}
+
+/* ENV TABLE */
+.env-table{width:100%;border-collapse:collapse}
+.env-table th{font-size:10px;font-weight:500;color:var(--txt3);text-transform:uppercase;letter-spacing:.06em;padding:6px 10px;border-bottom:0.5px solid var(--bdr);text-align:left}
+.env-table td{font-size:12px;padding:8px 10px;border-bottom:0.5px solid var(--bdr);color:var(--txt2);vertical-align:top}
+.env-table tr:last-child td{border:none}
+.env-table td:first-child{color:var(--txt);font-weight:500;font-family:'Courier New',monospace;font-size:11px}
+
+/* DEBT GRID */
+.debt-section{margin-bottom:1.5rem}
+.debt-head{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-radius:8px 8px 0 0}
+.debt-items{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:8px;border:0.5px solid var(--bdr);border-top:none;border-radius:0 0 8px 8px}
+.ditem{background:var(--bg2);border:0.5px solid var(--bdr);border-radius:6px;padding:7px 9px}
+.ditem-t{font-size:11px;font-weight:500;color:var(--txt);margin-bottom:1px}
+.ditem-d{font-size:10px;color:var(--txt2);line-height:1.4}
+.ditem-new{border-color:rgba(75,123,236,.3);background:rgba(75,123,236,.05)}
+.ditem-new .ditem-t::after{content:' NEW';font-size:8px;color:#93B4F8;font-weight:500;margin-left:4px}
+
+/* STACK TABLE */
+.stack-row{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:0.5px solid var(--bdr)}
+.stack-row:last-child{border:none}
+.stack-layer{font-size:11px;font-weight:500;color:var(--txt3);min-width:120px;padding-top:1px}
+.stack-tech{font-size:12px;font-weight:500;color:var(--txt);margin-bottom:2px}
+.stack-why{font-size:11px;color:var(--txt2);line-height:1.5}
+
+/* API TABLE */
+.api-card{background:var(--bg2);border:0.5px solid var(--bdr);border-radius:10px;padding:12px 14px;margin-bottom:8px}
+.api-name{font-size:13px;font-weight:500;color:var(--txt);margin-bottom:3px;display:flex;align-items:center;gap:8px}
+.api-purpose{font-size:11px;color:var(--txt2);line-height:1.5;margin-bottom:6px}
+.api-limits{font-size:10px;color:var(--txt3);font-family:'Courier New',monospace}
+
+/* FLOW ARROWS */
+.arrow-down{text-align:center;color:var(--txt3);font-size:18px;line-height:1;margin:2px 0}
+
+@media(max-width:700px){.g2,.g3,.g4{grid-template-columns:1fr}.arch-boxes{flex-direction:column}.debt-items{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="page">
+
+<h1>Codeward Engineering Blueprint</h1>
+<p class="sub">Complete implementation guide — multi-agent architecture · full tech stack · all environments · every external API · 100+ debt checks · React frontend</p>
+
+<!-- TABS -->
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('agents',this)">Multi-Agent Architecture</div>
+  <div class="tab" onclick="switchTab('arch',this)">System Architecture</div>
+  <div class="tab" onclick="switchTab('stack',this)">Tech Stack (React)</div>
+  <div class="tab" onclick="switchTab('envs',this)">Environments & APIs</div>
+  <div class="tab" onclick="switchTab('debt',this)">Full Debt Framework</div>
+  <div class="tab" onclick="switchTab('impl',this)">Implementation Order</div>
+</div>
+
+<!-- TAB 1: MULTI-AGENT -->
+<div class="tab-content active" id="tab-agents">
+<h2>Are we building a multi-agent system? Yes. Here is exactly what that means.</h2>
+<div class="good"><div class="good-t">The honest answer as an Anthropic engineer</div>
+<p style="margin:0;font-size:12px;color:#aaa;line-height:1.7">Yes — Codeward is a multi-agent orchestration system. Not one AI that does everything. A coordinator agent that receives the job and dispatches to specialised sub-agents, each with a focused role, specific tools, and the right model for that task. This is how you get both speed and accuracy. A single LLM trying to do security scanning AND AST refactoring AND compliance checking in one prompt would be slow, expensive, and bad at all of them. Specialised agents with tool access are faster, cheaper, and measurably better. This is exactly how Anthropic's own multi-agent research works.</p></div>
+
+<h3>The agent hierarchy</h3>
+
+<div class="agent-card" style="border-color:rgba(245,158,11,.5);background:rgba(245,158,11,.05)">
+  <div class="agent-name" style="color:#FCD34D">⚡ Orchestrator Agent — "The Principal Engineer"</div>
+  <div class="agent-role">Receives the webhook event. Reads the commit diff and repo config. Decides which sub-agents to run, in what order, and in parallel where safe. Aggregates all results. Makes the final gate decision. Posts the report back to GitHub. This agent never touches code — it only coordinates and decides.</div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">
+    <span class="agent-model">claude-opus-4-5 or claude-sonnet-4-5</span>
+    <span class="tag tag-amber">High reasoning required</span>
+    <span class="tag tag-gray">Runs once per commit</span>
+  </div>
+  <div class="agent-tools">
+    <span class="tag tag-gray">Tool: read_repo_config</span>
+    <span class="tag tag-gray">Tool: spawn_sub_agent</span>
+    <span class="tag tag-gray">Tool: aggregate_results</span>
+    <span class="tag tag-gray">Tool: post_github_status</span>
+    <span class="tag tag-gray">Tool: trigger_rollback</span>
+  </div>
+</div>
+
+<div class="g2" style="margin-bottom:10px">
+<div class="agent-card">
+  <div class="agent-name">🔴 Security Agent</div>
+  <div class="agent-role">Runs ALL 18 security checks from the expanded framework. Spawns its own OWASP ZAP subprocess and truffleHog scanner. Checks RLS, auth routes, CVEs, supply chain, SSRF, NHI tokens, CI/CD log leaks, multitenant isolation, business logic bypass. Returns structured JSON report with severity, file, line, and suggested fix for every finding.</div>
+  <div style="margin-top:6px"><span class="agent-model">claude-haiku-4-5 + tool calls</span><span class="tag tag-red" style="margin-left:6px">Runs in parallel</span></div>
+  <div class="agent-tools">
+    <span class="tag tag-gray">Tool: run_owasp_zap</span>
+    <span class="tag tag-gray">Tool: run_trufflehog</span>
+    <span class="tag tag-gray">Tool: audit_dependencies</span>
+    <span class="tag tag-gray">Tool: check_rls_policies</span>
+    <span class="tag tag-gray">Tool: probe_endpoints</span>
+    <span class="tag tag-gray">Tool: scan_ci_logs</span>
+    <span class="tag tag-gray">Tool: check_sbom</span>
+  </div>
+</div>
+<div class="agent-card">
+  <div class="agent-name">🟡 Bloat Agent</div>
+  <div class="agent-role">Parses the AST using tree-sitter. Finds all 18 bloat categories: duplicates, dead code, god files, copy-paste blocks, vibe rewrite pattern, feature bloat via telemetry, CSS bloat, shadow dependencies, YAGNI branches, documentation rot, legacy polyfills, cognitive load. Returns structured diff of proposed changes with reasoning per change.</div>
+  <div style="margin-top:6px"><span class="agent-model">claude-haiku-4-5 + AST tools</span><span class="tag tag-amber" style="margin-left:6px">Runs in parallel</span></div>
+  <div class="agent-tools">
+    <span class="tag tag-gray">Tool: parse_ast</span>
+    <span class="tag tag-gray">Tool: trace_call_graph</span>
+    <span class="tag tag-gray">Tool: semantic_diff</span>
+    <span class="tag tag-gray">Tool: bundle_analyser</span>
+    <span class="tag tag-gray">Tool: telemetry_correlate</span>
+  </div>
+</div>
+<div class="agent-card">
+  <div class="agent-name">🔴 Broken Code Agent</div>
+  <div class="agent-role">Runs the full test suite inside the sandbox. Then runs its own additional checks: flaky test detection (10 runs), silent promise rejections, stale feature flags, API timeout checks, resource handle leaks, zombie worker detection, type-safety gaps, broken rollback paths. Loops on failure up to 3× attempting to isolate the root cause.</div>
+  <div style="margin-top:6px"><span class="agent-model">claude-haiku-4-5 + test runner</span><span class="tag tag-red" style="margin-left:6px">Karpathy loop</span></div>
+  <div class="agent-tools">
+    <span class="tag tag-gray">Tool: run_test_suite</span>
+    <span class="tag tag-gray">Tool: run_flaky_detector</span>
+    <span class="tag tag-gray">Tool: heap_profiler</span>
+    <span class="tag tag-gray">Tool: async_ast_scan</span>
+    <span class="tag tag-gray">Tool: run_migration_down</span>
+  </div>
+</div>
+<div class="agent-card">
+  <div class="agent-name">🔵 Architecture Agent</div>
+  <div class="agent-role">Instruments the running app with query counters. Fires EXPLAIN ANALYZE on every query. Runs load tests at 2× expected traffic. Checks for N+1, missing indexes, unbounded sets, circular deps, distributed monolith patterns, missing distributed tracing, write idempotency, cold start latency, backpressure handling, and data archival debt.</div>
+  <div style="margin-top:6px"><span class="agent-model">claude-haiku-4-5 + k6 + pg tools</span><span class="tag tag-blue" style="margin-left:6px">Runs in parallel</span></div>
+  <div class="agent-tools">
+    <span class="tag tag-gray">Tool: instrument_queries</span>
+    <span class="tag tag-gray">Tool: run_load_test</span>
+    <span class="tag tag-gray">Tool: trace_imports</span>
+    <span class="tag tag-gray">Tool: measure_cold_start</span>
+    <span class="tag tag-gray">Tool: check_idempotency</span>
+  </div>
+</div>
+<div class="agent-card">
+  <div class="agent-name">🟢 AI-Era Agent</div>
+  <div class="agent-role">Tests ALL 18 AI-era debt items. Fires prompt injection payloads. Checks for system prompt leakage. Validates RAG vector index freshness. Detects unvalidated AI output, unbounded token spend, PII in pipelines, hallucination trust patterns, evasive AI tests, non-deterministic UI drift, missing human-in-the-loop gates for destructive actions.</div>
+  <div style="margin-top:6px"><span class="agent-model">claude-sonnet-4-5</span><span class="tag tag-green" style="margin-left:6px">Runs in parallel</span></div>
+  <div class="agent-tools">
+    <span class="tag tag-gray">Tool: inject_prompt_payloads</span>
+    <span class="tag tag-gray">Tool: check_vector_freshness</span>
+    <span class="tag tag-gray">Tool: validate_llm_outputs</span>
+    <span class="tag tag-gray">Tool: measure_token_spend</span>
+    <span class="tag tag-gray">Tool: scan_pii_in_logs</span>
+  </div>
+</div>
+<div class="agent-card">
+  <div class="agent-name">⚖️ Compliance Agent</div>
+  <div class="agent-role">NEW — covers EU AI Act compliance, GDPR RTBF gaps, consent versioning debt, data minimisation violations, NHI compliance, accessibility (WCAG 2.2), shadow AI usage, audit trail integrity, algorithmic impact assessment. Runs on a schedule (daily) not just on push — compliance drift happens silently over time.</div>
+  <div style="margin-top:6px"><span class="agent-model">claude-sonnet-4-5</span><span class="tag tag-purple" style="margin-left:6px">Scheduled + on-push</span></div>
+  <div class="agent-tools">
+    <span class="tag tag-gray">Tool: scan_data_retention</span>
+    <span class="tag tag-gray">Tool: check_accessibility</span>
+    <span class="tag tag-gray">Tool: audit_log_integrity</span>
+    <span class="tag tag-gray">Tool: check_consent_versions</span>
+  </div>
+</div>
+<div class="agent-card">
+  <div class="agent-name">📊 Data & DX Agent</div>
+  <div class="agent-role">NEW — covers Data Pipeline Entanglement, missing data contracts, vector DB embedding drift, dark data accumulation, data lineage gaps. Also DX: flaky CI, local env parity, onboarding lead time, tooling fragmentation, missing golden paths, alert fatigue. Runs weekly and produces a team health report.</div>
+  <div style="margin-top:6px"><span class="agent-model">claude-haiku-4-5</span><span class="tag tag-teal" style="margin-left:6px">Weekly scheduled</span></div>
+  <div class="agent-tools">
+    <span class="tag tag-gray">Tool: analyse_pipelines</span>
+    <span class="tag tag-gray">Tool: check_data_contracts</span>
+    <span class="tag tag-gray">Tool: measure_onboarding_time</span>
+    <span class="tag tag-gray">Tool: scan_alert_fatigue</span>
+  </div>
+</div>
+<div class="agent-card" style="border-color:rgba(236,72,153,.4);background:rgba(236,72,153,.05)">
+  <div class="agent-name" style="color:#F9A8D4">💬 Codeward Chat Agent — "The Principal Engineer Interface"</div>
+  <div class="agent-role">This is the agent in the sidebar chat. NOT a chatbot. It has full tool access to your codebase, all agent run history, your staging environments, and the ability to spawn any sub-agent on demand. Can answer "what is the biggest risk in our payments repo right now?" by actually running the security agent and reading the results — not by guessing.</div>
+  <div style="margin-top:6px"><span class="agent-model">claude-sonnet-4-5 — best for conversation + reasoning</span><span class="tag tag-purple" style="margin-left:6px">Always on</span></div>
+  <div class="agent-tools">
+    <span class="tag tag-gray">Tool: query_run_history</span>
+    <span class="tag tag-gray">Tool: spawn_any_agent</span>
+    <span class="tag tag-gray">Tool: read_any_repo</span>
+    <span class="tag tag-gray">Tool: trigger_refactor</span>
+    <span class="tag tag-gray">Tool: explain_debt_item</span>
+    <span class="tag tag-gray">Tool: compare_repos</span>
+  </div>
+</div>
+</div>
+
+<h3>How agents communicate — the message bus</h3>
+<div class="card">
+<p style="margin-bottom:8px">Agents do not call each other directly. They communicate through a <strong style="color:var(--teal)">shared job queue (BullMQ on Redis)</strong> and a <strong style="color:var(--teal)">structured result store (Postgres)</strong>. This means:</p>
+<div class="g3">
+  <div style="background:var(--bg3);border-radius:8px;padding:10px">
+    <div style="font-size:12px;font-weight:500;color:var(--txt);margin-bottom:4px">Orchestrator publishes job</div>
+    <div style="font-size:11px;color:var(--txt2)">Writes a job record with commitSHA, repoId, priority, and agentList to Redis queue. Each sub-agent picks its own job.</div>
+  </div>
+  <div style="background:var(--bg3);border-radius:8px;padding:10px">
+    <div style="font-size:12px;font-weight:500;color:var(--txt);margin-bottom:4px">Sub-agents run in parallel</div>
+    <div style="font-size:11px;color:var(--txt2)">Security, Bloat, Broken Code, Architecture all run simultaneously inside the same sandbox. Average wall-clock time: 4–6 minutes total.</div>
+  </div>
+  <div style="background:var(--bg3);border-radius:8px;padding:10px">
+    <div style="font-size:12px;font-weight:500;color:var(--txt);margin-bottom:4px">Results aggregated</div>
+    <div style="font-size:11px;color:var(--txt2)">Each agent writes a structured JSON result to Postgres. Orchestrator reads all results, computes weighted debt score, makes gate decision.</div>
+  </div>
+</div>
+</div>
+
+<h3>Which model for which agent — the honest reasoning</h3>
+<div class="card">
+<div class="stack-row"><span class="stack-layer">Orchestrator</span><div><div class="stack-tech">Claude Sonnet 4.5 or Claude Opus 4.5</div><div class="stack-why">Needs the best reasoning to make gate decisions across complex, conflicting signals. "Should this merge be blocked if security passes but there are 3 architecture issues?" This requires judgment, not just retrieval. Sonnet for cost, Opus for enterprise tier.</div></div></div>
+<div class="stack-row"><span class="stack-layer">Security Agent</span><div><div class="stack-tech">Claude Haiku 4.5 + deterministic tools</div><div class="stack-why">Most security checks are deterministic tool calls (OWASP ZAP, truffleHog, CVE lookups). The LLM is used to interpret tool output and generate fix suggestions. Haiku is fast and cheap for this pattern.</div></div></div>
+<div class="stack-row"><span class="stack-layer">Bloat Agent</span><div><div class="stack-tech">Claude Haiku 4.5 + tree-sitter AST</div><div class="stack-why">AST parsing is done by tree-sitter (not the LLM). The LLM reads the structured AST diff and writes the refactored code. Haiku handles this well. Fast + cheap.</div></div></div>
+<div class="stack-row"><span class="stack-layer">AI-Era Agent</span><div><div class="stack-tech">Claude Sonnet 4.5</div><div class="stack-why">Needs to understand LLM-specific patterns, craft adversarial prompts, reason about RAG pipelines and vector freshness. Requires more capability than Haiku. Sonnet is the right balance.</div></div></div>
+<div class="stack-row"><span class="stack-layer">Compliance Agent</span><div><div class="stack-tech">Claude Sonnet 4.5</div><div class="stack-why">Legal and compliance reasoning requires nuance. EU AI Act, GDPR, consent versioning — these have edge cases. Sonnet handles the ambiguity better than Haiku.</div></div></div>
+<div class="stack-row"><span class="stack-layer">Chat Agent</span><div><div class="stack-tech">Claude Sonnet 4.5</div><div class="stack-why">The user-facing agent. Needs to be conversational, technically deep, and able to spawn other agents mid-conversation. Sonnet is the best fit for this pattern — Opus would be too expensive for every chat message.</div></div></div>
+</div>
+
+<div class="warn"><div class="warn-t">Important: how you call Claude for agents</div>
+<p style="margin:0;font-size:12px;color:#aaa;line-height:1.7">You use the Anthropic API with <strong>tool_use</strong> (function calling). Each agent gets a system prompt defining its role and a list of tools it can call. The agent decides which tools to call, in what order, and how to interpret results. You do NOT prompt the model to write code that calls tools — you define tools as JSON schemas and the model calls them natively. This is the correct pattern. Using <span class="mono">claude-sonnet-4-6</span> for the API calls.</p></div>
+</div>
+
+<!-- TAB 2: ARCHITECTURE -->
+<div class="tab-content" id="tab-arch">
+<h2>Full system architecture — every layer with agents mapped in</h2>
+
+<div class="arch">
+
+<div class="arch-layer l-purple" style="margin-bottom:4px">
+<div class="arch-layer-label" style="color:#C4B5FD">Layer 1 — Client surfaces</div>
+<div class="arch-boxes">
+  <div class="abox" style="border-color:rgba(139,92,246,.4);background:rgba(139,92,246,.08)"><div class="abox-title" style="color:#DDD6FE">React SPA Dashboard</div><div class="abox-sub">Vite + React 18 + TypeScript + TailwindCSS</div><div class="abox-tech">codeward.io/dashboard</div></div>
+  <div class="abox" style="border-color:rgba(139,92,246,.4);background:rgba(139,92,246,.08)"><div class="abox-title" style="color:#DDD6FE">GitHub / GitLab UI</div><div class="abox-sub">Check runs · PR comments · status badges · PR review bot</div><div class="abox-tech">GitHub Apps API</div></div>
+  <div class="abox" style="border-color:rgba(139,92,246,.4);background:rgba(139,92,246,.08)"><div class="abox-title" style="color:#DDD6FE">VS Code Extension</div><div class="abox-sub">Inline debt warnings · agent chat panel · approve from IDE</div><div class="abox-tech">VS Code API (future)</div></div>
+  <div class="abox" style="border-color:rgba(139,92,246,.4);background:rgba(139,92,246,.08)"><div class="abox-title" style="color:#DDD6FE">Notification layer</div><div class="abox-sub">Slack · Email · Discord · Push · Webhook</div><div class="abox-tech">Resend + Slack SDK</div></div>
+</div>
+</div>
+
+<div class="arrow-down">↓</div>
+
+<div class="arch-layer l-blue">
+<div class="arch-layer-label">Layer 2 — API gateway & auth</div>
+<div class="arch-boxes">
+  <div class="abox" style="border-color:rgba(75,123,236,.4);background:rgba(75,123,236,.08)"><div class="abox-title" style="color:#93B4F8">API Gateway</div><div class="abox-sub">Rate limiting · TLS · routing · CORS</div><div class="abox-tech">Hono.js on Cloudflare Workers</div></div>
+  <div class="abox" style="border-color:rgba(75,123,236,.4);background:rgba(75,123,236,.08)"><div class="abox-title" style="color:#93B4F8">Auth Service</div><div class="abox-sub">OAuth GitHub/GitLab · JWT · RBAC · org/team scopes</div><div class="abox-tech">Better Auth / Clerk</div></div>
+  <div class="abox" style="border-color:rgba(75,123,236,.4);background:rgba(75,123,236,.08)"><div class="abox-title" style="color:#93B4F8">Webhook Receiver</div><div class="abox-sub">HMAC-SHA256 verify · dedup · priority queue write</div><div class="abox-tech">Express + BullMQ</div></div>
+  <div class="abox" style="border-color:rgba(75,123,236,.4);background:rgba(75,123,236,.08)"><div class="abox-title" style="color:#93B4F8">WebSocket Server</div><div class="abox-sub">Real-time live feed to dashboard · &lt;500ms latency</div><div class="abox-tech">Socket.io or Ably free tier</div></div>
+</div>
+</div>
+
+<div class="arrow-down">↓</div>
+
+<div class="arch-layer l-agent">
+<div class="arch-layer-label">Layer 3 — Multi-agent orchestration engine (THE BRAIN)</div>
+<div class="arch-boxes">
+  <div class="abox" style="border-color:rgba(245,158,11,.5);background:rgba(245,158,11,.07)"><div class="abox-title" style="color:#FCD34D">Orchestrator Agent</div><div class="abox-sub">Reads commit · decides which agents run · aggregates · gates</div><div class="abox-tech">Claude Sonnet 4.5 + tool_use</div></div>
+  <div class="abox" style="border-color:rgba(239,68,68,.4);background:rgba(239,68,68,.07)"><div class="abox-title" style="color:#FCA5A5">Security Agent</div><div class="abox-sub">18 security checks · OWASP · CVE · RLS · supply chain</div><div class="abox-tech">Claude Haiku 4.5 + tools</div></div>
+  <div class="abox" style="border-color:rgba(245,158,11,.4);background:rgba(245,158,11,.07)"><div class="abox-title" style="color:#FCD34D">Bloat Agent</div><div class="abox-sub">18 bloat checks · AST · dupes · dead code · CSS · YAGNI</div><div class="abox-tech">Claude Haiku 4.5 + tree-sitter</div></div>
+  <div class="abox" style="border-color:rgba(239,68,68,.4);background:rgba(239,68,68,.07)"><div class="abox-title" style="color:#FCA5A5">Broken Code Agent</div><div class="abox-sub">18 broken checks · test loop · flaky · zombies · type gaps</div><div class="abox-tech">Claude Haiku 4.5 + Jest/pytest</div></div>
+  <div class="abox" style="border-color:rgba(75,123,236,.4);background:rgba(75,123,236,.07)"><div class="abox-title" style="color:#93B4F8">Architecture Agent</div><div class="abox-sub">18 arch checks · N+1 · indexes · distributed monolith · load</div><div class="abox-tech">Claude Haiku 4.5 + k6 + pg</div></div>
+  <div class="abox" style="border-color:rgba(34,197,94,.4);background:rgba(34,197,94,.07)"><div class="abox-title" style="color:#86EFAC">AI-Era Agent</div><div class="abox-sub">18 AI checks · prompt injection · RAG drift · PII · bias</div><div class="abox-tech">Claude Sonnet 4.5</div></div>
+  <div class="abox" style="border-color:rgba(139,92,246,.4);background:rgba(139,92,246,.07)"><div class="abox-title" style="color:#C4B5FD">Compliance Agent</div><div class="abox-sub">EU AI Act · GDPR · WCAG · NHI · audit trails · consent</div><div class="abox-tech">Claude Sonnet 4.5 (scheduled)</div></div>
+  <div class="abox" style="border-color:rgba(20,184,166,.4);background:rgba(20,184,166,.07)"><div class="abox-title" style="color:#5EEAD4">Data/DX Agent</div><div class="abox-sub">Pipeline entanglement · data contracts · DX debt · alert fatigue</div><div class="abox-tech">Claude Haiku 4.5 (weekly)</div></div>
+  <div class="abox" style="border-color:rgba(236,72,153,.4);background:rgba(236,72,153,.07)"><div class="abox-title" style="color:#F9A8D4">Chat Agent</div><div class="abox-sub">Always-on · spawns agents · reads all history · takes action</div><div class="abox-tech">Claude Sonnet 4.5 + all tools</div></div>
+</div>
+</div>
+
+<div class="arrow-down">↓</div>
+
+<div class="arch-layer l-orange">
+<div class="arch-layer-label">Layer 4 — Ephemeral sandbox cluster (one per commit · hermetically sealed · destroyed after run)</div>
+<div class="arch-boxes">
+  <div class="abox" style="border-color:rgba(249,115,22,.4);background:rgba(249,115,22,.07)"><div class="abox-title" style="color:#FDBA74">Firecracker microVM</div><div class="abox-sub">Hardware isolation · 125ms boot · no external network</div><div class="abox-tech">fly.io machines (free tier)</div></div>
+  <div class="abox" style="border-color:rgba(249,115,22,.4);background:rgba(249,115,22,.07)"><div class="abox-title" style="color:#FDBA74">Stack provisioner</div><div class="abox-sub">Auto-detect from package.json / requirements.txt / Gemfile</div><div class="abox-tech">Docker + nix</div></div>
+  <div class="abox" style="border-color:rgba(249,115,22,.4);background:rgba(249,115,22,.07)"><div class="abox-title" style="color:#FDBA74">Seed DB</div><div class="abox-sub">Anonymised prod-like data · faker replacement · migrations</div><div class="abox-tech">pg_restore + @faker-js</div></div>
+  <div class="abox" style="border-color:rgba(249,115,22,.4);background:rgba(249,115,22,.07)"><div class="abox-title" style="color:#FDBA74">Test runner</div><div class="abox-sub">Jest / pytest / RSpec · flaky detector (10 runs) · coverage</div><div class="abox-tech">Vitest / pytest / RSpec</div></div>
+  <div class="abox" style="border-color:rgba(249,115,22,.4);background:rgba(249,115,22,.07)"><div class="abox-title" style="color:#FDBA74">OWASP ZAP</div><div class="abox-sub">Dynamic security scan · all OWASP top 10 checks</div><div class="abox-tech">OWASP ZAP (open source)</div></div>
+  <div class="abox" style="border-color:rgba(249,115,22,.4);background:rgba(249,115,22,.07)"><div class="abox-title" style="color:#FDBA74">k6 load tester</div><div class="abox-sub">p99 latency · 2× traffic · backpressure · cold start</div><div class="abox-tech">Grafana k6 (open source)</div></div>
+  <div class="abox" style="border-color:rgba(249,115,22,.4);background:rgba(249,115,22,.07)"><div class="abox-title" style="color:#FDBA74">tree-sitter engine</div><div class="abox-sub">Language-agnostic AST · JS/TS/Py/Go/Ruby/Rust</div><div class="abox-tech">tree-sitter (open source)</div></div>
+  <div class="abox" style="border-color:rgba(249,115,22,.4);background:rgba(249,115,22,.07)"><div class="abox-title" style="color:#FDBA74">truffleHog scanner</div><div class="abox-sub">Secrets detection · git history · all files · 700+ detectors</div><div class="abox-tech">truffleHog v3 (open source)</div></div>
+</div>
+</div>
+
+<div class="arrow-down">↓</div>
+
+<div class="arch-layer l-gray">
+<div class="arch-layer-label">Layer 5 — Data & storage</div>
+<div class="arch-boxes">
+  <div class="abox" style="border-color:var(--bdr2);background:var(--bg3)"><div class="abox-title">PostgreSQL</div><div class="abox-sub">Accounts · runs · reports · agent results · billing</div><div class="abox-tech">Supabase free tier (500MB)</div></div>
+  <div class="abox" style="border-color:var(--bdr2);background:var(--bg3)"><div class="abox-title">Redis</div><div class="abox-sub">Job queue (BullMQ) · sessions · rate limits · pub/sub</div><div class="abox-tech">Upstash Redis free tier</div></div>
+  <div class="abox" style="border-color:var(--bdr2);background:var(--bg3)"><div class="abox-title">Object storage</div><div class="abox-sub">Run logs · diffs · reports · sandbox artifacts</div><div class="abox-tech">Cloudflare R2 (free 10GB)</div></div>
+  <div class="abox" style="border-color:var(--bdr2);background:var(--bg3)"><div class="abox-title">Vector DB</div><div class="abox-sub">Codebase semantic embeddings · cross-repo duplicate detection</div><div class="abox-tech">Supabase pgvector (free)</div></div>
+  <div class="abox" style="border-color:var(--bdr2);background:var(--bg3)"><div class="abox-title">Time series</div><div class="abox-sub">Health score history · debt trend charts · per-repo metrics</div><div class="abox-tech">TimescaleDB on Supabase</div></div>
+</div>
+</div>
+
+<div class="arrow-down">↓</div>
+
+<div class="arch-layer l-green">
+<div class="arch-layer-label">Layer 6 — Customer infrastructure (external · Codeward connects outbound only)</div>
+<div class="arch-boxes">
+  <div class="abox" style="border-color:rgba(34,197,94,.3);background:rgba(34,197,94,.06)"><div class="abox-title" style="color:#86EFAC">Ephemeral staging</div><div class="abox-sub">Live preview per PR · destroyed after 48h or merge</div><div class="abox-tech">Vercel / Render / Fly.io</div></div>
+  <div class="abox" style="border-color:rgba(34,197,94,.3);background:rgba(34,197,94,.06)"><div class="abox-title" style="color:#86EFAC">Customer production</div><div class="abox-sub">Merge via GitHub API only · no direct server access ever</div><div class="abox-tech">GitHub Merges API</div></div>
+  <div class="abox" style="border-color:rgba(34,197,94,.3);background:rgba(34,197,94,.06)"><div class="abox-title" style="color:#86EFAC">Self-hosted runner</div><div class="abox-sub">Enterprise · private infra · Docker agent · mTLS tunnel</div><div class="abox-tech">Docker agent (open source)</div></div>
+  <div class="abox" style="border-color:rgba(34,197,94,.3);background:rgba(34,197,94,.06)"><div class="abox-title" style="color:#86EFAC">Post-deploy monitor</div><div class="abox-sub">Error rate · p99 latency · auto-rollback on anomaly</div><div class="abox-tech">Sentry free + Datadog free</div></div>
+</div>
+</div>
+
+<div class="arrow-down">↓</div>
+
+<div class="arch-layer l-gray">
+<div class="arch-layer-label">Layer 7 — Observability (internal Codeward only)</div>
+<div class="arch-boxes">
+  <div class="abox" style="border-color:var(--bdr2);background:var(--bg3)"><div class="abox-title">Logging</div><div class="abox-sub">Structured JSON · every agent action logged with trace ID</div><div class="abox-tech">Axiom free tier (1GB/day)</div></div>
+  <div class="abox" style="border-color:var(--bdr2);background:var(--bg3)"><div class="abox-title">Metrics</div><div class="abox-sub">Queue depth · sandbox latency · agent run times</div><div class="abox-tech">Prometheus + Grafana Cloud free</div></div>
+  <div class="abox" style="border-color:var(--bdr2);background:var(--bg3)"><div class="abox-title">Error tracking</div><div class="abox-sub">All Codeward backend errors with stack traces</div><div class="abox-tech">Sentry free tier</div></div>
+  <div class="abox" style="border-color:var(--bdr2);background:var(--bg3)"><div class="abox-title">Uptime monitoring</div><div class="abox-sub">All endpoints · webhook receiver · agent health</div><div class="abox-tech">Better Uptime free tier</div></div>
+</div>
+</div>
+
+</div><!-- /arch -->
+</div>
+
+<!-- TAB 3: TECH STACK -->
+<div class="tab-content" id="tab-stack">
+<h2>Full tech stack — every layer, every choice, every reason</h2>
+
+<h3>Frontend — React</h3>
+<div class="card">
+<div class="stack-row"><span class="stack-layer">Framework</span><div><div class="stack-tech">React 18 + TypeScript + Vite</div><div class="stack-why">React 18 gives you concurrent rendering for real-time live feed updates without UI blocking. Vite over CRA — 10× faster dev builds. TypeScript is non-negotiable for a product that talks about code quality.</div></div></div>
+<div class="stack-row"><span class="stack-layer">Routing</span><div><div class="stack-tech">React Router v6 or TanStack Router</div><div class="stack-why">TanStack Router if you want type-safe routes (you should). React Router v6 is fine for MVP speed.</div></div></div>
+<div class="stack-row"><span class="stack-layer">Styling</span><div><div class="stack-tech">Tailwind CSS v4 + shadcn/ui</div><div class="stack-why">shadcn/ui gives you production-quality components (dialogs, tables, dropdowns) without a design team. You own the components — no version lock. Tailwind v4 is significantly faster.</div></div></div>
+<div class="stack-row"><span class="stack-layer">State management</span><div><div class="stack-tech">Zustand + TanStack Query</div><div class="stack-why">Zustand for UI state (current screen, selected repo, chat messages). TanStack Query for server state (run results, repos, reports) — handles caching, background refetch, and optimistic updates automatically.</div></div></div>
+<div class="stack-row"><span class="stack-layer">Real-time</span><div><div class="stack-tech">Socket.io client or Ably SDK</div><div class="stack-why">Live run feed needs WebSocket. Socket.io is simplest to self-host. Ably free tier if you want managed.</div></div></div>
+<div class="stack-row"><span class="stack-layer">Code display</span><div><div class="stack-tech">Monaco Editor (read-only) + react-diff-view</div><div class="stack-why">Monaco is the VS Code editor — perfect for displaying annotated diffs. react-diff-view for the side-by-side diff component.</div></div></div>
+<div class="stack-row"><span class="stack-layer">Charts</span><div><div class="stack-tech">Recharts</div><div class="stack-why">Health score trend lines, debt category bars, deploy history. Recharts is React-native, lightweight, and composable.</div></div></div>
+<div class="stack-row"><span class="stack-layer">Auth (client)</span><div><div class="stack-tech">Better Auth client SDK</div><div class="stack-why">Handles GitHub OAuth flow, JWT storage, session refresh. One library, handles everything.</div></div></div>
+<div class="stack-row"><span class="stack-layer">Testing</span><div><div class="stack-tech">Vitest + React Testing Library + Playwright</div><div class="stack-why">Vitest for unit tests (same config as Vite). RTL for component tests. Playwright for E2E — critical for testing the staging approval flow.</div></div></div>
+<div class="stack-row"><span class="stack-layer">Deployment</span><div><div class="stack-tech">Vercel (free hobby tier → Pro)</div><div class="stack-why">Zero-config React deployment. Preview URLs per PR — which means you use Codeward to guard your own frontend repo. Dogfood your own product immediately.</div></div></div>
+</div>
+
+<h3>Backend</h3>
+<div class="card">
+<div class="stack-row"><span class="stack-layer">Runtime</span><div><div class="stack-tech">Node.js 22 + TypeScript</div><div class="stack-why">Same language as frontend — one mental model. Node 22 has native TypeScript support. Fast enough for the API layer. The heavy work is done in sandboxes, not Node.</div></div></div>
+<div class="stack-row"><span class="stack-layer">API framework</span><div><div class="stack-tech">Hono.js</div><div class="stack-why">3× faster than Express. Runs on Cloudflare Workers, Node, Deno — write once, deploy anywhere. Type-safe routing. The right choice for 2026.</div></div></div>
+<div class="stack-row"><span class="stack-layer">Job queue</span><div><div class="stack-tech">BullMQ on Redis (Upstash)</div><div class="stack-why">Battle-tested for exactly this use case — background job processing with priority queues, retries, and dead-letter queues. BullMQ Board gives you a free visual dashboard.</div></div></div>
+<div class="stack-row"><span class="stack-layer">Database ORM</span><div><div class="stack-tech">Drizzle ORM + Supabase Postgres</div><div class="stack-why">Drizzle is type-safe, lightweight, and generates raw SQL — no magic. You can see exactly what query runs. Critical for a product that talks about database quality.</div></div></div>
+<div class="stack-row"><span class="stack-layer">Agent framework</span><div><div class="stack-tech">Anthropic SDK (TypeScript) — raw tool_use</div><div class="stack-why">Do NOT use LangChain or LlamaIndex. They add abstraction you don't control. The Anthropic SDK with native tool_use is simpler, faster, cheaper, and you understand every call. Think like an Anthropic engineer — use the primitive directly.</div></div></div>
+<div class="stack-row"><span class="stack-layer">File storage</span><div><div class="stack-tech">Cloudflare R2 SDK</div><div class="stack-why">S3-compatible. Free 10GB/month. Zero egress fees. Store all run logs, diffs, and reports here.</div></div></div>
+<div class="stack-row"><span class="stack-layer">Email</span><div><div class="stack-tech">Resend (free 3000/month)</div><div class="stack-why">Best DX for transactional email. React Email for templates — same stack as frontend.</div></div></div>
+<div class="stack-row"><span class="stack-layer">Deployment</span><div><div class="stack-tech">Railway.app (free hobby → paid)</div><div class="stack-why">Deploys Node in 30 seconds. Automatic HTTPS. Built-in Postgres and Redis. The right choice for MVP — worry about Kubernetes later.</div></div></div>
+</div>
+
+<h3>Sandbox infrastructure</h3>
+<div class="card">
+<div class="stack-row"><span class="stack-layer">VM runtime</span><div><div class="stack-tech">Fly.io Machines API (free allowance)</div><div class="stack-why">Fly.io Machines give you on-demand VMs that start in under 1 second. Free allowance: 3 shared VMs always on, pay-per-second above that. Perfect for sandboxes.</div></div></div>
+<div class="stack-row"><span class="stack-layer">Containerisation</span><div><div class="stack-tech">Docker (multi-stage builds)</div><div class="stack-why">Every sandbox is a Docker container. Pre-built base images per stack (Node 20, Python 3.11, etc.) to reduce boot time. Layers cached on Fly.io's registry.</div></div></div>
+<div class="stack-row"><span class="stack-layer">AST parsing</span><div><div class="stack-tech">tree-sitter (Rust bindings → WASM)</div><div class="stack-why">Parses JavaScript, TypeScript, Python, Go, Ruby, Rust, Java. Runs inside the sandbox container. Fast — 100k lines in under 1 second.</div></div></div>
+<div class="stack-row"><span class="stack-layer">Security scanning</span><div><div class="stack-tech">OWASP ZAP (Docker) + truffleHog v3 + Trivy</div><div class="stack-why">All open source. OWASP ZAP for dynamic web scanning. truffleHog for secrets in code/git. Trivy for container and dependency CVE scanning.</div></div></div>
+<div class="stack-row"><span class="stack-layer">Load testing</span><div><div class="stack-tech">Grafana k6 (open source)</div><div class="stack-why">Written in Go. Scriptable in JavaScript. Can simulate 100+ concurrent users inside the sandbox. Built-in metrics for p99 latency.</div></div></div>
+</div>
+</div>
+
+<!-- TAB 4: ENVS & APIs -->
+<div class="tab-content" id="tab-envs">
+<h2>Every environment variable + every external API — free tier first</h2>
+
+<h3>Environment variables — what you need from day one</h3>
+<div class="card" style="padding:0;overflow:hidden">
+<table class="env-table">
+<thead><tr><th>Variable</th><th>What it is</th><th>Where to get it</th><th>Tier</th></tr></thead>
+<tbody>
+<tr><td>ANTHROPIC_API_KEY</td><td>The key that powers all 8 agents. Every debt analysis, every chat response, every refactor suggestion.</td><td>console.anthropic.com → API keys</td><td><span class="tag-free">FREE $5 credit</span></td></tr>
+<tr><td>GITHUB_APP_ID</td><td>Your GitHub App ID. Needed to install webhooks and post check runs to repos.</td><td>github.com → Settings → Developer → New GitHub App</td><td><span class="tag-free">FREE</span></td></tr>
+<tr><td>GITHUB_APP_PRIVATE_KEY</td><td>RSA private key to authenticate as your GitHub App. Used to generate installation tokens.</td><td>Same GitHub App settings page</td><td><span class="tag-free">FREE</span></td></tr>
+<tr><td>GITHUB_WEBHOOK_SECRET</td><td>HMAC secret to verify webhook payloads are genuinely from GitHub.</td><td>Set it yourself when creating the GitHub App</td><td><span class="tag-free">FREE</span></td></tr>
+<tr><td>GITLAB_APP_ID + SECRET</td><td>OAuth credentials for GitLab integration (same as GitHub App but for GitLab).</td><td>gitlab.com → Settings → Applications</td><td><span class="tag-free">FREE</span></td></tr>
+<tr><td>DATABASE_URL</td><td>Supabase Postgres connection string. All accounts, run history, reports, agent results.</td><td>supabase.com → Project → Settings → Database</td><td><span class="tag-free">FREE 500MB</span></td></tr>
+<tr><td>SUPABASE_ANON_KEY + SERVICE_KEY</td><td>Supabase API keys for direct DB access and RLS bypass (service key for backend only).</td><td>supabase.com → Project → Settings → API</td><td><span class="tag-free">FREE</span></td></tr>
+<tr><td>UPSTASH_REDIS_URL + TOKEN</td><td>Redis for BullMQ job queue, session store, rate limiting, WebSocket pub/sub.</td><td>upstash.com → Create Database → REST API</td><td><span class="tag-free">FREE 10k/day</span></td></tr>
+<tr><td>R2_ACCOUNT_ID + ACCESS_KEY + SECRET</td><td>Cloudflare R2 for storing run logs, diffs, reports, sandbox stdout archives.</td><td>Cloudflare dashboard → R2 → Create bucket</td><td><span class="tag-free">FREE 10GB</span></td></tr>
+<tr><td>RESEND_API_KEY</td><td>Transactional email — run reports, security alerts, weekly digest, staging approvals.</td><td>resend.com → API Keys</td><td><span class="tag-free">FREE 3000/mo</span></td></tr>
+<tr><td>SLACK_BOT_TOKEN + SIGNING_SECRET</td><td>Post run results, security alerts, staging approval buttons directly to Slack channels.</td><td>api.slack.com → Create App → OAuth tokens</td><td><span class="tag-free">FREE</span></td></tr>
+<tr><td>FLY_API_TOKEN</td><td>Used to programmatically spin up and destroy Fly.io Machines for each sandbox run.</td><td>fly.io → Account → Access Tokens</td><td><span class="tag-free">FREE allowance</span></td></tr>
+<tr><td>SENTRY_DSN</td><td>Error tracking for the Codeward backend and frontend. Catches your own bugs.</td><td>sentry.io → New Project → DSN</td><td><span class="tag-free">FREE 5k errors/mo</span></td></tr>
+<tr><td>AXIOM_API_KEY + DATASET</td><td>Structured logging for all agent run events, webhook receipts, gate decisions.</td><td>axiom.co → Settings → API tokens</td><td><span class="tag-free">FREE 1GB/day</span></td></tr>
+<tr><td>BETTER_AUTH_SECRET</td><td>Secret for signing JWT tokens in your auth system.</td><td>Generate: openssl rand -base64 32</td><td><span class="tag-free">FREE (self-generated)</span></td></tr>
+<tr><td>OPENAI_API_KEY</td><td>Optional — used by AI-Era agent to test prompt injection against GPT-powered endpoints in customer code. Can mock for MVP.</td><td>platform.openai.com → API keys</td><td><span class="tag-paid">PAID (per use)</span></td></tr>
+<tr><td>STRIPE_SECRET_KEY</td><td>Billing — needed when you add paid tiers. Not needed for MVP free tier.</td><td>dashboard.stripe.com → Developers → API keys</td><td><span class="tag-paid">PAID when live</span></td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>External APIs — what they do and exactly how you use them</h3>
+
+<div class="api-card">
+  <div class="api-name">Anthropic API <span class="tag-free">$5 free credit → pay-per-token</span></div>
+  <div class="api-purpose"><strong>The core of everything.</strong> Powers all 8 agents via the /v1/messages endpoint with tool_use. You send a system prompt (the agent's role), the user message (the commit diff or user question), and a list of tools (JSON schemas). The model decides which tools to call. You execute the tools and return results. Repeat until the agent has a final answer.</div>
+  <div class="api-limits">Free: $5 credit · Sonnet 4.5: $3/$15 per 1M tokens in/out · Haiku 4.5: $0.80/$4 per 1M tokens · Average run cost: ~$0.04–0.12 per commit analysis</div>
+</div>
+
+<div class="api-card">
+  <div class="api-name">GitHub Apps API <span class="tag-free">FREE</span></div>
+  <div class="api-purpose"><strong>The integration layer.</strong> Used for: (1) Installing webhooks when user adds a repo. (2) Receiving push/PR events via webhook. (3) Posting check runs (the yellow/green/red dots on PRs). (4) Posting PR comments with the debt report. (5) Triggering merges when staging is approved. You authenticate as a GitHub App using JWT signed with your private key, then exchange for an installation token.</div>
+  <div class="api-limits">Free · Rate limit: 5000 req/hr per installation · Webhook: unlimited</div>
+</div>
+
+<div class="api-card">
+  <div class="api-name">OWASP ZAP (self-hosted in sandbox) <span class="tag-free">FREE open source</span></div>
+  <div class="api-purpose"><strong>Dynamic security scanning.</strong> Runs inside the Firecracker sandbox as a Docker container. You start ZAP in daemon mode, point it at the running app's localhost URL, and it spider-crawls all routes performing OWASP Top 10 checks. Returns structured JSON of findings. Used by the Security Agent to run XSS, CSRF, injection, and auth checks.</div>
+  <div class="api-limits">Free · Open source · Self-hosted in sandbox · No rate limits</div>
+</div>
+
+<div class="api-card">
+  <div class="api-name">truffleHog v3 (self-hosted) <span class="tag-free">FREE open source</span></div>
+  <div class="api-purpose"><strong>Secrets detection.</strong> Scans every file in the repo AND the full git history for 700+ types of secrets (API keys, tokens, passwords, certificates). Runs as a CLI inside the sandbox. Results parsed into structured JSON by the Security Agent. This catches keys committed months ago that no one remembers.</div>
+  <div class="api-limits">Free · Open source · CLI tool · No rate limits</div>
+</div>
+
+<div class="api-card">
+  <div class="api-name">Trivy (self-hosted) <span class="tag-free">FREE open source</span></div>
+  <div class="api-purpose"><strong>CVE scanning for dependencies AND containers.</strong> Scans npm/pip/cargo/gem package lockfiles against the NVD and GitHub Advisory databases. Returns CVE IDs, severity, affected version, and fixed version. Also scans Docker images. Run inside the sandbox by the Security Agent.</div>
+  <div class="api-limits">Free · Open source · Offline CVE database cached in sandbox image</div>
+</div>
+
+<div class="api-card">
+  <div class="api-name">Grafana k6 (self-hosted) <span class="tag-free">FREE open source</span></div>
+  <div class="api-purpose"><strong>Load testing and performance profiling inside the sandbox.</strong> The Architecture Agent writes a k6 script that hits all the customer's API endpoints at 1× and 2× expected load. Measures p99 latency, error rate, and whether the system returns 503 gracefully or crashes. Cold start timing also measured here.</div>
+  <div class="api-limits">Free · Open source · Runs inside sandbox · No external calls</div>
+</div>
+
+<div class="api-card">
+  <div class="api-name">Supabase <span class="tag-free">FREE 500MB DB + pgvector</span></div>
+  <div class="api-purpose"><strong>Primary database AND vector store.</strong> Postgres for all structured data (accounts, runs, reports). pgvector extension for semantic codebase embeddings (used for cross-repo duplicate detection). Built-in auth if you need it. Free 500MB is enough for thousands of runs.</div>
+  <div class="api-limits">Free: 500MB DB · 2GB bandwidth · 50MB file storage · 500k vector dimensions</div>
+</div>
+
+<div class="api-card">
+  <div class="api-name">Upstash Redis <span class="tag-free">FREE 10k commands/day</span></div>
+  <div class="api-purpose"><strong>Job queue backbone.</strong> BullMQ uses Redis as its backing store. Every incoming webhook creates a job in Redis. Every sub-agent job is tracked in Redis. Rate limiting counters stored here. Session tokens cached here. Upstash is serverless Redis — no server to manage.</div>
+  <div class="api-limits">Free: 10k commands/day · 256MB max · $0.20/100k above free tier</div>
+</div>
+
+<div class="api-card">
+  <div class="api-name">Cloudflare R2 <span class="tag-free">FREE 10GB/month</span></div>
+  <div class="api-purpose"><strong>Object storage for all run artifacts.</strong> Every sandbox run produces: a full stdout log, an annotated diff JSON, a security report, and a debt score report. All stored in R2 as JSON files. S3-compatible API — use the AWS SDK with R2 credentials. Zero egress fees (critical — this is why R2 over S3).</div>
+  <div class="api-limits">Free: 10GB storage · 1M Class A ops · 10M Class B ops · Zero egress</div>
+</div>
+
+<div class="api-card">
+  <div class="api-name">Fly.io Machines API <span class="tag-free">FREE allowance always on</span></div>
+  <div class="api-purpose"><strong>On-demand sandbox VMs.</strong> You call the Fly.io Machines API to create a new machine (VM) for each sandbox run, passing your Docker image and environment. Machine starts in under 1 second. You SSH in (or exec) to run your agent tools. When done, you destroy the machine via API. The free allowance covers 3 always-on shared VMs — enough for MVP.</div>
+  <div class="api-limits">Free: 3 shared-cpu VMs · 160GB bandwidth · $0.0000019/sec for additional machines</div>
+</div>
+
+<div class="api-card">
+  <div class="api-name">Resend <span class="tag-free">FREE 3000 emails/month</span></div>
+  <div class="api-purpose"><strong>Transactional email.</strong> Sends: run complete notifications, security alert emails, staging approval requests, weekly codebase health digest, onboarding emails. Uses React Email templates — same React you already know. Simple REST API, excellent deliverability.</div>
+  <div class="api-limits">Free: 3000 emails/month · 1 domain · 100/day rate limit</div>
+</div>
+
+<div class="api-card">
+  <div class="api-name">Slack API <span class="tag-free">FREE</span></div>
+  <div class="api-purpose"><strong>Primary notification channel for engineering teams.</strong> Posts run summaries with colour-coded severity. Posts interactive approval buttons (using Block Kit) so team leads can approve staging → prod without opening Codeward dashboard. Sends direct messages for critical security blocks.</div>
+  <div class="api-limits">Free · Rate limit: 1 message/second per channel · Block Kit buttons fully functional on free plan</div>
+</div>
+
+<div class="warn"><div class="warn-t">Honest cost projection at 100 active teams (50 pushes/day each)</div>
+<p style="margin:0;font-size:12px;color:#aaa;line-height:1.7">5000 pushes/day × $0.08 average Claude API cost = <strong style="color:#FCD34D">$400/day in Anthropic API fees</strong>. This is why your pricing matters. At $49/month (Pro), you need users to push less than ~150× per month to stay profitable. Enterprise tiers with higher prices cover heavier usage. Free tier must be strictly rate-limited to 5 runs/day maximum. Build the billing gate before you market heavily.</p></div>
+</div>
+
+<!-- TAB 5: DEBT FRAMEWORK -->
+<div class="tab-content" id="tab-debt">
+<h2>Complete 100+ item debt framework — all 8 categories, every check</h2>
+<p>Every item here maps to a specific agent, specific tools, and specific logic in the sandbox. New items from your expanded framework are marked NEW.</p>
+
+<div class="debt-section">
+<div class="debt-head" style="background:rgba(239,68,68,.1)"><span style="color:#FCA5A5;font-size:12px;font-weight:500">🔴 Security Debt — 18 checks — Security Agent — hard blocks merge</span><span class="tag tag-red">×2.0 weight</span></div>
+<div class="debt-items">
+<div class="ditem"><div class="ditem-t">Exposed API keys & secrets</div><div class="ditem-d">truffleHog v3 · all files + git history · 700+ detectors</div></div>
+<div class="ditem"><div class="ditem-t">Missing auth on API routes</div><div class="ditem-d">Every endpoint called with no token · expects 401</div></div>
+<div class="ditem"><div class="ditem-t">SQL injection vectors</div><div class="ditem-d">OWASP ZAP dynamic + AST static check on query builders</div></div>
+<div class="ditem"><div class="ditem-t">Database RLS missing</div><div class="ditem-d">Supabase/Postgres policy existence per table</div></div>
+<div class="ditem"><div class="ditem-t">XSS & CSRF vulnerabilities</div><div class="ditem-d">OWASP ZAP payload injection · CSRF token check</div></div>
+<div class="ditem"><div class="ditem-t">Known CVEs in dependencies</div><div class="ditem-d">Trivy · npm/pip/cargo/gem lockfile scan</div></div>
+<div class="ditem"><div class="ditem-t">Missing rate limiting</div><div class="ditem-d">100 rapid requests → /login /signup · expects 429</div></div>
+<div class="ditem"><div class="ditem-t">Prompt injection</div><div class="ditem-d">Override payloads on all LLM-connected endpoints</div></div>
+<div class="ditem ditem-new"><div class="ditem-t">Insecure Non-Human Identities</div><div class="ditem-d">Long-lived service tokens · unrotated PATs · K8s/Cloud config scan</div></div>
+<div class="ditem ditem-new"><div class="ditem-t">Supply chain integrity</div><div class="ditem-d">SBOM verification · GitHub Actions permission audit</div></div>
+<div class="ditem ditem-new"><div class="ditem-t">Cryptographic failures</div><div class="ditem-d">AST scan for MD5/SHA-1 usage · hardcoded IVs/salts</div></div>
+<div class="ditem ditem-new"><div class="ditem-t">SSRF in microservices</div><div class="ditem-d">Probe metadata endpoints via all URL-accepting inputs</div></div>
+<div class="ditem ditem-new"><div class="ditem-t">Missing MFA for destructive actions</div><div class="ditem-d">DELETE/admin routes tested without step-up auth</div></div>
+<div class="ditem ditem-new"><div class="ditem-t">CI/CD pipeline log leaks</div><div class="ditem-d">Runner logs scanned · poisoned pipeline audit</div></div>
+<div class="ditem ditem-new"><div class="ditem-t">Multitenant data leaks</div><div class="ditem-d">Every shared-table query verified to include tenant_id filter</div></div>
+<div class="ditem ditem-new"><div class="ditem-t">Logging & alerting gaps</div><div class="ditem-d">5 rapid login failures triggered · checks if alert fires</div></div>
+<div class="ditem ditem-new"><div class="ditem-t">Error information leakage</div><div class="ditem-d">Fuzz endpoints · check 500 responses for stack traces (CWE-209)</div></div>
+<div class="ditem ditem-new"><div class="ditem-t">Business logic bypass</div><div class="ditem-d">Direct URL access to success pages skipping payment/verification</div></div>
+</div>
+</div>
+
+<div class="debt-section">
+<div class="debt-head" style="background:rgba(245,158,11,.08)"><span style="color:#FCD34D;font-size:12px;font-weight:500">🟡 Bloat Debt — 18 checks — Bloat Agent — accumulates</span><span class="tag tag-amber">×1.0 weight</span></div>
+<div class="debt-items">
+<div class="ditem"><div class="ditem-t">Duplicate functions</div><div class="ditem-d">Semantic AST match · tree-sitter · same behaviour different names</div></div>
+<div class="ditem"><div class="ditem-t">Dead code</div><div class="ditem-d">Call graph traced · zero-reference functions/vars/imports</div></div>
+<div class="ditem"><div class="ditem-t">God files (1000+ lines)</div><div class="ditem-d">Multiple responsibilities in one file · split points suggested</div></div>
+<div class="ditem"><div class="ditem-t">Copy-paste blocks (5+ lines)</div><div class="ditem-d">Blocks appearing 2+ times · auto-extracted to helpers</div></div>
+<div class="ditem"><div class="ditem-t">Redundant dependencies</div><div class="ditem-d">Installed but unused · 3 packages doing 1 job</div></div>
+<div class="ditem"><div class="ditem-t">Oversized functions (80+ lines)</div><div class="ditem-d">Cyclomatic complexity above 10 · extraction suggested</div></div>
+<div class="ditem"><div class="ditem-t">Vibe rewrite pattern</div><div class="ditem-d">>60% file changed · zero new tests added</div></div>
+<div class="ditem"><div class="ditem-t">Commented-out code blocks</div><div class="ditem-d">Large commented blocks · git blame checked before removal</div></div>
+<div class="ditem ditem-new"><div class="ditem-t">Feature bloat (low usage)</div><div class="ditem-d">Telemetry correlation · flags features <1% MAU for deprecation</div></div>
+<div class="ditem ditem-new"><div class="ditem-t">Cognitive load bloat</div><div class="ditem-d">LLM "time to comprehend" analysis · over-engineered abstractions</div></div>
+<div class="ditem ditem-new"><div class="ditem-t">CSS & asset bloat</div><div class="ditem-d">Unused Tailwind classes · oversized images · LCP impact</div></div>
+<div class="ditem ditem-new"><div class="ditem-t">Over-configurability</div><div class="ditem-d">Env vars unchanged 6+ months · hardcoding suggested</div></div>
+<div class="ditem ditem-new"><div class="ditem-t">YAGNI / just-in-case logic</div><div class="ditem-d">Future-requirement branches never materialised · flagged</div></div>
+<div class="ditem ditem-new"><div class="ditem-t">Microservice over-segmentation</div><div class="ditem-d">Network overhead vs. logic size · nanoservice merge suggested</div></div>
+<div class="ditem ditem-new"><div class="ditem-t">Shadow dependencies</div><div class="ditem-d">Multiple versions of same lib bundled · Lodash 3 + 4 example</div></div>
+<div class="ditem ditem-new"><div class="ditem-t">Verbose logging spam</div><div class="ditem-d">DEBUG/INFO log volume in prod · storage cost projection</div></div>
+<div class="ditem ditem-new"><div class="ditem-t">Legacy polyfill debt</div><div class="ditem-d">IE11 polyfills checked against support matrix · removed</div></div>
+<div class="ditem ditem-new"><div class="ditem-t">Documentation rot</div><div class="ditem-d">README/docs vs. actual code signatures · discrepancies flagged</div></div>
+</div>
+</div>
+
+<div class="debt-section">
+<div class="debt-head" style="background:rgba(239,68,68,.1)"><span style="color:#FCA5A5;font-size:12px;font-weight:500">🔴 Broken Code Debt — 18 checks — Broken Code Agent — hard blocks merge</span><span class="tag tag-red">×1.8 weight</span></div>
+<div class="debt-items">
+<div class="ditem"><div class="ditem-t">Failing tests</div><div class="ditem-d">Full suite · any single failure = hard block</div></div>
+<div class="ditem"><div class="ditem-t">Runtime exceptions</div><div class="ditem-d">App runs in sandbox · null dereferences caught live</div></div>
+<div class="ditem"><div class="ditem-t">Race conditions</div><div class="ditem-d">100 concurrent requests · consistency assertions</div></div>
+<div class="ditem"><div class="ditem-t">Broken migrations</div><div class="ditem-d">Seeded test DB · data integrity verified post-run</div></div>
+<div class="ditem"><div class="ditem-t">Silent data corruption</div><div class="ditem-d">Write known values · read back through all logic paths</div></div>
+<div class="ditem"><div class="ditem-t">Swallowed errors</div><div class="ditem-d">AST scan · empty catch blocks · unhandled rejections</div></div>
+<div class="ditem"><div class="ditem-t">Missing input validation</div><div class="ditem-d">Malformed/oversized inputs · expects validation not 500s</div></div>
+<div class="ditem"><div class="ditem-t">Memory leaks</div><div class="ditem-d">60s sustained load · heap growth measured</div></div>
+<div class="ditem ditem-new"><div class="ditem-t">Flaky test debt</div><div class="ditem-d">Test suite run 10× · non-deterministic failures flagged</div></div>
+<div class="ditem ditem-new"><div class="ditem-t">Silent promise rejections</div><div class="ditem-d">AST scan · await without try/catch or .catch()</div></div>
+<div class="ditem ditem-new"><div class="ditem-t">Stale feature flags</div><div class="ditem-d">100% "on" flags for 30+ days · conditional removal suggested</div></div>
+<div class="ditem ditem-new"><div class="ditem-t">Implicit contract reliance</div><div class="ditem-d">Functions relying on global state not in signature</div></div>
+<div class="ditem ditem-new"><div class="ditem-t">Swallowed API timeouts</div><div class="ditem-d">Outbound HTTP/gRPC without explicit timeout · worker hang risk</div></div>
+<div class="ditem ditem-new"><div class="ditem-t">Memory bloat (non-leak)</div><div class="ditem-d">Large objects in global scope · no TTL or eviction policy</div></div>
+<div class="ditem ditem-new"><div class="ditem-t">Broken rollback paths</div><div class="ditem-d">Down migration attempted on every PR · failure = merge block</div></div>
+<div class="ditem ditem-new"><div class="ditem-t">Type-safety gaps</div><div class="ditem-d">any count + ts-ignore below project threshold</div></div>
+<div class="ditem ditem-new"><div class="ditem-t">Resource exhaustion (handles)</div><div class="ditem-d">Unclosed file handles · DB connections · network sockets</div></div>
+<div class="ditem ditem-new"><div class="ditem-t">Zombie workers</div><div class="ditem-d">Background jobs restarting repeatedly · no progress</div></div>
+</div>
+</div>
+
+<div class="debt-section">
+<div class="debt-head" style="background:rgba(75,123,236,.08)"><span style="color:#93B4F8;font-size:12px;font-weight:500">🔵 Architecture Debt — 18 checks — Architecture Agent — health trend</span><span class="tag tag-blue">×1.2 weight</span></div>
+<div class="debt-items">
+<div class="ditem"><div class="ditem-t">N+1 queries</div><div class="ditem-d">Query count per HTTP request · >5 on simple GET flagged</div></div>
+<div class="ditem"><div class="ditem-t">Missing DB indexes</div><div class="ditem-d">EXPLAIN ANALYZE · full scans on 1000+ row tables</div></div>
+<div class="ditem"><div class="ditem-t">Unbounded result sets</div><div class="ditem-d">10k row dataset test · no pagination = flagged</div></div>
+<div class="ditem"><div class="ditem-t">Circular dependencies</div><div class="ditem-d">Full import graph · cycles flagged with resolution path</div></div>
+<div class="ditem"><div class="ditem-t">No caching strategy</div><div class="ditem-d">Identical DB queries per request · Redis opportunity</div></div>
+<div class="ditem"><div class="ditem-t">Tight coupling</div><div class="ditem-d">Business logic in routes/UI · separation score per file</div></div>
+<div class="ditem"><div class="ditem-t">Synchronous blocking calls</div><div class="ditem-d">I/O without async/await · event loop blocking</div></div>
+<div class="ditem"><div class="ditem-t">Missing retry logic</div><div class="ditem-d">External HTTP calls without backoff · AST scan</div></div>
+<div class="ditem ditem-new"><div class="ditem-t">Distributed monolith pattern</div><div class="ditem-d">Services that must deploy together · coupling measured</div></div>
+<div class="ditem ditem-new"><div class="ditem-t">Missing distributed tracing</div><div class="ditem-d">Trace-ID injected · verified across all microservice hops</div></div>
+<div class="ditem ditem-new"><div class="ditem-t">Synchronous dependency chains</div><div class="ditem-d">A→B→C chains · missing circuit breakers · cascade risk</div></div>
+<div class="ditem ditem-new"><div class="ditem-t">Database as integration point</div><div class="ditem-d">Multiple services writing same table · bounded context violation</div></div>
+<div class="ditem ditem-new"><div class="ditem-t">Data archival debt</div><div class="ditem-d">Table growth monitored · archival strategy suggested</div></div>
+<div class="ditem ditem-new"><div class="ditem-t">Hardcoded environment logic</div><div class="ditem-d">if (env==='prod') blocks in code · config file migration</div></div>
+<div class="ditem ditem-new"><div class="ditem-t">Lack of write idempotency</div><div class="ditem-d">Identical POST requests · duplicate records checked</div></div>
+<div class="ditem ditem-new"><div class="ditem-t">Manual deployment steps</div><div class="ditem-d">README "don't forget" instructions · not in CI/CD</div></div>
+<div class="ditem ditem-new"><div class="ditem-t">Cold start latency</div><div class="ditem-d">Startup time in cold sandbox · >5s flagged for serverless</div></div>
+<div class="ditem ditem-new"><div class="ditem-t">Missing backpressure handling</div><div class="ditem-d">2× load test · crashes vs. graceful 503 shedding</div></div>
+</div>
+</div>
+
+<div class="debt-section">
+<div class="debt-head" style="background:rgba(34,197,94,.06)"><span style="color:#86EFAC;font-size:12px;font-weight:500">🟢 AI-Era Debt — 18 checks — AI-Era Agent — growing weight</span><span class="tag tag-green">×1.5 → ×2.0</span></div>
+<div class="debt-items">
+<div class="ditem"><div class="ditem-t">Prompt injection</div><div class="ditem-d">Override payloads on every LLM endpoint</div></div>
+<div class="ditem"><div class="ditem-t">Unbounded token spend</div><div class="ditem-d">No max_tokens · adversarial cost simulation</div></div>
+<div class="ditem"><div class="ditem-t">Unvalidated AI output</div><div class="ditem-d">JSON schema validation on LLM responses</div></div>
+<div class="ditem"><div class="ditem-t">Deprecated model version lock</div><div class="ditem-d">Hardcoded model IDs · deprecation check</div></div>
+<div class="ditem"><div class="ditem-t">PII in AI pipelines</div><div class="ditem-d">Email/phone/card patterns in logs and LLM context</div></div>
+<div class="ditem"><div class="ditem-t">No AI rate limiting</div><div class="ditem-d">LLM endpoints without throttle · budget drain simulated</div></div>
+<div class="ditem"><div class="ditem-t">Hallucination trust pattern</div><div class="ditem-d">LLM output in DB writes without confidence gate</div></div>
+<div class="ditem"><div class="ditem-t">Training data exposure</div><div class="ditem-d">Logging patterns exposing user inputs to model training</div></div>
+<div class="ditem ditem-new"><div class="ditem-t">System prompt leakage</div><div class="ditem-d">"Repeat back" attacks · hidden system prompt extraction</div></div>
+<div class="ditem ditem-new"><div class="ditem-t">Non-deterministic UI drift</div><div class="ditem-d">Screenshot comparison across renders · AI content shifts</div></div>
+<div class="ditem ditem-new"><div class="ditem-t">Vector DB stale indices</div><div class="ditem-d">RAG source vs. embeddings · orphaned index data</div></div>
+<div class="ditem ditem-new"><div class="ditem-t">AI refactoring logic shift</div><div class="ditem-d">Semantic behaviour comparison pre/post AI refactor</div></div>
+<div class="ditem ditem-new"><div class="ditem-t">Lack of AI attribution</div><div class="ditem-d">AI-generated commits without Generated-by metadata</div></div>
+<div class="ditem ditem-new"><div class="ditem-t">Prompt version mismatch</div><div class="ditem-d">LLM output schema validation · model drift detection</div></div>
+<div class="ditem ditem-new"><div class="ditem-t">RAG context bloat</div><div class="ditem-d">Token count vs. relevance · expensive irrelevant context</div></div>
+<div class="ditem ditem-new"><div class="ditem-t">Missing human-in-the-loop</div><div class="ditem-d">AI destructive actions (DELETE, large refund) without manual gate</div></div>
+<div class="ditem ditem-new"><div class="ditem-t">Model bias accumulation</div><div class="ditem-d">AI sorting/filtering logic · systemic bias against attributes</div></div>
+<div class="ditem ditem-new"><div class="ditem-t">Evasive AI testing</div><div class="ditem-d">Tests mocking entire system or asserting on constants</div></div>
+</div>
+</div>
+
+<div class="debt-section">
+<div class="debt-head" style="background:rgba(139,92,246,.07)"><span style="color:#C4B5FD;font-size:12px;font-weight:500">⚖️ Compliance & Privacy Debt — 10 checks — Compliance Agent — scheduled daily</span><span class="tag tag-purple">High — legal risk</span></div>
+<div class="debt-items">
+<div class="ditem ditem-new"><div class="ditem-t">EU AI Act non-compliance</div><div class="ditem-d">Missing risk classifications · transparency logs for high-risk AI</div></div>
+<div class="ditem ditem-new"><div class="ditem-t">Cross-border data sovereignty</div><div class="ditem-d">Data stored in non-compliant regions · GDPR post-2025</div></div>
+<div class="ditem ditem-new"><div class="ditem-t">NHI compliance</div><div class="ditem-d">Unmanaged service accounts failing identity-first audits</div></div>
+<div class="ditem ditem-new"><div class="ditem-t">RTBF gaps</div><div class="ditem-d">User data purge from backups/logs/AI training sets</div></div>
+<div class="ditem ditem-new"><div class="ditem-t">Consent versioning debt</div><div class="ditem-d">Old consent terms used for new AI/analytics purposes</div></div>
+<div class="ditem ditem-new"><div class="ditem-t">Missing A11y compliance</div><div class="ditem-d">WCAG 2.2/3.0 · axe-core scan on every UI push</div></div>
+<div class="ditem ditem-new"><div class="ditem-t">Shadow AI usage</div><div class="ditem-d">Unvetted LLMs used with sensitive company data</div></div>
+<div class="ditem ditem-new"><div class="ditem-t">Inadequate audit trails</div><div class="ditem-d">Missing cryptographically signed logs for PII access</div></div>
+<div class="ditem ditem-new"><div class="ditem-t">Data minimisation violations</div><div class="ditem-d">PII retained beyond business necessity · privacy-by-design</div></div>
+<div class="ditem ditem-new"><div class="ditem-t">Algorithmic impact assessment</div><div class="ditem-d">Automated decision systems without bias/fairness audit</div></div>
+</div>
+</div>
+
+<div class="debt-section">
+<div class="debt-head" style="background:rgba(20,184,166,.06)"><span style="color:#5EEAD4;font-size:12px;font-weight:500">🛠️ DX Debt — 10 checks — Data/DX Agent — weekly</span><span class="tag tag-teal">Medium — velocity</span></div>
+<div class="debt-items">
+<div class="ditem ditem-new"><div class="ditem-t">Flaky CI/CD pipelines</div><div class="ditem-d">Non-deterministic pipeline failures · red-build fatigue</div></div>
+<div class="ditem ditem-new"><div class="ditem-t">Local env parity gap</div><div class="ditem-d">Local vs. prod differences · "works on my machine" bugs</div></div>
+<div class="ditem ditem-new"><div class="ditem-t">Onboarding lead time</div><div class="ditem-d">>2 weeks to first prod commit · setup complexity</div></div>
+<div class="ditem ditem-new"><div class="ditem-t">Documentation rot</div><div class="ditem-d">Stale API specs · tribal knowledge dependency</div></div>
+<div class="ditem ditem-new"><div class="ditem-t">Tooling fragmentation</div><div class="ditem-d">3 task runners · 2 CI providers · redundant tools</div></div>
+<div class="ditem ditem-new"><div class="ditem-t">High build/test latency</div><div class="ditem-d">>5 min local test run · flow state broken</div></div>
+<div class="ditem ditem-new"><div class="ditem-t">Missing self-service infra</div><div class="ditem-d">Devs waiting on SRE for DB/S3 provisioning</div></div>
+<div class="ditem ditem-new"><div class="ditem-t">Alert fatigue</div><div class="ditem-d">Non-actionable alerts masking real issues · volume analysis</div></div>
+<div class="ditem ditem-new"><div class="ditem-t">Absence of golden paths</div><div class="ditem-d">No service templates · inconsistent micro-architectures</div></div>
+<div class="ditem ditem-new"><div class="ditem-t">Searchability debt</div><div class="ditem-d">Cannot find code/docs/post-mortems across siloed tools</div></div>
+</div>
+</div>
+
+<div class="debt-section">
+<div class="debt-head" style="background:rgba(249,115,22,.06)"><span style="color:#FDBA74;font-size:12px;font-weight:500">📊 Data & Analytics Debt — 10 checks — Data/DX Agent — weekly</span><span class="tag tag-amber">Medium — decision quality</span></div>
+<div class="debt-items">
+<div class="ditem ditem-new"><div class="ditem-t">Data pipeline entanglement</div><div class="ditem-d">Schema change breaks downstream consumers silently</div></div>
+<div class="ditem ditem-new"><div class="ditem-t">Missing data contracts</div><div class="ditem-d">No schema/quality agreements between producers/consumers</div></div>
+<div class="ditem ditem-new"><div class="ditem-t">Vector DB embedding drift</div><div class="ditem-d">RAG embeddings misaligned with current LLM latent space</div></div>
+<div class="ditem ditem-new"><div class="ditem-t">Dark data accumulation</div><div class="ditem-d">Data collected but never used · cost and noise increase</div></div>
+<div class="ditem ditem-new"><div class="ditem-t">Lack of data lineage</div><div class="ditem-d">Cannot trace metric to raw source for audit/debug</div></div>
+<div class="ditem ditem-new"><div class="ditem-t">Silent data quality degradation</div><div class="ditem-d">Null values · zero defaults · type mismatches</div></div>
+<div class="ditem ditem-new"><div class="ditem-t">Missing event schema registry</div><div class="ditem-d">No centralised schema for analytics events · drift risk</div></div>
+<div class="ditem ditem-new"><div class="ditem-t">Analytics debt</div><div class="ditem-d">No tracking of key business metrics · blind decision-making</div></div>
+<div class="ditem ditem-new"><div class="ditem-t">Data access control gaps</div><div class="ditem-d">PII accessible to analysts without need-to-know</div></div>
+<div class="ditem ditem-new"><div class="ditem-t">Retention policy violations</div><div class="ditem-d">Data held beyond legal retention without purge automation</div></div>
+</div>
+</div>
+</div>
+
+<!-- TAB 6: IMPLEMENTATION ORDER -->
+<div class="tab-content" id="tab-impl">
+<h2>Implementation order — exactly what to build, in what order, and why</h2>
+<div class="warn"><div class="warn-t">Think like an Anthropic engineer: build the smallest thing that proves the core value first</div>
+<p style="margin:0;font-size:12px;color:#aaa;line-height:1.7">The core value of Codeward is: <strong style="color:#FCD34D">a push goes in, a cleaned, tested, scored commit comes out</strong>. Everything else — the dashboard, the chat agent, compliance, DX debt — is built on top of that core loop. Do not build the UI before the loop works. Do not build all 8 agents before one agent works. Build the core loop, show it to 5 real teams, then expand.</p></div>
+
+<h3>Week 1–2 — The webhook loop (proof of concept)</h3>
+<div class="card">
+<p><strong>Goal:</strong> Push a commit to a test repo → Codeward receives it → runs one agent → posts a result back to GitHub. That's it. Nothing else.</p>
+<div class="g2">
+  <div style="background:var(--bg3);border-radius:8px;padding:10px"><div style="font-size:12px;font-weight:500;color:var(--txt);margin-bottom:6px">Build</div><div style="font-size:11px;color:var(--txt2);line-height:1.7">1. GitHub App registration<br>2. Webhook receiver (Hono.js)<br>3. HMAC signature verification<br>4. One BullMQ job created per webhook<br>5. Security Agent with 3 checks only (secrets, CVEs, missing auth)<br>6. GitHub check run posted back (pass/fail)</div></div>
+  <div style="background:var(--bg3);border-radius:8px;padding:10px"><div style="font-size:12px;font-weight:500;color:var(--txt);margin-bottom:6px">Stack at this point</div><div style="font-size:11px;color:var(--txt2);line-height:1.7">Node + Hono.js on Railway<br>BullMQ + Upstash Redis<br>Supabase Postgres (1 table: runs)<br>Anthropic API (claude-haiku-4-5)<br>truffleHog CLI (in Docker)<br>Trivy CLI (in Docker)</div></div>
+</div>
+</div>
+
+<h3>Week 3–4 — The sandbox (core engine)</h3>
+<div class="card">
+<p><strong>Goal:</strong> Run the full test suite inside a real isolated environment. This is the hardest week. Everything else is built on this foundation.</p>
+<div class="g2">
+  <div style="background:var(--bg3);border-radius:8px;padding:10px"><div style="font-size:12px;font-weight:500;color:var(--txt);margin-bottom:6px">Build</div><div style="font-size:11px;color:var(--txt2);line-height:1.7">1. Fly.io Machines API integration<br>2. Stack detection (package.json, requirements.txt)<br>3. Docker base images (Node 20, Python 3.11)<br>4. DB seed with anonymised data<br>5. Test runner (Jest/pytest inside container)<br>6. Results parsed and stored<br>7. Hard timeout at 10 minutes</div></div>
+  <div style="background:var(--bg3);border-radius:8px;padding:10px"><div style="font-size:12px;font-weight:500;color:var(--txt);margin-bottom:6px">Do NOT build yet</div><div style="font-size:11px;color:var(--txt2);line-height:1.7">❌ Dashboard UI<br>❌ Chat agent<br>❌ Compliance checks<br>❌ Slack integration<br>❌ Auto-refactor<br>These come later. The sandbox must be rock solid first.</div></div>
+</div>
+</div>
+
+<h3>Week 5–6 — The AST refactor engine</h3>
+<div class="card">
+<p><strong>Goal:</strong> Agent finds duplicate functions, rewrites them, and the tests still pass after.</p>
+<div style="background:var(--bg3);border-radius:8px;padding:10px"><div style="font-size:11px;color:var(--txt2);line-height:1.7">1. tree-sitter integration (JS/TS first only)<br>2. Semantic duplicate detection<br>3. Bloat Agent (Haiku 4.5 + tree-sitter tool)<br>4. Annotated diff generation (file, line, reason)<br>5. Re-run test suite after refactor<br>6. Store diff in R2<br>7. Post diff as PR comment on GitHub</div></div>
+</div>
+
+<h3>Week 7–8 — React dashboard (now you have data to show)</h3>
+<div class="card">
+<p><strong>Goal:</strong> A developer can see their run results in a real UI. Only build what you already have data for.</p>
+<div style="background:var(--bg3);border-radius:8px;padding:10px"><div style="font-size:11px;color:var(--txt2);line-height:1.7">1. Vite + React 18 + TypeScript + Tailwind + shadcn/ui<br>2. GitHub OAuth login (Better Auth)<br>3. Dashboard screen (runs list, health score)<br>4. Live feed screen (WebSocket stream from BullMQ)<br>5. Diff viewer screen (read diff from R2)<br>6. Security panel screen<br>7. Deploy to Vercel</div></div>
+</div>
+
+<h3>Week 9–10 — Staging and prod pipeline</h3>
+<div class="card">
+<p><strong>Goal:</strong> The full push → sandbox → staging → approve → prod loop works end to end.</p>
+<div style="background:var(--bg3);border-radius:8px;padding:10px"><div style="font-size:11px;color:var(--txt2);line-height:1.7">1. Staging deploy to Vercel/Render (ephemeral per commit)<br>2. Approval UI in dashboard<br>3. GitHub merge trigger after approval<br>4. Post-deploy monitoring (Sentry integration)<br>5. Auto-rollback on error spike<br>6. Slack notification for approval requests</div></div>
+</div>
+
+<h3>Week 11–12 — Codeward AI chat agent</h3>
+<div class="card">
+<p><strong>Goal:</strong> The chat agent can answer questions about the codebase using real run data.</p>
+<div style="background:var(--bg3);border-radius:8px;padding:10px"><div style="font-size:11px;color:var(--txt2);line-height:1.7">1. Chat UI in React (sidebar screen)<br>2. Sonnet 4.5 with tool_use<br>3. Tools: query_run_history, read_repo_config, explain_debt_item<br>4. Agent can spawn security scan on demand<br>5. Conversation history stored in Postgres<br>6. WebSocket for streaming responses</div></div>
+</div>
+
+<h3>Month 4+ — Expand agents and debt categories</h3>
+<div class="card">
+<div class="g3">
+  <div style="background:var(--bg3);border-radius:8px;padding:10px"><div style="font-size:12px;font-weight:500;color:var(--teal);margin-bottom:4px">Month 4</div><div style="font-size:11px;color:var(--txt2)">Architecture Agent (k6 + EXPLAIN ANALYZE). Compliance Agent (daily schedule). Remaining 5 debt categories.</div></div>
+  <div style="background:var(--bg3);border-radius:8px;padding:10px"><div style="font-size:12px;font-weight:500;color:var(--purple);margin-bottom:4px">Month 5</div><div style="font-size:11px;color:var(--txt2)">AI-Era Agent. Data/DX Agent. Health certificate. Shareable safety badge. Billing (Stripe).</div></div>
+  <div style="background:var(--bg3);border-radius:8px;padding:10px"><div style="font-size:12px;font-weight:500;color:var(--amber);margin-bottom:4px">Month 6</div><div style="font-size:11px;color:var(--txt2)">Self-hosted runner for enterprise. Multi-language AST (Python, Go). GitLab integration. YC application.</div></div>
+</div>
+</div>
+
+<div class="good"><div class="good-t">The one thing every Anthropic engineer would tell you</div>
+<p style="margin:0;font-size:12px;color:#aaa;line-height:1.7">Ship the webhook → sandbox → one agent → GitHub check run loop by end of week 2. Then show it to 5 real engineering teams. Get one of them to say "I want this on all my repos." That signal is worth more than 3 months of building in isolation. You will learn more from watching a real team use the basic loop than from building all 8 agents in private.</p></div>
+</div>
+
+</div><!-- tab-impl -->
+
+<p style="margin-top:3rem;font-size:11px;color:var(--txt3);text-align:center">Codeward engineering blueprint · React + Hono.js + Claude multi-agent + 100+ debt checks · codeward.io</p>
+</div>
+
+<script>
+function switchTab(id, el){
+  document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  el.classList.add('active');
+  window.scrollTo(0,0);
+}
+</script>
+</body>
+</html>
