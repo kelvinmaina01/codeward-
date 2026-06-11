@@ -1,12 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   LayoutDashboard, Radio, GitCompare, ShieldAlert, BarChart3,
   Bot, Monitor, Clock, GitFork, Award, Settings as SettingsIcon,
-  Sun, Moon, Circle, Menu, LogOut, LucideIcon, UsersRound
+  Sun, Moon, Circle, Menu, LogOut, LucideIcon, UsersRound, ChevronDown, Plus
 } from 'lucide-react';
 import { Theme, Screen } from './components/types';
-import { LandingPage } from './components/LandingPage';
-import { AuthPage, MockUser } from './components/AuthPage';
+import { AuthPage } from './components/AuthPage';
 import { ConnectRepo } from './components/ConnectRepo';
 import { Dashboard } from './components/Dashboard';
 import { LiveFeed } from './components/LiveFeed';
@@ -20,8 +19,10 @@ import { Repositories } from './components/Repositories';
 import { Certificate } from './components/Certificate';
 import { Settings } from './components/Settings';
 import { RunDetail } from './components/RunDetail';
+import { useSession, signOut } from '../lib/auth';
+import { Toaster } from 'sonner';
 
-type Page = 'landing' | 'signin' | 'signup' | 'connect' | 'app';
+type Page = 'signin' | 'signup' | 'connect' | 'app';
 const themeOrder: Theme[] = ['cream', 'dark', 'white'];
 
 const themeIcons: Record<Theme, React.ReactNode> = {
@@ -81,29 +82,46 @@ const topbarConfig: Record<Screen, { title: string; sub: string }> = {
 };
 
 export default function App() {
-  const [page, setPage] = useState<Page>('landing');
-  const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signup');
-  const [user, setUser] = useState<MockUser | null>(null);
+  const { data: session, isPending } = useSession();
+  const [page, setPage] = useState<Page>('signin');
   const [screen, setScreen] = useState<Screen>('dashboard');
   const [themeIdx, setThemeIdx] = useState(0);
   const [runDetailSha, setRunDetailSha] = useState<string | null>(null);
   const [isSidebarPinned, setIsSidebarPinned] = useState(false);
+  const [globalOrgs, setGlobalOrgs] = useState<string[]>([]);
+  const [activeOrg, setActiveOrg] = useState<string>('');
 
   const theme = themeOrder[themeIdx];
   const cycleTheme = () => setThemeIdx(i => (i + 1) % themeOrder.length);
 
-  const handleAuth = (u: MockUser) => {
-    setUser(u);
-    setPage('connect');
-  };
+  useEffect(() => {
+    if (!isPending) {
+      if (session?.user && (page === 'signin' || page === 'signup')) {
+        setPage('connect');
+      } else if (!session?.user && page !== 'signin' && page !== 'signup') {
+        setPage('signin');
+      }
+
+      if (session?.user && globalOrgs.length === 0) {
+        fetch('/api/repos/connected')
+          .then(res => res.json())
+          .then(data => {
+            if (data.orgs) {
+              setGlobalOrgs(data.orgs);
+              if (!activeOrg) setActiveOrg(data.orgs[0] || '');
+            }
+          })
+          .catch(console.error);
+      }
+    }
+  }, [session, isPending, page, globalOrgs.length, activeOrg]);
 
   const handleConnect = (_repos: string[]) => {
     setPage('app');
   };
 
-  if (page === 'landing') return <LandingPage onGetStarted={() => { setAuthMode('signup'); setPage('signin'); }} onSignIn={() => { setAuthMode('signin'); setPage('signin'); }} />;
-  if (page === 'signin') return <AuthPage mode={authMode} onAuth={handleAuth} onBack={() => setPage('landing')} />;
-  if (page === 'connect' && user) return <ConnectRepo user={user} onConnect={handleConnect} onSkip={() => setPage('app')} />;
+  if (page === 'signin' || page === 'signup') return <AuthPage onBack={() => setPage('signin')} />;
+  if (page === 'connect' && session?.user) return <ConnectRepo user={{ name: session.user.name, email: session.user.email, image: session.user.image }} onConnect={handleConnect} onSkip={() => setPage('app')} activeOrg={activeOrg} setActiveOrg={setActiveOrg} orgs={globalOrgs} />;
 
   const showingRunDetail = !!runDetailSha;
   const topbar = topbarConfig[screen];
@@ -118,13 +136,13 @@ export default function App() {
       case 'agent':     return <AIAgent />;
       case 'staging':   return <Staging />;
       case 'history':   return <DeployHistory onRunClick={s => setRunDetailSha(s)} />;
-      case 'repos':     return <Repositories />;
+      case 'repos':     return <Repositories activeOrg={activeOrg} />;
       case 'cert':      return <Certificate />;
       case 'settings':  return <Settings />;
     }
   };
 
-  const displayUser = user || { name: 'Admin Manager', login: 'admin', avatar: 'AM', orgs: ['acme-corp'] };
+  const displayUser = session?.user ? { name: session.user.name, avatar: session.user.image ? null : session.user.name.charAt(0).toUpperCase() } : { name: 'Admin Manager', avatar: 'AM' };
 
   return (
     <div className={`theme-${theme} flex h-screen overflow-hidden font-sans bg-cw-bg text-cw-txt text-[13px] leading-relaxed transition-colors duration-250`}>
@@ -140,6 +158,28 @@ export default function App() {
         <div className="h-[60px] px-6 flex items-center border-b border-cw-bdr shrink-0">
           <div className="text-base font-semibold tracking-[-0.03em] whitespace-nowrap">
             Admin<span className="text-cw-blue">Panel</span>
+          </div>
+        </div>
+
+        {/* Workspace Switcher */}
+        <div className={`px-4 py-3 border-b border-cw-bdr transition-opacity duration-300 ${isSidebarPinned ? 'opacity-100' : 'opacity-0 overflow-hidden h-0 py-0 border-0'}`}>
+          <div className="relative w-full">
+            <button className="w-full flex items-center justify-between px-3 py-2 rounded-md bg-cw-bg border border-cw-bdr hover:bg-cw-bg3 transition-colors text-left overflow-hidden">
+              <div className="flex items-center gap-2 truncate">
+                <div className="w-5 h-5 rounded bg-cw-purple flex items-center justify-center text-white font-bold text-[10px] shrink-0 uppercase">
+                  {(activeOrg || displayUser.name).charAt(0)}
+                </div>
+                <span className="text-[12px] font-semibold text-cw-txt truncate">{activeOrg || displayUser.name}</span>
+              </div>
+              <ChevronDown size={14} className="text-cw-txt3 shrink-0 ml-2" />
+            </button>
+            <select 
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+              value={activeOrg}
+              onChange={(e) => setActiveOrg(e.target.value)}
+            >
+              {globalOrgs.map(org => <option key={org} value={org}>{org}</option>)}
+            </select>
           </div>
         </div>
 
@@ -178,14 +218,14 @@ export default function App() {
 
         {/* Footer */}
         <div className={`mt-auto p-4 border-t border-cw-bdr flex items-center gap-3 whitespace-nowrap overflow-hidden transition-all duration-300`}>
-          <div className="w-8 h-8 rounded-full bg-cw-blue flex items-center justify-center text-[12px] text-white font-semibold shrink-0">
-            {displayUser.avatar}
+          <div className="w-8 h-8 rounded-full bg-cw-blue flex items-center justify-center text-[12px] text-white font-semibold shrink-0 overflow-hidden">
+            {session?.user?.image ? <img src={session.user.image} alt="Avatar" className="w-full h-full object-cover" /> : displayUser.avatar}
           </div>
           <div className={`flex-1 min-w-0 transition-opacity duration-300 ${isSidebarPinned ? 'opacity-100' : 'opacity-0'}`}>
             <div className="text-[13px] text-cw-txt font-medium">{displayUser.name}</div>
           </div>
           <button 
-            onClick={() => { setUser(null); setPage('landing'); }} 
+            onClick={async () => { await signOut(); setPage('landing'); }} 
             title="Sign out" 
             className={`bg-transparent border-none cursor-pointer text-cw-red p-1 hover:bg-cw-red/10 rounded transition-all duration-300 ${isSidebarPinned ? 'opacity-100' : 'opacity-0'}`}
           >
@@ -214,6 +254,14 @@ export default function App() {
               </div>
             </div>
             <div className="flex gap-3 items-center">
+              {screen === 'repos' && (
+                <button 
+                  onClick={() => setPage('connect')}
+                  className="px-4 py-2 rounded-md bg-cw-purple hover:brightness-110 text-white text-[13px] font-medium transition-colors flex items-center gap-2 shadow-sm mr-2"
+                >
+                  <Plus size={14} /> Connect new repo
+                </button>
+              )}
               <button className="px-4 py-2 rounded-md border border-cw-bdr bg-cw-bg2 text-cw-txt text-[13px] font-medium hover:bg-cw-bg3 transition-colors flex items-center gap-2">
                 <UsersRound size={14} /> Overview
               </button>
@@ -242,6 +290,7 @@ export default function App() {
         )}
 
       </div>
+      <Toaster position="bottom-right" theme={theme as any} richColors />
     </div>
   );
 }

@@ -51,14 +51,31 @@ webhookRouter.post('/github', async (c) => {
         status: 'queued',
       }).returning();
       
-      // Enqueue job in BullMQ
+      // Enqueue job in BullMQ (Layer 2: Incremental Scan)
       await commitQueue.add('process-commit', { 
         runId: runRecord.id,
         commitSHA, 
         repoName 
       });
       
-      return c.json({ status: 'queued', commitSHA, runId: runRecord.id });
+      return c.json({ status: 'queued', type: 'incremental', commitSHA, runId: runRecord.id });
+    } else if (event === 'installation' || event === 'installation_repositories') {
+      // Layer 1: Initial Deep Scan when a repository is first connected
+      const repos = data.repositories_added || data.repositories || [];
+      
+      for (const repo of repos) {
+        console.log(`[Webhook] Received installation for ${repo.full_name}. Triggering Layer 1 Deep Scan.`);
+        
+        // Enqueue a distinct 'process-repo' job. The orchestrator will know this requires
+        // fetching the default branch and doing a full architectural scan rather than just a diff.
+        await commitQueue.add('process-repo', {
+          repoName: repo.full_name,
+          installationId: data.installation?.id,
+          isInitialScan: true
+        });
+      }
+      
+      return c.json({ status: 'queued', type: 'deep-scan', reposProcessed: repos.length });
     }
 
     return c.json({ status: 'ignored', event });

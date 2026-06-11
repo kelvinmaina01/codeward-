@@ -9,11 +9,14 @@
   },
   "dependencies": {
     "@hono/node-server": "^1.11.1",
+    "@octokit/app": "^16.1.2",
+    "better-auth": "^1.6.16",
     "bullmq": "^5.7.8",
     "dotenv": "^16.4.5",
     "drizzle-orm": "^0.45.2",
     "hono": "^4.4.0",
     "ioredis": "^5.4.1",
+    "octokit": "^5.0.5",
     "postgres": "^3.4.9"
   },
   "devDependencies": {
