@@ -21,10 +21,24 @@
 
 <br/>
 
-> *"We stopped merging CVEs into our payment service. Codeward caught a live Stripe key on a junior dev's first PR. That could have been very expensive."*
-> — VP Engineering, Fintech startup
+<blockquote>
+  <img src="https://unsplash.com" align="left" width="48" height="48" style="border-radius: 50%; margin-right: 15px;" alt="Sarah Jenkins">
+  <strong>"We used to waste hours tracking down memory leaks in production. We plugged SnapOrange into our pipeline, and its AI isolated a fatal deadlock in our cart service within minutes. Absolute lifesaver."</strong>
+  <br />
+  <small>— <strong>Melisah Jenkins</strong>, Principal Architect at <em>PayPulse Systems</em></small>
+</blockquote>
 
 <br/>
+
+<blockquote>
+  <img src="https://unsplash.com" align="left" width="48" height="48" style="border-radius: 50%; margin-right: 15px;" alt="Marcus Vance">
+  <strong>"ClockworkOrange caught a hard-to-reproduce race condition right in the PR stage. It saved our frontend team from shipping a broken checkout UI to 50k active users on Black Friday."</strong>
+  <br />
+  <small>— <strong>peter Franklin Vance</strong>, VP of Engineering at <em>CartFlow Commerce</em></small>
+</blockquote>
+
+<br/>
+
 
 [**Get Started →**](https://codeward.io) · [**Documentation**](https://docs.codeward.io) · [**Live Demo**](#demo) · [**Discord**](https://discord.gg/codeward) · [**Report a Bug**](https://github.com/codeward-io/codeward/issues)
 
