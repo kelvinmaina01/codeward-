@@ -81,18 +81,18 @@
 .theme-cream {
   --cw-bg: #F5F5EE;
   --cw-bg2: #ffffff;
-  --cw-bg3: #f0f0ee;
-  --cw-txt: #1a1a18;
-  --cw-txt2: #555555;
-  --cw-txt3: #999999;
-  --cw-bdr: #dddddd;
+  --cw-bg3: #EAEAE0;
+  --cw-txt: #2c2925;
+  --cw-txt2: #5c564c;
+  --cw-txt3: #8a8375;
+  --cw-bdr: #D8CEBE;
   --cw-blue: #3B6FD4;
   --cw-green: #16A34A;
   --cw-red: #DC2626;
   --cw-amber: #D97706;
   --cw-teal: #0F766E;
   --cw-purple: #8957E5;
-  --cw-log-bg: #0f1117;
+  --cw-log-bg: #1c1a17;
 }
 
 .theme-dark {

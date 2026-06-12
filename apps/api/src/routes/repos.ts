@@ -101,15 +101,45 @@ reposRouter.get('/', async (c) => {
     });
 
     const ghOrgs = orgsResponse.ok ? (await orgsResponse.json() as any[]) : [];
-    const orgRoles: Record<string, string> = { [personalLogin]: 'admin' };
+    const orgRoles: Record<string, { role: string; id: number }> = { 
+      [personalLogin]: { role: 'admin', id: ghUser?.id || 0 } 
+    };
     
     for (const membership of ghOrgs) {
       if (membership.state === 'active') {
-        orgRoles[membership.organization.login] = membership.role;
+        orgRoles[membership.organization.login] = {
+          role: membership.role,
+          id: membership.organization.id
+        };
       }
     }
     
-    const orgs = Object.keys(orgRoles);
+    // 2.5 Fetch user's GitHub App installations
+    const installationsResponse = await fetch('https://api.github.com/user/installations', {
+      headers: {
+        'Authorization': `Bearer ${githubAccount.accessToken}`,
+        'Accept': 'application/vnd.github+json',
+        'X-GitHub-Api-Version': '2022-11-28',
+        'User-Agent': 'Codeward-App',
+      },
+    });
+
+    const installationsData = installationsResponse.ok ? (await installationsResponse.json() as any) : { installations: [] };
+    const installedAccountLogins = new Set<string>();
+    
+    for (const inst of installationsData.installations || []) {
+      if (inst.account && inst.account.login) {
+        installedAccountLogins.add(inst.account.login);
+      }
+    }
+
+    // Build the enriched orgs array
+    const orgs = Object.entries(orgRoles).map(([login, details]) => ({
+      name: login,
+      role: details.role,
+      accountId: details.id,
+      isInstalled: installedAccountLogins.has(login)
+    }));
 
     // 3. Fetch repos
     const ghResponse = await fetch('https://api.github.com/user/repos?sort=pushed&per_page=100&type=all', {
@@ -144,7 +174,7 @@ reposRouter.get('/', async (c) => {
       .from(schema.repositories)
       .where(or(...conditions));
       
-    const connectedSet = new Set(connectedRepos.map(r => r.fullName));
+    const connectedReposMap = new Map(connectedRepos.map(r => [r.fullName, r.auditStatus]));
 
     // 5. Map to our API shape
     const repos = ghRepos.map((r: any) => ({
@@ -163,7 +193,8 @@ reposRouter.get('/', async (c) => {
       private: r.private,
       pushed: r.pushed_at,
       owner: r.owner.login,
-      connected: connectedSet.has(r.full_name),
+      connected: connectedReposMap.has(r.full_name),
+      auditStatus: connectedReposMap.get(r.full_name) || 'unconnected',
     }));
 
     return c.json({ repos, orgs, orgRoles });

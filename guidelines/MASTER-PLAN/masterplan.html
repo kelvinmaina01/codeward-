@@ -564,7 +564,7 @@
         /* OVERALL PROGRESS */
         .overall-grid {
             display: grid;
-            grid-template-columns: repeat(6, 1fr);
+            grid-template-columns: repeat(9, 1fr);
             gap: 6px;
             margin-top: 1.5rem
         }
@@ -638,7 +638,19 @@
                 </div>
                 <div class="og-phase">
                     <div class="og-num" style="color:var(--red)" id="pct-6">0%</div>
-                    <div class="og-label">Phase 6<br>Scale</div>
+                    <div class="og-label">Phase 6<br>Pipeline</div>
+                </div>
+                <div class="og-phase">
+                    <div class="og-num" style="color:var(--pink)" id="pct-7">0%</div>
+                    <div class="og-label">Phase 7<br>Dashboard</div>
+                </div>
+                <div class="og-phase">
+                    <div class="og-num" style="color:var(--amber)" id="pct-8">0%</div>
+                    <div class="og-label">Phase 8<br>Multi-Agent</div>
+                </div>
+                <div class="og-phase">
+                    <div class="og-num" style="color:var(--teal)" id="pct-9">0%</div>
+                    <div class="og-label">Phase 9<br>Chat Agent</div>
                 </div>
             </div>
         </div>
@@ -648,11 +660,12 @@
             <div class="phase-tab active" onclick="switchPhase(1,this)">Phase 1 — Webhook Loop</div>
             <div class="phase-tab" onclick="switchPhase(2,this)">Phase 2 — Sandbox Core</div>
             <div class="phase-tab" onclick="switchPhase(3,this)">Phase 3 — First Agent</div>
-            <div class="phase-tab" onclick="switchPhase(4,this)">Phase 4 — AST + Bloat</div>
-            <div class="phase-tab" onclick="switchPhase(5,this)">Phase 5 — Full Pipeline</div>
-            <div class="phase-tab" onclick="switchPhase(6,this)">Phase 6 — Dashboard</div>
-            <div class="phase-tab" onclick="switchPhase(7,this)">Phase 7 — Multi-Agent</div>
-            <div class="phase-tab" onclick="switchPhase(8,this)">Phase 8 — Chat Agent</div>
+            <div class="phase-tab" onclick="switchPhase(4,this)">Phase 4 — Guardian Agent</div>
+            <div class="phase-tab" onclick="switchPhase(5,this)">Phase 5 — AST + Bloat</div>
+            <div class="phase-tab" onclick="switchPhase(6,this)">Phase 6 — Full Pipeline</div>
+            <div class="phase-tab" onclick="switchPhase(7,this)">Phase 7 — Dashboard</div>
+            <div class="phase-tab" onclick="switchPhase(8,this)">Phase 8 — Multi-Agent</div>
+            <div class="phase-tab" onclick="switchPhase(9,this)">Phase 9 — Chat Agent</div>
         </div>
 
         <!-- ==================== PHASE 1 ==================== -->
@@ -687,61 +700,61 @@
                     </div>
                     <div class="tasks">
                         <div class="task-section-label">Create the structure</div>
-                        <div class="task" onclick="toggleTask(this)">
+                        <div class="task done" onclick="toggleTask(this)">
                             <div class="task-cb"></div>
                             <div class="task-text">Run <span class="task-code">mkdir codeward && cd codeward && npm init
                                     -y</span></div>
                         </div>
-                        <div class="task" onclick="toggleTask(this)">
+                        <div class="task done" onclick="toggleTask(this)">
                             <div class="task-cb"></div>
                             <div class="task-text">Create folder structure: <span class="task-code">/apps/api</span>
                                 (Hono server), <span class="task-code">/apps/agent-runner</span> (sandbox orchestrator),
                                 <span class="task-code">/packages/shared</span> (types, utils)</div>
                         </div>
-                        <div class="task" onclick="toggleTask(this)">
+                        <div class="task done" onclick="toggleTask(this)">
                             <div class="task-cb"></div>
                             <div class="task-text">Add <span class="task-code">pnpm-workspace.yaml</span> pointing to
                                 both apps — use pnpm workspaces</div>
                         </div>
-                        <div class="task" onclick="toggleTask(this)">
+                        <div class="task done" onclick="toggleTask(this)">
                             <div class="task-cb"></div>
                             <div class="task-text">Add root <span class="task-code">tsconfig.json</span> with strict
                                 mode, target ES2022, moduleResolution bundler</div>
                         </div>
-                        <div class="task" onclick="toggleTask(this)">
+                        <div class="task done" onclick="toggleTask(this)">
                             <div class="task-cb"></div>
                             <div class="task-text">Add <span class="task-code">.env.example</span> at root listing every
                                 env var you will need</div>
                         </div>
-                        <div class="task" onclick="toggleTask(this)">
+                        <div class="task done" onclick="toggleTask(this)">
                             <div class="task-cb"></div>
                             <div class="task-text">Add <span class="task-code">.gitignore</span> — include .env,
                                 node_modules, dist, .fly</div>
                         </div>
                         <div class="task-section-label">API app setup (apps/api)</div>
-                        <div class="task" onclick="toggleTask(this)">
+                        <div class="task done" onclick="toggleTask(this)">
                             <div class="task-cb"></div>
                             <div class="task-text">Install Hono.js: <span class="task-code">pnpm add hono
                                     @hono/node-server</span></div>
                         </div>
-                        <div class="task" onclick="toggleTask(this)">
+                        <div class="task done" onclick="toggleTask(this)">
                             <div class="task-cb"></div>
                             <div class="task-text">Install dev tools: <span class="task-code">pnpm add -D typescript tsx
                                     @types/node</span></div>
                         </div>
-                        <div class="task" onclick="toggleTask(this)">
+                        <div class="task done" onclick="toggleTask(this)">
                             <div class="task-cb"></div>
                             <div class="task-text">Create <span class="task-code">src/index.ts</span> with a basic Hono
                                 server on port 3000 with one GET / route returning <span
                                     class="task-code">{"status":"ok"}</span></div>
                         </div>
-                        <div class="task" onclick="toggleTask(this)">
+                        <div class="task done" onclick="toggleTask(this)">
                             <div class="task-cb"></div>
                             <div class="task-text">Add <span class="task-code">package.json</span> scripts: <span
                                     class="task-code">dev</span> (tsx watch), <span class="task-code">build</span>
                                 (tsc), <span class="task-code">start</span> (node dist)</div>
                         </div>
-                        <div class="task" onclick="toggleTask(this)">
+                        <div class="task done" onclick="toggleTask(this)">
                             <div class="task-cb"></div>
                             <div class="task-text">Confirm server starts locally with <span class="task-code">pnpm
                                     dev</span> and GET / returns 200</div>
@@ -760,49 +773,49 @@
                 <div class="step-body">
                     <div class="tasks">
                         <div class="task-section-label">Supabase project</div>
-                        <div class="task" onclick="toggleTask(this)">
+                        <div class="task done" onclick="toggleTask(this)">
                             <div class="task-cb"></div>
                             <div class="task-text">Create project at supabase.com — free tier, pick closest region to
                                 you</div>
                         </div>
-                        <div class="task" onclick="toggleTask(this)">
+                        <div class="task done" onclick="toggleTask(this)">
                             <div class="task-cb"></div>
                             <div class="task-text">Copy DATABASE_URL (connection pooler URL) from Settings → Database
                             </div>
                         </div>
-                        <div class="task" onclick="toggleTask(this)">
+                        <div class="task done" onclick="toggleTask(this)">
                             <div class="task-cb"></div>
                             <div class="task-text">Copy SUPABASE_ANON_KEY and SUPABASE_SERVICE_KEY from Settings → API
                             </div>
                         </div>
                         <div class="task-section-label">Drizzle ORM setup</div>
-                        <div class="task" onclick="toggleTask(this)">
+                        <div class="task done" onclick="toggleTask(this)">
                             <div class="task-cb"></div>
                             <div class="task-text">Install: <span class="task-code">pnpm add drizzle-orm postgres</span>
                                 and <span class="task-code">pnpm add -D drizzle-kit</span></div>
                         </div>
-                        <div class="task" onclick="toggleTask(this)">
+                        <div class="task done" onclick="toggleTask(this)">
                             <div class="task-cb"></div>
                             <div class="task-text">Create <span class="task-code">src/db/schema.ts</span> with these
                                 tables: <span class="task-code">users</span>, <span class="task-code">repos</span>,
                                 <span class="task-code">runs</span>, <span class="task-code">run_results</span></div>
                         </div>
-                        <div class="task" onclick="toggleTask(this)">
+                        <div class="task done" onclick="toggleTask(this)">
                             <div class="task-cb"></div>
                             <div class="task-text">runs table columns: id, repo_id, commit_sha, branch, status
                                 (pending/running/passed/failed/blocked), created_at, completed_at, debt_score</div>
                         </div>
-                        <div class="task" onclick="toggleTask(this)">
+                        <div class="task done" onclick="toggleTask(this)">
                             <div class="task-cb"></div>
                             <div class="task-text">Create <span class="task-code">drizzle.config.ts</span> pointing to
                                 schema and Supabase DATABASE_URL</div>
                         </div>
-                        <div class="task" onclick="toggleTask(this)">
+                        <div class="task done" onclick="toggleTask(this)">
                             <div class="task-cb"></div>
                             <div class="task-text">Run <span class="task-code">pnpm drizzle-kit push</span> to create
                                 tables in Supabase</div>
                         </div>
-                        <div class="task" onclick="toggleTask(this)">
+                        <div class="task done" onclick="toggleTask(this)">
                             <div class="task-cb"></div>
                             <div class="task-text">Verify tables exist in Supabase Table Editor</div>
                         </div>
@@ -826,93 +839,93 @@
                     </div>
                     <div class="tasks">
                         <div class="task-section-label">Register the GitHub App</div>
-                        <div class="task" onclick="toggleTask(this)">
+                        <div class="task done" onclick="toggleTask(this)">
                             <div class="task-cb"></div>
                             <div class="task-text">Go to github.com → Settings → Developer settings → GitHub Apps → New
                                 GitHub App</div>
                         </div>
-                        <div class="task" onclick="toggleTask(this)">
+                        <div class="task done" onclick="toggleTask(this)">
                             <div class="task-cb"></div>
                             <div class="task-text">App name: Codeward (dev) — use (dev) suffix so you can register a
                                 production one later</div>
                         </div>
-                        <div class="task" onclick="toggleTask(this)">
+                        <div class="task done" onclick="toggleTask(this)">
                             <div class="task-cb"></div>
                             <div class="task-text">Homepage URL: http://localhost:3000 for now</div>
                         </div>
-                        <div class="task" onclick="toggleTask(this)">
+                        <div class="task done" onclick="toggleTask(this)">
                             <div class="task-cb"></div>
                             <div class="task-text">Webhook URL: use ngrok for local dev — <span class="task-code">ngrok
                                     http 3000</span> and paste the HTTPS URL + /webhooks/github</div>
                         </div>
-                        <div class="task" onclick="toggleTask(this)">
+                        <div class="task done" onclick="toggleTask(this)">
                             <div class="task-cb"></div>
                             <div class="task-text">Webhook secret: generate a random string, save as
                                 GITHUB_WEBHOOK_SECRET in .env</div>
                         </div>
-                        <div class="task" onclick="toggleTask(this)">
+                        <div class="task done" onclick="toggleTask(this)">
                             <div class="task-cb"></div>
                             <div class="task-text">Permissions → Repository: Contents (read), Checks (read+write), Pull
                                 requests (read+write), Metadata (read)</div>
                         </div>
-                        <div class="task" onclick="toggleTask(this)">
+                        <div class="task done" onclick="toggleTask(this)">
                             <div class="task-cb"></div>
                             <div class="task-text">Subscribe to events: Push, Pull request, Check run</div>
                         </div>
-                        <div class="task" onclick="toggleTask(this)">
+                        <div class="task done" onclick="toggleTask(this)">
                             <div class="task-cb"></div>
                             <div class="task-text">Generate a private key → download the .pem file → save contents as
                                 GITHUB_APP_PRIVATE_KEY in .env (replace newlines with \n)</div>
                         </div>
-                        <div class="task" onclick="toggleTask(this)">
+                        <div class="task done" onclick="toggleTask(this)">
                             <div class="task-cb"></div>
                             <div class="task-text">Save App ID as GITHUB_APP_ID in .env</div>
                         </div>
                         <div class="task-section-label">Build the webhook receiver</div>
-                        <div class="task" onclick="toggleTask(this)">
+                        <div class="task done" onclick="toggleTask(this)">
                             <div class="task-cb"></div>
                             <div class="task-text">Install: <span class="task-code">pnpm add @octokit/app
                                     @octokit/webhooks</span></div>
                         </div>
-                        <div class="task" onclick="toggleTask(this)">
+                        <div class="task done" onclick="toggleTask(this)">
                             <div class="task-cb"></div>
                             <div class="task-text">Create <span class="task-code">src/routes/webhook.ts</span> — POST
                                 /webhooks/github route</div>
                         </div>
-                        <div class="task" onclick="toggleTask(this)">
+                        <div class="task done" onclick="toggleTask(this)">
                             <div class="task-cb"></div>
                             <div class="task-text">Verify HMAC-SHA256 signature on every incoming webhook using
                                 X-Hub-Signature-256 header — REJECT any request that fails verification with 401</div>
                         </div>
-                        <div class="task" onclick="toggleTask(this)">
+                        <div class="task done" onclick="toggleTask(this)">
                             <div class="task-cb"></div>
                             <div class="task-text">Parse the push event payload: extract repo full_name, commit SHA,
                                 branch, pusher, changed files list</div>
                         </div>
-                        <div class="task" onclick="toggleTask(this)">
+                        <div class="task done" onclick="toggleTask(this)">
                             <div class="task-cb"></div>
                             <div class="task-text">Write a new run record to Supabase with status = 'pending'</div>
                         </div>
-                        <div class="task" onclick="toggleTask(this)">
+                        <div class="task done" onclick="toggleTask(this)">
                             <div class="task-cb"></div>
                             <div class="task-text">Return 200 immediately — never make GitHub wait for processing</div>
                         </div>
                         <div class="task-section-label">Post a check run back to GitHub</div>
-                        <div class="task" onclick="toggleTask(this)">
+                        <div class="task done" onclick="toggleTask(this)">
                             <div class="task-cb"></div>
                             <div class="task-text">Use @octokit/app to authenticate as the GitHub App installation</div>
                         </div>
-                        <div class="task" onclick="toggleTask(this)">
+                        <div class="task done" onclick="toggleTask(this)">
                             <div class="task-cb"></div>
                             <div class="task-text">After writing the run record, immediately post a check run with
                                 status='in_progress' and name='Codeward'</div>
                         </div>
-                        <div class="task" onclick="toggleTask(this)">
+                        <div class="task done" onclick="toggleTask(this)">
                             <div class="task-cb"></div>
                             <div class="task-text">After 5 seconds (simulate), update the check run to
                                 status='completed', conclusion='success'</div>
                         </div>
-                        <div class="task" onclick="toggleTask(this)">
+                        <div class="task done" onclick="toggleTask(this)">
                             <div class="task-cb"></div>
                             <div class="task-text">Push a test commit to your test repo and verify the yellow → green
                                 dot appears on the commit in GitHub</div>
@@ -931,47 +944,47 @@
                 <div class="step-body">
                     <div class="tasks">
                         <div class="task-section-label">Upstash setup</div>
-                        <div class="task" onclick="toggleTask(this)">
+                        <div class="task done" onclick="toggleTask(this)">
                             <div class="task-cb"></div>
                             <div class="task-text">Create free Redis database at upstash.com → copy UPSTASH_REDIS_URL
                                 and UPSTASH_REDIS_TOKEN to .env</div>
                         </div>
                         <div class="task-section-label">BullMQ setup</div>
-                        <div class="task" onclick="toggleTask(this)">
+                        <div class="task done" onclick="toggleTask(this)">
                             <div class="task-cb"></div>
                             <div class="task-text">Install: <span class="task-code">pnpm add bullmq ioredis</span></div>
                         </div>
-                        <div class="task" onclick="toggleTask(this)">
+                        <div class="task done" onclick="toggleTask(this)">
                             <div class="task-cb"></div>
                             <div class="task-text">Create <span class="task-code">src/queue/index.ts</span> — export a
                                 Queue called 'analysis-jobs' and a Worker</div>
                         </div>
-                        <div class="task" onclick="toggleTask(this)">
+                        <div class="task done" onclick="toggleTask(this)">
                             <div class="task-cb"></div>
                             <div class="task-text">In the webhook handler: instead of the 5-second simulation, add a job
                                 to the queue with payload: {runId, repoFullName, commitSha, branch, installationId}
                             </div>
                         </div>
-                        <div class="task" onclick="toggleTask(this)">
+                        <div class="task done" onclick="toggleTask(this)">
                             <div class="task-cb"></div>
                             <div class="task-text">Create a Worker that picks up jobs and for now just logs "processing
                                 job {runId}" then updates run status to 'completed' in DB</div>
                         </div>
-                        <div class="task" onclick="toggleTask(this)">
+                        <div class="task done" onclick="toggleTask(this)">
                             <div class="task-cb"></div>
                             <div class="task-text">Configure job options: attempts: 3, backoff: {type: 'exponential',
                                 delay: 5000}, removeOnComplete: {count: 100}</div>
                         </div>
-                        <div class="task" onclick="toggleTask(this)">
+                        <div class="task done" onclick="toggleTask(this)">
                             <div class="task-cb"></div>
                             <div class="task-text">Install BullMQ Board for visual monitoring: <span
                                     class="task-code">pnpm add @bull-board/hono @bull-board/api</span></div>
                         </div>
-                        <div class="task" onclick="toggleTask(this)">
+                        <div class="task done" onclick="toggleTask(this)">
                             <div class="task-cb"></div>
                             <div class="task-text">Mount BullMQ Board at /admin/queues (add basic auth protection)</div>
                         </div>
-                        <div class="task" onclick="toggleTask(this)">
+                        <div class="task done" onclick="toggleTask(this)">
                             <div class="task-cb"></div>
                             <div class="task-text">Push a commit, verify the job appears in BullMQ Board and completes
                             </div>
@@ -1569,9 +1582,9 @@
         </div>
 
         <!-- ==================== PHASE 4 ==================== -->
-        <div class="phase-content" id="phase-4">
+        <div class="phase-content" id="phase-5">
             <div class="phase-header">
-                <div class="phase-num" style="color:var(--purple)">04</div>
+                <div class="phase-num" style="color:var(--purple)">09</div>
                 <div>
                     <div class="phase-title">AST Engine + Bloat Agent</div>
                     <div class="phase-subtitle">Parse code into an Abstract Syntax Tree. Find duplicate functions.
@@ -1586,9 +1599,9 @@
                 </div>
             </div>
 
-            <div class="step" id="s4-1">
-                <div class="step-header" onclick="toggleStep('s4-1')">
-                    <div class="step-num-badge" style="background:rgba(139,92,246,.15);color:#C4B5FD">4.1</div>
+            <div class="step" id="s5-1">
+                <div class="step-header" onclick="toggleStep('s5-1')">
+                    <div class="step-num-badge" style="background:rgba(139,92,246,.15);color:#C4B5FD">5.1</div>
                     <div class="step-title">tree-sitter integration in sandbox</div>
                     <div class="step-status ss-build">BUILD</div>
                     <div class="step-chevron">▶</div>
@@ -1625,9 +1638,9 @@
                 </div>
             </div>
 
-            <div class="step" id="s4-2">
-                <div class="step-header" onclick="toggleStep('s4-2')">
-                    <div class="step-num-badge" style="background:rgba(139,92,246,.15);color:#C4B5FD">4.2</div>
+            <div class="step" id="s5-2">
+                <div class="step-header" onclick="toggleStep('s5-2')">
+                    <div class="step-num-badge" style="background:rgba(139,92,246,.15);color:#C4B5FD">5.2</div>
                     <div class="step-title">Bloat Agent — 3 checks first</div>
                     <div class="step-status ss-build">BUILD</div>
                     <div class="step-chevron">▶</div>
@@ -1682,7 +1695,7 @@
             </div>
 
             <div class="gate">
-                <div class="gate-title">🔒 Phase 4 Gate</div>
+                <div class="gate-title">🔒 Phase 9 Gate</div>
                 <div class="gate-item" onclick="toggleGate(this)">
                     <div class="gate-cb"></div>
                     <div class="gate-text"><strong>Duplicate found:</strong> A repo with the same function in 2 files —
@@ -1701,10 +1714,88 @@
             </div>
         </div>
 
-        <!-- ==================== PHASE 5 ==================== -->
-        <div class="phase-content" id="phase-5">
+
+        <!-- ==================== PHASE 4 ==================== -->
+        <div class="phase-content" id="phase-4">
             <div class="phase-header">
-                <div class="phase-num" style="color:var(--green)">05</div>
+                <div class="phase-num" style="color:#F9A8D4">09</div>
+                <div>
+                    <div class="phase-title">The Guardian Agent</div>
+                    <div class="phase-subtitle">The PR review agent. Posts to GitHub PRs as proof of what Codeward actually did. Posts inline comments on specific diff lines. Creates GitHub Issues for unresolved findings. Formally approves or blocks the PR.</div>
+                    <div class="phase-meta">
+                        <span class="meta-pill mp-time">⏱ Week 5–6</span>
+                        <span class="meta-pill mp-goal">🎯 Guardian Agent posts an inline PR comment and blocks a PR</span>
+                        <span class="meta-pill mp-stack">Anthropic SDK · GitHub MCP · BullMQ</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="step" id="s5-1">
+                <div class="step-header" onclick="toggleStep('s5-1')">
+                    <div class="step-num-badge" style="background:rgba(249,168,212,.15);color:#F9A8D4">5.1</div>
+                    <div class="step-title">Listen for agent findings</div>
+                    <div class="step-status ss-build">BUILD</div>
+                    <div class="step-chevron">▶</div>
+                </div>
+                <div class="step-body">
+                    <div class="tasks">
+                        <div class="task" onclick="toggleTask(this)">
+                            <div class="task-cb"></div>
+                            <div class="task-text">Create a subscriber queue that listens to the message bus for completion events from other agents (e.g., Security, Bloat).</div>
+                        </div>
+                        <div class="task" onclick="toggleTask(this)">
+                            <div class="task-cb"></div>
+                            <div class="task-text">Progressively aggregate findings into the Postgres run_results table.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="step" id="s5-2">
+                <div class="step-header" onclick="toggleStep('s5-2')">
+                    <div class="step-num-badge" style="background:rgba(249,168,212,.15);color:#F9A8D4">5.2</div>
+                    <div class="step-title">GitHub PR Integration via MCP</div>
+                    <div class="step-status ss-build">BUILD</div>
+                    <div class="step-chevron">▶</div>
+                </div>
+                <div class="step-body">
+                    <div class="tasks">
+                        <div class="task" onclick="toggleTask(this)">
+                            <div class="task-cb"></div>
+                            <div class="task-text">Give the Guardian Agent access to the GitHub MCP tools: create_pr_review, add_pr_review_comment, create_issue.</div>
+                        </div>
+                        <div class="task" onclick="toggleTask(this)">
+                            <div class="task-cb"></div>
+                            <div class="task-text">Configure Claude Sonnet 4.6 to map security/bloat findings to inline diff comments.</div>
+                        </div>
+                        <div class="task" onclick="toggleTask(this)">
+                            <div class="task-cb"></div>
+                            <div class="task-text">Create fallback GitHub Issues if the finding is repo-wide (e.g., missing auth middleware) instead of a line-specific diff.</div>
+                        </div>
+                        <div class="task" onclick="toggleTask(this)">
+                            <div class="task-cb"></div>
+                            <div class="task-text">Calculate the final debt score and post a formal PR Review (APPROVE, REQUEST_CHANGES, or COMMENT).</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="gate">
+                <div class="gate-title">🔒 Phase 4 Gate</div>
+                <div class="gate-item" onclick="toggleGate(this)">
+                    <div class="gate-cb"></div>
+                    <div class="gate-text"><strong>Inline Comment Posted:</strong> The Guardian agent successfully posts a security finding as an inline comment on the exact line of code in the PR diff.</div>
+                </div>
+                <div class="gate-item" onclick="toggleGate(this)">
+                    <div class="gate-cb"></div>
+                    <div class="gate-text"><strong>PR Blocked:</strong> If a critical finding exists, the Guardian agent requests changes and blocks the PR from merging.</div>
+                </div>
+            </div>
+        </div>
+        <!-- ==================== PHASE 5 ==================== -->
+        <div class="phase-content" id="phase-6">
+            <div class="phase-header">
+                <div class="phase-num" style="color:var(--green)">09</div>
                 <div>
                     <div class="phase-title">Full Deploy Pipeline — Staging → Production</div>
                     <div class="phase-subtitle">After sandbox passes, deploy to staging automatically. Human approves.
@@ -1718,9 +1809,9 @@
                 </div>
             </div>
 
-            <div class="step" id="s5-1">
-                <div class="step-header" onclick="toggleStep('s5-1')">
-                    <div class="step-num-badge" style="background:rgba(34,197,94,.15);color:#86EFAC">5.1</div>
+            <div class="step" id="s6-1">
+                <div class="step-header" onclick="toggleStep('s6-1')">
+                    <div class="step-num-badge" style="background:rgba(34,197,94,.15);color:#86EFAC">6.1</div>
                     <div class="step-title">Ephemeral staging deploy</div>
                     <div class="step-status ss-build">BUILD</div>
                     <div class="step-chevron">▶</div>
@@ -1754,9 +1845,9 @@
                 </div>
             </div>
 
-            <div class="step" id="s5-2">
-                <div class="step-header" onclick="toggleStep('s5-2')">
-                    <div class="step-num-badge" style="background:rgba(34,197,94,.15);color:#86EFAC">5.2</div>
+            <div class="step" id="s6-2">
+                <div class="step-header" onclick="toggleStep('s6-2')">
+                    <div class="step-num-badge" style="background:rgba(34,197,94,.15);color:#86EFAC">6.2</div>
                     <div class="step-title">Approval flow + prod merge</div>
                     <div class="step-status ss-build">BUILD</div>
                     <div class="step-chevron">▶</div>
@@ -1788,9 +1879,9 @@
                 </div>
             </div>
 
-            <div class="step" id="s5-3">
-                <div class="step-header" onclick="toggleStep('s5-3')">
-                    <div class="step-num-badge" style="background:rgba(34,197,94,.15);color:#86EFAC">5.3</div>
+            <div class="step" id="s6-3">
+                <div class="step-header" onclick="toggleStep('s6-3')">
+                    <div class="step-num-badge" style="background:rgba(34,197,94,.15);color:#86EFAC">6.3</div>
                     <div class="step-title">Notifications — Slack + Email</div>
                     <div class="step-status ss-build">BUILD</div>
                     <div class="step-chevron">▶</div>
@@ -1828,7 +1919,7 @@
             </div>
 
             <div class="gate">
-                <div class="gate-title">🔒 Phase 5 Gate</div>
+                <div class="gate-title">🔒 Phase 9 Gate</div>
                 <div class="gate-item" onclick="toggleGate(this)">
                     <div class="gate-cb"></div>
                     <div class="gate-text"><strong>Full loop test:</strong> Push a commit → sandbox passes → staging
@@ -1850,9 +1941,9 @@
         </div>
 
         <!-- ==================== PHASE 6 ==================== -->
-        <div class="phase-content" id="phase-6">
+        <div class="phase-content" id="phase-7">
             <div class="phase-header">
-                <div class="phase-num" style="color:var(--red)">06</div>
+                <div class="phase-num" style="color:var(--red)">09</div>
                 <div>
                     <div class="phase-title">React Dashboard — now you have real data to show</div>
                     <div class="phase-subtitle">Only build UI now because you have real data. Every screen shows
@@ -1867,9 +1958,9 @@
                 </div>
             </div>
 
-            <div class="step" id="s6-1">
-                <div class="step-header" onclick="toggleStep('s6-1')">
-                    <div class="step-num-badge" style="background:rgba(239,68,68,.15);color:#FCA5A5">6.1</div>
+            <div class="step" id="s7-1">
+                <div class="step-header" onclick="toggleStep('s7-1')">
+                    <div class="step-num-badge" style="background:rgba(239,68,68,.15);color:#FCA5A5">7.1</div>
                     <div class="step-title">React app scaffold</div>
                     <div class="step-status ss-build">BUILD</div>
                     <div class="step-chevron">▶</div>
@@ -1926,7 +2017,7 @@
             </div>
 
             <div class="gate">
-                <div class="gate-title">🔒 Phase 6 Gate</div>
+                <div class="gate-title">🔒 Phase 9 Gate</div>
                 <div class="gate-item" onclick="toggleGate(this)">
                     <div class="gate-cb"></div>
                     <div class="gate-text"><strong>Login test:</strong> A new user lands on the site, clicks "Sign in
@@ -1952,9 +2043,9 @@
         </div>
 
         <!-- ==================== PHASE 7 ==================== -->
-        <div class="phase-content" id="phase-7">
+        <div class="phase-content" id="phase-8">
             <div class="phase-header">
-                <div class="phase-num" style="color:var(--teal)">07</div>
+                <div class="phase-num" style="color:var(--teal)">09</div>
                 <div>
                     <div class="phase-title">All Remaining Agents — Full Debt Coverage</div>
                     <div class="phase-subtitle">Add Broken Code, Architecture, AI-Era, Compliance, and Data/DX agents.
@@ -1974,7 +2065,7 @@
                     (scheduled) — 6. Expand Security + Bloat to full 18 checks each</p>
             </div>
             <div class="gate">
-                <div class="gate-title">🔒 Phase 7 Gate</div>
+                <div class="gate-title">🔒 Phase 9 Gate</div>
                 <div class="gate-item" onclick="toggleGate(this)">
                     <div class="gate-cb"></div>
                     <div class="gate-text"><strong>Parallel test:</strong> All 5 agents (security, bloat, broken code,
@@ -1995,9 +2086,9 @@
         </div>
 
         <!-- ==================== PHASE 8 ==================== -->
-        <div class="phase-content" id="phase-8">
+        <div class="phase-content" id="phase-9">
             <div class="phase-header">
-                <div class="phase-num" style="color:var(--purple)">08</div>
+                <div class="phase-num" style="color:var(--purple)">09</div>
                 <div>
                     <div class="phase-title">Codeward AI Chat Agent</div>
                     <div class="phase-subtitle">The always-on agent in the sidebar. It reads real run history, can spawn
@@ -2021,7 +2112,7 @@
                     gets teams to Enterprise tier.</p>
             </div>
             <div class="gate">
-                <div class="gate-title">🔒 Phase 8 Gate — and YC readiness check</div>
+                <div class="gate-title">🔒 Phase 9 Gate — and YC readiness check</div>
                 <div class="gate-item" onclick="toggleGate(this)">
                     <div class="gate-cb"></div>
                     <div class="gate-text"><strong>Data-grounded answers:</strong> Ask "what are the 3 biggest risks in
@@ -2100,7 +2191,7 @@
             if (label) label.textContent = done + ' of ' + total + ' tasks complete (' + pct + '%)';
 
             // Per-phase
-            for (let p = 1; p <= 8; p++) {
+            for (let p = 1; p <= 9; p++) {
                 const pc = document.getElementById('phase-' + p);
                 if (!pc) continue;
                 const pt = pc.querySelectorAll('.task').length + pc.querySelectorAll('.gate-item').length;

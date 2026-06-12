@@ -9,6 +9,5 @@ const connection = new Redis(process.env.UPSTASH_REDIS_URL || 'redis://localhost
   maxRetriesPerRequest: null,
 });
 
-export const commitQueue = new Queue('process-commit', { connection: connection as any });
-
-console.log('BullMQ Queue initialized.');
+export * from './audit.queue.js';
+export * from './webhook.queue.js';

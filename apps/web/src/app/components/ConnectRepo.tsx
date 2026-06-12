@@ -1,14 +1,17 @@
 import { useState, useEffect } from 'react';
-import { Search, Star, Lock, Globe, Check, Loader, GitBranch, AlertCircle, RefreshCw, X, ChevronDown, Shield, FileWarning, Zap, Server, ShieldAlert, Cpu, LogOut, Clock } from 'lucide-react';
+import { Search, Star, Lock, Globe, Check, Loader, GitBranch, AlertCircle, RefreshCw, X, ChevronDown, Shield, FileWarning, Zap, Server, ShieldAlert, Cpu, LogOut, Clock, Sun, Moon, Circle, ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { signOut } from '../../lib/auth';
 
 interface Props {
+  user: { name: string; email?: string; image?: string };
   onConnect: (repos: string[]) => void;
   onSkip: () => void;
   activeOrg?: string;
   setActiveOrg?: (org: string) => void;
   orgs?: string[];
+  theme?: string;
+  onCycleTheme?: () => void;
 }
 
 interface RepoConfig {
@@ -40,6 +43,7 @@ interface Repo {
   pushed: string;
   owner: string;
   connected: boolean;
+  auditStatus?: 'pending_audit' | 'active' | 'unconnected';
 }
 
 const langColors: Record<string, string> = {
@@ -88,7 +92,7 @@ function timeAgo(dateStr: string): string {
   return `${months}mo ago`;
 }
 
-export function ConnectRepo({ user, onConnect, onSkip, activeOrg, setActiveOrg, orgs: propOrgs }: Props) {
+export function ConnectRepo({ user, onConnect, onSkip, activeOrg, setActiveOrg, orgs: propOrgs, theme, onCycleTheme }: Props) {
   const [repos, setRepos] = useState<Repo[]>([]);
   const [localOrgs, setLocalOrgs] = useState<string[]>([]);
   // Selection state
@@ -105,6 +109,7 @@ export function ConnectRepo({ user, onConnect, onSkip, activeOrg, setActiveOrg, 
   // UI State
   const [showAllPanel, setShowAllPanel] = useState(false);
   const [showPermissionsModal, setShowPermissionsModal] = useState(false);
+  const [showOrgDropdown, setShowOrgDropdown] = useState(false);
   const [expandedRepo, setExpandedRepo] = useState<string | null>(null);
   
   // Config state per repo
@@ -116,6 +121,7 @@ export function ConnectRepo({ user, onConnect, onSkip, activeOrg, setActiveOrg, 
       if (e.key === 'Escape') {
         setShowAllPanel(false);
         setShowPermissionsModal(false);
+        setShowOrgDropdown(false);
       }
     };
     window.addEventListener('keydown', handleEsc);
@@ -132,8 +138,13 @@ export function ConnectRepo({ user, onConnect, onSkip, activeOrg, setActiveOrg, 
         const data = await res.json();
         
         // Setup initial org
-        const githubUser = data.orgs[0] === 'personal' ? user.name?.split(' ')[0] : data.orgs[0];
-        const actualOrgs = [githubUser, ...data.orgs.slice(1)];
+        const firstOrg = data.orgs[0];
+        const isPersonal = typeof firstOrg === 'string' ? firstOrg === 'personal' : firstOrg?.name === 'personal';
+        const githubUser = isPersonal ? user.name?.split(' ')[0] : (typeof firstOrg === 'string' ? firstOrg : firstOrg?.name);
+        
+        const restOrgs = data.orgs.slice(1).map((o: any) => typeof o === 'string' ? o : o.name);
+        const actualOrgs = [githubUser, ...restOrgs].filter(Boolean);
+        
         setLocalOrgs(actualOrgs);
         if (!activeOrg && setActiveOrg) setActiveOrg(actualOrgs[0] || '');
 
@@ -241,7 +252,10 @@ export function ConnectRepo({ user, onConnect, onSkip, activeOrg, setActiveOrg, 
         <div 
           onClick={() => {
             if (repo.archived) return;
-            if (compact) return; // parent handles click
+            if (compact) {
+              if (repo.connected) window.location.href = `/repositories/${repo.full}`;
+              return;
+            }
             if (repo.connected) {
               window.location.href = `/repositories/${repo.full}`;
             } else {
@@ -260,7 +274,9 @@ export function ConnectRepo({ user, onConnect, onSkip, activeOrg, setActiveOrg, 
             <div className="flex items-center gap-2 mb-1">
               {repo.private ? <Lock size={14} className="text-cw-amber" /> : <Globe size={14} className="text-cw-green" />}
               <span className="text-[14px] font-bold text-cw-txt">{repo.name}</span>
-              {repo.connected && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-cw-green/10 text-cw-green tracking-wider ml-2">✓ CONNECTED</span>}
+              {repo.connected && repo.auditStatus === 'pending_audit' && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-cw-amber/10 text-cw-amber tracking-wider ml-2 flex items-center gap-1"><Loader size={10} className="animate-spin" /> INITIAL AUDIT RUNNING...</span>}
+              {repo.connected && repo.auditStatus === 'active' && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-cw-green/10 text-cw-green tracking-wider ml-2 flex items-center gap-1"><Shield size={10} /> PROTECTED</span>}
+              {repo.connected && (!repo.auditStatus || repo.auditStatus === 'unconnected') && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-cw-green/10 text-cw-green tracking-wider ml-2">✓ CONNECTED</span>}
               {repo.archived && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-cw-red/10 text-cw-red tracking-wider ml-2">ARCHIVED</span>}
             </div>
             
@@ -323,6 +339,30 @@ export function ConnectRepo({ user, onConnect, onSkip, activeOrg, setActiveOrg, 
               </button>
             </div>
           )}
+
+          {!compact && repo.connected && !repo.archived && (
+            <div className="shrink-0 pt-2 flex items-center gap-2">
+              <button 
+                onClick={(e) => { e.stopPropagation(); window.location.href = `/repositories/${repo.full}`; }}
+                className="px-4 h-[30px] bg-[#2EA043] hover:bg-[#2c974b] text-white text-[12px] font-semibold rounded-lg transition-colors flex items-center gap-2"
+              >
+                Go to Repo
+                <ArrowRight size={14} />
+              </button>
+            </div>
+          )}
+
+          {compact && repo.connected && !repo.archived && (
+            <div className="shrink-0 flex items-center ml-2">
+              <button 
+                onClick={(e) => { e.stopPropagation(); window.location.href = `/repositories/${repo.full}`; }}
+                className="px-2.5 h-[24px] bg-[#2EA043] hover:bg-[#2c974b] text-white text-[11px] font-bold rounded flex items-center gap-1 transition-colors"
+              >
+                Go
+                <ArrowRight size={12} />
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Scope Selector Drawer */}
@@ -373,9 +413,13 @@ export function ConnectRepo({ user, onConnect, onSkip, activeOrg, setActiveOrg, 
   };
 
   const currentStep = connecting ? 3 : (expandedRepo || selected.length > 0 ? 2 : 1);
+  const firstName = localOrgs[0] || user.name?.split(' ')[0] || 'User';
+  const themeIcons: Record<string, React.ReactNode> = { cream: <Circle size={14} fill="#c5a882" color="#c5a882" />, dark: <Moon size={14} />, white: <Sun size={14} /> };
+
 
   return (
-    <div className="theme-dark h-screen bg-cw-bg2 text-cw-txt font-sans flex flex-col overflow-hidden">
+    <div className={`theme-${theme || 'dark'} h-screen bg-cw-bg text-cw-txt font-sans flex flex-col overflow-hidden`}>
+      <style>{`@import url(\'https://fonts.googleapis.com/css2?family=DM+Sans:wght@700&display=swap\');`}</style>
       {/* Header */}
       <div className="bg-cw-bg2 border-b border-cw-bdr px-8 py-4 flex items-center justify-between shrink-0">
         <div className="text-base font-bold tracking-tight">
@@ -403,6 +447,11 @@ export function ConnectRepo({ user, onConnect, onSkip, activeOrg, setActiveOrg, 
         {/* Main Left Content */}
         <div className="flex-1 overflow-y-auto w-full transition-all duration-300">
           <div className="max-w-[900px] mx-auto px-8 pt-8 pb-32 flex flex-col items-center">
+            <h1 className="text-4xl text-cw-txt mb-2 tracking-tight" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+              Welcome back, <span className="text-cw-purple">{firstName}</span> 👋
+            </h1>
+            <p className="text-[14px] text-cw-txt2 mb-10">Connect your repositories to get started with Codeward</p>
+
             
             {/* Dynamic Steps Indicator */}
             <div className="w-full flex items-center justify-center gap-3 mb-10">
@@ -446,16 +495,58 @@ export function ConnectRepo({ user, onConnect, onSkip, activeOrg, setActiveOrg, 
             {/* Filters Row (Main Page) */}
             <div className="w-full max-w-[800px] flex flex-wrap gap-4 items-center justify-center mb-8">
               
-              {/* Org selector */}
-              <div className="flex bg-cw-bg border border-cw-bdr rounded-lg overflow-hidden p-1 shrink-0 max-w-full overflow-x-auto">
-                {(propOrgs?.length ? propOrgs : localOrgs).map(org => (
-                  <button
-                    key={org}
-                    onClick={() => setActiveOrg?.(org)}
-                    className={`px-4 py-1.5 text-[13px] font-medium rounded-md cursor-pointer transition-all duration-150 whitespace-nowrap ${activeOrg === org ? 'bg-cw-bg3 text-cw-txt shadow-sm' : 'bg-transparent text-cw-txt2 hover:text-cw-txt'}`}>
-                    {org}
-                  </button>
-                ))}
+              {/* Custom Workspace Dropdown */}
+              <div className="relative">
+                <button
+                  onClick={() => setShowOrgDropdown(!showOrgDropdown)}
+                  className="flex items-center gap-3 px-3 py-1.5 border border-cw-bdr bg-cw-bg rounded-lg hover:border-cw-txt3 transition-colors min-w-[200px]"
+                >
+                  <div className="text-[10px] text-cw-txt3 uppercase tracking-wider mb-[2px] leading-none absolute top-1 left-3">Workspace</div>
+                  <div className="flex items-center gap-2 mt-3 mb-1 w-full justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-5 h-5 rounded-full bg-cw-purple/20 text-cw-purple flex items-center justify-center text-[10px] font-bold uppercase shrink-0">
+                        {(typeof activeOrg === 'string' ? activeOrg : (activeOrg as any)?.name || '')?.charAt(0)}
+                      </div>
+                      <span className="text-[13px] font-semibold text-cw-txt truncate">
+                        {typeof activeOrg === 'string' ? activeOrg : (activeOrg as any)?.name}
+                      </span>
+                    </div>
+                    <ChevronDown size={14} className="text-cw-txt3 shrink-0" />
+                  </div>
+                </button>
+
+                {showOrgDropdown && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setShowOrgDropdown(false)} />
+                    <div className="absolute top-full left-0 mt-2 w-full min-w-[220px] bg-cw-bg border border-cw-bdr rounded-lg shadow-xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2">
+                      <div className="px-3 py-2 text-[10px] font-bold text-cw-txt3 tracking-wider border-b border-cw-bdr">SWITCH WORKSPACE</div>
+                      <div className="max-h-[300px] overflow-y-auto py-1">
+                        {(propOrgs?.length ? propOrgs : localOrgs).map((orgObj, idx) => {
+                          const orgName = typeof orgObj === 'string' ? orgObj : orgObj.name;
+                          if (!orgName) return null;
+                          const isSel = activeOrg === orgName;
+                          return (
+                            <button
+                              key={orgName + idx}
+                              onClick={() => { setActiveOrg?.(orgName); setShowOrgDropdown(false); }}
+                              className={`w-full flex items-center justify-between px-3 py-2.5 hover:bg-cw-bg3 transition-colors text-left`}
+                            >
+                              <div className="flex items-center gap-3">
+                                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold uppercase shrink-0 ${isSel ? 'bg-cw-purple/20 text-cw-purple' : 'bg-cw-green/20 text-cw-green'}`}>
+                                  {orgName.charAt(0)}
+                                </div>
+                                <span className={`text-[13px] font-semibold truncate ${isSel ? 'text-cw-purple' : 'text-cw-txt'}`}>
+                                  {orgName}
+                                </span>
+                              </div>
+                              {isSel && <Check size={14} className="text-cw-purple shrink-0" />}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
               
               <div className="h-6 w-[1px] bg-cw-bdr hidden md:block" />
@@ -552,10 +643,11 @@ export function ConnectRepo({ user, onConnect, onSkip, activeOrg, setActiveOrg, 
                   <div 
                     key={repo.full}
                     onClick={() => {
-                      if (!repo.connected && !repo.archived) {
+                      if (repo.connected) {
+                        window.location.href = `/repositories/${repo.full}`;
+                      } else if (!repo.archived) {
                         setShowAllPanel(false);
                         setExpandedRepo(repo.full);
-                        // Optional: clear selection if they clicked a specific repo to config inline
                         setSelected([]);
                       }
                     }}
@@ -635,6 +727,16 @@ export function ConnectRepo({ user, onConnect, onSkip, activeOrg, setActiveOrg, 
             </div>
           </div>
         </div>
+      )}
+          {/* Theme Toggle (Bottom Left) */}
+      {onCycleTheme && (
+        <button 
+          onClick={onCycleTheme} 
+          className="absolute bottom-6 left-6 w-10 h-10 rounded-full border border-cw-bdr bg-cw-bg2 text-cw-txt2 flex items-center justify-center hover:bg-cw-bg3 hover:text-cw-txt shadow-sm transition-all z-50"
+          title="Toggle Theme"
+        >
+          {themeIcons[theme || 'dark']}
+        </button>
       )}
     </div>
   );

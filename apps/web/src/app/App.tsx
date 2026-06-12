@@ -23,7 +23,7 @@ import { useSession, signOut } from '../lib/auth';
 import { Toaster } from 'sonner';
 
 type Page = 'signin' | 'signup' | 'connect' | 'app';
-const themeOrder: Theme[] = ['cream', 'dark', 'white'];
+const themeOrder: Theme[] = ['dark', 'cream', 'white'];
 
 const themeIcons: Record<Theme, React.ReactNode> = {
   cream: <Circle size={14} fill="#c5a882" color="#c5a882" />,
@@ -108,7 +108,10 @@ export default function App() {
           .then(data => {
             if (data.orgs) {
               setGlobalOrgs(data.orgs);
-              if (!activeOrg) setActiveOrg(data.orgs[0] || '');
+              if (!activeOrg && data.orgs.length > 0) {
+                const firstOrg = data.orgs[0];
+                setActiveOrg(typeof firstOrg === 'string' ? firstOrg : firstOrg.name || '');
+              }
             }
           })
           .catch(console.error);
@@ -120,8 +123,8 @@ export default function App() {
     setPage('app');
   };
 
-  if (page === 'signin' || page === 'signup') return <AuthPage onBack={() => setPage('signin')} />;
-  if (page === 'connect' && session?.user) return <ConnectRepo user={{ name: session.user.name, email: session.user.email, image: session.user.image }} onConnect={handleConnect} onSkip={() => setPage('app')} activeOrg={activeOrg} setActiveOrg={setActiveOrg} orgs={globalOrgs} />;
+  if (page === 'signin' || page === 'signup') return <AuthPage onBack={() => setPage('signin')} theme={theme} onCycleTheme={cycleTheme} />;
+  if (page === 'connect' && session?.user) return <ConnectRepo user={{ name: session.user.name, email: session.user.email, image: session.user.image }} onConnect={handleConnect} onSkip={() => setPage('app')} activeOrg={activeOrg} setActiveOrg={setActiveOrg} orgs={globalOrgs} theme={theme} onCycleTheme={cycleTheme} />;
 
   const showingRunDetail = !!runDetailSha;
   const topbar = topbarConfig[screen];
@@ -154,22 +157,17 @@ export default function App() {
       <div 
         className={`${isSidebarPinned ? 'w-[240px]' : 'w-0'} bg-cw-bg2 border-r border-cw-bdr flex flex-col overflow-x-hidden overflow-y-auto transition-[width] duration-300 ease-in-out z-20 shrink-0`}
       >
-        {/* Logo Area */}
-        <div className="h-[60px] px-6 flex items-center border-b border-cw-bdr shrink-0">
-          <div className="text-base font-semibold tracking-[-0.03em] whitespace-nowrap">
-            Admin<span className="text-cw-blue">Panel</span>
-          </div>
-        </div>
-
         {/* Workspace Switcher */}
-        <div className={`px-4 py-3 border-b border-cw-bdr transition-opacity duration-300 ${isSidebarPinned ? 'opacity-100' : 'opacity-0 overflow-hidden h-0 py-0 border-0'}`}>
+        <div className={`h-[60px] px-4 flex items-center border-b border-cw-bdr shrink-0 transition-opacity duration-300 ${isSidebarPinned ? 'opacity-100' : 'opacity-0 overflow-hidden border-0'}`}>
           <div className="relative w-full">
             <button className="w-full flex items-center justify-between px-3 py-2 rounded-md bg-cw-bg border border-cw-bdr hover:bg-cw-bg3 transition-colors text-left overflow-hidden">
               <div className="flex items-center gap-2 truncate">
                 <div className="w-5 h-5 rounded bg-cw-purple flex items-center justify-center text-white font-bold text-[10px] shrink-0 uppercase">
-                  {(activeOrg || displayUser.name).charAt(0)}
+                  {(typeof activeOrg === 'string' ? activeOrg : (activeOrg as any)?.name || displayUser.name)?.charAt(0)}
                 </div>
-                <span className="text-[12px] font-semibold text-cw-txt truncate">{activeOrg || displayUser.name}</span>
+                <span className="text-[12px] font-semibold text-cw-txt truncate">
+                  {typeof activeOrg === 'string' ? activeOrg : (activeOrg as any)?.name || displayUser.name}
+                </span>
               </div>
               <ChevronDown size={14} className="text-cw-txt3 shrink-0 ml-2" />
             </button>
@@ -178,7 +176,11 @@ export default function App() {
               value={activeOrg}
               onChange={(e) => setActiveOrg(e.target.value)}
             >
-              {globalOrgs.map(org => <option key={org} value={org}>{org}</option>)}
+              {globalOrgs.map((orgObj, i) => {
+                const orgName = typeof orgObj === 'string' ? orgObj : orgObj.name;
+                if (!orgName) return null;
+                return <option key={orgName + i} value={orgName}>{orgName}</option>;
+              })}
             </select>
           </div>
         </div>

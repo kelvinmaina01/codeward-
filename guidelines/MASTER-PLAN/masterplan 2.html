@@ -1,0 +1,2813 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <title>Codeward — Engineering Blueprint v2</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0
+        }
+
+        :root {
+            --bg: #0f1117;
+            --bg2: #161b27;
+            --bg3: #1e2535;
+            --bg4: #252d3d;
+            --txt: #e8e8e6;
+            --txt2: #aaa;
+            --txt3: #555;
+            --bdr: #2a3040;
+            --bdr2: #3a4255;
+            --blue: #4B7BEC;
+            --green: #22C55E;
+            --red: #EF4444;
+            --amber: #F59E0B;
+            --purple: #8B5CF6;
+            --teal: #14B8A6;
+            --pink: #EC4899;
+            --orange: #F97316;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg);
+            color: var(--txt);
+            line-height: 1.6;
+            font-size: 13px
+        }
+
+        .page {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem
+        }
+
+        h1 {
+            font-size: 26px;
+            font-weight: 500;
+            letter-spacing: -.03em;
+            margin-bottom: .25rem
+        }
+
+        h2 {
+            font-size: 18px;
+            font-weight: 500;
+            margin: 1.75rem 0 .75rem
+        }
+
+        h3 {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--txt2);
+            text-transform: uppercase;
+            letter-spacing: .07em;
+            margin: 1.25rem 0 .6rem
+        }
+
+        .sub {
+            font-size: 13px;
+            color: var(--txt3);
+            margin-bottom: 2rem
+        }
+
+        p {
+            font-size: 12px;
+            color: var(--txt2);
+            line-height: 1.7;
+            margin-bottom: .65rem
+        }
+
+        .tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 2rem;
+            border-bottom: 0.5px solid var(--bdr);
+            flex-wrap: wrap
+        }
+
+        .tab {
+            padding: 8px 14px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            color: var(--txt2);
+            border-bottom: 2px solid transparent;
+            transition: all .15s;
+            margin-bottom: -1px;
+            white-space: nowrap
+        }
+
+        .tab:hover {
+            color: var(--txt)
+        }
+
+        .tab.active {
+            color: var(--blue);
+            border-bottom-color: var(--blue)
+        }
+
+        .tab-content {
+            display: none
+        }
+
+        .tab-content.active {
+            display: block
+        }
+
+        .card {
+            background: var(--bg2);
+            border: 0.5px solid var(--bdr);
+            border-radius: 10px;
+            padding: 14px 16px;
+            margin-bottom: 10px
+        }
+
+        .card-title {
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--txt2);
+            text-transform: uppercase;
+            letter-spacing: .05em;
+            margin-bottom: 8px
+        }
+
+        .g2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px
+        }
+
+        .g3 {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px
+        }
+
+        .g4 {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px
+        }
+
+        .tag {
+            display: inline-block;
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: 500;
+            margin: 2px
+        }
+
+        .tag-blue {
+            background: rgba(75, 123, 236, .15);
+            color: #93B4F8;
+            border: 0.5px solid rgba(75, 123, 236, .3)
+        }
+
+        .tag-green {
+            background: rgba(34, 197, 94, .12);
+            color: #86EFAC;
+            border: 0.5px solid rgba(34, 197, 94, .25)
+        }
+
+        .tag-red {
+            background: rgba(239, 68, 68, .12);
+            color: #FCA5A5;
+            border: 0.5px solid rgba(239, 68, 68, .25)
+        }
+
+        .tag-amber {
+            background: rgba(245, 158, 11, .12);
+            color: #FCD34D;
+            border: 0.5px solid rgba(245, 158, 11, .25)
+        }
+
+        .tag-purple {
+            background: rgba(139, 92, 246, .12);
+            color: #C4B5FD;
+            border: 0.5px solid rgba(139, 92, 246, .25)
+        }
+
+        .tag-teal {
+            background: rgba(20, 184, 166, .12);
+            color: #5EEAD4;
+            border: 0.5px solid rgba(20, 184, 166, .25)
+        }
+
+        .tag-gray {
+            background: var(--bg3);
+            color: var(--txt2);
+            border: 0.5px solid var(--bdr)
+        }
+
+        .tag-pink {
+            background: rgba(236, 72, 153, .12);
+            color: #F9A8D4;
+            border: 0.5px solid rgba(236, 72, 153, .3)
+        }
+
+        .tag-free {
+            background: rgba(34, 197, 94, .15);
+            color: #86EFAC;
+            border: 0.5px solid rgba(34, 197, 94, .3);
+            font-size: 9px;
+            padding: 1px 5px
+        }
+
+        .tag-paid {
+            background: rgba(245, 158, 11, .1);
+            color: #FCD34D;
+            border: 0.5px solid rgba(245, 158, 11, .25);
+            font-size: 9px;
+            padding: 1px 5px
+        }
+
+        .truth {
+            border-left: 3px solid var(--red);
+            background: rgba(239, 68, 68, .07);
+            border-radius: 0 8px 8px 0;
+            padding: 10px 14px;
+            margin: 10px 0
+        }
+
+        .truth-t {
+            font-size: 12px;
+            font-weight: 500;
+            color: #FCA5A5;
+            margin-bottom: 3px
+        }
+
+        .good {
+            border-left: 3px solid var(--green);
+            background: rgba(34, 197, 94, .07);
+            border-radius: 0 8px 8px 0;
+            padding: 10px 14px;
+            margin: 10px 0
+        }
+
+        .good-t {
+            font-size: 12px;
+            font-weight: 500;
+            color: #86EFAC;
+            margin-bottom: 3px
+        }
+
+        .warn {
+            border-left: 3px solid var(--amber);
+            background: rgba(245, 158, 11, .07);
+            border-radius: 0 8px 8px 0;
+            padding: 10px 14px;
+            margin: 10px 0
+        }
+
+        .warn-t {
+            font-size: 12px;
+            font-weight: 500;
+            color: #FCD34D;
+            margin-bottom: 3px
+        }
+
+        .note {
+            border-left: 3px solid var(--blue);
+            background: rgba(75, 123, 236, .07);
+            border-radius: 0 8px 8px 0;
+            padding: 10px 14px;
+            margin: 10px 0
+        }
+
+        .note-t {
+            font-size: 12px;
+            font-weight: 500;
+            color: #93B4F8;
+            margin-bottom: 3px
+        }
+
+        .mono {
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            background: var(--bg3);
+            padding: 1px 5px;
+            border-radius: 3px;
+            color: var(--teal)
+        }
+
+        /* ARCH */
+        .arch {
+            display: flex;
+            flex-direction: column;
+            gap: 3px
+        }
+
+        .arch-layer {
+            border: 0.5px dashed var(--bdr2);
+            border-radius: 10px;
+            padding: 12px 14px;
+            position: relative;
+            margin-bottom: 2px
+        }
+
+        .arch-layer-label {
+            position: absolute;
+            top: -9px;
+            left: 14px;
+            background: var(--bg);
+            padding: 0 8px;
+            font-size: 10px;
+            font-weight: 500;
+            letter-spacing: .07em;
+            text-transform: uppercase
+        }
+
+        .arch-boxes {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 4px
+        }
+
+        .abox {
+            border-radius: 7px;
+            padding: 8px 12px;
+            border: 0.5px solid;
+            min-width: 115px;
+            flex: 1
+        }
+
+        .abox-title {
+            font-size: 12px;
+            font-weight: 500;
+            margin-bottom: 2px
+        }
+
+        .abox-sub {
+            font-size: 10px;
+            opacity: .7;
+            line-height: 1.4
+        }
+
+        .abox-tech {
+            font-size: 9px;
+            font-family: 'Courier New', monospace;
+            margin-top: 4px;
+            opacity: .55;
+            background: rgba(255, 255, 255, .05);
+            padding: 1px 5px;
+            border-radius: 3px;
+            display: inline-block
+        }
+
+        .arrow-down {
+            text-align: center;
+            color: var(--txt3);
+            font-size: 16px;
+            line-height: 1;
+            margin: 1px 0
+        }
+
+        /* LAYER COLORS */
+        .l-purple {
+            border-color: rgba(139, 92, 246, .4);
+            background: rgba(139, 92, 246, .06)
+        }
+
+        .l-purple .arch-layer-label {
+            color: #C4B5FD
+        }
+
+        .l-blue {
+            border-color: rgba(75, 123, 236, .4);
+            background: rgba(75, 123, 236, .05)
+        }
+
+        .l-blue .arch-layer-label {
+            color: #93B4F8
+        }
+
+        .l-agent {
+            border-color: rgba(139, 92, 246, .5);
+            background: rgba(139, 92, 246, .08);
+            border-style: solid
+        }
+
+        .l-agent .arch-layer-label {
+            color: #C4B5FD;
+            font-size: 11px
+        }
+
+        .l-guardian {
+            border-color: rgba(236, 72, 153, .5);
+            background: rgba(236, 72, 153, .07);
+            border-style: solid
+        }
+
+        .l-guardian .arch-layer-label {
+            color: #F9A8D4;
+            font-size: 11px
+        }
+
+        .l-orange {
+            border-color: rgba(249, 115, 22, .4);
+            background: rgba(249, 115, 22, .06)
+        }
+
+        .l-orange .arch-layer-label {
+            color: #FDBA74
+        }
+
+        .l-gray {
+            border-color: var(--bdr2);
+            background: var(--bg2)
+        }
+
+        .l-gray .arch-layer-label {
+            color: var(--txt2)
+        }
+
+        .l-green {
+            border-color: rgba(34, 197, 94, .3);
+            background: rgba(34, 197, 94, .05)
+        }
+
+        .l-green .arch-layer-label {
+            color: #86EFAC
+        }
+
+        /* AGENT CARDS */
+        .agent-card {
+            background: var(--bg3);
+            border: 0.5px solid rgba(139, 92, 246, .4);
+            border-radius: 10px;
+            padding: 12px 14px;
+            margin-bottom: 8px
+        }
+
+        .agent-name {
+            font-size: 13px;
+            font-weight: 500;
+            color: #C4B5FD;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 8px
+        }
+
+        .agent-role {
+            font-size: 11px;
+            color: var(--txt2);
+            line-height: 1.5;
+            margin-bottom: 6px
+        }
+
+        .agent-model {
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 4px;
+            background: rgba(75, 123, 236, .15);
+            color: #93B4F8;
+            border: 0.5px solid rgba(75, 123, 236, .3);
+            font-weight: 500
+        }
+
+        .agent-tools {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-top: 5px
+        }
+
+        /* STACK */
+        .stack-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 10px 0;
+            border-bottom: 0.5px solid var(--bdr)
+        }
+
+        .stack-row:last-child {
+            border: none
+        }
+
+        .stack-layer {
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--txt3);
+            min-width: 120px;
+            padding-top: 1px
+        }
+
+        .stack-tech {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--txt);
+            margin-bottom: 2px
+        }
+
+        .stack-why {
+            font-size: 11px;
+            color: var(--txt2);
+            line-height: 1.5
+        }
+
+        /* ENV TABLE */
+        .env-table {
+            width: 100%;
+            border-collapse: collapse
+        }
+
+        .env-table th {
+            font-size: 10px;
+            font-weight: 500;
+            color: var(--txt3);
+            text-transform: uppercase;
+            letter-spacing: .06em;
+            padding: 6px 10px;
+            border-bottom: 0.5px solid var(--bdr);
+            text-align: left
+        }
+
+        .env-table td {
+            font-size: 12px;
+            padding: 8px 10px;
+            border-bottom: 0.5px solid var(--bdr);
+            color: var(--txt2);
+            vertical-align: top
+        }
+
+        .env-table tr:last-child td {
+            border: none
+        }
+
+        .env-table td:first-child {
+            color: var(--teal);
+            font-weight: 500;
+            font-family: 'Courier New', monospace;
+            font-size: 11px
+        }
+
+        /* DEBT */
+        .debt-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 12px;
+            border-radius: 8px 8px 0 0
+        }
+
+        .debt-items {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4px;
+            padding: 8px;
+            border: 0.5px solid var(--bdr);
+            border-top: none;
+            border-radius: 0 0 8px 8px;
+            margin-bottom: 14px
+        }
+
+        .ditem {
+            background: var(--bg2);
+            border: 0.5px solid var(--bdr);
+            border-radius: 6px;
+            padding: 7px 9px
+        }
+
+        .ditem-t {
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--txt);
+            margin-bottom: 1px
+        }
+
+        .ditem-d {
+            font-size: 10px;
+            color: var(--txt2);
+            line-height: 1.4
+        }
+
+        .ditem-new {
+            border-color: rgba(75, 123, 236, .3);
+            background: rgba(75, 123, 236, .05)
+        }
+
+        .ditem-new .ditem-t::after {
+            content: ' NEW';
+            font-size: 8px;
+            color: #93B4F8;
+            font-weight: 500;
+            margin-left: 4px
+        }
+
+        /* MCP */
+        .mcp-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 8px 10px;
+            background: var(--bg3);
+            border-radius: 6px;
+            margin-bottom: 5px
+        }
+
+        .mcp-item.write {
+            border-left: 2px solid var(--amber)
+        }
+
+        .mcp-item.critical {
+            border-left: 2px solid var(--green)
+        }
+
+        .mcp-t {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--txt);
+            margin-bottom: 2px
+        }
+
+        .mcp-d {
+            font-size: 11px;
+            color: var(--txt2);
+            line-height: 1.4
+        }
+
+        /* USER TYPES */
+        .user-type-card {
+            background: var(--bg2);
+            border: 0.5px solid var(--bdr);
+            border-radius: 10px;
+            padding: 14px;
+            margin-bottom: 10px
+        }
+
+        .ut-title {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--txt);
+            margin-bottom: 3px
+        }
+
+        .ut-sub {
+            font-size: 11px;
+            color: var(--txt3);
+            margin-bottom: 10px
+        }
+
+        .ut-step {
+            display: flex;
+            gap: 8px;
+            align-items: flex-start;
+            padding: 5px 0;
+            border-bottom: 0.5px solid var(--bdr);
+            font-size: 12px;
+            color: var(--txt2)
+        }
+
+        .ut-step:last-child {
+            border: none
+        }
+
+        .ut-n {
+            font-family: 'Courier New', monospace;
+            font-size: 10px;
+            color: var(--txt3);
+            min-width: 18px;
+            padding-top: 1px
+        }
+
+        /* COMPARE */
+        .compare-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 12px
+        }
+
+        .compare-col {
+            background: var(--bg3);
+            border-radius: 8px;
+            padding: 10px 12px
+        }
+
+        .compare-head {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--txt);
+            margin-bottom: 6px;
+            padding-bottom: 5px;
+            border-bottom: 0.5px solid var(--bdr)
+        }
+
+        .ci {
+            display: flex;
+            gap: 6px;
+            align-items: flex-start;
+            font-size: 11px;
+            color: var(--txt2);
+            padding: 3px 0;
+            line-height: 1.4
+        }
+
+        .dot-g {
+            display: inline-block;
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background: var(--green);
+            margin-top: 4px;
+            flex-shrink: 0
+        }
+
+        .dot-r {
+            display: inline-block;
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background: var(--red);
+            margin-top: 4px;
+            flex-shrink: 0
+        }
+
+        /* FLOW */
+        .flow-step {
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+            padding: 9px 0;
+            border-bottom: 0.5px solid var(--bdr)
+        }
+
+        .flow-step:last-child {
+            border: none
+        }
+
+        .flow-n {
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--txt3);
+            min-width: 22px;
+            padding-top: 1px;
+            font-family: 'Courier New', monospace
+        }
+
+        .flow-t {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--txt);
+            margin-bottom: 2px
+        }
+
+        .flow-d {
+            font-size: 12px;
+            color: var(--txt2);
+            line-height: 1.5
+        }
+
+        /* BAR */
+        .bar-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 4px
+        }
+
+        .bar-label {
+            font-size: 11px;
+            color: var(--txt2);
+            min-width: 100px
+        }
+
+        .bar-wrap {
+            flex: 1;
+            height: 5px;
+            background: var(--bg3);
+            border-radius: 3px;
+            overflow: hidden
+        }
+
+        .bar-fill {
+            height: 5px;
+            border-radius: 3px
+        }
+
+        .bar-val {
+            font-size: 10px;
+            color: var(--txt3);
+            min-width: 55px;
+            text-align: right
+        }
+
+        @media(max-width:700px) {
+
+            .g2,
+            .g3,
+            .g4,
+            .compare-grid {
+                grid-template-columns: 1fr
+            }
+
+            .arch-boxes {
+                flex-direction: column
+            }
+
+            .debt-items {
+                grid-template-columns: 1fr
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="page">
+        <h1>Codeward Engineering Blueprint v2</h1>
+        <p class="sub">Complete implementation guide — updated with Guardian Agent · GitHub MCP · user type architecture
+            · open source mode · full debt framework · React frontend</p>
+
+        <div class="tabs">
+            <div class="tab active" onclick="sw('agents',this)">Multi-Agent System</div>
+            <div class="tab" onclick="sw('guardian',this)">Guardian Agent</div>
+            <div class="tab" onclick="sw('github-mcp',this)">GitHub MCP</div>
+            <div class="tab" onclick="sw('usertypes',this)">User Types</div>
+            <div class="tab" onclick="sw('arch',this)">Architecture</div>
+            <div class="tab" onclick="sw('stack',this)">Tech Stack</div>
+            <div class="tab" onclick="sw('envs',this)">Envs & APIs</div>
+            <div class="tab" onclick="sw('debt',this)">Debt Framework</div>
+            <div class="tab" onclick="sw('impl',this)">Build Order</div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <!-- TAB 1: MULTI-AGENT SYSTEM -->
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <div class="tab-content active" id="tab-agents">
+            <h2>Yes — this is a multi-agent system. 9 specialised agents, not one AI doing everything.</h2>
+            <div class="good">
+                <div class="good-t">Why multi-agent and not one big prompt</div>
+                <p style="margin:0">A single LLM trying to do security scanning, AST refactoring, compliance checking,
+                    and PR review in one prompt would be slow, expensive, and bad at all of them. Specialised agents
+                    with tool access are faster, cheaper, and measurably better. Each agent has a focused role, specific
+                    tools, and the right model for that task. This is the same pattern Anthropic uses internally.</p>
+            </div>
+
+            <h3>The 9 agents and their exact roles</h3>
+
+            <div class="agent-card" style="border-color:rgba(245,158,11,.5);background:rgba(245,158,11,.05)">
+                <div class="agent-name" style="color:#FCD34D">⚡ Orchestrator Agent</div>
+                <div class="agent-role">Receives the webhook event. Reads the commit diff and repo config. Decides which
+                    sub-agents to run, in what order, and which run in parallel. Aggregates all results. Makes the final
+                    gate decision (pass/block). Never touches code — only coordinates.</div>
+                <div><span class="agent-model">claude-sonnet-4-6</span> <span class="tag tag-amber">Runs once per
+                        commit</span> <span class="tag tag-amber">High reasoning</span></div>
+                <div class="agent-tools"><span class="tag tag-gray">read_repo_config</span><span
+                        class="tag tag-gray">spawn_sub_agent</span><span
+                        class="tag tag-gray">aggregate_results</span><span
+                        class="tag tag-gray">post_github_status</span><span class="tag tag-gray">trigger_rollback</span>
+                </div>
+            </div>
+
+            <div class="g2">
+                <div class="agent-card">
+                    <div class="agent-name" style="color:#FCA5A5">🔴 Security Agent</div>
+                    <div class="agent-role">All 18 security checks. Spawns OWASP ZAP and truffleHog. Checks RLS, auth
+                        routes, CVEs, supply chain, SSRF, NHI tokens, CI/CD log leaks, multitenant isolation, business
+                        logic bypass, cryptographic failures.</div>
+                    <div><span class="agent-model">claude-haiku-4-5 + tools</span> <span
+                            class="tag tag-red">Parallel</span></div>
+                    <div class="agent-tools"><span class="tag tag-gray">run_owasp_zap</span><span
+                            class="tag tag-gray">run_trufflehog</span><span class="tag tag-gray">audit_deps</span><span
+                            class="tag tag-gray">check_rls</span><span class="tag tag-gray">probe_endpoints</span><span
+                            class="tag tag-gray">scan_ci_logs</span></div>
+                </div>
+                <div class="agent-card">
+                    <div class="agent-name" style="color:#FCD34D">🟡 Bloat Agent</div>
+                    <div class="agent-role">All 18 bloat categories. Parses AST with tree-sitter. Finds duplicates, dead
+                        code, god files, copy-paste, YAGNI, CSS bloat, shadow deps, documentation rot, cognitive load,
+                        legacy polyfills.</div>
+                    <div><span class="agent-model">claude-haiku-4-5 + AST</span> <span
+                            class="tag tag-amber">Parallel</span></div>
+                    <div class="agent-tools"><span class="tag tag-gray">parse_ast</span><span
+                            class="tag tag-gray">trace_call_graph</span><span
+                            class="tag tag-gray">semantic_diff</span><span class="tag tag-gray">bundle_analyser</span>
+                    </div>
+                </div>
+                <div class="agent-card">
+                    <div class="agent-name" style="color:#FCA5A5">🔴 Broken Code Agent</div>
+                    <div class="agent-role">All 18 broken code checks. Runs the full test suite. Flaky test detection
+                        (10 runs). Silent promise rejections, stale feature flags, API timeouts, resource handle leaks,
+                        zombie workers, type-safety gaps, broken rollback paths.</div>
+                    <div><span class="agent-model">claude-haiku-4-5 + runner</span> <span class="tag tag-red">Karpathy
+                            loop</span></div>
+                    <div class="agent-tools"><span class="tag tag-gray">run_test_suite</span><span
+                            class="tag tag-gray">flaky_detector</span><span
+                            class="tag tag-gray">heap_profiler</span><span class="tag tag-gray">async_ast_scan</span>
+                    </div>
+                </div>
+                <div class="agent-card">
+                    <div class="agent-name" style="color:#93B4F8">🔵 Architecture Agent</div>
+                    <div class="agent-role">All 18 architecture checks. N+1 queries, missing indexes, distributed
+                        monolith, missing distributed tracing, write idempotency, cold start latency, backpressure
+                        handling, data archival debt. Runs k6 load tests at 2× expected traffic.</div>
+                    <div><span class="agent-model">claude-haiku-4-5 + k6</span> <span
+                            class="tag tag-blue">Parallel</span></div>
+                    <div class="agent-tools"><span class="tag tag-gray">instrument_queries</span><span
+                            class="tag tag-gray">run_load_test</span><span
+                            class="tag tag-gray">trace_imports</span><span class="tag tag-gray">check_idempotency</span>
+                    </div>
+                </div>
+                <div class="agent-card">
+                    <div class="agent-name" style="color:#86EFAC">🟢 AI-Era Agent</div>
+                    <div class="agent-role">All 18 AI-era debt items. Prompt injection, system prompt leakage, RAG
+                        vector freshness, unvalidated AI output, PII in pipelines, hallucination trust patterns, evasive
+                        AI tests, non-deterministic UI drift, missing human-in-the-loop.</div>
+                    <div><span class="agent-model">claude-sonnet-4-6</span> <span class="tag tag-green">Parallel</span>
+                    </div>
+                    <div class="agent-tools"><span class="tag tag-gray">inject_prompt_payloads</span><span
+                            class="tag tag-gray">check_vector_freshness</span><span
+                            class="tag tag-gray">validate_llm_outputs</span></div>
+                </div>
+                <div class="agent-card">
+                    <div class="agent-name" style="color:#C4B5FD">⚖️ Compliance Agent</div>
+                    <div class="agent-role">EU AI Act, GDPR RTBF gaps, consent versioning, data minimisation, NHI
+                        compliance, WCAG 2.2 accessibility, shadow AI usage, audit trail integrity, algorithmic impact
+                        assessment. Runs on a daily schedule — compliance drift happens silently.</div>
+                    <div><span class="agent-model">claude-sonnet-4-6</span> <span class="tag tag-purple">Scheduled
+                            daily</span></div>
+                    <div class="agent-tools"><span class="tag tag-gray">scan_data_retention</span><span
+                            class="tag tag-gray">check_accessibility</span><span
+                            class="tag tag-gray">audit_log_integrity</span></div>
+                </div>
+                <div class="agent-card">
+                    <div class="agent-name" style="color:#5EEAD4">📊 Data & DX Agent</div>
+                    <div class="agent-role">Data pipeline entanglement, missing data contracts, vector DB embedding
+                        drift, dark data accumulation, data lineage. Also DX: flaky CI, onboarding lead time, alert
+                        fatigue, missing golden paths, tooling fragmentation. Weekly report.</div>
+                    <div><span class="agent-model">claude-haiku-4-5</span> <span class="tag tag-teal">Weekly
+                            scheduled</span></div>
+                    <div class="agent-tools"><span class="tag tag-gray">analyse_pipelines</span><span
+                            class="tag tag-gray">check_data_contracts</span><span
+                            class="tag tag-gray">measure_onboarding</span></div>
+                </div>
+                <div class="agent-card">
+                    <div class="agent-name" style="color:#F9A8D4">💜 Guardian Agent — NEW</div>
+                    <div class="agent-role">The PR review agent. Posts to GitHub PRs exactly like CodeRabbit but as
+                        proof of what Codeward actually did. Posts inline comments on specific diff lines. Creates
+                        GitHub Issues for unresolved findings. Formally approves or blocks the PR. Responds to developer
+                        questions in PR threads. The visible face of Codeward inside GitHub.</div>
+                    <div><span class="agent-model">claude-sonnet-4-6</span> <span class="tag tag-pink">Triggered per
+                            PR</span> <span class="tag tag-pink">Always interactive</span></div>
+                    <div class="agent-tools"><span class="tag tag-gray">create_pr_review</span><span
+                            class="tag tag-gray">post_inline_comment</span><span
+                            class="tag tag-gray">create_github_issue</span><span
+                            class="tag tag-gray">reply_to_comment</span><span
+                            class="tag tag-gray">approve_or_block_pr</span><span class="tag tag-gray">label_issue</span>
+                    </div>
+                </div>
+                <div class="agent-card" style="border-color:rgba(236,72,153,.4);background:rgba(236,72,153,.05)">
+                    <div class="agent-name" style="color:#F9A8D4">💬 Chat Agent</div>
+                    <div class="agent-role">Always-on sidebar agent. NOT a chatbot — it has full tool access to your
+                        codebase, all run history, staging environments, and can spawn any sub-agent on demand. "What is
+                        the biggest risk in our payments repo?" → actually runs the security agent and reads real
+                        results. Can trigger refactors, explain findings, compare repos.</div>
+                    <div><span class="agent-model">claude-sonnet-4-6</span> <span class="tag tag-pink">Always on</span>
+                    </div>
+                    <div class="agent-tools"><span class="tag tag-gray">query_run_history</span><span
+                            class="tag tag-gray">spawn_any_agent</span><span
+                            class="tag tag-gray">read_any_repo</span><span
+                            class="tag tag-gray">trigger_refactor</span><span
+                            class="tag tag-gray">explain_debt_item</span></div>
+                </div>
+            </div>
+
+            <h3>How agents communicate — the message bus</h3>
+            <div class="card">
+                <p style="margin-bottom:8px">Agents never call each other directly. They communicate through a <strong
+                        style="color:var(--teal)">shared job queue (BullMQ on Redis)</strong> and a <strong
+                        style="color:var(--teal)">structured result store (Postgres)</strong>.</p>
+                <div class="g3">
+                    <div style="background:var(--bg3);border-radius:8px;padding:10px">
+                        <div style="font-size:12px;font-weight:500;color:var(--txt);margin-bottom:4px">1 — Orchestrator
+                            publishes</div>
+                        <div style="font-size:11px;color:var(--txt2)">Writes job to Redis queue with commitSHA, repoId,
+                            priority, agentList. Each sub-agent picks its own job independently.</div>
+                    </div>
+                    <div style="background:var(--bg3);border-radius:8px;padding:10px">
+                        <div style="font-size:12px;font-weight:500;color:var(--txt);margin-bottom:4px">2 — Sub-agents
+                            run in parallel</div>
+                        <div style="font-size:11px;color:var(--txt2)">Security, Bloat, Broken Code, Architecture, AI-Era
+                            all run simultaneously inside the same sandbox. Wall-clock time: 4–6 min total.</div>
+                    </div>
+                    <div style="background:var(--bg3);border-radius:8px;padding:10px">
+                        <div style="font-size:12px;font-weight:500;color:var(--txt);margin-bottom:4px">3 — Guardian
+                            reads results</div>
+                        <div style="font-size:11px;color:var(--txt2)">Guardian Agent subscribes to the result stream. As
+                            each agent finishes, Guardian receives structured JSON and starts building the PR report —
+                            no waiting for all agents to finish.</div>
+                    </div>
+                </div>
+            </div>
+
+            <h3>Model selection — the honest reasoning per agent</h3>
+            <div class="card">
+                <div class="stack-row"><span class="stack-layer">Orchestrator</span>
+                    <div>
+                        <div class="stack-tech">claude-sonnet-4-6</div>
+                        <div class="stack-why">Complex judgment across conflicting signals. Should this block if
+                            security passes but there are 3 architecture issues? Needs real reasoning, not pattern
+                            matching.</div>
+                    </div>
+                </div>
+                <div class="stack-row"><span class="stack-layer">Security</span>
+                    <div>
+                        <div class="stack-tech">claude-haiku-4-5 + deterministic tools</div>
+                        <div class="stack-why">Most checks are deterministic tool calls (ZAP, truffleHog, CVE lookups).
+                            LLM interprets output and generates fix suggestions. Haiku is fast and cheap for this.</div>
+                    </div>
+                </div>
+                <div class="stack-row"><span class="stack-layer">AI-Era + Compliance</span>
+                    <div>
+                        <div class="stack-tech">claude-sonnet-4-6</div>
+                        <div class="stack-why">EU AI Act reasoning, prompt injection testing, and RAG freshness require
+                            nuance. Sonnet handles the ambiguity. Haiku would miss edge cases.</div>
+                    </div>
+                </div>
+                <div class="stack-row"><span class="stack-layer">Guardian Agent</span>
+                    <div>
+                        <div class="stack-tech">claude-sonnet-4-6</div>
+                        <div class="stack-why">Writes developer-facing prose that will be read by real engineers. Must
+                            be clear, precise, and technically credible. Cannot afford Haiku's occasional imprecision
+                            here.</div>
+                    </div>
+                </div>
+                <div class="stack-row"><span class="stack-layer">Chat Agent</span>
+                    <div>
+                        <div class="stack-tech">claude-sonnet-4-6</div>
+                        <div class="stack-why">Conversational, technically deep, spawns other agents mid-conversation.
+                            Sonnet is best for this pattern. Opus would be too expensive per message.</div>
+                    </div>
+                </div>
+            </div>
+            <div class="warn">
+                <div class="warn-t">Do NOT use LangChain or any AI framework wrapper</div>
+                <p style="margin:0">Use the Anthropic SDK directly with native <span class="mono">tool_use</span>. Every
+                    abstraction hides bugs and costs you money you cannot debug. You want to see every API call your
+                    system makes.</p>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <!-- TAB 2: GUARDIAN AGENT -->
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <div class="tab-content" id="tab-guardian">
+            <h2>The Guardian Agent — Codeward's face inside GitHub</h2>
+
+            <div class="compare-grid">
+                <div class="compare-col">
+                    <div class="compare-head">CodeRabbit — what it does</div>
+                    <div class="ci">
+                        <div class="dot-g"></div>Reviews code style, readability, best practices
+                    </div>
+                    <div class="ci">
+                        <div class="dot-g"></div>Posts inline PR comments like a human reviewer
+                    </div>
+                    <div class="ci">
+                        <div class="dot-g"></div>Summarises what changed in the PR
+                    </div>
+                    <div class="ci">
+                        <div class="dot-g"></div>Suggests unit tests to write
+                    </div>
+                    <div class="ci">
+                        <div class="dot-r"></div>Does NOT run your actual tests
+                    </div>
+                    <div class="ci">
+                        <div class="dot-r"></div>Does NOT scan for real CVEs or secrets
+                    </div>
+                    <div class="ci">
+                        <div class="dot-r"></div>Does NOT refactor anything
+                    </div>
+                    <div class="ci">
+                        <div class="dot-r"></div>Does NOT block unsafe merges with real evidence
+                    </div>
+                    <div class="ci">
+                        <div class="dot-r"></div>Does NOT create GitHub Issues from findings
+                    </div>
+                </div>
+                <div class="compare-col" style="border:0.5px solid rgba(75,123,236,.4)">
+                    <div class="compare-head" style="color:#93B4F8">Codeward Guardian — what it does</div>
+                    <div class="ci">
+                        <div class="dot-g"></div>Everything CodeRabbit does — PLUS all of this:
+                    </div>
+                    <div class="ci">
+                        <div class="dot-g"></div>Posts PR summary showing REAL sandbox test results
+                    </div>
+                    <div class="ci">
+                        <div class="dot-g"></div>Shows actual CVEs found with severity and fix version
+                    </div>
+                    <div class="ci">
+                        <div class="dot-g"></div>Shows real duplicates removed with file and line refs
+                    </div>
+                    <div class="ci">
+                        <div class="dot-g"></div>Posts debt score 0–100 with per-category breakdown
+                    </div>
+                    <div class="ci">
+                        <div class="dot-g"></div>Creates GitHub Issues for every unresolved finding
+                    </div>
+                    <div class="ci">
+                        <div class="dot-g"></div>Formally blocks the PR if critical security found
+                    </div>
+                    <div class="ci">
+                        <div class="dot-g"></div>Responds interactively to developer questions in threads
+                    </div>
+                    <div class="ci">
+                        <div class="dot-g"></div>Is the <em>proof of work</em> of what Codeward actually did
+                    </div>
+                </div>
+            </div>
+
+            <div class="note">
+                <div class="note-t">The key positioning difference</div>
+                <p style="margin:0">CodeRabbit is a code reviewer. The Guardian Agent is a proof of work. It posts AFTER
+                    the full pipeline — sandbox, all agents, all 100+ debt checks — and shows developers exactly what
+                    Codeward actually executed on their code. That is a fundamentally different value proposition.</p>
+            </div>
+
+            <h3>Step-by-step flow — what the Guardian does on every PR</h3>
+            <div style="display:flex;flex-direction:column">
+                <div class="flow-step">
+                    <div class="flow-n">01</div>
+                    <div>
+                        <div class="flow-t">PR opened → immediately posts "running" status</div>
+                        <div class="flow-d">Guardian fires instantly via webhook. Posts to PR: "Codeward analysis
+                            running…" with a pending check run (yellow dot on the PR). Developer sees it immediately —
+                            no silent waiting.</div>
+                    </div>
+                </div>
+                <div class="flow-step">
+                    <div class="flow-n">02</div>
+                    <div>
+                        <div class="flow-t">Watches the pipeline result stream</div>
+                        <div class="flow-d">As each sub-agent (Security, Bloat, Broken Code etc.) finishes, Guardian
+                            receives structured JSON via BullMQ events. It does not wait for all agents — it starts
+                            building the report progressively.</div>
+                    </div>
+                </div>
+                <div class="flow-step">
+                    <div class="flow-n">03</div>
+                    <div>
+                        <div class="flow-t">Posts inline comments on specific diff lines</div>
+                        <div class="flow-d">For every finding with a file path and line number, Guardian posts an inline
+                            review comment directly on that line of the diff — exactly like CodeRabbit. "Line 42:
+                            hardcoded API key detected and moved to env var. <span class="mono">sk-live-xxx →
+                                process.env.STRIPE_KEY</span>"</div>
+                    </div>
+                </div>
+                <div class="flow-step">
+                    <div class="flow-n">04</div>
+                    <div>
+                        <div class="flow-t">Creates GitHub Issues for unresolved findings</div>
+                        <div class="flow-d">Any Critical or High finding that was NOT auto-fixed becomes a GitHub Issue
+                            automatically via the MCP <span class="mono">create_issue</span> tool. Title, description,
+                            suggested fix, severity label, assigned to the PR author. Team can track on the project
+                            board.</div>
+                    </div>
+                </div>
+                <div class="flow-step">
+                    <div class="flow-n">05</div>
+                    <div>
+                        <div class="flow-t">Submits formal PR review — Approve or Request Changes</div>
+                        <div class="flow-d">If all gates pass: <span class="mono">create_pull_request_review</span> with
+                            conclusion "approved" and summary showing the full score. If blocked: conclusion
+                            "request_changes" with the exact critical finding. The PR cannot merge until resolved. This
+                            has real weight — it shows up as a required review.</div>
+                    </div>
+                </div>
+                <div class="flow-step">
+                    <div class="flow-n">06</div>
+                    <div>
+                        <div class="flow-t">Responds to comments in the PR thread</div>
+                        <div class="flow-d">Developer replies: "Why did you remove this function?" Guardian reads the
+                            thread context and replies with the full reasoning — references the duplicate function,
+                            shows the line it was merged into. A full conversation, not a one-way report.</div>
+                    </div>
+                </div>
+                <div class="flow-step">
+                    <div class="flow-n">07</div>
+                    <div>
+                        <div class="flow-t">Updates after refactors are applied</div>
+                        <div class="flow-d">If Bloat Agent commits a refactor back to the branch, Guardian updates its
+                            PR comment: "Refactor applied — validateEmail() merged into utils/validators.js. Tests
+                            re-run: 142/142 passing."</div>
+                    </div>
+                </div>
+            </div>
+
+            <h3>Dashboard view — Guardian activity cards</h3>
+            <div class="card" style="border-color:rgba(236,72,153,.3)">
+                <div class="card-title" style="color:#F9A8D4">Guardian Agent — PR #47: feat: add payment webhook handler
+                </div>
+                <div style="display:flex;flex-direction:column;gap:5px">
+                    <div
+                        style="display:flex;gap:8px;align-items:flex-start;padding:7px;background:var(--bg3);border-radius:6px">
+                        <span style="color:var(--green);font-size:13px">✓</span>
+                        <div>
+                            <div style="font-size:12px;font-weight:500;color:var(--txt)">Security scan complete</div>
+                            <div style="font-size:11px;color:var(--txt2)">1 critical: Stripe key hardcoded in
+                                webhook.js:14 → moved to env var. 2 medium: missing rate limit. Inline comment posted on
+                                line 14.</div>
+                            <div style="margin-top:3px"><span class="tag tag-red">1 critical auto-fixed</span><span
+                                    class="tag tag-amber">Issue #103 created</span></div>
+                        </div>
+                    </div>
+                    <div
+                        style="display:flex;gap:8px;align-items:flex-start;padding:7px;background:var(--bg3);border-radius:6px">
+                        <span style="color:var(--green);font-size:13px">✓</span>
+                        <div>
+                            <div style="font-size:12px;font-weight:500;color:var(--txt)">142/142 tests passed in sandbox
+                            </div>
+                            <div style="font-size:11px;color:var(--txt2)">Test suite ran in 48 seconds. Coverage 84%.
+                                Guardian posted test summary as PR comment.</div>
+                            <div style="margin-top:3px"><span class="tag tag-green">142/142 passed</span><span
+                                    class="tag tag-green">84% coverage</span></div>
+                        </div>
+                    </div>
+                    <div
+                        style="display:flex;gap:8px;align-items:flex-start;padding:7px;background:var(--bg3);border-radius:6px">
+                        <span style="color:var(--green);font-size:13px">✓</span>
+                        <div>
+                            <div style="font-size:12px;font-weight:500;color:var(--txt)">2 duplicate functions removed
+                            </div>
+                            <div style="font-size:11px;color:var(--txt2)">validateWebhookSignature() duplicates
+                                verifySignature() in utils/crypto.js:28. Refactored. Committed back to branch. Inline
+                                diff comment posted.</div>
+                            <div style="margin-top:3px"><span class="tag tag-blue">−38 lines removed</span></div>
+                        </div>
+                    </div>
+                    <div
+                        style="display:flex;gap:8px;align-items:flex-start;padding:7px;background:var(--bg3);border-radius:6px">
+                        <span style="color:#93B4F8;font-size:13px">→</span>
+                        <div>
+                            <div style="font-size:12px;font-weight:500;color:var(--txt)">PR formally approved — score
+                                89/100</div>
+                            <div style="font-size:11px;color:var(--txt2)">Submitted GitHub review: "Approved — Codeward
+                                score 89/100. 1 critical fixed. 2 issues created for follow-up. Safe to merge after
+                                staging."</div>
+                            <div style="margin-top:3px"><span class="tag tag-green">PR approved</span><span
+                                    class="tag tag-green">Score: 89/100</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <h3>Open source mode — two-tier trust model</h3>
+            <div class="truth">
+                <div class="truth-t">Never run untrusted code in your sandbox</div>
+                <p style="margin:0">Open source repos get PRs from strangers. An attacker can craft a PR that
+                    exfiltrates your env vars during sandbox execution. GitHub built Lockdown mode in their MCP server
+                    for exactly this reason. You need the same protection.</p>
+            </div>
+            <div class="g2">
+                <div class="card">
+                    <div class="card-title">External contributor PRs — lightweight only</div>
+                    <p>Static AST analysis of the diff only (no execution). Secret detection via truffleHog (read-only).
+                        CVE audit of lockfile changes (no execution). Duplicate detection against existing codebase.
+                        Guardian posts: "Quick scan complete. Full sandbox requires maintainer label: <span
+                            class="mono">codeward:run</span>"</p>
+                </div>
+                <div class="card">
+                    <div class="card-title">After maintainer adds codeward:run label</div>
+                    <p>Full sandbox fires. All agents run. Guardian posts complete report. Maintainer reviews findings
+                        and merges or requests changes. Any accepted contribution's medium issues become GitHub Issues
+                        automatically for tracking.</p>
+                </div>
+            </div>
+            <div class="good">
+                <div class="good-t">Open source = your fastest viral growth channel</div>
+                <p style="margin:0">Every popular open source project that installs Guardian gets a "Codeward Verified"
+                    badge in their README. Every contributor sees Guardian's comments. Every maintainer who loves it
+                    installs it at their day job. Product-led growth without ad spend.</p>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <!-- TAB 3: GITHUB MCP -->
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <div class="tab-content" id="tab-github-mcp">
+            <h2>GitHub MCP — every action available and how each agent uses it</h2>
+            <p>The GitHub MCP server gives agents access to GitHub's full API through structured tool calls.
+                Authentication via your existing GitHub App (production) or fine-grained PAT (development).</p>
+
+            <h3>Read actions — safe, no approval needed</h3>
+            <div class="g2">
+                <div>
+                    <div class="mcp-item">
+                        <div>
+                            <div class="mcp-t">get_file_contents</div>
+                            <div class="mcp-d">Bloat + Security agents read any file in the repo. Full codebase scan
+                                without cloning locally. Used for cross-repo duplicate detection.</div>
+                        </div>
+                    </div>
+                    <div class="mcp-item">
+                        <div>
+                            <div class="mcp-t">list_commits / get_commit</div>
+                            <div class="mcp-d">Audit trail. truffleHog-style scan across git log for secrets committed
+                                months ago. Compliance agent checks commit authors for NHI compliance.</div>
+                        </div>
+                    </div>
+                    <div class="mcp-item">
+                        <div>
+                            <div class="mcp-t">get_pull_request</div>
+                            <div class="mcp-d">Guardian reads full PR diff, title, description, reviewers before
+                                building its comment. Understands context of what changed and why.</div>
+                        </div>
+                    </div>
+                    <div class="mcp-item">
+                        <div>
+                            <div class="mcp-t">list_dependabot_alerts</div>
+                            <div class="mcp-d">Security Agent reads GitHub's own CVE alerts and cross-references with
+                                Trivy scan. Double confirmation before reporting a CVE.</div>
+                        </div>
+                    </div>
+                    <div class="mcp-item">
+                        <div>
+                            <div class="mcp-t">get_workflow_run_logs</div>
+                            <div class="mcp-d">DX Agent reads CI/CD failure logs. "Why did the release.yml job fail?" —
+                                real answers from real logs, not guesses.</div>
+                        </div>
+                    </div>
+                    <div class="mcp-item">
+                        <div>
+                            <div class="mcp-t">search_code</div>
+                            <div class="mcp-d">Chat Agent answers "where is validateEmail defined across all repos?"
+                                Cross-repo semantic search without cloning everything.</div>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <div class="mcp-item">
+                        <div>
+                            <div class="mcp-t">get_code_scanning_alerts</div>
+                            <div class="mcp-d">Architecture Agent reads existing SAST findings so Guardian doesn't
+                                duplicate them in the report.</div>
+                        </div>
+                    </div>
+                    <div class="mcp-item">
+                        <div>
+                            <div class="mcp-t">list_issues</div>
+                            <div class="mcp-d">Guardian checks for existing issues before creating duplicates. Chat
+                                Agent answers "what are our open security issues right now?"</div>
+                        </div>
+                    </div>
+                    <div class="mcp-item">
+                        <div>
+                            <div class="mcp-t">list_pull_requests</div>
+                            <div class="mcp-d">Compliance Agent monitors open PRs for unreviewed security-sensitive
+                                changes. Dashboard shows PR health across all repos.</div>
+                        </div>
+                    </div>
+                    <div class="mcp-item">
+                        <div>
+                            <div class="mcp-t">get_repo_content (tree)</div>
+                            <div class="mcp-d">Stack detector reads directory structure before spinning up sandbox.
+                                Detects framework, package manager, test runner without cloning.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <h3>Write actions — require trust mode setting</h3>
+            <div class="g2">
+                <div>
+                    <div class="mcp-item critical">
+                        <div>
+                            <div class="mcp-t">create_pull_request_review <span class="tag tag-green"
+                                    style="margin-left:4px">Core Guardian action</span></div>
+                            <div class="mcp-d">Formal PR review — Approved or Request Changes — with inline diff
+                                comments. Has the same weight as a human reviewer. PR can be configured to require this
+                                review before merging.</div>
+                        </div>
+                    </div>
+                    <div class="mcp-item critical">
+                        <div>
+                            <div class="mcp-t">add_pull_request_review_comment <span class="tag tag-green"
+                                    style="margin-left:4px">Core Guardian action</span></div>
+                            <div class="mcp-d">Inline comment on specific diff lines. "Line 42 — hardcoded key
+                                detected." Developer replies. Guardian replies back. Full conversation thread inside
+                                GitHub.</div>
+                        </div>
+                    </div>
+                    <div class="mcp-item critical">
+                        <div>
+                            <div class="mcp-t">create_issue <span class="tag tag-green" style="margin-left:4px">Auto on
+                                    Critical/High</span></div>
+                            <div class="mcp-d">Every unresolved Critical or High finding becomes a GitHub Issue
+                                automatically. Title, body, labels (codeward:security, priority:critical), assigned to
+                                PR author.</div>
+                        </div>
+                    </div>
+                    <div class="mcp-item write">
+                        <div>
+                            <div class="mcp-t">add_labels_to_issue <span class="tag tag-amber"
+                                    style="margin-left:4px">Auto-labelling</span></div>
+                            <div class="mcp-d">Labels created issues: codeward:security, codeward:bloat,
+                                codeward:architecture, priority:critical/high/medium. Board stays organised
+                                automatically.</div>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <div class="mcp-item write">
+                        <div>
+                            <div class="mcp-t">create_or_update_file <span class="tag tag-amber"
+                                    style="margin-left:4px">Auto-refactor mode only</span></div>
+                            <div class="mcp-d">Bloat Agent commits refactored files back to the branch in auto-refactor
+                                mode. Commit message: "refactor: Codeward — removed 3 duplicates, fixed 1 security
+                                issue"</div>
+                        </div>
+                    </div>
+                    <div class="mcp-item write">
+                        <div>
+                            <div class="mcp-t">merge_pull_request <span class="tag tag-amber"
+                                    style="margin-left:4px">Requires explicit permission</span></div>
+                            <div class="mcp-d">After staging approval. Only fires after ALL gates pass AND human
+                                approves. Never auto-merges without explicit .codeward.yml permission setting.</div>
+                        </div>
+                    </div>
+                    <div class="mcp-item write">
+                        <div>
+                            <div class="mcp-t">create_branch <span class="tag tag-amber" style="margin-left:4px">Audit
+                                    mode</span></div>
+                            <div class="mcp-d">For existing repo full audits — creates a codeward/audit-fixes branch
+                                with all proposed refactors as a single PR for the team to review all at once.</div>
+                        </div>
+                    </div>
+                    <div class="mcp-item write">
+                        <div>
+                            <div class="mcp-t">GitHub Projects API <span class="tag tag-amber"
+                                    style="margin-left:4px">Enterprise only</span></div>
+                            <div class="mcp-d">Compliance Agent adds debt items to the team's project board. Creates
+                                "Codeward Debt" column. Tracks resolution across sprints. Requires projects toolset
+                                enabled.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <h3>Auth — PAT vs GitHub App</h3>
+            <div class="card">
+                <div class="stack-row"><span class="stack-layer">Development (MVP)</span>
+                    <div>
+                        <div class="stack-tech">Fine-grained Personal Access Token (PAT)</div>
+                        <div class="stack-why">User generates a PAT at github.com/settings/personal-access-tokens with
+                            exactly the permissions needed. Set as GITHUB_PAT env var. The GitHub MCP server accepts it
+                            directly. Limitation: scoped to one user's repos.</div>
+                    </div>
+                </div>
+                <div class="stack-row"><span class="stack-layer">Production</span>
+                    <div>
+                        <div class="stack-tech">GitHub App (what you already built)</div>
+                        <div class="stack-why">Authenticates as the app. Gets per-installation tokens. Acts across all
+                            connected repos without needing each user's PAT. This is the correct production pattern.
+                            Your existing GitHub App registration already gives you this.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <!-- TAB 4: USER TYPES -->
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <div class="tab-content" id="tab-usertypes">
+            <h2>Two user types — completely different product experiences</h2>
+            <div class="truth">
+                <div class="truth-t">This is a critical product architecture decision you must get right at onboarding
+                </div>
+                <p style="margin:0">These two users need different entry points, different first experiences, and
+                    different value propositions. Building only for one will confuse the other and kill retention.</p>
+            </div>
+
+            <div class="user-type-card" style="border-top:3px solid var(--blue)">
+                <div class="ut-title">User Type A — Active developers (prevention mode)</div>
+                <div class="ut-sub">They are coding right now. Repos have recent commits. They need a guardrail on every
+                    future push.</div>
+                <div class="g2" style="margin-bottom:10px">
+                    <div style="background:var(--bg3);border-radius:8px;padding:10px">
+                        <div style="font-size:11px;font-weight:500;color:var(--txt3);margin-bottom:4px">Who they are
+                        </div>
+                        <p style="margin:0;font-size:12px">Solo founders on Lovable/Bolt. Dev teams using Cursor daily.
+                            Startups shipping fast. Repos with commits in the last 7 days. They are creating debt right
+                            now and need it stopped.</p>
+                    </div>
+                    <div style="background:var(--bg3);border-radius:8px;padding:10px">
+                        <div style="font-size:11px;font-weight:500;color:var(--txt3);margin-bottom:4px">What they need
+                        </div>
+                        <p style="margin:0;font-size:12px">Prevention. Every push is a gate. Sandbox runs on every
+                            commit. Guardian reviews every PR. Health score rises week over week. They want the
+                            guardrail, not an audit.</p>
+                    </div>
+                </div>
+                <div class="ut-step">
+                    <div class="ut-n">1</div>Sign up → OAuth → select repos → webhook auto-installed → 90 seconds total
+                </div>
+                <div class="ut-step">
+                    <div class="ut-n">2</div>Next push → sandbox runs → Guardian posts inline PR comments → debt score
+                    visible
+                </div>
+                <div class="ut-step">
+                    <div class="ut-n">3</div>Iterate: each push is cleaner — health score rises, debt items removed
+                    shown in dashboard
+                </div>
+                <div class="ut-step">
+                    <div class="ut-n">4</div>Dashboard shows: "your codebase is 14% leaner than 30 days ago" — proof of
+                    value
+                </div>
+                <div style="margin-top:8px"><span class="tag tag-blue">Push-driven</span><span
+                        class="tag tag-blue">Prevention mode</span><span class="tag tag-blue">Webhook always on</span>
+                </div>
+            </div>
+
+            <div class="user-type-card" style="border-top:3px solid var(--amber)">
+                <div class="ut-title">User Type B — Existing codebases (audit mode → then guard)</div>
+                <div class="ut-sub">They have months or years of existing code. They need a full audit NOW before going
+                    into guard mode.</div>
+                <div class="g2" style="margin-bottom:10px">
+                    <div style="background:var(--bg3);border-radius:8px;padding:10px">
+                        <div style="font-size:11px;font-weight:500;color:var(--txt3);margin-bottom:4px">Who they are
+                        </div>
+                        <p style="margin:0;font-size:12px">CTOs inheriting AI-generated codebases. Teams that shipped
+                            fast for 6 months. Companies preparing for due diligence or a security audit. Repos with 50+
+                            commits, 200+ files, last commit could be any time.</p>
+                    </div>
+                    <div style="background:var(--bg3);border-radius:8px;padding:10px">
+                        <div style="font-size:11px;font-weight:500;color:var(--txt3);margin-bottom:4px">What they need
+                        </div>
+                        <p style="margin:0;font-size:12px">A full retrospective scan of the entire repo as it stands
+                            today — not just the last commit. A prioritised fix plan. GitHub Issues for every finding.
+                            Then ongoing guard mode.</p>
+                    </div>
+                </div>
+                <div class="ut-step">
+                    <div class="ut-n">1</div>Sign up → OAuth → connect repo → onboarding detects "existing codebase"
+                    signals → shows "Full Audit" option
+                </div>
+                <div class="ut-step">
+                    <div class="ut-n">2</div>User clicks "Audit everything first" → Codeward clones full repo (HEAD
+                    commit) into sandbox
+                </div>
+                <div class="ut-step">
+                    <div class="ut-n">3</div>All 8 agents run on full codebase — 10–30 min depending on size — progress
+                    shown live in dashboard
+                </div>
+                <div class="ut-step">
+                    <div class="ut-n">4</div>Full audit report: health score, all findings, prioritised fix plan with
+                    effort estimates
+                </div>
+                <div class="ut-step">
+                    <div class="ut-n">5</div>Guardian creates GitHub Issues for every finding — team triages on the
+                    board, assigns to sprints
+                </div>
+                <div class="ut-step">
+                    <div class="ut-n">6</div>Guardian creates a single <span class="mono">codeward/audit-fixes</span>
+                    branch PR with all auto-fixable issues as one reviewable change
+                </div>
+                <div class="ut-step">
+                    <div class="ut-n">7</div>After audit complete → guard mode activates automatically — every future
+                    push is protected
+                </div>
+                <div style="margin-top:8px"><span class="tag tag-amber">Retrospective scan</span><span
+                        class="tag tag-amber">Full repo audit</span><span class="tag tag-amber">Then switches to guard
+                        mode</span></div>
+            </div>
+
+            <h3>How to detect which mode to offer at onboarding</h3>
+            <div class="card">
+                <div class="g2">
+                    <div>
+                        <p style="font-size:12px;font-weight:500;color:var(--txt);margin-bottom:8px">Auto-detection
+                            signals</p>
+                        <div style="display:flex;flex-direction:column;gap:5px">
+                            <div
+                                style="background:var(--bg3);border-radius:6px;padding:8px 10px;font-size:11px;color:var(--txt2)">
+                                <strong style="color:var(--txt)">Last commit age:</strong> More than 7 days ago →
+                                suggest Full Audit first</div>
+                            <div
+                                style="background:var(--bg3);border-radius:6px;padding:8px 10px;font-size:11px;color:var(--txt2)">
+                                <strong style="color:var(--txt)">Commit count:</strong> More than 50 commits → not a new
+                                project → offer full scan</div>
+                            <div
+                                style="background:var(--bg3);border-radius:6px;padding:8px 10px;font-size:11px;color:var(--txt2)">
+                                <strong style="color:var(--txt)">File count:</strong> More than 200 files or 20,000
+                                lines → substantial codebase → Full Audit</div>
+                            <div
+                                style="background:var(--bg3);border-radius:6px;padding:8px 10px;font-size:11px;color:var(--txt2)">
+                                <strong style="color:var(--txt)">No webhook history:</strong> Repo existed before
+                                Codeward install → always offer audit first</div>
+                        </div>
+                    </div>
+                    <div>
+                        <p style="font-size:12px;font-weight:500;color:var(--txt);margin-bottom:8px">Always show both
+                            options explicitly</p>
+                        <div style="background:var(--bg3);border-radius:8px;padding:12px">
+                            <div style="font-size:12px;color:var(--txt);margin-bottom:8px">Onboarding choice screen:
+                            </div>
+                            <div
+                                style="background:var(--bg2);border:0.5px solid rgba(75,123,236,.4);border-radius:6px;padding:8px 10px;margin-bottom:6px;font-size:11px">
+                                <strong style="color:#93B4F8">Guard from now →</strong><br><span
+                                    style="color:var(--txt2)">Start protecting every future push immediately.</span>
+                            </div>
+                            <div
+                                style="background:var(--bg2);border:0.5px solid rgba(245,158,11,.4);border-radius:6px;padding:8px 10px;font-size:11px">
+                                <strong style="color:#FCD34D">Audit everything first →</strong><br><span
+                                    style="color:var(--txt2)">Scan the full repo now, then guard going forward.</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <!-- TAB 5: ARCHITECTURE -->
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <div class="tab-content" id="tab-arch">
+            <h2>Full system architecture — all 8 layers including Guardian Agent</h2>
+
+            <div class="arch">
+                <div class="arch-layer l-purple">
+                    <div class="arch-layer-label">Layer 1 — Client surfaces</div>
+                    <div class="arch-boxes">
+                        <div class="abox" style="border-color:rgba(139,92,246,.4);background:rgba(139,92,246,.08)">
+                            <div class="abox-title" style="color:#DDD6FE">React SPA Dashboard</div>
+                            <div class="abox-sub">Vite + React 18 + TypeScript + Tailwind + shadcn/ui</div>
+                            <div class="abox-tech">codeward.io/dashboard</div>
+                        </div>
+                        <div class="abox" style="border-color:rgba(139,92,246,.4);background:rgba(139,92,246,.08)">
+                            <div class="abox-title" style="color:#DDD6FE">GitHub / GitLab UI</div>
+                            <div class="abox-sub">Check runs · PR comments · inline review · status badges</div>
+                            <div class="abox-tech">GitHub Apps API + MCP</div>
+                        </div>
+                        <div class="abox" style="border-color:rgba(139,92,246,.4);background:rgba(139,92,246,.08)">
+                            <div class="abox-title" style="color:#DDD6FE">GitHub PR — Guardian</div>
+                            <div class="abox-sub">Inline diff comments · formal reviews · issue creation · conversation
+                            </div>
+                            <div class="abox-tech">create_pull_request_review</div>
+                        </div>
+                        <div class="abox" style="border-color:rgba(139,92,246,.4);background:rgba(139,92,246,.08)">
+                            <div class="abox-title" style="color:#DDD6FE">Notifications</div>
+                            <div class="abox-sub">Slack · Email (Resend) · Discord · Push · Webhook</div>
+                            <div class="abox-tech">Slack SDK + Resend</div>
+                        </div>
+                        <div class="abox" style="border-color:rgba(139,92,246,.4);background:rgba(139,92,246,.08)">
+                            <div class="abox-title" style="color:#DDD6FE">VS Code Extension</div>
+                            <div class="abox-sub">Inline debt warnings · agent chat · approve from IDE</div>
+                            <div class="abox-tech">VS Code API (future)</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="arrow-down">↓</div>
+                <div class="arch-layer l-blue">
+                    <div class="arch-layer-label">Layer 2 — API gateway & auth</div>
+                    <div class="arch-boxes">
+                        <div class="abox" style="border-color:rgba(75,123,236,.4);background:rgba(75,123,236,.08)">
+                            <div class="abox-title" style="color:#93B4F8">API gateway</div>
+                            <div class="abox-sub">Rate limiting · TLS · CORS · routing</div>
+                            <div class="abox-tech">Hono.js on Railway</div>
+                        </div>
+                        <div class="abox" style="border-color:rgba(75,123,236,.4);background:rgba(75,123,236,.08)">
+                            <div class="abox-title" style="color:#93B4F8">Auth service</div>
+                            <div class="abox-sub">OAuth GitHub/GitLab · JWT · RBAC · org/team scopes</div>
+                            <div class="abox-tech">Better Auth</div>
+                        </div>
+                        <div class="abox" style="border-color:rgba(75,123,236,.4);background:rgba(75,123,236,.08)">
+                            <div class="abox-title" style="color:#93B4F8">Webhook receiver</div>
+                            <div class="abox-sub">HMAC-SHA256 verify · dedup · priority queue write</div>
+                            <div class="abox-tech">Hono + BullMQ</div>
+                        </div>
+                        <div class="abox" style="border-color:rgba(75,123,236,.4);background:rgba(75,123,236,.08)">
+                            <div class="abox-title" style="color:#93B4F8">WebSocket server</div>
+                            <div class="abox-sub">Real-time live feed to dashboard · &lt;500ms latency</div>
+                            <div class="abox-tech">Socket.io</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="arrow-down">↓</div>
+                <div class="arch-layer l-agent">
+                    <div class="arch-layer-label">Layer 3 — Core agent orchestration (9 specialised agents — THE BRAIN)
+                    </div>
+                    <div class="arch-boxes">
+                        <div class="abox" style="border-color:rgba(245,158,11,.5);background:rgba(245,158,11,.07)">
+                            <div class="abox-title" style="color:#FCD34D">Orchestrator</div>
+                            <div class="abox-sub">Coordinates all agents · makes gate decisions</div>
+                            <div class="abox-tech">claude-sonnet-4-6</div>
+                        </div>
+                        <div class="abox" style="border-color:rgba(239,68,68,.4);background:rgba(239,68,68,.07)">
+                            <div class="abox-title" style="color:#FCA5A5">Security Agent</div>
+                            <div class="abox-sub">18 checks · OWASP · CVE · supply chain</div>
+                            <div class="abox-tech">claude-haiku-4-5</div>
+                        </div>
+                        <div class="abox" style="border-color:rgba(245,158,11,.4);background:rgba(245,158,11,.07)">
+                            <div class="abox-title" style="color:#FCD34D">Bloat Agent</div>
+                            <div class="abox-sub">18 checks · AST · dupes · dead code</div>
+                            <div class="abox-tech">claude-haiku-4-5</div>
+                        </div>
+                        <div class="abox" style="border-color:rgba(239,68,68,.4);background:rgba(239,68,68,.07)">
+                            <div class="abox-title" style="color:#FCA5A5">Broken Code Agent</div>
+                            <div class="abox-sub">18 checks · tests · flaky · zombies</div>
+                            <div class="abox-tech">claude-haiku-4-5</div>
+                        </div>
+                        <div class="abox" style="border-color:rgba(75,123,236,.4);background:rgba(75,123,236,.07)">
+                            <div class="abox-title" style="color:#93B4F8">Architecture Agent</div>
+                            <div class="abox-sub">18 checks · N+1 · distributed monolith · load</div>
+                            <div class="abox-tech">claude-haiku-4-5</div>
+                        </div>
+                        <div class="abox" style="border-color:rgba(34,197,94,.4);background:rgba(34,197,94,.07)">
+                            <div class="abox-title" style="color:#86EFAC">AI-Era Agent</div>
+                            <div class="abox-sub">18 checks · injection · RAG drift · PII</div>
+                            <div class="abox-tech">claude-sonnet-4-6</div>
+                        </div>
+                        <div class="abox" style="border-color:rgba(139,92,246,.4);background:rgba(139,92,246,.07)">
+                            <div class="abox-title" style="color:#C4B5FD">Compliance Agent</div>
+                            <div class="abox-sub">EU AI Act · GDPR · WCAG · NHI · daily</div>
+                            <div class="abox-tech">claude-sonnet-4-6</div>
+                        </div>
+                        <div class="abox" style="border-color:rgba(20,184,166,.4);background:rgba(20,184,166,.07)">
+                            <div class="abox-title" style="color:#5EEAD4">Data/DX Agent</div>
+                            <div class="abox-sub">Pipelines · data contracts · DX debt · weekly</div>
+                            <div class="abox-tech">claude-haiku-4-5</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="arrow-down">↓</div>
+                <div class="arch-layer l-guardian">
+                    <div class="arch-layer-label">Layer 3b — Guardian Agent (GitHub-facing — reads pipeline results,
+                        acts on GitHub)</div>
+                    <div class="arch-boxes">
+                        <div class="abox" style="border-color:rgba(236,72,153,.4);background:rgba(236,72,153,.08)">
+                            <div class="abox-title" style="color:#F9A8D4">Guardian Agent</div>
+                            <div class="abox-sub">PR reviews · inline comments · issue creation · approve/block ·
+                                conversation replies</div>
+                            <div class="abox-tech">claude-sonnet-4-6 + GitHub MCP</div>
+                        </div>
+                        <div class="abox" style="border-color:rgba(236,72,153,.4);background:rgba(236,72,153,.08)">
+                            <div class="abox-title" style="color:#F9A8D4">GitHub MCP server</div>
+                            <div class="abox-sub">create_pr_review · add_inline_comment · create_issue · merge_pr ·
+                                label_issue</div>
+                            <div class="abox-tech">github/github-mcp-server</div>
+                        </div>
+                        <div class="abox" style="border-color:rgba(236,72,153,.4);background:rgba(236,72,153,.08)">
+                            <div class="abox-title" style="color:#F9A8D4">Chat Agent</div>
+                            <div class="abox-sub">Always-on · spawns agents · reads history · takes actions</div>
+                            <div class="abox-tech">claude-sonnet-4-6 + all tools</div>
+                        </div>
+                        <div class="abox" style="border-color:rgba(236,72,153,.4);background:rgba(236,72,153,.08)">
+                            <div class="abox-title" style="color:#F9A8D4">Open source guard</div>
+                            <div class="abox-sub">Two-tier trust · external contributors get static only · maintainer
+                                labels unlock full sandbox</div>
+                            <div class="abox-tech">Lockdown mode logic</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="arrow-down">↓</div>
+                <div class="arch-layer l-orange">
+                    <div class="arch-layer-label">Layer 4 — Ephemeral sandbox cluster (one per commit · hermetically
+                        sealed · destroyed after run)</div>
+                    <div class="arch-boxes">
+                        <div class="abox" style="border-color:rgba(249,115,22,.4);background:rgba(249,115,22,.07)">
+                            <div class="abox-title" style="color:#FDBA74">Firecracker microVM</div>
+                            <div class="abox-sub">Hardware isolation · 125ms boot · no external network · auto-destroy
+                            </div>
+                            <div class="abox-tech">Fly.io Machines API</div>
+                        </div>
+                        <div class="abox" style="border-color:rgba(249,115,22,.4);background:rgba(249,115,22,.07)">
+                            <div class="abox-title" style="color:#FDBA74">Stack provisioner</div>
+                            <div class="abox-sub">Auto-detect from package.json / requirements.txt / Gemfile</div>
+                            <div class="abox-tech">Docker + nix</div>
+                        </div>
+                        <div class="abox" style="border-color:rgba(249,115,22,.4);background:rgba(249,115,22,.07)">
+                            <div class="abox-title" style="color:#FDBA74">Test runner</div>
+                            <div class="abox-sub">Jest/pytest/RSpec · flaky detector 10 runs · coverage report</div>
+                            <div class="abox-tech">Vitest / pytest / RSpec</div>
+                        </div>
+                        <div class="abox" style="border-color:rgba(249,115,22,.4);background:rgba(249,115,22,.07)">
+                            <div class="abox-title" style="color:#FDBA74">OWASP ZAP</div>
+                            <div class="abox-sub">Dynamic security scan · OWASP top 10 · XSS · CSRF · injections</div>
+                            <div class="abox-tech">Open source Docker image</div>
+                        </div>
+                        <div class="abox" style="border-color:rgba(249,115,22,.4);background:rgba(249,115,22,.07)">
+                            <div class="abox-title" style="color:#FDBA74">truffleHog v3</div>
+                            <div class="abox-sub">700+ secret detectors · all files + full git history</div>
+                            <div class="abox-tech">Open source CLI</div>
+                        </div>
+                        <div class="abox" style="border-color:rgba(249,115,22,.4);background:rgba(249,115,22,.07)">
+                            <div class="abox-title" style="color:#FDBA74">tree-sitter AST</div>
+                            <div class="abox-sub">JS/TS/Python/Go/Ruby/Rust · semantic duplicate detection</div>
+                            <div class="abox-tech">Open source WASM</div>
+                        </div>
+                        <div class="abox" style="border-color:rgba(249,115,22,.4);background:rgba(249,115,22,.07)">
+                            <div class="abox-title" style="color:#FDBA74">k6 load tester</div>
+                            <div class="abox-sub">p99 latency · 2× traffic load · backpressure · cold start</div>
+                            <div class="abox-tech">Grafana k6 open source</div>
+                        </div>
+                        <div class="abox" style="border-color:rgba(249,115,22,.4);background:rgba(249,115,22,.07)">
+                            <div class="abox-title" style="color:#FDBA74">Rollback engine</div>
+                            <div class="abox-sub">Last stable SHA restore · migration rollback detection · safe pause
+                            </div>
+                            <div class="abox-tech">git reset + migration tracker</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="arrow-down">↓</div>
+                <div class="arch-layer l-gray">
+                    <div class="arch-layer-label">Layer 5 — Data & storage</div>
+                    <div class="arch-boxes">
+                        <div class="abox" style="border-color:var(--bdr2);background:var(--bg3)">
+                            <div class="abox-title">PostgreSQL</div>
+                            <div class="abox-sub">Accounts · runs · agent results · findings · billing</div>
+                            <div class="abox-tech">Supabase free (500MB)</div>
+                        </div>
+                        <div class="abox" style="border-color:var(--bdr2);background:var(--bg3)">
+                            <div class="abox-title">Redis</div>
+                            <div class="abox-sub">BullMQ job queue · sessions · rate limits · pub/sub</div>
+                            <div class="abox-tech">Upstash free (10k/day)</div>
+                        </div>
+                        <div class="abox" style="border-color:var(--bdr2);background:var(--bg3)">
+                            <div class="abox-title">Object store</div>
+                            <div class="abox-sub">Run logs · diffs · reports · sandbox artifacts</div>
+                            <div class="abox-tech">Cloudflare R2 free (10GB)</div>
+                        </div>
+                        <div class="abox" style="border-color:var(--bdr2);background:var(--bg3)">
+                            <div class="abox-title">Vector DB</div>
+                            <div class="abox-sub">Codebase semantic embeddings · cross-repo duplicate detection</div>
+                            <div class="abox-tech">Supabase pgvector</div>
+                        </div>
+                        <div class="abox" style="border-color:var(--bdr2);background:var(--bg3)">
+                            <div class="abox-title">Time series</div>
+                            <div class="abox-sub">Health score history · debt trend · per-repo metrics</div>
+                            <div class="abox-tech">TimescaleDB on Supabase</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="arrow-down">↓</div>
+                <div class="arch-layer l-green">
+                    <div class="arch-layer-label">Layer 6 — Customer infrastructure (Codeward connects outbound only)
+                    </div>
+                    <div class="arch-boxes">
+                        <div class="abox" style="border-color:rgba(34,197,94,.3);background:rgba(34,197,94,.06)">
+                            <div class="abox-title" style="color:#86EFAC">Ephemeral staging</div>
+                            <div class="abox-sub">Live preview per PR · destroyed after 48h or merge</div>
+                            <div class="abox-tech">Vercel / Render / Fly.io</div>
+                        </div>
+                        <div class="abox" style="border-color:rgba(34,197,94,.3);background:rgba(34,197,94,.06)">
+                            <div class="abox-title" style="color:#86EFAC">Customer production</div>
+                            <div class="abox-sub">Merge via GitHub API only · no direct server access ever</div>
+                            <div class="abox-tech">GitHub Merges API</div>
+                        </div>
+                        <div class="abox" style="border-color:rgba(34,197,94,.3);background:rgba(34,197,94,.06)">
+                            <div class="abox-title" style="color:#86EFAC">Self-hosted runner</div>
+                            <div class="abox-sub">Enterprise · private infra · Docker agent · mTLS</div>
+                            <div class="abox-tech">Docker agent open source</div>
+                        </div>
+                        <div class="abox" style="border-color:rgba(34,197,94,.3);background:rgba(34,197,94,.06)">
+                            <div class="abox-title" style="color:#86EFAC">Post-deploy monitor</div>
+                            <div class="abox-sub">Error rate · p99 latency · auto-rollback on anomaly</div>
+                            <div class="abox-tech">Sentry free + Datadog free</div>
+                        </div>
+                        <div class="abox" style="border-color:rgba(34,197,94,.3);background:rgba(34,197,94,.06)">
+                            <div class="abox-title" style="color:#86EFAC">GitHub Projects board</div>
+                            <div class="abox-sub">Guardian creates issues · Compliance adds to sprint board</div>
+                            <div class="abox-tech">GitHub Projects MCP tool</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="arrow-down">↓</div>
+                <div class="arch-layer l-gray">
+                    <div class="arch-layer-label">Layer 7 — Codeward observability (internal only)</div>
+                    <div class="arch-boxes">
+                        <div class="abox" style="border-color:var(--bdr2);background:var(--bg3)">
+                            <div class="abox-title">Logging</div>
+                            <div class="abox-sub">All agent actions · every tool call · trace IDs</div>
+                            <div class="abox-tech">Axiom free (1GB/day)</div>
+                        </div>
+                        <div class="abox" style="border-color:var(--bdr2);background:var(--bg3)">
+                            <div class="abox-title">Metrics</div>
+                            <div class="abox-sub">Queue depth · sandbox latency · agent run times</div>
+                            <div class="abox-tech">Prometheus + Grafana Cloud</div>
+                        </div>
+                        <div class="abox" style="border-color:var(--bdr2);background:var(--bg3)">
+                            <div class="abox-title">Error tracking</div>
+                            <div class="abox-sub">All backend errors · stack traces · alerts</div>
+                            <div class="abox-tech">Sentry free tier</div>
+                        </div>
+                        <div class="abox" style="border-color:var(--bdr2);background:var(--bg3)">
+                            <div class="abox-title">Uptime</div>
+                            <div class="abox-sub">All endpoints · webhook receiver · agent health</div>
+                            <div class="abox-tech">Better Uptime free</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <!-- TAB 6: TECH STACK -->
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <div class="tab-content" id="tab-stack">
+            <h2>Full tech stack — every choice with the honest reason why</h2>
+
+            <h3>Frontend — React</h3>
+            <div class="card">
+                <div class="stack-row"><span class="stack-layer">Framework</span>
+                    <div>
+                        <div class="stack-tech">React 18 + TypeScript + Vite</div>
+                        <div class="stack-why">React 18 concurrent rendering handles the live run feed without blocking
+                            the UI. Vite is 10× faster than CRA for dev builds. TypeScript is non-negotiable — a product
+                            about code quality must eat its own cooking.</div>
+                    </div>
+                </div>
+                <div class="stack-row"><span class="stack-layer">Styling</span>
+                    <div>
+                        <div class="stack-tech">Tailwind CSS v4 + shadcn/ui</div>
+                        <div class="stack-why">shadcn/ui gives production-quality components (dialogs, tables,
+                            dropdowns) without a design team. You own the components — no version lock. Tailwind v4 is
+                            significantly faster to build with.</div>
+                    </div>
+                </div>
+                <div class="stack-row"><span class="stack-layer">State</span>
+                    <div>
+                        <div class="stack-tech">Zustand + TanStack Query</div>
+                        <div class="stack-why">Zustand for UI state (current screen, selected repo). TanStack Query for
+                            server state — handles caching, background refetch, and optimistic updates. Perfect for the
+                            dashboard polling pattern.</div>
+                    </div>
+                </div>
+                <div class="stack-row"><span class="stack-layer">Real-time</span>
+                    <div>
+                        <div class="stack-tech">Socket.io client</div>
+                        <div class="stack-why">Live run feed needs WebSocket. Socket.io is the simplest self-hosted
+                            option. Streams BullMQ job events to the dashboard in real time.</div>
+                    </div>
+                </div>
+                <div class="stack-row"><span class="stack-layer">Code display</span>
+                    <div>
+                        <div class="stack-tech">Monaco Editor (read-only) + react-diff-view</div>
+                        <div class="stack-why">Monaco is the VS Code editor. Perfect for the annotated diff viewer.
+                            react-diff-view for side-by-side diff component with inline Guardian comments rendered
+                            alongside.</div>
+                    </div>
+                </div>
+                <div class="stack-row"><span class="stack-layer">Charts</span>
+                    <div>
+                        <div class="stack-tech">Recharts</div>
+                        <div class="stack-why">Health score trend lines, debt category bars, deploy history.
+                            React-native, lightweight, composable. Works perfectly with TanStack Query's real-time data.
+                        </div>
+                    </div>
+                </div>
+                <div class="stack-row"><span class="stack-layer">Testing</span>
+                    <div>
+                        <div class="stack-tech">Vitest + React Testing Library + Playwright</div>
+                        <div class="stack-why">Vitest for unit tests. RTL for component tests. Playwright for E2E —
+                            critical for testing the staging approval flow and Guardian comment rendering.</div>
+                    </div>
+                </div>
+                <div class="stack-row"><span class="stack-layer">Deploy</span>
+                    <div>
+                        <div class="stack-tech">Vercel</div>
+                        <div class="stack-why">Zero-config React deployment. Preview URLs per PR. You use Codeward to
+                            guard your own frontend repo on Vercel — dogfooding from day one.</div>
+                    </div>
+                </div>
+            </div>
+
+            <h3>Backend</h3>
+            <div class="card">
+                <div class="stack-row"><span class="stack-layer">Runtime</span>
+                    <div>
+                        <div class="stack-tech">Node.js 22 + TypeScript</div>
+                        <div class="stack-why">Same language as frontend — one mental model. Node 22 has native
+                            TypeScript support. The heavy work happens in sandboxes, not Node itself.</div>
+                    </div>
+                </div>
+                <div class="stack-row"><span class="stack-layer">API framework</span>
+                    <div>
+                        <div class="stack-tech">Hono.js</div>
+                        <div class="stack-why">3× faster than Express. Runs on Cloudflare Workers, Node, Deno — write
+                            once. Type-safe routing. The right choice for 2026.</div>
+                    </div>
+                </div>
+                <div class="stack-row"><span class="stack-layer">Job queue</span>
+                    <div>
+                        <div class="stack-tech">BullMQ on Upstash Redis</div>
+                        <div class="stack-why">Battle-tested for exactly this use case. Priority queues, retries,
+                            dead-letter queues. BullMQ Board gives a free visual dashboard.</div>
+                    </div>
+                </div>
+                <div class="stack-row"><span class="stack-layer">Database ORM</span>
+                    <div>
+                        <div class="stack-tech">Drizzle ORM + Supabase Postgres</div>
+                        <div class="stack-why">Drizzle is type-safe, lightweight, generates raw SQL — no magic. You see
+                            every query. Critical for a product that talks about database quality.</div>
+                    </div>
+                </div>
+                <div class="stack-row"><span class="stack-layer">Agent framework</span>
+                    <div>
+                        <div class="stack-tech">Anthropic SDK (TypeScript) — raw tool_use only</div>
+                        <div class="stack-why">No LangChain. No abstractions. The Anthropic SDK with native tool_use is
+                            simpler, faster, cheaper, and you understand every call made.</div>
+                    </div>
+                </div>
+                <div class="stack-row"><span class="stack-layer">GitHub integration</span>
+                    <div>
+                        <div class="stack-tech">@octokit/app + GitHub MCP server</div>
+                        <div class="stack-why">Octokit for webhook handling and check run API. GitHub MCP server for
+                            Guardian Agent's rich PR interactions — reviews, inline comments, issue creation.</div>
+                    </div>
+                </div>
+                <div class="stack-row"><span class="stack-layer">Email</span>
+                    <div>
+                        <div class="stack-tech">Resend (free 3000/month)</div>
+                        <div class="stack-why">Best DX for transactional email. React Email templates — same stack as
+                            frontend. Used for run reports, security alerts, weekly digest, staging approvals.</div>
+                    </div>
+                </div>
+                <div class="stack-row"><span class="stack-layer">Deploy</span>
+                    <div>
+                        <div class="stack-tech">Railway.app</div>
+                        <div class="stack-why">Deploys Node in 30 seconds. Automatic HTTPS. Built-in Postgres and Redis.
+                            Right choice for MVP — Kubernetes can wait.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <!-- TAB 7: ENVS & APIS -->
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <div class="tab-content" id="tab-envs">
+            <h2>Every environment variable + every external API — free tier first</h2>
+            <div class="card" style="padding:0;overflow:hidden">
+                <table class="env-table">
+                    <thead>
+                        <tr>
+                            <th>Variable</th>
+                            <th>Purpose</th>
+                            <th>Where to get it</th>
+                            <th>Cost</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>ANTHROPIC_API_KEY</td>
+                            <td>Powers all 9 agents. Every debt analysis, PR review, chat response, refactor suggestion.
+                            </td>
+                            <td>console.anthropic.com → API Keys</td>
+                            <td><span class="tag-free">FREE $5 credit</span></td>
+                        </tr>
+                        <tr>
+                            <td>GITHUB_APP_ID</td>
+                            <td>Your GitHub App ID. Installs webhooks and posts check runs to repos.</td>
+                            <td>github.com → Settings → Developer → GitHub Apps</td>
+                            <td><span class="tag-free">FREE</span></td>
+                        </tr>
+                        <tr>
+                            <td>GITHUB_APP_PRIVATE_KEY</td>
+                            <td>RSA private key to authenticate as your GitHub App.</td>
+                            <td>Same GitHub App settings → Generate private key (.pem)</td>
+                            <td><span class="tag-free">FREE</span></td>
+                        </tr>
+                        <tr>
+                            <td>GITHUB_WEBHOOK_SECRET</td>
+                            <td>HMAC secret to verify webhook payloads are genuine.</td>
+                            <td>Set yourself: <span class="mono">openssl rand -hex 32</span></td>
+                            <td><span class="tag-free">FREE</span></td>
+                        </tr>
+                        <tr>
+                            <td>GITHUB_MCP_TOKEN</td>
+                            <td>Fine-grained PAT for GitHub MCP server (Guardian Agent). Needs: pull_requests RW, issues
+                                RW, contents RW, checks RW.</td>
+                            <td>github.com → Settings → Personal access tokens → Fine-grained</td>
+                            <td><span class="tag-free">FREE</span></td>
+                        </tr>
+                        <tr>
+                            <td>DATABASE_URL</td>
+                            <td>Supabase Postgres. All accounts, runs, findings, agent results, billing.</td>
+                            <td>supabase.com → Project → Settings → Database → Connection string</td>
+                            <td><span class="tag-free">FREE 500MB</span></td>
+                        </tr>
+                        <tr>
+                            <td>SUPABASE_URL + SERVICE_KEY</td>
+                            <td>Supabase API URL and service role key (backend only — never expose to frontend).</td>
+                            <td>supabase.com → Project → Settings → API</td>
+                            <td><span class="tag-free">FREE</span></td>
+                        </tr>
+                        <tr>
+                            <td>UPSTASH_REDIS_URL + TOKEN</td>
+                            <td>Redis for BullMQ job queue, sessions, rate limiting, WebSocket pub/sub.</td>
+                            <td>upstash.com → Create Database → REST API credentials</td>
+                            <td><span class="tag-free">FREE 10k/day</span></td>
+                        </tr>
+                        <tr>
+                            <td>R2_ACCOUNT_ID + ACCESS_KEY + SECRET + BUCKET</td>
+                            <td>Cloudflare R2 for run logs, diffs, reports, sandbox artifacts. S3-compatible, zero
+                                egress fees.</td>
+                            <td>Cloudflare → R2 → Manage R2 API Tokens</td>
+                            <td><span class="tag-free">FREE 10GB</span></td>
+                        </tr>
+                        <tr>
+                            <td>FLY_API_TOKEN</td>
+                            <td>Creates and destroys Fly.io Machines (sandboxes) programmatically per commit run.</td>
+                            <td>fly.io → Account → Access Tokens</td>
+                            <td><span class="tag-free">FREE allowance</span></td>
+                        </tr>
+                        <tr>
+                            <td>RESEND_API_KEY</td>
+                            <td>Transactional email — run reports, security alerts, weekly digest, staging approvals.
+                            </td>
+                            <td>resend.com → API Keys</td>
+                            <td><span class="tag-free">FREE 3000/mo</span></td>
+                        </tr>
+                        <tr>
+                            <td>SLACK_BOT_TOKEN + SIGNING_SECRET</td>
+                            <td>Post run results, security alerts, Guardian summaries, staging approval buttons to
+                                Slack.</td>
+                            <td>api.slack.com → Create App → OAuth tokens</td>
+                            <td><span class="tag-free">FREE</span></td>
+                        </tr>
+                        <tr>
+                            <td>BETTER_AUTH_SECRET</td>
+                            <td>Signs JWT tokens for auth system.</td>
+                            <td><span class="mono">openssl rand -base64 32</span></td>
+                            <td><span class="tag-free">FREE (self-generated)</span></td>
+                        </tr>
+                        <tr>
+                            <td>SENTRY_DSN</td>
+                            <td>Error tracking for Codeward backend and frontend. Catches your own bugs.</td>
+                            <td>sentry.io → New Project → DSN</td>
+                            <td><span class="tag-free">FREE 5k errors/mo</span></td>
+                        </tr>
+                        <tr>
+                            <td>AXIOM_API_KEY + DATASET</td>
+                            <td>Structured logging for all agent run events, tool calls, webhook receipts, gate
+                                decisions.</td>
+                            <td>axiom.co → Settings → API tokens</td>
+                            <td><span class="tag-free">FREE 1GB/day</span></td>
+                        </tr>
+                        <tr>
+                            <td>STRIPE_SECRET_KEY</td>
+                            <td>Billing. Not needed for MVP free tier.</td>
+                            <td>dashboard.stripe.com → Developers → API keys</td>
+                            <td><span class="tag-paid">When billing live</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="warn" style="margin-top:12px">
+                <div class="warn-t">Honest cost projection at scale</div>
+                <p style="margin:0">100 teams × 50 pushes/day × $0.08 avg Claude API cost = <strong
+                        style="color:#FCD34D">$400/day in API fees</strong>. Build the billing gate and rate limits
+                    before you market. Free tier: max 5 sandbox runs/day. Pro: unlimited.</p>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <!-- TAB 8: DEBT FRAMEWORK -->
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <div class="tab-content" id="tab-debt">
+            <h2>Complete 100+ item debt framework — 8 categories, every check, every agent</h2>
+
+            <h3>Debt scoring weights</h3>
+            <div class="card" style="margin-bottom:16px">
+                <div class="bar-row"><span class="bar-label">Security</span>
+                    <div class="bar-wrap">
+                        <div class="bar-fill" style="width:95%;background:var(--red)"></div>
+                    </div><span class="bar-val">×2.0 — hard block on any critical</span>
+                </div>
+                <div class="bar-row"><span class="bar-label">Broken code</span>
+                    <div class="bar-wrap">
+                        <div class="bar-fill" style="width:80%;background:var(--red)"></div>
+                    </div><span class="bar-val">×1.8 — blocks merge</span>
+                </div>
+                <div class="bar-row"><span class="bar-label">AI-era</span>
+                    <div class="bar-wrap">
+                        <div class="bar-fill" style="width:65%;background:var(--green)"></div>
+                    </div><span class="bar-val">×1.5 → ×2.0 by 2028</span>
+                </div>
+                <div class="bar-row"><span class="bar-label">Architecture</span>
+                    <div class="bar-wrap">
+                        <div class="bar-fill" style="width:50%;background:var(--blue)"></div>
+                    </div><span class="bar-val">×1.2 — accumulates</span>
+                </div>
+                <div class="bar-row"><span class="bar-label">Compliance</span>
+                    <div class="bar-wrap">
+                        <div class="bar-fill" style="width:70%;background:var(--purple)"></div>
+                    </div><span class="bar-val">×1.6 — legal risk</span>
+                </div>
+                <div class="bar-row"><span class="bar-label">Bloat</span>
+                    <div class="bar-wrap">
+                        <div class="bar-fill" style="width:35%;background:var(--amber)"></div>
+                    </div><span class="bar-val">×1.0 — baseline</span>
+                </div>
+                <p style="margin-top:8px;font-size:11px;color:var(--txt2)">One Critical security or broken code issue =
+                    score 0, merge blocked immediately, no exceptions. Compliance issues are new in v2 — they score high
+                    because legal risk is existential for companies.</p>
+            </div>
+
+            <div class="debt-head" style="background:rgba(239,68,68,.1)"><span
+                    style="color:#FCA5A5;font-size:12px;font-weight:500">🔴 Security — 18 checks — Security Agent — hard
+                    blocks merge</span><span class="tag tag-red">×2.0</span></div>
+            <div class="debt-items">
+                <div class="ditem">
+                    <div class="ditem-t">Exposed API keys & secrets</div>
+                    <div class="ditem-d">truffleHog v3 · 700+ detectors · all files + git history</div>
+                </div>
+                <div class="ditem">
+                    <div class="ditem-t">Missing auth on routes</div>
+                    <div class="ditem-d">Every endpoint called with no token · expects 401</div>
+                </div>
+                <div class="ditem">
+                    <div class="ditem-t">SQL injection</div>
+                    <div class="ditem-d">OWASP ZAP dynamic + AST static on query builders</div>
+                </div>
+                <div class="ditem">
+                    <div class="ditem-t">Database RLS missing</div>
+                    <div class="ditem-d">Supabase/Postgres policy checked per table</div>
+                </div>
+                <div class="ditem">
+                    <div class="ditem-t">XSS & CSRF</div>
+                    <div class="ditem-d">ZAP payload injection · CSRF token presence verified</div>
+                </div>
+                <div class="ditem">
+                    <div class="ditem-t">Known CVEs in deps</div>
+                    <div class="ditem-d">Trivy + Dependabot cross-reference · fix version suggested</div>
+                </div>
+                <div class="ditem">
+                    <div class="ditem-t">Missing rate limiting</div>
+                    <div class="ditem-d">100 rapid requests → /login /signup · expects 429</div>
+                </div>
+                <div class="ditem">
+                    <div class="ditem-t">Prompt injection</div>
+                    <div class="ditem-d">Override payloads on all LLM-connected endpoints</div>
+                </div>
+                <div class="ditem ditem-new">
+                    <div class="ditem-t">Insecure Non-Human Identities</div>
+                    <div class="ditem-d">Long-lived service tokens · unrotated PATs · K8s config scan</div>
+                </div>
+                <div class="ditem ditem-new">
+                    <div class="ditem-t">Supply chain integrity</div>
+                    <div class="ditem-d">SBOM verification · GitHub Actions permission audit</div>
+                </div>
+                <div class="ditem ditem-new">
+                    <div class="ditem-t">Cryptographic failures</div>
+                    <div class="ditem-d">MD5/SHA-1 in AST · hardcoded IVs/salts detected</div>
+                </div>
+                <div class="ditem ditem-new">
+                    <div class="ditem-t">SSRF in microservices</div>
+                    <div class="ditem-d">Metadata endpoints probed via all URL-accepting inputs</div>
+                </div>
+                <div class="ditem ditem-new">
+                    <div class="ditem-t">Missing MFA for destructive routes</div>
+                    <div class="ditem-d">DELETE/admin routes tested without step-up auth</div>
+                </div>
+                <div class="ditem ditem-new">
+                    <div class="ditem-t">CI/CD pipeline log leaks</div>
+                    <div class="ditem-d">Runner logs scanned · poisoned pipeline audit</div>
+                </div>
+                <div class="ditem ditem-new">
+                    <div class="ditem-t">Multitenant data leaks</div>
+                    <div class="ditem-d">Every shared-table query verified for tenant_id filter</div>
+                </div>
+                <div class="ditem ditem-new">
+                    <div class="ditem-t">Logging & alerting gaps</div>
+                    <div class="ditem-d">5 rapid failures triggered · checks if alert fires</div>
+                </div>
+                <div class="ditem ditem-new">
+                    <div class="ditem-t">Error information leakage</div>
+                    <div class="ditem-d">Fuzz endpoints · 500s checked for stack traces (CWE-209)</div>
+                </div>
+                <div class="ditem ditem-new">
+                    <div class="ditem-t">Business logic bypass</div>
+                    <div class="ditem-d">Direct URL access to success pages skipping payment/auth</div>
+                </div>
+            </div>
+
+            <div class="debt-head" style="background:rgba(245,158,11,.08)"><span
+                    style="color:#FCD34D;font-size:12px;font-weight:500">🟡 Bloat — 18 checks — Bloat Agent</span><span
+                    class="tag tag-amber">×1.0</span></div>
+            <div class="debt-items">
+                <div class="ditem">
+                    <div class="ditem-t">Duplicate functions</div>
+                    <div class="ditem-d">Semantic AST · same behaviour different names</div>
+                </div>
+                <div class="ditem">
+                    <div class="ditem-t">Dead code</div>
+                    <div class="ditem-d">Call graph · zero-reference functions/vars/imports</div>
+                </div>
+                <div class="ditem">
+                    <div class="ditem-t">God files (1000+ lines)</div>
+                    <div class="ditem-d">Multiple responsibilities · clean split points suggested</div>
+                </div>
+                <div class="ditem">
+                    <div class="ditem-t">Copy-paste blocks (5+ lines)</div>
+                    <div class="ditem-d">Appearing 2+ times · auto-extracted to helpers</div>
+                </div>
+                <div class="ditem">
+                    <div class="ditem-t">Redundant dependencies</div>
+                    <div class="ditem-d">Installed but unused · 3 packages doing 1 job</div>
+                </div>
+                <div class="ditem">
+                    <div class="ditem-t">Oversized functions (80+ lines)</div>
+                    <div class="ditem-d">Cyclomatic complexity above 10 · extraction suggested</div>
+                </div>
+                <div class="ditem">
+                    <div class="ditem-t">Vibe rewrite pattern</div>
+                    <div class="ditem-d">>60% of file changed · zero new tests</div>
+                </div>
+                <div class="ditem">
+                    <div class="ditem-t">Commented-out code blocks</div>
+                    <div class="ditem-d">Git blame checked before removal</div>
+                </div>
+                <div class="ditem ditem-new">
+                    <div class="ditem-t">Feature bloat (low usage)</div>
+                    <div class="ditem-d">Telemetry correlation · <1% MAU features flagged</div>
+                    </div>
+                    <div class="ditem ditem-new">
+                        <div class="ditem-t">Cognitive load bloat</div>
+                        <div class="ditem-d">LLM "time to comprehend" · over-engineered abstractions</div>
+                    </div>
+                    <div class="ditem ditem-new">
+                        <div class="ditem-t">CSS & asset bloat</div>
+                        <div class="ditem-d">Unused Tailwind classes · oversized images · LCP impact</div>
+                    </div>
+                    <div class="ditem ditem-new">
+                        <div class="ditem-t">Over-configurability</div>
+                        <div class="ditem-d">Env vars unchanged 6+ months · hardcoding suggested</div>
+                    </div>
+                    <div class="ditem ditem-new">
+                        <div class="ditem-t">YAGNI / just-in-case logic</div>
+                        <div class="ditem-d">Future branches never materialised · flagged</div>
+                    </div>
+                    <div class="ditem ditem-new">
+                        <div class="ditem-t">Microservice over-segmentation</div>
+                        <div class="ditem-d">Network overhead vs. logic size · nanoservice merge</div>
+                    </div>
+                    <div class="ditem ditem-new">
+                        <div class="ditem-t">Shadow dependencies</div>
+                        <div class="ditem-d">Multiple versions of same lib bundled · Lodash 3+4</div>
+                    </div>
+                    <div class="ditem ditem-new">
+                        <div class="ditem-t">Verbose logging spam</div>
+                        <div class="ditem-d">DEBUG/INFO log volume in prod · storage cost projection</div>
+                    </div>
+                    <div class="ditem ditem-new">
+                        <div class="ditem-t">Legacy polyfill debt</div>
+                        <div class="ditem-d">IE11 polyfills vs support matrix · removed</div>
+                    </div>
+                    <div class="ditem ditem-new">
+                        <div class="ditem-t">Documentation rot</div>
+                        <div class="ditem-d">README vs. actual code signatures · discrepancies flagged</div>
+                    </div>
+                </div>
+
+                <div class="debt-head" style="background:rgba(239,68,68,.1)"><span
+                        style="color:#FCA5A5;font-size:12px;font-weight:500">🔴 Broken code — 18 checks — Broken Code
+                        Agent — hard blocks merge</span><span class="tag tag-red">×1.8</span></div>
+                <div class="debt-items">
+                    <div class="ditem">
+                        <div class="ditem-t">Failing tests</div>
+                        <div class="ditem-d">Full suite · any single failure = hard block</div>
+                    </div>
+                    <div class="ditem">
+                        <div class="ditem-t">Runtime exceptions</div>
+                        <div class="ditem-d">App runs in sandbox · null dereferences caught live</div>
+                    </div>
+                    <div class="ditem">
+                        <div class="ditem-t">Race conditions</div>
+                        <div class="ditem-d">100 concurrent requests · consistency assertions</div>
+                    </div>
+                    <div class="ditem">
+                        <div class="ditem-t">Broken migrations</div>
+                        <div class="ditem-d">Seeded test DB · data integrity verified post-run</div>
+                    </div>
+                    <div class="ditem">
+                        <div class="ditem-t">Silent data corruption</div>
+                        <div class="ditem-d">Write known values · read back through all logic</div>
+                    </div>
+                    <div class="ditem">
+                        <div class="ditem-t">Swallowed errors</div>
+                        <div class="ditem-d">Empty catch blocks · unhandled promise rejections</div>
+                    </div>
+                    <div class="ditem">
+                        <div class="ditem-t">Missing input validation</div>
+                        <div class="ditem-d">Malformed inputs · expects validation not 500s</div>
+                    </div>
+                    <div class="ditem">
+                        <div class="ditem-t">Memory leaks</div>
+                        <div class="ditem-d">60s sustained load · heap growth measured</div>
+                    </div>
+                    <div class="ditem ditem-new">
+                        <div class="ditem-t">Flaky test debt</div>
+                        <div class="ditem-d">Suite run 10× · non-deterministic failures flagged</div>
+                    </div>
+                    <div class="ditem ditem-new">
+                        <div class="ditem-t">Silent promise rejections</div>
+                        <div class="ditem-d">AST scan · await without try/catch or .catch()</div>
+                    </div>
+                    <div class="ditem ditem-new">
+                        <div class="ditem-t">Stale feature flags</div>
+                        <div class="ditem-d">100% "on" 30+ days · conditional removal suggested</div>
+                    </div>
+                    <div class="ditem ditem-new">
+                        <div class="ditem-t">Swallowed API timeouts</div>
+                        <div class="ditem-d">Outbound HTTP without explicit timeout · worker hang</div>
+                    </div>
+                    <div class="ditem ditem-new">
+                        <div class="ditem-t">Memory bloat (non-leak)</div>
+                        <div class="ditem-d">Large objects in global scope · no TTL or eviction</div>
+                    </div>
+                    <div class="ditem ditem-new">
+                        <div class="ditem-t">Broken rollback paths</div>
+                        <div class="ditem-d">Down migration attempted every PR · failure = block</div>
+                    </div>
+                    <div class="ditem ditem-new">
+                        <div class="ditem-t">Type-safety gaps</div>
+                        <div class="ditem-d">any count + ts-ignore below project threshold</div>
+                    </div>
+                    <div class="ditem ditem-new">
+                        <div class="ditem-t">Resource exhaustion (handles)</div>
+                        <div class="ditem-d">Unclosed file handles · DB connections · sockets</div>
+                    </div>
+                    <div class="ditem ditem-new">
+                        <div class="ditem-t">Zombie workers</div>
+                        <div class="ditem-d">Background jobs restarting · no measurable progress</div>
+                    </div>
+                    <div class="ditem ditem-new">
+                        <div class="ditem-t">Implicit contract reliance</div>
+                        <div class="ditem-d">Functions relying on global state not in signature</div>
+                    </div>
+                </div>
+
+                <div class="debt-head" style="background:rgba(75,123,236,.08)"><span
+                        style="color:#93B4F8;font-size:12px;font-weight:500">🔵 Architecture — 18 checks — Architecture
+                        Agent</span><span class="tag tag-blue">×1.2</span></div>
+                <div class="debt-items">
+                    <div class="ditem">
+                        <div class="ditem-t">N+1 queries</div>
+                        <div class="ditem-d">Query count per HTTP request · >5 on simple GET</div>
+                    </div>
+                    <div class="ditem">
+                        <div class="ditem-t">Missing DB indexes</div>
+                        <div class="ditem-d">EXPLAIN ANALYZE · full scans on 1000+ row tables</div>
+                    </div>
+                    <div class="ditem">
+                        <div class="ditem-t">Unbounded result sets</div>
+                        <div class="ditem-d">10k row dataset test · no pagination = flagged</div>
+                    </div>
+                    <div class="ditem">
+                        <div class="ditem-t">Circular dependencies</div>
+                        <div class="ditem-d">Full import graph · cycles + resolution path</div>
+                    </div>
+                    <div class="ditem">
+                        <div class="ditem-t">No caching strategy</div>
+                        <div class="ditem-d">Identical DB queries per request · Redis suggested</div>
+                    </div>
+                    <div class="ditem">
+                        <div class="ditem-t">Tight coupling</div>
+                        <div class="ditem-d">Business logic in routes/UI · separation score</div>
+                    </div>
+                    <div class="ditem">
+                        <div class="ditem-t">Synchronous blocking calls</div>
+                        <div class="ditem-d">I/O without async/await · event loop blocked</div>
+                    </div>
+                    <div class="ditem">
+                        <div class="ditem-t">Missing retry logic</div>
+                        <div class="ditem-d">External HTTP without backoff · AST scan</div>
+                    </div>
+                    <div class="ditem ditem-new">
+                        <div class="ditem-t">Distributed monolith</div>
+                        <div class="ditem-d">Services that must deploy together · coupling measured</div>
+                    </div>
+                    <div class="ditem ditem-new">
+                        <div class="ditem-t">Missing distributed tracing</div>
+                        <div class="ditem-d">Trace-ID injected · verified across all service hops</div>
+                    </div>
+                    <div class="ditem ditem-new">
+                        <div class="ditem-t">Synchronous dep chains</div>
+                        <div class="ditem-d">A→B→C chains · missing circuit breakers</div>
+                    </div>
+                    <div class="ditem ditem-new">
+                        <div class="ditem-t">Database as integration point</div>
+                        <div class="ditem-d">Multiple services writing same table · bounded context</div>
+                    </div>
+                    <div class="ditem ditem-new">
+                        <div class="ditem-t">Data archival debt</div>
+                        <div class="ditem-d">Table growth · archival strategy suggested</div>
+                    </div>
+                    <div class="ditem ditem-new">
+                        <div class="ditem-t">Hardcoded environment logic</div>
+                        <div class="ditem-d">if(env==='prod') blocks · config file migration</div>
+                    </div>
+                    <div class="ditem ditem-new">
+                        <div class="ditem-t">Lack of write idempotency</div>
+                        <div class="ditem-d">Identical POST requests · duplicate records checked</div>
+                    </div>
+                    <div class="ditem ditem-new">
+                        <div class="ditem-t">Manual deployment steps</div>
+                        <div class="ditem-d">README "don't forget" not in CI/CD pipeline</div>
+                    </div>
+                    <div class="ditem ditem-new">
+                        <div class="ditem-t">Cold start latency</div>
+                        <div class="ditem-d">Startup time in cold sandbox · >5s flagged for serverless</div>
+                    </div>
+                    <div class="ditem ditem-new">
+                        <div class="ditem-t">Missing backpressure</div>
+                        <div class="ditem-d">2× load test · crashes vs. graceful 503 shedding</div>
+                    </div>
+                </div>
+
+                <div class="debt-head" style="background:rgba(34,197,94,.06)"><span
+                        style="color:#86EFAC;font-size:12px;font-weight:500">🟢 AI-era — 18 checks — AI-Era Agent —
+                        weight grows every year</span><span class="tag tag-green">×1.5 → ×2.0</span></div>
+                <div class="debt-items">
+                    <div class="ditem">
+                        <div class="ditem-t">Prompt injection</div>
+                        <div class="ditem-d">Override payloads on every LLM endpoint</div>
+                    </div>
+                    <div class="ditem">
+                        <div class="ditem-t">Unbounded token spend</div>
+                        <div class="ditem-d">No max_tokens · adversarial cost simulation</div>
+                    </div>
+                    <div class="ditem">
+                        <div class="ditem-t">Unvalidated AI output</div>
+                        <div class="ditem-d">JSON schema validation on LLM responses</div>
+                    </div>
+                    <div class="ditem">
+                        <div class="ditem-t">Deprecated model lock</div>
+                        <div class="ditem-d">Hardcoded deprecated model IDs flagged</div>
+                    </div>
+                    <div class="ditem">
+                        <div class="ditem-t">PII in AI pipelines</div>
+                        <div class="ditem-d">Email/card patterns in logs and LLM context</div>
+                    </div>
+                    <div class="ditem">
+                        <div class="ditem-t">No AI rate limiting</div>
+                        <div class="ditem-d">LLM endpoints without throttle · budget drain</div>
+                    </div>
+                    <div class="ditem">
+                        <div class="ditem-t">Hallucination trust pattern</div>
+                        <div class="ditem-d">LLM output in DB writes without confidence gate</div>
+                    </div>
+                    <div class="ditem">
+                        <div class="ditem-t">Training data exposure</div>
+                        <div class="ditem-d">Logging patterns exposing user inputs to training</div>
+                    </div>
+                    <div class="ditem ditem-new">
+                        <div class="ditem-t">System prompt leakage</div>
+                        <div class="ditem-d">"Repeat back" attacks · hidden prompt extraction</div>
+                    </div>
+                    <div class="ditem ditem-new">
+                        <div class="ditem-t">Non-deterministic UI drift</div>
+                        <div class="ditem-d">Screenshot comparison · AI content layout shifts</div>
+                    </div>
+                    <div class="ditem ditem-new">
+                        <div class="ditem-t">Vector DB stale indices</div>
+                        <div class="ditem-d">RAG source vs embeddings · orphaned index data</div>
+                    </div>
+                    <div class="ditem ditem-new">
+                        <div class="ditem-t">AI refactoring logic shift</div>
+                        <div class="ditem-d">Semantic behaviour pre/post AI refactor compared</div>
+                    </div>
+                    <div class="ditem ditem-new">
+                        <div class="ditem-t">Lack of AI attribution</div>
+                        <div class="ditem-d">AI commits without Generated-by metadata</div>
+                    </div>
+                    <div class="ditem ditem-new">
+                        <div class="ditem-t">RAG context bloat</div>
+                        <div class="ditem-d">Token count vs. relevance · expensive irrelevant context</div>
+                    </div>
+                    <div class="ditem ditem-new">
+                        <div class="ditem-t">Missing human-in-the-loop</div>
+                        <div class="ditem-d">AI destructive actions without manual approval gate</div>
+                    </div>
+                    <div class="ditem ditem-new">
+                        <div class="ditem-t">Model bias accumulation</div>
+                        <div class="ditem-d">AI sorting/filtering · systemic bias against attributes</div>
+                    </div>
+                    <div class="ditem ditem-new">
+                        <div class="ditem-t">Evasive AI testing</div>
+                        <div class="ditem-d">Tests mocking entire system or asserting on constants</div>
+                    </div>
+                    <div class="ditem ditem-new">
+                        <div class="ditem-t">Prompt version mismatch</div>
+                        <div class="ditem-d">LLM output schema · model drift from upstream upgrades</div>
+                    </div>
+                </div>
+
+                <div class="debt-head" style="background:rgba(139,92,246,.07)"><span
+                        style="color:#C4B5FD;font-size:12px;font-weight:500">⚖️ Compliance & Privacy — 10 checks —
+                        Compliance Agent — daily scheduled</span><span class="tag tag-purple">×1.6 legal risk</span>
+                </div>
+                <div class="debt-items">
+                    <div class="ditem ditem-new">
+                        <div class="ditem-t">EU AI Act non-compliance</div>
+                        <div class="ditem-d">Missing risk classifications · transparency logs</div>
+                    </div>
+                    <div class="ditem ditem-new">
+                        <div class="ditem-t">Cross-border data sovereignty</div>
+                        <div class="ditem-d">Data stored in non-compliant regions · GDPR 2025+</div>
+                    </div>
+                    <div class="ditem ditem-new">
+                        <div class="ditem-t">NHI compliance gaps</div>
+                        <div class="ditem-d">Unmanaged service accounts failing identity-first audits</div>
+                    </div>
+                    <div class="ditem ditem-new">
+                        <div class="ditem-t">RTBF gaps</div>
+                        <div class="ditem-d">User data purge from backups/logs/AI training sets</div>
+                    </div>
+                    <div class="ditem ditem-new">
+                        <div class="ditem-t">Consent versioning debt</div>
+                        <div class="ditem-d">Old consent terms used for new AI/analytics purposes</div>
+                    </div>
+                    <div class="ditem ditem-new">
+                        <div class="ditem-t">Missing A11y compliance</div>
+                        <div class="ditem-d">WCAG 2.2/3.0 · axe-core scan on every UI push</div>
+                    </div>
+                    <div class="ditem ditem-new">
+                        <div class="ditem-t">Shadow AI usage</div>
+                        <div class="ditem-d">Unvetted LLMs with sensitive company data</div>
+                    </div>
+                    <div class="ditem ditem-new">
+                        <div class="ditem-t">Inadequate audit trails</div>
+                        <div class="ditem-d">Missing cryptographically signed logs for PII access</div>
+                    </div>
+                    <div class="ditem ditem-new">
+                        <div class="ditem-t">Data minimisation violations</div>
+                        <div class="ditem-d">PII retained beyond necessity · privacy-by-design</div>
+                    </div>
+                    <div class="ditem ditem-new">
+                        <div class="ditem-t">Algorithmic impact assessment</div>
+                        <div class="ditem-d">Automated decision systems without bias/fairness audit</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ═══════════════════════════════════════════════════════ -->
+            <!-- TAB 9: BUILD ORDER -->
+            <!-- ═══════════════════════════════════════════════════════ -->
+            <div class="tab-content" id="tab-impl">
+                <h2>Build order — what to build, when, and why in that sequence</h2>
+                <div class="warn">
+                    <div class="warn-t">Build the core loop before the Guardian Agent — here is why</div>
+                    <p style="margin:0">The Guardian Agent has nothing to post without the pipeline running first. It
+                        reads real test results, real CVE findings, real duplicate removals. Build the engine first. The
+                        Guardian is Layer 2, not Layer 1.</p>
+                </div>
+
+                <h3>Week 1–2: Project foundations</h3>
+                <div class="card">
+                    <p>Monorepo structure · TypeScript strict mode · all env vars set · Drizzle schema pushed · Hono.js
+                        server live on Railway · health endpoint returning 200.</p>
+                    <div class="good">
+                        <div class="good-t">Gate: do not proceed until</div>
+                        <p style="margin:0">GET /health returns 200 on Railway URL (not localhost) · all 16 env vars set
+                            · 3 DB tables exist in Supabase · Upstash Redis ping passes · R2 test upload works · no
+                            secrets committed to git.</p>
+                    </div>
+                </div>
+
+                <h3>Week 2–3: GitHub App + webhook receiver</h3>
+                <div class="card">
+                    <p>Register GitHub App · webhook receiver with HMAC verification · BullMQ job created per push ·
+                        GitHub check run posted (yellow dot on PR).</p>
+                    <div class="good">
+                        <div class="good-t">Gate: do not proceed until</div>
+                        <p style="margin:0">Real push → Railway logs show payload · HMAC rejects forged requests ·
+                            BullMQ job appears in Upstash · check run shows yellow dot on GitHub PR · returns 200 in
+                            under 500ms.</p>
+                    </div>
+                </div>
+
+                <h3>Week 3–4: Ephemeral sandbox engine</h3>
+                <div class="card">
+                    <p>Fly.io Machine API · Docker base images with tools (truffleHog, Trivy, k6, tree-sitter) built and
+                        pushed · stack detector · test runner inside container · hard 10 min timeout.</p>
+                    <div class="good">
+                        <div class="good-t">Gate: do not proceed until</div>
+                        <p style="margin:0">Fly.io Machine creates, starts, destroys via API · real Node.js repo tests
+                            run inside sandbox · machine ALWAYS destroyed (check Fly dashboard for zombies) · timeout
+                            fires on infinite loop · total run under 5 minutes.</p>
+                    </div>
+                </div>
+
+                <h3>Week 4–5: First agent — Security Agent + Claude</h3>
+                <div class="card">
+                    <p>Security Agent with tool_use · 3 checks first (secrets, CVEs, missing auth) · connects to sandbox
+                        · results stored in Postgres · GitHub check run updated green or red.</p>
+                    <div class="good">
+                        <div class="good-t">Gate: do not proceed until</div>
+                        <p style="margin:0">Push with hardcoded API key → blocked → red check run · clean push → green
+                            check run with score · findings in Postgres · sandbox destroyed · Claude API cost per run
+                            under $0.15 · show to 2 real developers.</p>
+                    </div>
+                </div>
+
+                <h3>Week 5–6: Guardian Agent (FIRST version)</h3>
+                <div class="card">
+                    <p>This is the new addition from v2. Build the Guardian now, after the Security Agent works, so it
+                        has real data to post.</p>
+                    <p>Guardian reads Security Agent results from Postgres → calls <span
+                            class="mono">create_pull_request_review</span> via GitHub MCP → posts inline comment on the
+                        exact line where the key was found → creates a GitHub Issue for any unresolved finding → submits
+                        formal PR review (approve or request_changes).</p>
+                    <div class="good">
+                        <div class="good-t">Gate: do not proceed until</div>
+                        <p style="margin:0">Push with hardcoded key → Guardian posts inline comment on that exact line
+                            in the PR diff · Guardian creates GitHub Issue automatically · Guardian submits formal
+                            "Request changes" review · PR shows Guardian as a required reviewer · developer can reply to
+                            Guardian comment and Guardian replies back.</p>
+                    </div>
+                </div>
+
+                <h3>Week 6–7: AST refactor engine — Bloat Agent</h3>
+                <div class="card">
+                    <p>tree-sitter integration (JS/TS first) · semantic duplicate detection · Bloat Agent (Haiku + AST
+                        tools) · annotated diff generation · stored in R2 · diff committed back to branch in auto mode ·
+                        Guardian comment updated with refactor summary.</p>
+                </div>
+
+                <h3>Week 7–8: React dashboard</h3>
+                <div class="card">
+                    <p>Vite + React 18 + TypeScript + Tailwind + shadcn/ui · GitHub OAuth login · Dashboard (runs list +
+                        health score) · Live feed (WebSocket stream) · Diff viewer (Monaco + react-diff-view) · Security
+                        panel · Guardian activity cards · Deploy to Vercel · Codeward guards its own frontend repo.</p>
+                </div>
+
+                <h3>Week 9–10: Full pipeline + staging + prod</h3>
+                <div class="card">
+                    <p>Staging deploy to Vercel/Render · approval endpoint + UI · GitHub merge trigger · post-deploy
+                        monitoring (Sentry) · auto-rollback on error spike · Slack notifications · Guardian creates
+                        staging approval card in dashboard.</p>
+                </div>
+
+                <h3>Week 11–12: User type onboarding + audit mode</h3>
+                <div class="card">
+                    <p>Auto-detection of existing vs new repos · "Guard from now" vs "Audit everything first" onboarding
+                        screen · full repo clone and scan for audit mode · Guardian creates <span
+                            class="mono">codeward/audit-fixes</span> branch PR · bulk issue creation for audit findings.
+                    </p>
+                </div>
+
+                <h3>Month 3–4: All agents + Chat Agent</h3>
+                <div class="card">
+                    <div class="g3">
+                        <div style="background:var(--bg3);border-radius:8px;padding:10px">
+                            <div style="font-size:12px;font-weight:500;color:var(--teal);margin-bottom:4px">Month 3
+                            </div>
+                            <p style="margin:0;font-size:11px;color:var(--txt2)">Architecture Agent (k6 + EXPLAIN
+                                ANALYZE) · Broken Code Agent (flaky tests, type gaps) · AI-Era Agent · Orchestrator
+                                (parallel sub-agents) · full debt scoring.</p>
+                        </div>
+                        <div style="background:var(--bg3);border-radius:8px;padding:10px">
+                            <div style="font-size:12px;font-weight:500;color:var(--purple);margin-bottom:4px">Month 4
+                            </div>
+                            <p style="margin:0;font-size:11px;color:var(--txt2)">Chat Agent (Sonnet + all tools) · Chat
+                                UI in React sidebar · Compliance Agent (daily schedule) · Data/DX Agent (weekly) ·
+                                Health certificate + shareable badge.</p>
+                        </div>
+                        <div style="background:var(--bg3);border-radius:8px;padding:10px">
+                            <div style="font-size:12px;font-weight:500;color:var(--amber);margin-bottom:4px">Month 5–6
+                            </div>
+                            <p style="margin:0;font-size:11px;color:var(--txt2)">Python + Go AST support · GitLab
+                                integration · Self-hosted runner for enterprise · Billing with Stripe · Open source mode
+                                with two-tier trust · YC application.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="good">
+                    <div class="good-t">The one rule that decides everything</div>
+                    <p style="margin:0">Ship the webhook → sandbox → Security Agent → Guardian PR comment loop by end of
+                        week 5. Get that in front of 5 real engineering teams. The Guardian posting real findings as
+                        inline PR comments is the moment Codeward becomes real to a developer — not a dashboard, not a
+                        report, but a comment sitting right next to their code saying "this key was found and moved."
+                        That moment is what you need to see before building anything else.</p>
+                </div>
+            </div>
+
+            <p style="margin-top:3rem;font-size:11px;color:var(--txt3);text-align:center">Codeward engineering blueprint
+                v2 · 9 agents · Guardian + GitHub MCP · two user types · 100+ debt checks · React + Hono.js ·
+                codeward.io</p>
+        </div>
+
+        <script>
+            function sw(id, el) {
+                document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.getElementById('tab-' + id).classList.add('active');
+                el.classList.add('active');
+                window.scrollTo(0, 0);
+            }
+        </script>
+</body>
+
+</html>

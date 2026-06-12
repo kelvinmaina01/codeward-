@@ -17,6 +17,12 @@ export const repositories = pgTable('repositories', {
   id: serial('id').primaryKey(),
   userId: text('user_id').notNull().references(() => user.id),
   orgId: integer('org_id').references(() => organization.id, { onDelete: 'cascade' }),
+  githubRepoId: integer('github_repo_id'),
+  installationId: integer('installation_id'),
+  status: varchar('status', { length: 50 }).default('pending_audit').notNull(),
+  auditTriggeredAt: timestamp('audit_triggered_at'),
+  auditCompletedAt: timestamp('audit_completed_at'),
+  baselineScore: integer('baseline_score'),
   fullName: varchar('full_name', { length: 255 }).notNull().unique(), // e.g. "kelvinmaina01/my-repo"
   owner: varchar('owner', { length: 255 }).notNull(),
   name: varchar('name', { length: 255 }).notNull(),

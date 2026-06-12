@@ -1,8 +1,9 @@
 import { Hono } from 'hono';
 import crypto from 'crypto';
-import { commitQueue } from '../queue/index.js';
+import { auditQueue, pushQueue } from '../queue/index.js';
 import { db } from '../db/index.js';
-import { runs } from '../db/schema.js';
+import { runs, repositories } from '../db/schema.js';
+import { eq } from 'drizzle-orm';
 
 export const webhookRouter = new Hono<{ Variables: { rawBody: string } }>();
 
@@ -51,31 +52,61 @@ webhookRouter.post('/github', async (c) => {
         status: 'queued',
       }).returning();
       
-      // Enqueue job in BullMQ (Layer 2: Incremental Scan)
-      await commitQueue.add('process-commit', { 
+      // Enqueue job in BullMQ (Layer 2: Push Guard)
+      await pushQueue.add('process-push', { 
         runId: runRecord.id,
         commitSHA, 
-        repoName 
+        repoFullName: repoName 
       });
       
       return c.json({ status: 'queued', type: 'incremental', commitSHA, runId: runRecord.id });
     } else if (event === 'installation' || event === 'installation_repositories') {
-      // Layer 1: Initial Deep Scan when a repository is first connected
+      // Layer 1: Full Audit (Mode 1)
       const repos = data.repositories_added || data.repositories || [];
+      const installationId = data.installation?.id;
       
       for (const repo of repos) {
-        console.log(`[Webhook] Received installation for ${repo.full_name}. Triggering Layer 1 Deep Scan.`);
+        console.log(`[Webhook] Received installation for ${repo.full_name}. Triggering Mode 1 Full Audit.`);
         
-        // Enqueue a distinct 'process-repo' job. The orchestrator will know this requires
-        // fetching the default branch and doing a full architectural scan rather than just a diff.
-        await commitQueue.add('process-repo', {
-          repoName: repo.full_name,
-          installationId: data.installation?.id,
-          isInitialScan: true
+        // Save repo to DB with status pending_audit
+        // Check if exists first to avoid unique constraint violation
+        const existing = await db.select().from(repositories).where(eq(repositories.fullName, repo.full_name));
+        
+        if (existing.length === 0) {
+          // Note: In reality we would link this to the correct user/org.
+          // For now, we will create a placeholder or update if needed.
+          await db.insert(repositories).values({
+            fullName: repo.full_name,
+            owner: repo.full_name.split('/')[0],
+            name: repo.name || repo.full_name.split('/')[1],
+            userId: 'placeholder', // Ideally we'd map this correctly
+            status: 'pending_audit',
+            auditTriggeredAt: new Date(),
+            githubRepoId: repo.id,
+            installationId: installationId
+          });
+        } else {
+          // Update existing
+          await db.update(repositories).set({
+            status: 'pending_audit',
+            auditTriggeredAt: new Date(),
+            githubRepoId: repo.id,
+            installationId: installationId
+          }).where(eq(repositories.fullName, repo.full_name));
+        }
+
+        await auditQueue.add('full-repo-audit', {
+          repoFullName: repo.full_name,
+          installationId: installationId,
+          defaultBranch: repo.default_branch || 'main'
+        }, {
+          jobId: `audit-${repo.id}`,
+          attempts: 2,
+          removeOnComplete: true,
         });
       }
       
-      return c.json({ status: 'queued', type: 'deep-scan', reposProcessed: repos.length });
+      return c.json({ status: 'queued', type: 'deep-scan', auditsQueued: repos.length });
     }
 
     return c.json({ status: 'ignored', event });
