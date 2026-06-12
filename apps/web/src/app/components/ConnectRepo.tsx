@@ -134,8 +134,15 @@ export function ConnectRepo({ user, onConnect, onSkip, activeOrg, setActiveOrg, 
       setError(null);
       try {
         const res = await fetch('http://localhost:3001/api/repos', { credentials: 'include' });
-        if (!res.ok) throw new Error((await res.json()).error || 'Failed to fetch repos');
-        const data = await res.json();
+        const text = await res.text();
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch (e) {
+          throw new Error('Server returned invalid JSON. Is the API running?');
+        }
+        
+        if (!res.ok) throw new Error(data.error || 'Failed to fetch repos');
         
         // Setup initial org
         const firstOrg = data.orgs[0];

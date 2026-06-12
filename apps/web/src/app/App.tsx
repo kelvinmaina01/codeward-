@@ -103,10 +103,17 @@ export default function App() {
       }
 
       if (session?.user && globalOrgs.length === 0) {
-        fetch('/api/repos/connected')
-          .then(res => res.json())
+        fetch('http://localhost:3001/api/repos/connected', { credentials: 'include' })
+          .then(async res => {
+            const text = await res.text();
+            try {
+              return JSON.parse(text);
+            } catch (e) {
+              throw new Error('API returned non-JSON response.');
+            }
+          })
           .then(data => {
-            if (data.orgs) {
+            if (data && data.orgs) {
               setGlobalOrgs(data.orgs);
               if (!activeOrg && data.orgs.length > 0) {
                 const firstOrg = data.orgs[0];
@@ -114,7 +121,9 @@ export default function App() {
               }
             }
           })
-          .catch(console.error);
+          .catch(err => {
+            console.error('Failed to load connected repos:', err.message);
+          });
       }
     }
   }, [session, isPending, page, globalOrgs.length, activeOrg]);
