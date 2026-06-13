@@ -1,0 +1,4 @@
+app = "codeward-sandboxes-v2"
+
+[build]
+  dockerfile = "Dockerfile"

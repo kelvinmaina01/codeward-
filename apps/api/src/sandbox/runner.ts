@@ -1,4 +1,4 @@
-import { LocalSandbox } from './local-docker';
+import { FlySandbox } from './fly-machine';
 import { detectStack } from './stack-detector';
 
 export interface RunOptions {
@@ -14,11 +14,14 @@ export async function runSandbox(options: RunOptions) {
   const stack = await detectStack(options.files);
   console.log(`[Runner] Detected stack:`, stack);
 
-  // Choose base image
-  const image = stack.runtime === 'python' ? 'codeward-sandbox-python' : 'codeward-sandbox-node';
+  // Choose base image from the Fly.io registry
+  // We use the exact deployment hash from our remote build
+  const image = stack.runtime === 'python' 
+    ? 'registry.fly.io/codeward-sandboxes-v2:python' 
+    : 'registry.fly.io/codeward-sandboxes-v2:deployment-01KV13ANZ9AJNNPAXN4A75G44Y';
 
-  // 2. Create Sandbox
-  const sandbox = new LocalSandbox({ image });
+  // 2. Create Sandbox in the Cloud
+  const sandbox = new FlySandbox({ image });
   
   try {
     // Start sandbox with token injected

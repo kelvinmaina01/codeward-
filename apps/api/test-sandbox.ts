@@ -1,7 +1,8 @@
+import 'dotenv/config';
 import { runSandbox } from './src/sandbox/runner';
 
 async function main() {
-  console.log('Testing Sandbox Runner (Local Docker)...');
+  console.log('Testing Sandbox Runner (Fly.io Cloud)...');
   
   const result = await runSandbox({
     repoUrl: 'https://github.com/kelvinmaina01/codeward-', // Sample repo
