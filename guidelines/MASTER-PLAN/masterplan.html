@@ -701,61 +701,61 @@
                     <div class="tasks">
                         <div class="task-section-label">Create the structure</div>
                         <div class="task done" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                            <div class="task-cb checked"></div>
                             <div class="task-text">Run <span class="task-code">mkdir codeward && cd codeward && npm init
                                     -y</span></div>
                         </div>
                         <div class="task done" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                            <div class="task-cb checked"></div>
                             <div class="task-text">Create folder structure: <span class="task-code">/apps/api</span>
                                 (Hono server), <span class="task-code">/apps/agent-runner</span> (sandbox orchestrator),
                                 <span class="task-code">/packages/shared</span> (types, utils)</div>
                         </div>
                         <div class="task done" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                            <div class="task-cb checked"></div>
                             <div class="task-text">Add <span class="task-code">pnpm-workspace.yaml</span> pointing to
                                 both apps — use pnpm workspaces</div>
                         </div>
                         <div class="task done" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                            <div class="task-cb checked"></div>
                             <div class="task-text">Add root <span class="task-code">tsconfig.json</span> with strict
                                 mode, target ES2022, moduleResolution bundler</div>
                         </div>
                         <div class="task done" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                            <div class="task-cb checked"></div>
                             <div class="task-text">Add <span class="task-code">.env.example</span> at root listing every
                                 env var you will need</div>
                         </div>
                         <div class="task done" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                            <div class="task-cb checked"></div>
                             <div class="task-text">Add <span class="task-code">.gitignore</span> — include .env,
                                 node_modules, dist, .fly</div>
                         </div>
                         <div class="task-section-label">API app setup (apps/api)</div>
                         <div class="task done" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                            <div class="task-cb checked"></div>
                             <div class="task-text">Install Hono.js: <span class="task-code">pnpm add hono
                                     @hono/node-server</span></div>
                         </div>
                         <div class="task done" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                            <div class="task-cb checked"></div>
                             <div class="task-text">Install dev tools: <span class="task-code">pnpm add -D typescript tsx
                                     @types/node</span></div>
                         </div>
                         <div class="task done" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                            <div class="task-cb checked"></div>
                             <div class="task-text">Create <span class="task-code">src/index.ts</span> with a basic Hono
                                 server on port 3000 with one GET / route returning <span
                                     class="task-code">{"status":"ok"}</span></div>
                         </div>
                         <div class="task done" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                            <div class="task-cb checked"></div>
                             <div class="task-text">Add <span class="task-code">package.json</span> scripts: <span
                                     class="task-code">dev</span> (tsx watch), <span class="task-code">build</span>
                                 (tsc), <span class="task-code">start</span> (node dist)</div>
                         </div>
                         <div class="task done" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                            <div class="task-cb checked"></div>
                             <div class="task-text">Confirm server starts locally with <span class="task-code">pnpm
                                     dev</span> and GET / returns 200</div>
                         </div>
@@ -774,49 +774,49 @@
                     <div class="tasks">
                         <div class="task-section-label">Supabase project</div>
                         <div class="task done" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                            <div class="task-cb checked"></div>
                             <div class="task-text">Create project at supabase.com — free tier, pick closest region to
                                 you</div>
                         </div>
                         <div class="task done" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                            <div class="task-cb checked"></div>
                             <div class="task-text">Copy DATABASE_URL (connection pooler URL) from Settings → Database
                             </div>
                         </div>
                         <div class="task done" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                            <div class="task-cb checked"></div>
                             <div class="task-text">Copy SUPABASE_ANON_KEY and SUPABASE_SERVICE_KEY from Settings → API
                             </div>
                         </div>
                         <div class="task-section-label">Drizzle ORM setup</div>
                         <div class="task done" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                            <div class="task-cb checked"></div>
                             <div class="task-text">Install: <span class="task-code">pnpm add drizzle-orm postgres</span>
                                 and <span class="task-code">pnpm add -D drizzle-kit</span></div>
                         </div>
                         <div class="task done" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                            <div class="task-cb checked"></div>
                             <div class="task-text">Create <span class="task-code">src/db/schema.ts</span> with these
                                 tables: <span class="task-code">users</span>, <span class="task-code">repos</span>,
                                 <span class="task-code">runs</span>, <span class="task-code">run_results</span></div>
                         </div>
                         <div class="task done" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                            <div class="task-cb checked"></div>
                             <div class="task-text">runs table columns: id, repo_id, commit_sha, branch, status
                                 (pending/running/passed/failed/blocked), created_at, completed_at, debt_score</div>
                         </div>
                         <div class="task done" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                            <div class="task-cb checked"></div>
                             <div class="task-text">Create <span class="task-code">drizzle.config.ts</span> pointing to
                                 schema and Supabase DATABASE_URL</div>
                         </div>
                         <div class="task done" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                            <div class="task-cb checked"></div>
                             <div class="task-text">Run <span class="task-code">pnpm drizzle-kit push</span> to create
                                 tables in Supabase</div>
                         </div>
                         <div class="task done" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                            <div class="task-cb checked"></div>
                             <div class="task-text">Verify tables exist in Supabase Table Editor</div>
                         </div>
                     </div>
@@ -840,93 +840,93 @@
                     <div class="tasks">
                         <div class="task-section-label">Register the GitHub App</div>
                         <div class="task done" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                            <div class="task-cb checked"></div>
                             <div class="task-text">Go to github.com → Settings → Developer settings → GitHub Apps → New
                                 GitHub App</div>
                         </div>
                         <div class="task done" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                            <div class="task-cb checked"></div>
                             <div class="task-text">App name: Codeward (dev) — use (dev) suffix so you can register a
                                 production one later</div>
                         </div>
                         <div class="task done" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                            <div class="task-cb checked"></div>
                             <div class="task-text">Homepage URL: http://localhost:3000 for now</div>
                         </div>
                         <div class="task done" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                            <div class="task-cb checked"></div>
                             <div class="task-text">Webhook URL: use ngrok for local dev — <span class="task-code">ngrok
                                     http 3000</span> and paste the HTTPS URL + /webhooks/github</div>
                         </div>
                         <div class="task done" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                            <div class="task-cb checked"></div>
                             <div class="task-text">Webhook secret: generate a random string, save as
                                 GITHUB_WEBHOOK_SECRET in .env</div>
                         </div>
                         <div class="task done" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                            <div class="task-cb checked"></div>
                             <div class="task-text">Permissions → Repository: Contents (read), Checks (read+write), Pull
                                 requests (read+write), Metadata (read)</div>
                         </div>
                         <div class="task done" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                            <div class="task-cb checked"></div>
                             <div class="task-text">Subscribe to events: Push, Pull request, Check run</div>
                         </div>
                         <div class="task done" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                            <div class="task-cb checked"></div>
                             <div class="task-text">Generate a private key → download the .pem file → save contents as
                                 GITHUB_APP_PRIVATE_KEY in .env (replace newlines with \n)</div>
                         </div>
                         <div class="task done" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                            <div class="task-cb checked"></div>
                             <div class="task-text">Save App ID as GITHUB_APP_ID in .env</div>
                         </div>
                         <div class="task-section-label">Build the webhook receiver</div>
                         <div class="task done" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                            <div class="task-cb checked"></div>
                             <div class="task-text">Install: <span class="task-code">pnpm add @octokit/app
                                     @octokit/webhooks</span></div>
                         </div>
                         <div class="task done" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                            <div class="task-cb checked"></div>
                             <div class="task-text">Create <span class="task-code">src/routes/webhook.ts</span> — POST
                                 /webhooks/github route</div>
                         </div>
                         <div class="task done" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                            <div class="task-cb checked"></div>
                             <div class="task-text">Verify HMAC-SHA256 signature on every incoming webhook using
                                 X-Hub-Signature-256 header — REJECT any request that fails verification with 401</div>
                         </div>
                         <div class="task done" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                            <div class="task-cb checked"></div>
                             <div class="task-text">Parse the push event payload: extract repo full_name, commit SHA,
                                 branch, pusher, changed files list</div>
                         </div>
                         <div class="task done" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                            <div class="task-cb checked"></div>
                             <div class="task-text">Write a new run record to Supabase with status = 'pending'</div>
                         </div>
                         <div class="task done" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                            <div class="task-cb checked"></div>
                             <div class="task-text">Return 200 immediately — never make GitHub wait for processing</div>
                         </div>
                         <div class="task-section-label">Post a check run back to GitHub</div>
                         <div class="task done" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                            <div class="task-cb checked"></div>
                             <div class="task-text">Use @octokit/app to authenticate as the GitHub App installation</div>
                         </div>
                         <div class="task done" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                            <div class="task-cb checked"></div>
                             <div class="task-text">After writing the run record, immediately post a check run with
                                 status='in_progress' and name='Codeward'</div>
                         </div>
                         <div class="task done" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                            <div class="task-cb checked"></div>
                             <div class="task-text">After 5 seconds (simulate), update the check run to
                                 status='completed', conclusion='success'</div>
                         </div>
                         <div class="task done" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                            <div class="task-cb checked"></div>
                             <div class="task-text">Push a test commit to your test repo and verify the yellow → green
                                 dot appears on the commit in GitHub</div>
                         </div>
@@ -945,47 +945,47 @@
                     <div class="tasks">
                         <div class="task-section-label">Upstash setup</div>
                         <div class="task done" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                            <div class="task-cb checked"></div>
                             <div class="task-text">Create free Redis database at upstash.com → copy UPSTASH_REDIS_URL
                                 and UPSTASH_REDIS_TOKEN to .env</div>
                         </div>
                         <div class="task-section-label">BullMQ setup</div>
                         <div class="task done" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                            <div class="task-cb checked"></div>
                             <div class="task-text">Install: <span class="task-code">pnpm add bullmq ioredis</span></div>
                         </div>
                         <div class="task done" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                            <div class="task-cb checked"></div>
                             <div class="task-text">Create <span class="task-code">src/queue/index.ts</span> — export a
                                 Queue called 'analysis-jobs' and a Worker</div>
                         </div>
                         <div class="task done" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                            <div class="task-cb checked"></div>
                             <div class="task-text">In the webhook handler: instead of the 5-second simulation, add a job
                                 to the queue with payload: {runId, repoFullName, commitSha, branch, installationId}
                             </div>
                         </div>
                         <div class="task done" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                            <div class="task-cb checked"></div>
                             <div class="task-text">Create a Worker that picks up jobs and for now just logs "processing
                                 job {runId}" then updates run status to 'completed' in DB</div>
                         </div>
                         <div class="task done" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                            <div class="task-cb checked"></div>
                             <div class="task-text">Configure job options: attempts: 3, backoff: {type: 'exponential',
                                 delay: 5000}, removeOnComplete: {count: 100}</div>
                         </div>
                         <div class="task done" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                            <div class="task-cb checked"></div>
                             <div class="task-text">Install BullMQ Board for visual monitoring: <span
                                     class="task-code">pnpm add @bull-board/hono @bull-board/api</span></div>
                         </div>
                         <div class="task done" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                            <div class="task-cb checked"></div>
                             <div class="task-text">Mount BullMQ Board at /admin/queues (add basic auth protection)</div>
                         </div>
                         <div class="task done" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                            <div class="task-cb checked"></div>
                             <div class="task-text">Push a commit, verify the job appears in BullMQ Board and completes
                             </div>
                         </div>
@@ -1002,27 +1002,27 @@
                 </div>
                 <div class="step-body">
                     <div class="tasks">
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                        <div class="task done" onclick="toggleTask(this)">
+                            <div class="task-cb checked"></div>
                             <div class="task-text">Create account at railway.app → New Project → Deploy from GitHub repo
                             </div>
                         </div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                        <div class="task done" onclick="toggleTask(this)">
+                            <div class="task-cb checked"></div>
                             <div class="task-text">Add all .env variables in Railway's Variables tab</div>
                         </div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                        <div class="task done" onclick="toggleTask(this)">
+                            <div class="task-cb checked"></div>
                             <div class="task-text">Set start command: <span class="task-code">node dist/index.js</span>
                             </div>
                         </div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                        <div class="task done" onclick="toggleTask(this)">
+                            <div class="task-cb checked"></div>
                             <div class="task-text">Get the Railway public URL and update the GitHub App webhook URL
                                 (replace ngrok)</div>
                         </div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                        <div class="task done" onclick="toggleTask(this)">
+                            <div class="task-cb checked"></div>
                             <div class="task-text">Push a commit to test repo → verify Railway logs show webhook
                                 received → BullMQ job processed → GitHub check run updated</div>
                         </div>
@@ -1032,33 +1032,33 @@
 
             <div class="gate">
                 <div class="gate-title">🔒 Phase 1 Gate — Pass ALL before moving to Phase 2</div>
-                <div class="gate-item" onclick="toggleGate(this)">
-                    <div class="gate-cb"></div>
+                <div class="gate-item done" onclick="toggleGate(this)">
+                    <div class="gate-cb checked"></div>
                     <div class="gate-text"><strong>Push test:</strong> Push a commit to your test repo. Within 30
                         seconds a yellow Codeward check run appears on the commit in GitHub.</div>
                 </div>
-                <div class="gate-item" onclick="toggleGate(this)">
-                    <div class="gate-cb"></div>
+                <div class="gate-item done" onclick="toggleGate(this)">
+                    <div class="gate-cb checked"></div>
                     <div class="gate-text"><strong>Queue test:</strong> The BullMQ Board at /admin/queues shows the job
                         was created, processed, and completed with no errors.</div>
                 </div>
-                <div class="gate-item" onclick="toggleGate(this)">
-                    <div class="gate-cb"></div>
+                <div class="gate-item done" onclick="toggleGate(this)">
+                    <div class="gate-cb checked"></div>
                     <div class="gate-text"><strong>Database test:</strong> Supabase Table Editor shows a new row in the
                         runs table for the commit with status='completed'.</div>
                 </div>
-                <div class="gate-item" onclick="toggleGate(this)">
-                    <div class="gate-cb"></div>
+                <div class="gate-item done" onclick="toggleGate(this)">
+                    <div class="gate-cb checked"></div>
                     <div class="gate-text"><strong>Security test:</strong> Send a webhook with a wrong signature. Server
                         returns 401. Nothing is written to the DB.</div>
                 </div>
-                <div class="gate-item" onclick="toggleGate(this)">
-                    <div class="gate-cb"></div>
+                <div class="gate-item done" onclick="toggleGate(this)">
+                    <div class="gate-cb checked"></div>
                     <div class="gate-text"><strong>Deploy test:</strong> Server is live on Railway (not ngrok). Webhook
                         URL in GitHub App points to Railway URL. Everything still works.</div>
                 </div>
-                <div class="gate-item" onclick="toggleGate(this)">
-                    <div class="gate-cb"></div>
+                <div class="gate-item done" onclick="toggleGate(this)">
+                    <div class="gate-cb checked"></div>
                     <div class="gate-text"><strong>Retry test:</strong> Kill the worker mid-job. Restart it. The job
                         retries automatically and completes. BullMQ Board shows the retry attempt.</div>
                 </div>
@@ -1098,46 +1098,46 @@
                     </div>
                     <div class="tasks">
                         <div class="task-section-label">Node 20 base image</div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                        <div class="task done" onclick="toggleTask(this)">
+                            <div class="task-cb checked"></div>
                             <div class="task-text">Create <span class="task-code">/docker/sandbox-node/Dockerfile</span>
                                 — FROM node:20-slim, install git, curl, postgresql-client, install global tools: jest
                                 vitest</div>
                         </div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                        <div class="task done" onclick="toggleTask(this)">
+                            <div class="task-cb checked"></div>
                             <div class="task-text">Add truffleHog v3 binary to the image: <span class="task-code">RUN
                                     curl -sSfL
                                     https://raw.githubusercontent.com/trufflesecurity/trufflehog/main/scripts/install.sh
                                     | sh -s -- -b /usr/local/bin</span></div>
                         </div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                        <div class="task done" onclick="toggleTask(this)">
+                            <div class="task-cb checked"></div>
                             <div class="task-text">Add Trivy: <span class="task-code">RUN apt-get install -y wget &&
                                     wget
                                     https://github.com/aquasecurity/trivy/releases/download/v0.50.0/trivy_0.50.0_Linux-64bit.deb
                                     && dpkg -i trivy*.deb</span></div>
                         </div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                        <div class="task done" onclick="toggleTask(this)">
+                            <div class="task-cb checked"></div>
                             <div class="task-text">Add k6: download the k6 binary for linux/amd64 and add to
                                 /usr/local/bin</div>
                         </div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                        <div class="task done" onclick="toggleTask(this)">
+                            <div class="task-cb checked"></div>
                             <div class="task-text">Build and push to Fly.io registry: <span class="task-code">fly auth
                                     docker && docker build -t registry.fly.io/codeward-sandbox-node:latest . && docker
                                     push registry.fly.io/codeward-sandbox-node:latest</span></div>
                         </div>
                         <div class="task-section-label">Python 3.11 base image</div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                        <div class="task done" onclick="toggleTask(this)">
+                            <div class="task-cb checked"></div>
                             <div class="task-text">Create <span
                                     class="task-code">/docker/sandbox-python/Dockerfile</span> — FROM python:3.11-slim,
                                 install git, pip, pytest, same security tools</div>
                         </div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                        <div class="task done" onclick="toggleTask(this)">
+                            <div class="task-cb checked"></div>
                             <div class="task-text">Build and push to Fly.io registry as codeward-sandbox-python:latest
                             </div>
                         </div>
@@ -1154,33 +1154,33 @@
                 </div>
                 <div class="step-body">
                     <div class="tasks">
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                        <div class="task done" onclick="toggleTask(this)">
+                            <div class="task-cb checked"></div>
                             <div class="task-text">Create <span class="task-code">src/sandbox/stack-detector.ts</span> —
                                 takes a list of repo files and returns a StackConfig object</div>
                         </div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                        <div class="task done" onclick="toggleTask(this)">
+                            <div class="task-cb checked"></div>
                             <div class="task-text">Detection logic: if package.json exists → Node. If requirements.txt
                                 or Pipfile → Python. If Gemfile → Ruby. If go.mod → Go.</div>
                         </div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                        <div class="task done" onclick="toggleTask(this)">
+                            <div class="task-cb checked"></div>
                             <div class="task-text">Within Node: detect test runner — if vitest in package.json → vitest.
                                 If jest → jest. Default jest.</div>
                         </div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                        <div class="task done" onclick="toggleTask(this)">
+                            <div class="task-cb checked"></div>
                             <div class="task-text">Detect if there is a docker-compose.yml — if yes, extract the DB
                                 service (postgres, mysql, mongo) and version</div>
                         </div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                        <div class="task done" onclick="toggleTask(this)">
+                            <div class="task-cb checked"></div>
                             <div class="task-text">Return: {runtime: 'node', version: '20', testRunner: 'jest',
                                 database: 'postgres', dockerImage: 'codeward-sandbox-node:latest'}</div>
                         </div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                        <div class="task done" onclick="toggleTask(this)">
+                            <div class="task-cb checked"></div>
                             <div class="task-text">Write unit tests for the detector with 5 different package.json
                                 fixtures</div>
                         </div>
@@ -1203,50 +1203,50 @@
                             machines running will bankrupt you.</p>
                     </div>
                     <div class="tasks">
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                        <div class="task done" onclick="toggleTask(this)">
+                            <div class="task-cb checked"></div>
                             <div class="task-text">Install Fly CLI: <span class="task-code">brew install flyctl</span>
                                 (or curl install on Linux)</div>
                         </div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                        <div class="task done" onclick="toggleTask(this)">
+                            <div class="task-cb checked"></div>
                             <div class="task-text">Create Fly app: <span class="task-code">fly apps create
                                     codeward-sandboxes</span></div>
                         </div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                        <div class="task done" onclick="toggleTask(this)">
+                            <div class="task-cb checked"></div>
                             <div class="task-text">Get API token: <span class="task-code">fly auth token</span> → save
                                 as FLY_API_TOKEN in .env</div>
                         </div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                        <div class="task done" onclick="toggleTask(this)">
+                            <div class="task-cb checked"></div>
                             <div class="task-text">Create <span class="task-code">src/sandbox/fly-machine.ts</span> with
                                 functions: createMachine(config), execInMachine(machineId, command),
                                 destroyMachine(machineId)</div>
                         </div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                        <div class="task done" onclick="toggleTask(this)">
+                            <div class="task-cb checked"></div>
                             <div class="task-text">createMachine: POST to
                                 https://api.machines.dev/v1/apps/codeward-sandboxes/machines with image, env vars,
                                 resources (1 shared CPU, 1GB RAM for MVP)</div>
                         </div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                        <div class="task done" onclick="toggleTask(this)">
+                            <div class="task-cb checked"></div>
                             <div class="task-text">destroyMachine: DELETE to
                                 /v1/apps/codeward-sandboxes/machines/{id}?force=true</div>
                         </div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                        <div class="task done" onclick="toggleTask(this)">
+                            <div class="task-cb checked"></div>
                             <div class="task-text">Add a hard 10-minute global timeout using Promise.race([runPromise,
                                 timeoutPromise(600000)])</div>
                         </div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                        <div class="task done" onclick="toggleTask(this)">
+                            <div class="task-cb checked"></div>
                             <div class="task-text">Wrap the entire run in try/finally — finally block ALWAYS calls
                                 destroyMachine regardless of outcome</div>
                         </div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                        <div class="task done" onclick="toggleTask(this)">
+                            <div class="task-cb checked"></div>
                             <div class="task-text">Test: create a machine, exec echo "hello" in it, read the output,
                                 destroy it. Verify in Fly dashboard machine is gone.</div>
                         </div>
@@ -1264,58 +1264,58 @@
                 <div class="step-body">
                     <div class="tasks">
                         <div class="task-section-label">Repo cloning</div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                        <div class="task done" onclick="toggleTask(this)">
+                            <div class="task-cb checked"></div>
                             <div class="task-text">Use @octokit/app to generate an installation access token for the
                                 repo (expires in 1 hour — enough for a run)</div>
                         </div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                        <div class="task done" onclick="toggleTask(this)">
+                            <div class="task-cb checked"></div>
                             <div class="task-text">Pass the token into the machine as an env var: GIT_TOKEN</div>
                         </div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                        <div class="task done" onclick="toggleTask(this)">
+                            <div class="task-cb checked"></div>
                             <div class="task-text">First command in machine: <span class="task-code">git clone
                                     https://x-access-token:${GIT_TOKEN}@github.com/${repo}.git /workspace && cd
                                     /workspace && git checkout ${commitSha}</span></div>
                         </div>
                         <div class="task-section-label">Dependency installation</div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                        <div class="task done" onclick="toggleTask(this)">
+                            <div class="task-cb checked"></div>
                             <div class="task-text">After clone, run <span class="task-code">npm ci</span> (not npm
                                 install — ci is faster and deterministic)</div>
                         </div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                        <div class="task done" onclick="toggleTask(this)">
+                            <div class="task-cb checked"></div>
                             <div class="task-text">Capture stdout/stderr from npm ci — if it fails, mark run as failed
                                 with error "dependency install failed"</div>
                         </div>
                         <div class="task-section-label">Test runner</div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                        <div class="task done" onclick="toggleTask(this)">
+                            <div class="task-cb checked"></div>
                             <div class="task-text">Run the test command from StackConfig (e.g., <span
                                     class="task-code">npx jest --json --outputFile=/tmp/test-results.json</span>)</div>
                         </div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                        <div class="task done" onclick="toggleTask(this)">
+                            <div class="task-cb checked"></div>
                             <div class="task-text">Read /tmp/test-results.json from the machine after completion</div>
                         </div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                        <div class="task done" onclick="toggleTask(this)">
+                            <div class="task-cb checked"></div>
                             <div class="task-text">Parse results: extract numPassed, numFailed, numTotal, and array of
                                 failed test names</div>
                         </div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                        <div class="task done" onclick="toggleTask(this)">
+                            <div class="task-cb checked"></div>
                             <div class="task-text">Store parsed results in Supabase run_results table</div>
                         </div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                        <div class="task done" onclick="toggleTask(this)">
+                            <div class="task-cb checked"></div>
                             <div class="task-text">Update GitHub check run: if numFailed > 0, set conclusion='failure'
                                 with summary listing failed tests</div>
                         </div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                        <div class="task done" onclick="toggleTask(this)">
+                            <div class="task-cb checked"></div>
                             <div class="task-text">Test with a real repo that has passing tests → verify all pass →
                                 introduce a deliberate failing test → verify GitHub shows failure with correct test name
                             </div>
@@ -1333,29 +1333,29 @@
                 </div>
                 <div class="step-body">
                     <div class="tasks">
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                        <div class="task done" onclick="toggleTask(this)">
+                            <div class="task-cb checked"></div>
                             <div class="task-text">In the sandbox Docker image, include a local Postgres instance (pg in
                                 Docker is available via localhost)</div>
                         </div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                        <div class="task done" onclick="toggleTask(this)">
+                            <div class="task-cb checked"></div>
                             <div class="task-text">If repo has a docker-compose.yml with a postgres service, start
                                 postgres in the machine and set DATABASE_URL env var</div>
                         </div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                        <div class="task done" onclick="toggleTask(this)">
+                            <div class="task-cb checked"></div>
                             <div class="task-text">If repo has a db/seed.sql or prisma/seed.ts, run it after DB starts
                             </div>
                         </div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                        <div class="task done" onclick="toggleTask(this)">
+                            <div class="task-cb checked"></div>
                             <div class="task-text">Inject dummy env vars for common patterns:
                                 STRIPE_SECRET_KEY=sk_test_dummy, OPENAI_API_KEY=sk-dummy (tests should mock these
                                 anyway)</div>
                         </div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
+                        <div class="task done" onclick="toggleTask(this)">
+                            <div class="task-cb checked"></div>
                             <div class="task-text">Allow repos to define a <span class="task-code">.codeward.yml</span>
                                 specifying test command and env vars to inject</div>
                         </div>
@@ -1365,33 +1365,33 @@
 
             <div class="gate">
                 <div class="gate-title">🔒 Phase 2 Gate — Pass ALL before Phase 3</div>
-                <div class="gate-item" onclick="toggleGate(this)">
-                    <div class="gate-cb"></div>
+                <div class="gate-item done" onclick="toggleGate(this)">
+                    <div class="gate-cb checked"></div>
                     <div class="gate-text"><strong>Sandbox lifecycle:</strong> A machine spins up in under 90 seconds,
                         runs a command, and is destroyed. Verify in Fly dashboard it is gone after every run.</div>
                 </div>
-                <div class="gate-item" onclick="toggleGate(this)">
-                    <div class="gate-cb"></div>
+                <div class="gate-item done" onclick="toggleGate(this)">
+                    <div class="gate-cb checked"></div>
                     <div class="gate-text"><strong>Isolation test:</strong> Two commits pushed simultaneously each get
                         their own machine. They do not interfere. Both complete correctly.</div>
                 </div>
-                <div class="gate-item" onclick="toggleGate(this)">
-                    <div class="gate-cb"></div>
+                <div class="gate-item done" onclick="toggleGate(this)">
+                    <div class="gate-cb checked"></div>
                     <div class="gate-text"><strong>Real test suite:</strong> A Node repo with 10+ real Jest tests runs
                         inside the sandbox and all pass. Results stored in Supabase.</div>
                 </div>
-                <div class="gate-item" onclick="toggleGate(this)">
-                    <div class="gate-cb"></div>
+                <div class="gate-item done" onclick="toggleGate(this)">
+                    <div class="gate-cb checked"></div>
                     <div class="gate-text"><strong>Failure test:</strong> Introduce a deliberate failing test. GitHub
                         check run shows failure with the exact test name listed.</div>
                 </div>
-                <div class="gate-item" onclick="toggleGate(this)">
-                    <div class="gate-cb"></div>
+                <div class="gate-item done" onclick="toggleGate(this)">
+                    <div class="gate-cb checked"></div>
                     <div class="gate-text"><strong>Timeout test:</strong> Create a test that sleeps for 15 minutes. The
                         run hard-stops at 10 minutes. Machine is destroyed. Run marked 'timeout' in DB.</div>
                 </div>
-                <div class="gate-item" onclick="toggleGate(this)">
-                    <div class="gate-cb"></div>
+                <div class="gate-item done" onclick="toggleGate(this)">
+                    <div class="gate-cb checked"></div>
                     <div class="gate-text"><strong>Crash test:</strong> Kill the Fly machine mid-run (simulate crash).
                         The try/finally block still destroys the machine. DB updated to 'failed'. No orphaned machines
                         in Fly dashboard.</div>
@@ -1400,840 +1400,4 @@
         </div>
 
         <!-- ==================== PHASE 3 ==================== -->
-        <div class="phase-content" id="phase-3">
-            <div class="phase-header">
-                <div class="phase-num" style="color:var(--amber)">03</div>
-                <div>
-                    <div class="phase-title">The First Real Agent — Security Scanner</div>
-                    <div class="phase-subtitle">Wire Claude Haiku 4.5 with tool_use into the sandbox. Start with just 3
-                        security checks: secrets, CVEs, and missing auth. Make one agent work perfectly before adding
-                        more.</div>
-                    <div class="phase-meta">
-                        <span class="meta-pill mp-time">⏱ Week 5–6</span>
-                        <span class="meta-pill mp-goal">🎯 Claude detects a real secret in a test repo and blocks the
-                            merge</span>
-                        <span class="meta-pill mp-stack">Anthropic SDK · Claude Haiku 4.5 · tool_use · truffleHog ·
-                            Trivy</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="step" id="s3-1">
-                <div class="step-header" onclick="toggleStep('s3-1')">
-                    <div class="step-num-badge" style="background:rgba(245,158,11,.15);color:#FCD34D">3.1</div>
-                    <div class="step-title">Anthropic SDK setup & tool_use pattern</div>
-                    <div class="step-status ss-build">BUILD</div>
-                    <div class="step-chevron">▶</div>
-                </div>
-                <div class="step-body">
-                    <div class="callout callout-danger">
-                        <div class="callout-title">Do NOT use LangChain or any agent framework</div>
-                        <p>Use the Anthropic SDK directly. It is simpler, faster, cheaper, and you understand every
-                            call. One file, one pattern, full control. LangChain adds abstraction that hides what the
-                            model is actually doing.</p>
-                    </div>
-                    <div class="tasks">
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
-                            <div class="task-text">Install: <span class="task-code">pnpm add @anthropic-ai/sdk</span>
-                            </div>
-                        </div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
-                            <div class="task-text">Add ANTHROPIC_API_KEY to .env — get from console.anthropic.com</div>
-                        </div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
-                            <div class="task-text">Create <span class="task-code">src/agents/base-agent.ts</span> — a
-                                reusable function that runs a Claude agent loop with tool_use</div>
-                        </div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
-                            <div class="task-text">The agent loop: send message to Claude → if response has tool_use
-                                blocks → execute each tool → add tool result to messages → send again → repeat until no
-                                more tool_use</div>
-                        </div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
-                            <div class="task-text">Always pass max_tokens: 4096 and model: "claude-haiku-4-5" for
-                                security/bloat agents</div>
-                        </div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
-                            <div class="task-text">Add token counting — log input tokens, output tokens, and estimated
-                                cost per run</div>
-                        </div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
-                            <div class="task-text">Write a simple test: ask Claude to use a mock tool that returns
-                                "Paris" for "capital of France" — verify the loop works</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="step" id="s3-2">
-                <div class="step-header" onclick="toggleStep('s3-2')">
-                    <div class="step-num-badge" style="background:rgba(245,158,11,.15);color:#FCD34D">3.2</div>
-                    <div class="step-title">Security Agent — 3 checks first</div>
-                    <div class="step-status ss-build">BUILD</div>
-                    <div class="step-chevron">▶</div>
-                </div>
-                <div class="step-body">
-                    <div class="tasks">
-                        <div class="task-section-label">Tool 1: run_trufflehog</div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
-                            <div class="task-text">Create tool definition: <span class="task-code">run_trufflehog</span>
-                                — input: {workspacePath: string}. Runs truffleHog inside the Fly machine on /workspace.
-                                Returns JSON array of findings.</div>
-                        </div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
-                            <div class="task-text">Tool executor: exec <span class="task-code">trufflehog filesystem
-                                    /workspace --json --no-update 2>/dev/null</span> in the machine. Parse each line as
-                                JSON (truffleHog outputs NDJSON).</div>
-                        </div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
-                            <div class="task-text">Return structured array: [{detector: "AWS", file: "config.js", line:
-                                14, raw_secret_partial: "AKIA...xxxx"}]</div>
-                        </div>
-                        <div class="task-section-label">Tool 2: run_trivy</div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
-                            <div class="task-text">Create tool: <span class="task-code">run_trivy</span> — exec <span
-                                    class="task-code">trivy fs /workspace --format json --quiet</span>. Parse output.
-                                Return array of CVEs with severity, package name, installed version, fix version.</div>
-                        </div>
-                        <div class="task-section-label">Tool 3: probe_auth_routes</div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
-                            <div class="task-text">Create tool: <span class="task-code">probe_auth_routes</span> —
-                                starts the app in the machine, discovers routes from express/hono route list, fires
-                                GET/POST to each with no Authorization header. Returns list of routes that returned 200
-                                (should have returned 401).</div>
-                        </div>
-                        <div class="task-section-label">Wire into Security Agent</div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
-                            <div class="task-text">Create <span class="task-code">src/agents/security-agent.ts</span>
-                                with system prompt: "You are a security agent. You must use all three tools and report
-                                every security issue you find. Return a JSON report."</div>
-                        </div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
-                            <div class="task-text">First user message: "Analyse the codebase at /workspace for security
-                                issues. Repo: {repoName}. Commit: {sha}."</div>
-                        </div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
-                            <div class="task-text">After agent completes, parse the final JSON report and store in
-                                run_results with category='security'</div>
-                        </div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
-                            <div class="task-text">If any finding has severity='critical', set run status='blocked' and
-                                update GitHub check run to conclusion='failure'</div>
-                        </div>
-                        <div class="task-section-label">Test it</div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
-                            <div class="task-text">Create a test repo with a hardcoded fake AWS key: <span
-                                    class="task-code">const key = "AKIAIOSFODNN7EXAMPLE"</span></div>
-                        </div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
-                            <div class="task-text">Push a commit. Verify: GitHub check run turns red, run is blocked,
-                                Supabase shows security finding with file and line number.</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="gate">
-                <div class="gate-title">🔒 Phase 3 Gate — Pass ALL before Phase 4</div>
-                <div class="gate-item" onclick="toggleGate(this)">
-                    <div class="gate-cb"></div>
-                    <div class="gate-text"><strong>Secret detected:</strong> A repo with a hardcoded fake AWS key gets
-                        blocked. The check run shows the file name and line number of the key.</div>
-                </div>
-                <div class="gate-item" onclick="toggleGate(this)">
-                    <div class="gate-cb"></div>
-                    <div class="gate-text"><strong>CVE detected:</strong> A repo with lodash@4.17.15 in package.json
-                        gets a warning with the CVE ID listed.</div>
-                </div>
-                <div class="gate-item" onclick="toggleGate(this)">
-                    <div class="gate-cb"></div>
-                    <div class="gate-text"><strong>Clean repo passes:</strong> A repo with no secrets and no critical
-                        CVEs gets a green check run. Not everything is flagged.</div>
-                </div>
-                <div class="gate-item" onclick="toggleGate(this)">
-                    <div class="gate-cb"></div>
-                    <div class="gate-text"><strong>Cost check:</strong> Log the Anthropic API token usage per run. One
-                        run should cost under $0.05 in API fees using Haiku 4.5.</div>
-                </div>
-                <div class="gate-item" onclick="toggleGate(this)">
-                    <div class="gate-cb"></div>
-                    <div class="gate-text"><strong>Tool loop test:</strong> Add a console.log inside each tool executor.
-                        Verify all 3 tools are actually called by Claude on every run (not skipped).</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- ==================== PHASE 4 ==================== -->
-        <div class="phase-content" id="phase-5">
-            <div class="phase-header">
-                <div class="phase-num" style="color:var(--purple)">09</div>
-                <div>
-                    <div class="phase-title">AST Engine + Bloat Agent</div>
-                    <div class="phase-subtitle">Parse code into an Abstract Syntax Tree. Find duplicate functions.
-                        Generate annotated diffs with reasons. The bloat agent is what makes Codeward unique — no other
-                        tool does this automatically.</div>
-                    <div class="phase-meta">
-                        <span class="meta-pill mp-time">⏱ Week 7–8</span>
-                        <span class="meta-pill mp-goal">🎯 Duplicate function found, refactored, diff posted to PR with
-                            reason</span>
-                        <span class="meta-pill mp-stack">tree-sitter · Claude Haiku 4.5 · GitHub PR comment API</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="step" id="s5-1">
-                <div class="step-header" onclick="toggleStep('s5-1')">
-                    <div class="step-num-badge" style="background:rgba(139,92,246,.15);color:#C4B5FD">5.1</div>
-                    <div class="step-title">tree-sitter integration in sandbox</div>
-                    <div class="step-status ss-build">BUILD</div>
-                    <div class="step-chevron">▶</div>
-                </div>
-                <div class="step-body">
-                    <div class="tasks">
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
-                            <div class="task-text">Install in sandbox image: <span class="task-code">npm install -g
-                                    tree-sitter-cli</span> and add to Docker base image</div>
-                        </div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
-                            <div class="task-text">In the agent-runner app, install: <span class="task-code">pnpm add
-                                    tree-sitter tree-sitter-javascript tree-sitter-typescript</span></div>
-                        </div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
-                            <div class="task-text">Create <span class="task-code">src/ast/parser.ts</span> — takes a
-                                file path, returns a parsed tree with all function declarations and their bodies</div>
-                        </div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
-                            <div class="task-text">Create <span class="task-code">src/ast/duplicate-finder.ts</span> —
-                                takes list of parsed trees, returns pairs of functions that have the same body hash
-                                (SHA256 of normalised body text)</div>
-                        </div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
-                            <div class="task-text">Test with 2 files that have the same validateEmail function —
-                                detector should return them as a duplicate pair</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="step" id="s5-2">
-                <div class="step-header" onclick="toggleStep('s5-2')">
-                    <div class="step-num-badge" style="background:rgba(139,92,246,.15);color:#C4B5FD">5.2</div>
-                    <div class="step-title">Bloat Agent — 3 checks first</div>
-                    <div class="step-status ss-build">BUILD</div>
-                    <div class="step-chevron">▶</div>
-                </div>
-                <div class="step-body">
-                    <div class="tasks">
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
-                            <div class="task-text">Create tool: <span class="task-code">find_duplicates</span> — runs
-                                duplicate-finder.ts on all JS/TS files in /workspace. Returns array of duplicate pairs
-                                with file, function name, line numbers.</div>
-                        </div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
-                            <div class="task-text">Create tool: <span class="task-code">find_dead_code</span> — trace
-                                import/export graph in the repo. Return functions/vars that are exported but never
-                                imported anywhere.</div>
-                        </div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
-                            <div class="task-text">Create tool: <span class="task-code">generate_refactor</span> — given
-                                a duplicate pair, Claude generates the refactored code: removes the duplicate and adds
-                                an import from the canonical location.</div>
-                        </div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
-                            <div class="task-text">Bloat Agent system prompt: "You are a refactoring agent. Find all
-                                duplicate code and dead code. For each duplicate, generate a precise refactor. Explain
-                                your reasoning for every change."</div>
-                        </div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
-                            <div class="task-text">After agent runs, parse its output into a structured diff: [{file,
-                                original_lines, refactored_lines, reason}]</div>
-                        </div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
-                            <div class="task-text">Store the diff JSON in Cloudflare R2 keyed by run ID</div>
-                        </div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
-                            <div class="task-text">Post the diff as a PR comment on GitHub using the checks API — show
-                                file, old code (red), new code (green), reason (blue)</div>
-                        </div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
-                            <div class="task-text">In suggest mode: diff is shown but not applied. In auto mode: apply
-                                the diff to a new commit on the branch.</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="gate">
-                <div class="gate-title">🔒 Phase 9 Gate</div>
-                <div class="gate-item" onclick="toggleGate(this)">
-                    <div class="gate-cb"></div>
-                    <div class="gate-text"><strong>Duplicate found:</strong> A repo with the same function in 2 files —
-                        agent finds it, generates a refactor, posts the diff to the PR comment with the reason.</div>
-                </div>
-                <div class="gate-item" onclick="toggleGate(this)">
-                    <div class="gate-cb"></div>
-                    <div class="gate-text"><strong>Tests still pass:</strong> After the refactor is applied (auto mode),
-                        run the test suite again. All tests still pass.</div>
-                </div>
-                <div class="gate-item" onclick="toggleGate(this)">
-                    <div class="gate-cb"></div>
-                    <div class="gate-text"><strong>No false positives:</strong> A repo with no duplicates — agent says
-                        "no bloat found." Does not invent issues.</div>
-                </div>
-            </div>
-        </div>
-
-
-        <!-- ==================== PHASE 4 ==================== -->
-        <div class="phase-content" id="phase-4">
-            <div class="phase-header">
-                <div class="phase-num" style="color:#F9A8D4">09</div>
-                <div>
-                    <div class="phase-title">The Guardian Agent</div>
-                    <div class="phase-subtitle">The PR review agent. Posts to GitHub PRs as proof of what Codeward actually did. Posts inline comments on specific diff lines. Creates GitHub Issues for unresolved findings. Formally approves or blocks the PR.</div>
-                    <div class="phase-meta">
-                        <span class="meta-pill mp-time">⏱ Week 5–6</span>
-                        <span class="meta-pill mp-goal">🎯 Guardian Agent posts an inline PR comment and blocks a PR</span>
-                        <span class="meta-pill mp-stack">Anthropic SDK · GitHub MCP · BullMQ</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="step" id="s5-1">
-                <div class="step-header" onclick="toggleStep('s5-1')">
-                    <div class="step-num-badge" style="background:rgba(249,168,212,.15);color:#F9A8D4">5.1</div>
-                    <div class="step-title">Listen for agent findings</div>
-                    <div class="step-status ss-build">BUILD</div>
-                    <div class="step-chevron">▶</div>
-                </div>
-                <div class="step-body">
-                    <div class="tasks">
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
-                            <div class="task-text">Create a subscriber queue that listens to the message bus for completion events from other agents (e.g., Security, Bloat).</div>
-                        </div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
-                            <div class="task-text">Progressively aggregate findings into the Postgres run_results table.</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="step" id="s5-2">
-                <div class="step-header" onclick="toggleStep('s5-2')">
-                    <div class="step-num-badge" style="background:rgba(249,168,212,.15);color:#F9A8D4">5.2</div>
-                    <div class="step-title">GitHub PR Integration via MCP</div>
-                    <div class="step-status ss-build">BUILD</div>
-                    <div class="step-chevron">▶</div>
-                </div>
-                <div class="step-body">
-                    <div class="tasks">
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
-                            <div class="task-text">Give the Guardian Agent access to the GitHub MCP tools: create_pr_review, add_pr_review_comment, create_issue.</div>
-                        </div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
-                            <div class="task-text">Configure Claude Sonnet 4.6 to map security/bloat findings to inline diff comments.</div>
-                        </div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
-                            <div class="task-text">Create fallback GitHub Issues if the finding is repo-wide (e.g., missing auth middleware) instead of a line-specific diff.</div>
-                        </div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
-                            <div class="task-text">Calculate the final debt score and post a formal PR Review (APPROVE, REQUEST_CHANGES, or COMMENT).</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="gate">
-                <div class="gate-title">🔒 Phase 4 Gate</div>
-                <div class="gate-item" onclick="toggleGate(this)">
-                    <div class="gate-cb"></div>
-                    <div class="gate-text"><strong>Inline Comment Posted:</strong> The Guardian agent successfully posts a security finding as an inline comment on the exact line of code in the PR diff.</div>
-                </div>
-                <div class="gate-item" onclick="toggleGate(this)">
-                    <div class="gate-cb"></div>
-                    <div class="gate-text"><strong>PR Blocked:</strong> If a critical finding exists, the Guardian agent requests changes and blocks the PR from merging.</div>
-                </div>
-            </div>
-        </div>
-        <!-- ==================== PHASE 5 ==================== -->
-        <div class="phase-content" id="phase-6">
-            <div class="phase-header">
-                <div class="phase-num" style="color:var(--green)">09</div>
-                <div>
-                    <div class="phase-title">Full Deploy Pipeline — Staging → Production</div>
-                    <div class="phase-subtitle">After sandbox passes, deploy to staging automatically. Human approves.
-                        Merge to prod. Post-deploy monitoring with auto-rollback. This completes the full loop.</div>
-                    <div class="phase-meta">
-                        <span class="meta-pill mp-time">⏱ Week 9–10</span>
-                        <span class="meta-pill mp-goal">🎯 Full push → sandbox → staging → approve → prod → monitor
-                            loop</span>
-                        <span class="meta-pill mp-stack">Vercel API · GitHub Merges API · Sentry · Resend · Slack</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="step" id="s6-1">
-                <div class="step-header" onclick="toggleStep('s6-1')">
-                    <div class="step-num-badge" style="background:rgba(34,197,94,.15);color:#86EFAC">6.1</div>
-                    <div class="step-title">Ephemeral staging deploy</div>
-                    <div class="step-status ss-build">BUILD</div>
-                    <div class="step-chevron">▶</div>
-                </div>
-                <div class="step-body">
-                    <div class="tasks">
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
-                            <div class="task-text">Install Vercel CLI and create a project for customer staging</div>
-                        </div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
-                            <div class="task-text">After sandbox passes, call Vercel API to create a deployment from the
-                                commit SHA</div>
-                        </div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
-                            <div class="task-text">Poll Vercel API until deployment is 'READY' — extract the preview URL
-                            </div>
-                        </div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
-                            <div class="task-text">Store staging URL in the run record in Supabase</div>
-                        </div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
-                            <div class="task-text">Post staging URL to the GitHub PR as a comment with the approval
-                                buttons (use GitHub PR comment, not check run)</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="step" id="s6-2">
-                <div class="step-header" onclick="toggleStep('s6-2')">
-                    <div class="step-num-badge" style="background:rgba(34,197,94,.15);color:#86EFAC">6.2</div>
-                    <div class="step-title">Approval flow + prod merge</div>
-                    <div class="step-status ss-build">BUILD</div>
-                    <div class="step-chevron">▶</div>
-                </div>
-                <div class="step-body">
-                    <div class="tasks">
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
-                            <div class="task-text">Create POST /api/runs/{runId}/approve endpoint — protected by JWT
-                                auth</div>
-                        </div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
-                            <div class="task-text">On approve: call GitHub API to merge the PR (POST
-                                /repos/{owner}/{repo}/merges)</div>
-                        </div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
-                            <div class="task-text">Create POST /api/runs/{runId}/reject endpoint — adds a comment to the
-                                PR explaining rejection</div>
-                        </div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
-                            <div class="task-text">Add auto-approve timer: read staging_auto_approve_hours from
-                                .codeward.yml. Schedule a BullMQ delayed job that fires after N hours and auto-approves
-                                if not manually rejected.</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="step" id="s6-3">
-                <div class="step-header" onclick="toggleStep('s6-3')">
-                    <div class="step-num-badge" style="background:rgba(34,197,94,.15);color:#86EFAC">6.3</div>
-                    <div class="step-title">Notifications — Slack + Email</div>
-                    <div class="step-status ss-build">BUILD</div>
-                    <div class="step-chevron">▶</div>
-                </div>
-                <div class="step-body">
-                    <div class="tasks">
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
-                            <div class="task-text">Add RESEND_API_KEY to .env — get from resend.com</div>
-                        </div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
-                            <div class="task-text">Install: <span class="task-code">pnpm add resend</span></div>
-                        </div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
-                            <div class="task-text">Send email on: run blocked (critical security), staging ready for
-                                review, prod merge complete, rollback triggered</div>
-                        </div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
-                            <div class="task-text">Add SLACK_BOT_TOKEN to .env — create Slack app at api.slack.com</div>
-                        </div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
-                            <div class="task-text">Install: <span class="task-code">pnpm add @slack/web-api</span></div>
-                        </div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
-                            <div class="task-text">Post to Slack with Block Kit — include staging URL and Approve/Reject
-                                buttons as interactive elements</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="gate">
-                <div class="gate-title">🔒 Phase 9 Gate</div>
-                <div class="gate-item" onclick="toggleGate(this)">
-                    <div class="gate-cb"></div>
-                    <div class="gate-text"><strong>Full loop test:</strong> Push a commit → sandbox passes → staging
-                        deployed → Slack message received with preview URL → click Approve in dashboard → PR merges in
-                        GitHub.</div>
-                </div>
-                <div class="gate-item" onclick="toggleGate(this)">
-                    <div class="gate-cb"></div>
-                    <div class="gate-text"><strong>Block loop test:</strong> Push a commit with a hardcoded secret →
-                        blocked before staging → no staging deployed → email + Slack received with the security finding.
-                    </div>
-                </div>
-                <div class="gate-item" onclick="toggleGate(this)">
-                    <div class="gate-cb"></div>
-                    <div class="gate-text"><strong>Auto-approve test:</strong> Set auto_approve_hours: 0.01 (36 seconds)
-                        in .codeward.yml. Staging deploys. Wait 36 seconds. PR auto-merges with no human action.</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- ==================== PHASE 6 ==================== -->
-        <div class="phase-content" id="phase-7">
-            <div class="phase-header">
-                <div class="phase-num" style="color:var(--red)">09</div>
-                <div>
-                    <div class="phase-title">React Dashboard — now you have real data to show</div>
-                    <div class="phase-subtitle">Only build UI now because you have real data. Every screen shows
-                        something meaningful. Build in this exact order — do not skip ahead.</div>
-                    <div class="phase-meta">
-                        <span class="meta-pill mp-time">⏱ Week 11–12</span>
-                        <span class="meta-pill mp-goal">🎯 A real user can log in, see their runs, and approve
-                            staging</span>
-                        <span class="meta-pill mp-stack">Vite · React 18 · TypeScript · Tailwind v4 · shadcn/ui ·
-                            TanStack Query</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="step" id="s7-1">
-                <div class="step-header" onclick="toggleStep('s7-1')">
-                    <div class="step-num-badge" style="background:rgba(239,68,68,.15);color:#FCA5A5">7.1</div>
-                    <div class="step-title">React app scaffold</div>
-                    <div class="step-status ss-build">BUILD</div>
-                    <div class="step-chevron">▶</div>
-                </div>
-                <div class="step-body">
-                    <div class="tasks">
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
-                            <div class="task-text">In /apps/web: <span class="task-code">pnpm create vite . --template
-                                    react-ts</span></div>
-                        </div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
-                            <div class="task-text">Install Tailwind v4: <span class="task-code">pnpm add tailwindcss
-                                    @tailwindcss/vite</span> — add plugin to vite.config.ts</div>
-                        </div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
-                            <div class="task-text">Install shadcn/ui: <span class="task-code">pnpm dlx shadcn@latest
-                                    init</span></div>
-                        </div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
-                            <div class="task-text">Install TanStack Query: <span class="task-code">pnpm add
-                                    @tanstack/react-query</span></div>
-                        </div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
-                            <div class="task-text">Install Zustand: <span class="task-code">pnpm add zustand</span>
-                            </div>
-                        </div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
-                            <div class="task-text">Install React Router: <span class="task-code">pnpm add
-                                    react-router-dom</span></div>
-                        </div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
-                            <div class="task-text">Create routes: /, /dashboard, /repos/:repoId, /runs/:runId,
-                                /runs/:runId/diff, /staging/:runId, /settings</div>
-                        </div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
-                            <div class="task-text">Add GitHub OAuth login using Better Auth — user authenticates and
-                                gets a JWT stored in localStorage</div>
-                        </div>
-                        <div class="task" onclick="toggleTask(this)">
-                            <div class="task-cb"></div>
-                            <div class="task-text">Build screens in this order: 1) Dashboard 2) Run detail 3) Diff
-                                viewer 4) Staging approval 5) Settings</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="gate">
-                <div class="gate-title">🔒 Phase 9 Gate</div>
-                <div class="gate-item" onclick="toggleGate(this)">
-                    <div class="gate-cb"></div>
-                    <div class="gate-text"><strong>Login test:</strong> A new user lands on the site, clicks "Sign in
-                        with GitHub", authorises, and sees their repos listed with health scores.</div>
-                </div>
-                <div class="gate-item" onclick="toggleGate(this)">
-                    <div class="gate-cb"></div>
-                    <div class="gate-text"><strong>Real-time test:</strong> Push a commit. Without refreshing, the
-                        dashboard shows the run appearing and the status updating live from pending → running → passed.
-                    </div>
-                </div>
-                <div class="gate-item" onclick="toggleGate(this)">
-                    <div class="gate-cb"></div>
-                    <div class="gate-text"><strong>Approval test:</strong> A staging approval card appears in the
-                        dashboard. Click Approve. The GitHub PR merges. The card disappears from the dashboard.</div>
-                </div>
-                <div class="gate-item" onclick="toggleGate(this)">
-                    <div class="gate-cb"></div>
-                    <div class="gate-text"><strong>Mobile test:</strong> Open the dashboard on a phone. The core screens
-                        (dashboard, notifications, staging approval) are usable on a 375px wide screen.</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- ==================== PHASE 7 ==================== -->
-        <div class="phase-content" id="phase-8">
-            <div class="phase-header">
-                <div class="phase-num" style="color:var(--teal)">09</div>
-                <div>
-                    <div class="phase-title">All Remaining Agents — Full Debt Coverage</div>
-                    <div class="phase-subtitle">Add Broken Code, Architecture, AI-Era, Compliance, and Data/DX agents.
-                        Expand Security and Bloat to all 18 checks each. Add the Orchestrator to run everything in
-                        parallel.</div>
-                    <div class="phase-meta">
-                        <span class="meta-pill mp-time">⏱ Month 3–4</span>
-                        <span class="meta-pill mp-goal">🎯 All 8 categories of debt detected on every push</span>
-                        <span class="meta-pill mp-stack">Claude Haiku/Sonnet · k6 · OWASP ZAP · axe-core</span>
-                    </div>
-                </div>
-            </div>
-            <div class="callout callout-info" style="margin-bottom:16px">
-                <div class="callout-title">Build order within this phase</div>
-                <p>1. Broken Code Agent (runs test suite + flaky detection) — 2. Architecture Agent (k6 + EXPLAIN
-                    ANALYZE) — 3. Orchestrator Agent (runs all in parallel) — 4. AI-Era Agent — 5. Compliance Agent
-                    (scheduled) — 6. Expand Security + Bloat to full 18 checks each</p>
-            </div>
-            <div class="gate">
-                <div class="gate-title">🔒 Phase 9 Gate</div>
-                <div class="gate-item" onclick="toggleGate(this)">
-                    <div class="gate-cb"></div>
-                    <div class="gate-text"><strong>Parallel test:</strong> All 5 agents (security, bloat, broken code,
-                        architecture, AI-era) run simultaneously on the same commit. Total wall-clock time under 8
-                        minutes.</div>
-                </div>
-                <div class="gate-item" onclick="toggleGate(this)">
-                    <div class="gate-cb"></div>
-                    <div class="gate-text"><strong>Debt score test:</strong> A repo with a known N+1 query and 2
-                        duplicate functions gets a health score below 80. A clean repo gets above 90.</div>
-                </div>
-                <div class="gate-item" onclick="toggleGate(this)">
-                    <div class="gate-cb"></div>
-                    <div class="gate-text"><strong>False positive audit:</strong> Run all agents on 3 real open-source
-                        repos. Review every finding. False positive rate must be under 10%.</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- ==================== PHASE 8 ==================== -->
-        <div class="phase-content" id="phase-9">
-            <div class="phase-header">
-                <div class="phase-num" style="color:var(--purple)">09</div>
-                <div>
-                    <div class="phase-title">Codeward AI Chat Agent</div>
-                    <div class="phase-subtitle">The always-on agent in the sidebar. It reads real run history, can spawn
-                        agents on demand, answers questions about your codebase, and takes action with your approval.
-                        This is what makes Codeward feel like a senior engineer, not a tool.</div>
-                    <div class="phase-meta">
-                        <span class="meta-pill mp-time">⏱ Month 4–5</span>
-                        <span class="meta-pill mp-goal">🎯 User asks "what is our biggest risk?" and agent answers with
-                            real data</span>
-                        <span class="meta-pill mp-stack">Claude Sonnet 4.5 · WebSocket streaming · pgvector semantic
-                            search</span>
-                    </div>
-                </div>
-            </div>
-            <div class="callout callout-good" style="margin-bottom:16px">
-                <div class="callout-title">This is your moat — build it carefully</div>
-                <p>The chat agent is what separates Codeward from every other CI/CD tool. It is not a chatbot. It has
-                    tool access to read actual run data, spawn real agents, and take real actions. The key is: it never
-                    guesses. When asked "what is broken in payments-api?" it calls the query_run_history tool, reads the
-                    last 5 run reports, and answers from real data. Build this trust mechanism carefully — it is what
-                    gets teams to Enterprise tier.</p>
-            </div>
-            <div class="gate">
-                <div class="gate-title">🔒 Phase 9 Gate — and YC readiness check</div>
-                <div class="gate-item" onclick="toggleGate(this)">
-                    <div class="gate-cb"></div>
-                    <div class="gate-text"><strong>Data-grounded answers:</strong> Ask "what are the 3 biggest risks in
-                        my codebase?" The agent reads real run data and answers with specific files, lines, and findings
-                        — not generic advice.</div>
-                </div>
-                <div class="gate-item" onclick="toggleGate(this)">
-                    <div class="gate-cb"></div>
-                    <div class="gate-text"><strong>Action test:</strong> Tell the agent "fix the N+1 in payments-api."
-                        It spawns the architecture agent, runs it, returns the diff, and waits for your approval before
-                        applying.</div>
-                </div>
-                <div class="gate-item" onclick="toggleGate(this)">
-                    <div class="gate-cb"></div>
-                    <div class="gate-text"><strong>5 real teams:</strong> By this point you have 5 real engineering
-                        teams using Codeward. At least 1 has been using it for 30+ days. You have evidence of debt
-                        reduced over time.</div>
-                </div>
-                <div class="gate-item" onclick="toggleGate(this)">
-                    <div class="gate-cb"></div>
-                    <div class="gate-text"><strong>1 paying customer:</strong> At least 1 team has upgraded from free to
-                        Pro ($49/month). They pay because the auto-refactor saved them real time.</div>
-                </div>
-                <div class="gate-item" onclick="toggleGate(this)">
-                    <div class="gate-cb"></div>
-                    <div class="gate-text"><strong>YC application ready:</strong> You can answer "what has actually been
-                        built?" with: running product, real users, real data, measurable debt reduction numbers.</div>
-                </div>
-            </div>
-        </div>
-
-    </div><!-- /page -->
-
-    <script>
-        // Phase switching
-        function switchPhase(n, el) {
-            document.querySelectorAll('.phase-content').forEach(p => p.classList.remove('active'));
-            document.querySelectorAll('.phase-tab').forEach(t => t.classList.remove('active'));
-            const pc = document.getElementById('phase-' + n);
-            if (pc) pc.classList.add('active');
-            el.classList.add('active');
-            window.scrollTo(0, 120);
-            updateProgress();
-        }
-
-        // Step expand/collapse
-        function toggleStep(id) {
-            const s = document.getElementById(id);
-            if (s) s.classList.toggle('open');
-        }
-
-        // Task checkboxes
-        function toggleTask(el) {
-            el.classList.toggle('done');
-            updateProgress();
-        }
-
-        // Gate checkboxes
-        function toggleGate(el) {
-            el.classList.toggle('done');
-            updateProgress();
-        }
-
-        // Progress tracking
-        function updateProgress() {
-            const allTasks = document.querySelectorAll('.task');
-            const doneTasks = document.querySelectorAll('.task.done');
-            const allGates = document.querySelectorAll('.gate-item');
-            const doneGates = document.querySelectorAll('.gate-item.done');
-            const total = allTasks.length + allGates.length;
-            const done = doneTasks.length + doneGates.length;
-            const pct = total > 0 ? Math.round((done / total) * 100) : 0;
-            const bar = document.getElementById('global-bar');
-            const label = document.getElementById('global-label');
-            if (bar) bar.style.width = pct + '%';
-            if (label) label.textContent = done + ' of ' + total + ' tasks complete (' + pct + '%)';
-
-            // Per-phase
-            for (let p = 1; p <= 9; p++) {
-                const pc = document.getElementById('phase-' + p);
-                if (!pc) continue;
-                const pt = pc.querySelectorAll('.task').length + pc.querySelectorAll('.gate-item').length;
-                const pd = pc.querySelectorAll('.task.done').length + pc.querySelectorAll('.gate-item.done').length;
-                const pp = pt > 0 ? Math.round((pd / pt) * 100) : 0;
-                const el = document.getElementById('pct-' + p);
-                if (el) el.textContent = pp + '%';
-            }
-        }
-
-        // Persist checkboxes in localStorage
-        document.addEventListener('click', e => {
-            const t = e.target.closest('.task');
-            const g = e.target.closest('.gate-item');
-            if (t || g) saveState();
-        });
-
-        function saveState() {
-            const state = {};
-            document.querySelectorAll('.task, .gate-item').forEach((el, i) => {
-                state['item-' + i] = el.classList.contains('done');
-            });
-            try { localStorage.setItem('codeward_progress', JSON.stringify(state)); } catch (e) { }
-        }
-
-        function loadState() {
-            try {
-                const state = JSON.parse(localStorage.getItem('codeward_progress') || '{}');
-                document.querySelectorAll('.task, .gate-item').forEach((el, i) => {
-                    if (state['item-' + i]) el.classList.add('done');
-                });
-            } catch (e) { }
-            updateProgress();
-        }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            loadState();
-            // open first step by default
-            const first = document.getElementById('s1-1');
-            if (first) first.classList.add('open');
-        });
-    </script>
-</body>
-
-</html>
+        <div class="phase-content" 

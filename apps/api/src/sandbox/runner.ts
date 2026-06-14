@@ -1,5 +1,5 @@
-import { FlySandbox } from './fly-machine';
-import { detectStack } from './stack-detector';
+import { FlySandbox } from './fly-machine.js';
+import { detectStack } from './stack-detector.js';
 
 export interface RunOptions {
   repoUrl: string;
@@ -26,7 +26,8 @@ export async function runSandbox(options: RunOptions) {
   try {
     // Start sandbox with token injected
     await sandbox.start({
-      GITHUB_TOKEN: options.githubToken
+      GITHUB_TOKEN: options.githubToken,
+      STRIPE_SECRET_KEY: 'sk_test_dummy_key_for_testing'
     });
 
     // 3. Clone Repository

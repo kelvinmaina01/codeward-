@@ -2,10 +2,10 @@ import { Queue, Worker, Job } from 'bullmq';
 import { Redis } from 'ioredis';
 import dotenv from 'dotenv';
 import { db } from '../db/index.js';
-import { repositories } from '../db/schema.js';
+import { repositories, runs, runResults } from '../db/schema.js';
 import { eq } from 'drizzle-orm';
-// import { guardianAgent } from '../agents/guardian.js'; // Placeholder
-// import { createSandbox, execInSandbox, destroySandbox } from '../sandbox/fly-machine.js'; // Placeholder
+import { runSandbox } from '../sandbox/runner.js';
+import { NotificationService } from '../notifications/NotificationService.js';
 
 dotenv.config();
 
@@ -16,50 +16,90 @@ const connection = new Redis(process.env.UPSTASH_REDIS_URL || 'redis://localhost
 export const auditQueue = new Queue('full-audits', { connection: connection as any });
 
 export const auditWorker = new Worker('full-audits', async (job: Job) => {
-  const { repoFullName, installationId, defaultBranch } = job.data;
+  const { type, repoFullName, installationId, defaultBranch, commitSha, prNumber, prTitle, authorEmail } = job.data;
   
-  console.log(`[AuditWorker] Starting full audit for ${repoFullName}`);
-  
-  // 1. Spin up sandbox — clone FULL repo
-  // const machine = await createSandbox(job.id, 'codeward-sandbox-node20');
+  console.log(`[AuditWorker] Processing job type: ${type} for ${repoFullName}`);
   
   try {
-    // 2. Clone at HEAD (not a specific SHA)
-    // await execInSandbox(machine.id, [
-    //   'git', 'clone', '--depth=50',
-    //   `https://x-access-token:${token}@github.com/${repoFullName}`,
-    //   '/workspace/repo'
-    // ]);
+    if (type === 'process-repo') {
+      // LAYER 1: Deep Scan (Onboarding)
+      console.log(`[AuditWorker] Starting Deep Scan for ${repoFullName}`);
+      
+      const res = await runSandbox({
+        repoUrl: `https://github.com/${repoFullName}`,
+        files: [], // we could fetch via api
+        githubToken: process.env.GITHUB_TOKEN || 'dummy_token'
+      });
 
-    // 3. Run ALL agents in parallel — full scope
-    // Simulating the 30-minute expensive audit taking 5 seconds for this test...
-    console.log(`[AuditWorker] Running 8 parallel agents for 5 seconds...`);
-    await new Promise(resolve => setTimeout(resolve, 5000));
-    
-    const allFindings: any[] = []; // Mock findings for now
+      if (!res.success) {
+        throw new Error(`Sandbox failed: ${res.error}`);
+      }
 
-    // 4. Calculate baseline score
-    // const baselineScore = calculateDebtScore(allFindings);
-    const baselineScore = 52; // Mock score
+      const baselineScore = 85; // mock calculated score
+      await db.update(repositories).set({
+        status: 'active',
+        baselineScore,
+        auditCompletedAt: new Date(),
+      }).where(eq(repositories.fullName, repoFullName));
 
-    // 5. Store everything
-    await db.update(repositories).set({
-      status: 'active',
-      baselineScore,
-      auditCompletedAt: new Date(),
-    }).where(eq(repositories.fullName, repoFullName));
+      // Send Success Email
+      if (authorEmail) {
+        await NotificationService.sendRepoConnectedSuccess(
+          authorEmail, 
+          repoFullName, 
+          baselineScore, 
+          `https://codeward.io/dashboard/${repoFullName}`
+        );
+      }
 
-    // 6. Guardian creates Issues + audit-fixes PR
-    // await guardianAgent.createAuditIssues(installationId, repoFullName, allFindings);
-    // await guardianAgent.createAuditFixesPR(installationId, repoFullName, allFindings);
-    
-    console.log(`[AuditWorker] Completed full audit for ${repoFullName}`);
+    } else if (type === 'process-commit') {
+      // LAYER 2: Incremental Scan (PR Intercept)
+      console.log(`[AuditWorker] Starting PR Scan for ${repoFullName} #${prNumber}`);
 
+      // 1. Create Run in DB
+      const [newRun] = await db.insert(runs).values({
+        repoId: 1, // should lookup real repo id
+        commitSha: commitSha || 'unknown',
+        status: 'running',
+      }).returning();
+
+      // 2. Run Sandbox
+      const res = await runSandbox({
+        repoUrl: `https://github.com/${repoFullName}`,
+        files: [],
+        githubToken: process.env.GITHUB_TOKEN || 'dummy_token'
+      });
+
+      const rawOutput = res.testOutput || res.error || 'Empty Output';
+      
+      // 3. Update DB with results
+      await db.update(runs).set({
+        status: res.success ? 'completed' : 'agent_failed',
+        rawLogs: rawOutput,
+        score: res.success ? 100 : 0
+      }).where(eq(runs.id, newRun.id));
+
+      if (!res.success) {
+        // Fallback Chain Triggered!
+        console.log(`[AuditWorker] Agent failed. Triggering Escalation Email and GitHub Issue Fallback.`);
+        
+        if (authorEmail) {
+          await NotificationService.sendEscalation(
+            authorEmail,
+            repoFullName,
+            prNumber || 0,
+            prTitle || 'Unknown PR',
+            'Security Scan Failure',
+            newRun.id.toString()
+          );
+        }
+        // TODO: Call Octokit to create GitHub Issue
+      } else {
+        console.log(`[AuditWorker] Agent succeeded. Code is safe.`);
+      }
+    }
   } catch (error) {
-    console.error(`[AuditWorker] Error auditing ${repoFullName}:`, error);
-    // Ensure we handle failure (maybe set status to 'audit_failed')
-  } finally {
-    // await destroySandbox(machine.id); // always destroy
+    console.error(`[AuditWorker] Error processing ${repoFullName}:`, error);
   }
 }, { 
   connection: connection as any, 

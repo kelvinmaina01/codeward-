@@ -8,8 +8,13 @@
     "build": "tsc"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "^3.0.84",
+    "@ai-sdk/openai": "^3.0.71",
     "@hono/node-server": "^1.11.1",
     "@octokit/app": "^16.1.2",
+    "@react-email/components": "^1.0.12",
+    "@react-email/render": "^2.0.8",
+    "ai": "^6.0.205",
     "better-auth": "^1.6.16",
     "bullmq": "^5.7.8",
     "dotenv": "^16.4.5",
@@ -17,7 +22,11 @@
     "hono": "^4.4.0",
     "ioredis": "^5.4.1",
     "octokit": "^5.0.5",
-    "postgres": "^3.4.9"
+    "postgres": "^3.4.9",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "resend": "^6.12.4",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/node": "^20.14.2",

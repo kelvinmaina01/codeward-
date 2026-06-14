@@ -174,7 +174,7 @@ reposRouter.get('/', async (c) => {
       .from(schema.repositories)
       .where(or(...conditions));
       
-    const connectedReposMap = new Map(connectedRepos.map(r => [r.fullName, r.auditStatus]));
+    const connectedReposMap = new Map(connectedRepos.map(r => [r.fullName, r.status]));
 
     // 5. Map to our API shape
     const repos = ghRepos.map((r: any) => ({

@@ -4,32 +4,7 @@ interface Props {
   onRunClick?: (sha: string) => void;
 }
 
-// 30-day health data
-const healthData = Array.from({ length: 30 }, (_, i) => ({
-  day: i + 1,
-  score: Math.round(55 + Math.min(22, i * 0.9) + (Math.sin(i * 0.7) * 4)),
-}));
-healthData[healthData.length - 1].score = 77;
-
-// 30-day debt removed data
-const debtData = Array.from({ length: 30 }, (_, i) => ({
-  day: i + 1,
-  lines: -Math.round(i * 48 + (Math.max(0, i - 15) * 12)),
-}));
-debtData[debtData.length - 1].lines = -1346;
-
-const activityRows = [
-  { sha: '7fde8ba', repo: 'mobile-backend', msg: 'feat: push notification service integration', status: 'RUNNING', statusColor: 'bg-cw-blue text-white', time: 'Jun 5, 07:14' },
-  { sha: '17f7fd3', repo: 'frontend-app', msg: 'fix: handle error handler remove from 3 routes', status: 'CRITICAL', statusColor: 'bg-cw-red text-white', time: 'Jun 5, 10:18' },
-  { sha: 'e3ff601', repo: 'api-gateway', msg: 'feat: add rate limiting middleware', status: 'PENDING', statusColor: 'bg-cw-bg3 text-cw-txt2', time: 'Jun 5, 21:55' },
-  { sha: 'f03b3fe', repo: 'frontend-app', msg: 'chore: update dependencies and remove dead code', status: 'PENDING', statusColor: 'bg-cw-bg3 text-cw-txt2', time: 'Jun 5, 20:09' },
-  { sha: 'e40e9f1', repo: 'mobile-backend', msg: 'refactor: consolidate API response formatters', status: 'PENDING', statusColor: 'bg-cw-bg3 text-cw-txt2', time: 'Jun 5, 10:06' },
-  { sha: 'a1b6f6', repo: 'auth-service', msg: 'refactor: implement JWT refresh token rotation', status: 'PASSED', statusColor: 'bg-cw-green text-white', time: 'Jun 5, 17:35' },
-  { sha: 'd7c2e88', repo: 'api-gateway', msg: 'refactor: extract auth helpers into shared utils', status: 'PASSED', statusColor: 'bg-cw-green text-white', time: 'Jun 5, 17:35' },
-  { sha: '2d8e19f', repo: 'data-pipeline', msg: 'wip: refactor pipeline stage handlers', status: 'CRITICAL', statusColor: 'bg-cw-red text-white', time: 'Jun 5, 23:35' },
-  { sha: '3402d7f', repo: 'api-gateway', msg: 'fix: handle null pointer in request validator', status: 'PASSED', statusColor: 'bg-cw-green text-white', time: 'Jun 4, 10:35' },
-  { sha: 'e007c3', repo: 'data-pipeline', msg: 'fix: memory leak in stream processor', status: 'RUNNING', statusColor: 'bg-cw-blue text-white', time: 'Jun 4, 22:10' },
-];
+import { mockHealthData, mockDebtData, mockActivityRows } from '../../lib/mockAgentData';
 
 export function Dashboard({ onRunClick }: Props) {
   return (
@@ -64,7 +39,7 @@ export function Dashboard({ onRunClick }: Props) {
           </div>
           <div className="flex-1 w-full mt-4 -ml-2">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={healthData}>
+              <AreaChart data={mockHealthData}>
                 <XAxis dataKey="day" hide />
                 <YAxis hide domain={[0, 100]} />
                 <Tooltip 
@@ -93,7 +68,7 @@ export function Dashboard({ onRunClick }: Props) {
           </div>
           <div className="flex-1 w-full mt-4 -ml-2">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={debtData}>
+              <AreaChart data={mockDebtData}>
                 <XAxis dataKey="day" hide />
                 <YAxis hide />
                 <Tooltip 
@@ -130,11 +105,12 @@ export function Dashboard({ onRunClick }: Props) {
                 <th className="px-5 py-3 font-medium">Findings</th>
                 <th className="px-5 py-3 font-medium">Status</th>
                 <th className="px-5 py-3 font-medium">Time</th>
+                <th className="px-5 py-3 font-medium"></th>
               </tr>
             </thead>
             <tbody className="text-[12px] text-cw-txt">
-              {activityRows.map((run, i) => (
-                <tr key={i} onClick={() => onRunClick?.(run.sha)} className="hover:bg-cw-bg3 cursor-pointer transition-colors border-t border-cw-bdr">
+              {mockActivityRows.map((run, i) => (
+                <tr key={i} onClick={() => onRunClick?.(run.sha)} className="hover:bg-cw-bg3 cursor-pointer transition-colors border-t border-cw-bdr group">
                   <td className="px-5 py-3 font-mono text-cw-blue">{run.sha}</td>
                   <td className="px-5 py-3 font-medium text-cw-txt">{run.repo}</td>
                   <td className="px-5 py-3 text-cw-txt2 max-w-[400px] truncate">{run.msg}</td>
@@ -144,6 +120,11 @@ export function Dashboard({ onRunClick }: Props) {
                     </span>
                   </td>
                   <td className="px-5 py-3 text-cw-txt3">{run.time}</td>
+                  <td className="px-5 py-3 text-right">
+                    <button className="px-3 py-1 bg-cw-bg3 border border-cw-bdr text-cw-txt text-[10px] font-medium rounded hover:bg-cw-bdr transition-all">
+                      View PR
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
