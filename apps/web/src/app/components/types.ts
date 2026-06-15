@@ -11,4 +11,6 @@ export type Screen =
   | 'history'
   | 'repos'
   | 'cert'
-  | 'settings';
+  | 'settings'
+  | 'integrations'
+  | 'alerts';

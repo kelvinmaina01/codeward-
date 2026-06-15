@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import {
   LayoutDashboard, Radio, GitCompare, ShieldAlert, BarChart3,
   Bot, Monitor, Clock, GitFork, Award, Settings as SettingsIcon,
-  Sun, Moon, Circle, Menu, LogOut, LucideIcon, UsersRound, ChevronDown, Plus
+  Sun, Moon, Circle, Menu, LogOut, LucideIcon, UsersRound, ChevronDown, Plus, Blocks, Bell, Globe, X
 } from 'lucide-react';
 import { Theme, Screen } from './components/types';
 import { AuthPage } from './components/AuthPage';
@@ -18,6 +18,8 @@ import { DeployHistory } from './components/DeployHistory';
 import { Repositories } from './components/Repositories';
 import { Certificate } from './components/Certificate';
 import { Settings } from './components/Settings';
+import { Integrations } from './components/Integrations';
+import { Alerts } from './components/Alerts';
 import { RunDetail } from './components/RunDetail';
 import { useSession, signOut } from '../lib/auth';
 import { Toaster } from 'sonner';
@@ -42,6 +44,7 @@ interface NavGroup { group: string; items: NavItem[] }
 const nav: NavGroup[] = [
   { group: 'Overview', items: [
     { id: 'dashboard', label: 'Dashboard', dot: 'g', icon: LayoutDashboard },
+    { id: 'alerts', label: 'Alerts', dot: 'r', badge: 7, icon: Bell },
     { id: 'livefeed', label: 'Live feed', dot: 'a', badge: 1, icon: Radio },
   ]},
   { group: 'Analysis', items: [
@@ -60,6 +63,7 @@ const nav: NavGroup[] = [
     { id: 'repos', label: 'Repositories', dot: '', icon: GitFork },
     { id: 'cert', label: 'Certificate', dot: 'g', icon: Award },
     { id: 'settings', label: 'Settings', dot: '', icon: SettingsIcon },
+    { id: 'integrations', label: 'Integrations', dot: 'b', icon: Blocks },
   ]},
 ];
 
@@ -79,6 +83,8 @@ const topbarConfig: Record<Screen, { title: string; sub: string }> = {
   repos:     { title: 'Repositories', sub: '4 repos · health score last 30 days' },
   cert:      { title: 'Health certificate', sub: 'shareable · updates on every scan' },
   settings:  { title: 'Settings', sub: 'acme-corp · my-api · trust & automation' },
+  integrations: { title: 'Integrations', sub: 'Connect external tools and MCP servers' },
+  alerts:    { title: 'Alerts center', sub: 'acme-corp · active incidents & notifications' },
 };
 
 export default function App() {
@@ -90,6 +96,7 @@ export default function App() {
   const [isSidebarPinned, setIsSidebarPinned] = useState(false);
   const [globalOrgs, setGlobalOrgs] = useState<string[]>([]);
   const [activeOrg, setActiveOrg] = useState<string>('');
+  const [isGlobalFeedOpen, setIsGlobalFeedOpen] = useState(false);
 
   const theme = themeOrder[themeIdx];
   const cycleTheme = () => setThemeIdx(i => (i + 1) % themeOrder.length);
@@ -151,6 +158,8 @@ export default function App() {
       case 'repos':     return <Repositories activeOrg={activeOrg} />;
       case 'cert':      return <Certificate />;
       case 'settings':  return <Settings />;
+      case 'integrations': return <Integrations />;
+      case 'alerts':    return <Alerts />;
     }
   };
 
@@ -273,6 +282,9 @@ export default function App() {
                   <Plus size={14} /> Connect new repo
                 </button>
               )}
+              <button onClick={() => setIsGlobalFeedOpen(true)} className="px-4 py-2 rounded-md border border-cw-bdr bg-cw-bg2 text-cw-txt text-[13px] font-medium hover:bg-cw-bg3 transition-colors flex items-center gap-2">
+                <Globe size={14} /> Global feed
+              </button>
               <button className="px-4 py-2 rounded-md border border-cw-bdr bg-cw-bg2 text-cw-txt text-[13px] font-medium hover:bg-cw-bg3 transition-colors flex items-center gap-2">
                 <UsersRound size={14} /> Overview
               </button>
@@ -297,6 +309,56 @@ export default function App() {
         {showingRunDetail && (
           <div className="w-[450px] shrink-0 border-l border-cw-bdr bg-cw-bg2 flex flex-col h-full overflow-hidden shadow-2xl z-10 transition-transform duration-300 animate-in slide-in-from-right">
             <RunDetail sha={runDetailSha!} onBack={() => setRunDetailSha(null)} />
+          </div>
+        )}
+
+        {/* GLOBAL FEED DRAWER */}
+        {isGlobalFeedOpen && (
+          <div className="w-[400px] shrink-0 border-l border-cw-bdr bg-cw-bg2 flex flex-col h-full overflow-hidden shadow-2xl z-10 transition-transform duration-300 animate-in slide-in-from-right">
+            <div className="px-6 py-5 border-b border-cw-bdr flex items-center justify-between bg-cw-bg shrink-0">
+              <div>
+                <h2 className="text-[16px] font-bold text-cw-txt flex items-center gap-2"><Globe size={18} className="text-cw-blue" /> Global Feed</h2>
+                <div className="text-[12px] text-cw-txt3 mt-0.5">Top performers clearing technical debt</div>
+              </div>
+              <button onClick={() => setIsGlobalFeedOpen(false)} className="w-8 h-8 shrink-0 rounded hover:bg-cw-bg3 flex items-center justify-center text-cw-txt3 hover:text-cw-txt transition-colors">
+                <X size={18} />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-6 bg-cw-bg">
+              <div className="flex flex-col gap-3">
+                {[
+                  { user: 'alex-dev', score: 2450, rank: 1, org: 'acme-corp' },
+                  { user: 'sarah-j', score: 1840, rank: 2, org: 'pied-piper' },
+                  { user: 'michael.t', score: 1520, rank: 3, org: 'hooli' },
+                  { user: 'you', score: 1346, rank: 4, org: 'acme-corp' },
+                  { user: 'jenny_k', score: 980, rank: 5, org: 'stark-ind' },
+                ].map(u => (
+                  <div key={u.user} className={`flex items-center gap-4 p-4 rounded-xl border ${u.user === 'you' ? 'bg-cw-blue/5 border-cw-blue/30' : 'bg-cw-bg2 border-cw-bdr'}`}>
+                    <div className={`w-8 h-8 flex items-center justify-center rounded-full font-bold text-[12px] ${u.rank === 1 ? 'bg-cw-amber text-cw-bg' : u.rank === 2 ? 'bg-cw-txt3 text-cw-bg' : u.rank === 3 ? 'bg-cw-txt2 text-cw-bg' : 'bg-cw-bg3 text-cw-txt'}`}>
+                      #{u.rank}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-cw-txt text-[13px] truncate">{u.user}</div>
+                      <div className="text-[11px] text-cw-txt3 truncate">{u.org}</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-[14px] font-bold text-cw-green">{u.score}</div>
+                      <div className="text-[10px] text-cw-txt3 uppercase tracking-wider">lines cleared</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              
+              <div className="mt-8 p-4 bg-cw-bg2 border border-cw-bdr rounded-xl">
+                <h3 className="text-[12px] font-semibold text-cw-txt mb-2">Want to appear on the leaderboard?</h3>
+                <p className="text-[12px] text-cw-txt2 mb-4 leading-relaxed">
+                  You can opt-in to show your cleared debt to the global community in your Settings.
+                </p>
+                <button onClick={() => { setIsGlobalFeedOpen(false); setScreen('settings'); }} className="w-full px-4 py-2 bg-cw-bg text-cw-txt border border-cw-bdr rounded-lg text-[12px] font-medium hover:bg-cw-bg3 transition-colors">
+                  Go to Settings
+                </button>
+              </div>
+            </div>
           </div>
         )}
 

@@ -1,4 +1,5 @@
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { ShieldAlert, Bot, Monitor, Blocks, Key } from 'lucide-react';
 
 interface Props {
   onRunClick?: (sha: string) => void;
@@ -205,6 +206,105 @@ export function Dashboard({ onRunClick }: Props) {
             ))}
           </div>
         </div>
+      </div>
+
+      {/* Row 5: Tactical Platform Sections */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        
+        {/* Section 1: High Priority Alerts */}
+        <div className="bg-cw-bg2 border border-cw-bdr rounded-lg p-5">
+          <div className="flex items-center justify-between mb-4">
+            <div className="text-[11px] font-semibold tracking-wider text-cw-txt3">HIGH PRIORITY ALERTS</div>
+            <button className="text-[11px] text-cw-blue hover:underline">View all Alerts &rarr;</button>
+          </div>
+          <div className="flex flex-col gap-3">
+            <div className="p-3 border border-cw-red/30 bg-cw-red/5 rounded-lg flex gap-3 items-start">
+              <div className="w-8 h-8 rounded bg-cw-red/20 flex items-center justify-center text-cw-red shrink-0"><Key size={16} /></div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between">
+                  <div className="text-[13px] font-bold text-cw-txt">API key exposed</div>
+                  <div className="text-[11px] text-cw-txt3">2m ago</div>
+                </div>
+                <div className="text-[12px] text-cw-txt2 mt-0.5 truncate">Stripe key hardcoded in payments-api.</div>
+                <button className="mt-3 text-[11px] font-medium text-white bg-cw-red hover:brightness-110 px-3 py-1.5 rounded shadow-sm">Resolve now</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Section 2: Agent Activity Stream */}
+        <div className="bg-cw-bg2 border border-cw-bdr rounded-lg p-5">
+          <div className="flex items-center justify-between mb-4">
+            <div className="text-[11px] font-semibold tracking-wider text-cw-txt3">AGENT ACTIVITY STREAM</div>
+          </div>
+          <div className="flex flex-col gap-3 relative before:absolute before:left-[15px] before:top-2 before:bottom-2 before:w-[2px] before:bg-cw-bdr">
+            {[
+              { text: 'Deploy Manager auto-approved commit 3fa2c1', time: '14m ago', icon: Monitor, color: 'text-cw-green' },
+              { text: 'Security Agent rotated Stripe key in payments-api', time: '1h ago', icon: ShieldAlert, color: 'text-cw-red' },
+              { text: 'Chat Agent suggested fix for N+1 queries across 3 repos', time: 'Yesterday', icon: Bot, color: 'text-cw-purple' }
+            ].map((ev, i) => (
+              <div key={i} className="flex gap-4 items-start relative z-10">
+                <div className="w-8 h-8 rounded-full bg-cw-bg border border-cw-bdr flex items-center justify-center shrink-0">
+                  <ev.icon size={14} className={ev.color} />
+                </div>
+                <div className="mt-1 flex-1">
+                  <div className="text-[13px] text-cw-txt font-medium">{ev.text}</div>
+                  <div className="text-[11px] text-cw-txt3">{ev.time}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Section 3: Pending Approvals */}
+        <div className="bg-cw-bg2 border border-cw-bdr rounded-lg p-5">
+          <div className="flex items-center justify-between mb-4">
+            <div className="text-[11px] font-semibold tracking-wider text-cw-txt3">PENDING APPROVALS</div>
+          </div>
+          <div className="flex flex-col gap-3">
+            <div className="p-3 border border-cw-amber/30 bg-cw-amber/5 rounded-lg flex items-center justify-between">
+              <div>
+                <div className="text-[13px] font-bold text-cw-txt">Staging Deploy: my-api</div>
+                <div className="text-[12px] text-cw-txt2 mt-0.5">Commit 3fa2c1 passed all 5 agent gates.</div>
+              </div>
+              <button className="px-3 py-1.5 bg-cw-amber text-cw-bg hover:brightness-110 text-[11px] font-bold rounded shadow-sm">Approve</button>
+            </div>
+            <div className="p-3 border border-cw-bdr bg-cw-bg rounded-lg flex items-center justify-between opacity-60">
+              <div>
+                <div className="text-[13px] font-bold text-cw-txt">PR #214: auth-service</div>
+                <div className="text-[12px] text-cw-txt2 mt-0.5">Blocked by Guardian Agent (tests failing).</div>
+              </div>
+              <button className="px-3 py-1.5 bg-cw-bg3 text-cw-txt3 text-[11px] font-medium rounded cursor-not-allowed">Review</button>
+            </div>
+          </div>
+        </div>
+
+        {/* Section 4: Integration Health */}
+        <div className="bg-cw-bg2 border border-cw-bdr rounded-lg p-5 flex flex-col justify-between">
+          <div>
+            <div className="text-[11px] font-semibold tracking-wider text-cw-txt3 mb-4">INTEGRATION HEALTH</div>
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                { name: 'Slack', status: 'Connected', color: 'bg-cw-green' },
+                { name: 'Sentry', status: 'Live feed', color: 'bg-cw-green' },
+                { name: 'Supabase', status: 'Syncing...', color: 'bg-cw-amber' },
+                { name: 'Jira', status: 'Config error', color: 'bg-cw-red' }
+              ].map(int => (
+                <div key={int.name} className="flex items-center gap-2 p-3 border border-cw-bdr rounded-md bg-cw-bg">
+                  <div className={`w-2 h-2 rounded-full shrink-0 ${int.color} ${int.status === 'Syncing...' ? 'animate-pulse' : ''}`} />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[13px] font-bold text-cw-txt truncate">{int.name}</div>
+                    <div className="text-[11px] text-cw-txt3 truncate">{int.status}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <button className="mt-5 text-[12px] font-medium text-cw-txt2 hover:text-cw-txt flex items-center gap-1.5 w-fit transition-colors">
+            <Blocks size={14} /> Manage integrations
+          </button>
+        </div>
+
       </div>
       
       <div className="h-4" />

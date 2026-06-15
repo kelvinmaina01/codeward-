@@ -254,7 +254,11 @@ export function ConnectRepo({ user, onConnect, onSkip, activeOrg, setActiveOrg, 
     const config = configs[repo.full] || { agents: { security: true, bloat: true, broken_code: true, architecture: true, ai_era: true, compliance: true, data_dx: true } };
 
     return (
-      <div className={`relative flex flex-col bg-cw-bg border ${sel || repo.connected || isExpanded ? 'border-cw-purple' : 'border-cw-bdr'} rounded-xl mb-3 overflow-hidden transition-all duration-200 ${repo.archived ? 'opacity-50 grayscale' : 'hover:border-cw-txt3'}`}>
+      <div className={`relative flex flex-col bg-cw-bg transition-colors duration-200 ${
+        compact 
+          ? `border ${sel || repo.connected || isExpanded ? 'border-cw-purple' : 'border-cw-bdr'} rounded-xl mb-3 ${repo.archived ? 'opacity-50 grayscale' : 'hover:border-cw-txt3'}`
+          : `border-b border-cw-bdr last:border-0 ${sel || isExpanded ? 'bg-cw-purple/5' : 'hover:bg-cw-bg3'} ${repo.archived ? 'opacity-50 grayscale' : ''}`
+      }`}>
         {/* Main Row */}
         <div 
           onClick={() => {
@@ -269,134 +273,136 @@ export function ConnectRepo({ user, onConnect, onSkip, activeOrg, setActiveOrg, 
               setExpandedRepo(expandedRepo === repo.full ? null : repo.full);
             }
           }}
-          className={`p-4 md:p-5 flex items-start sm:items-center justify-between gap-4 ${!repo.archived && !compact ? 'cursor-pointer' : ''}`}
+          className={
+            compact 
+              ? `p-4 md:p-5 flex items-start sm:items-center justify-between gap-4 ${!repo.archived ? 'cursor-pointer' : ''}`
+              : `p-4 flex flex-col md:flex-row md:items-center gap-4 ${!repo.archived ? 'cursor-pointer' : ''}`
+          }
         >
+          {/* Checkbox (Always visible if needed, but here mainly for compact or left side of table) */}
+          <div className="hidden md:flex w-8 shrink-0 items-center justify-center">
+            <div className={`w-[18px] h-[18px] rounded-[5px] border-[1.5px] flex items-center justify-center transition-all duration-150 ${sel || repo.connected ? 'border-cw-purple bg-cw-purple' : 'border-cw-bdr bg-cw-bg2'}`}>
+              {(sel || repo.connected) && <Check size={11} color="#fff" />}
+            </div>
+          </div>
+          
+          {/* Mobile Checkbox for compact */}
           {compact && (
-            <div className={`w-[18px] h-[18px] mt-0.5 rounded-[5px] border-[1.5px] flex items-center justify-center shrink-0 transition-all duration-150 ${sel || repo.connected ? 'border-cw-purple bg-cw-purple' : 'border-cw-bdr bg-transparent'}`}>
+            <div className={`md:hidden w-[18px] h-[18px] mt-0.5 rounded-[5px] border-[1.5px] flex items-center justify-center shrink-0 transition-all duration-150 ${sel || repo.connected ? 'border-cw-purple bg-cw-purple' : 'border-cw-bdr bg-transparent'}`}>
               {(sel || repo.connected) && <Check size={11} color="#fff" />}
             </div>
           )}
-          
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              {repo.private ? <Lock size={14} className="text-cw-amber" /> : <Globe size={14} className="text-cw-green" />}
-              <span className="text-[14px] font-bold text-cw-txt">{repo.name}</span>
-              {repo.connected && repo.auditStatus === 'pending_audit' && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-cw-amber/10 text-cw-amber tracking-wider ml-2 flex items-center gap-1"><Loader size={10} className="animate-spin" /> INITIAL AUDIT RUNNING...</span>}
-              {repo.connected && repo.auditStatus === 'active' && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-cw-green/10 text-cw-green tracking-wider ml-2 flex items-center gap-1"><Shield size={10} /> PROTECTED</span>}
-              {repo.connected && (!repo.auditStatus || repo.auditStatus === 'unconnected') && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-cw-green/10 text-cw-green tracking-wider ml-2">✓ CONNECTED</span>}
-              {repo.archived && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-cw-red/10 text-cw-red tracking-wider ml-2">ARCHIVED</span>}
+
+          {/* Table Column 1: Repository Info */}
+          <div className={`min-w-0 ${compact ? 'flex-1' : 'flex-[2] min-w-[200px]'}`}>
+            <div className="flex items-center gap-2 mb-1 flex-wrap">
+              {repo.private ? <Lock size={14} className="text-cw-amber shrink-0" /> : <Globe size={14} className="text-cw-green shrink-0" />}
+              <span className="text-[14px] font-bold text-cw-txt truncate">{repo.name}</span>
+              {repo.connected && repo.auditStatus === 'pending_audit' && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-cw-amber/10 text-cw-amber tracking-wider ml-1 flex items-center gap-1 shrink-0"><Loader size={10} className="animate-spin" /> INITIAL AUDIT RUNNING...</span>}
+              {repo.connected && repo.auditStatus === 'active' && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-cw-green/10 text-cw-green tracking-wider ml-1 flex items-center gap-1 shrink-0"><Shield size={10} /> PROTECTED</span>}
+              {repo.connected && (!repo.auditStatus || repo.auditStatus === 'unconnected') && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-cw-green/10 text-cw-green tracking-wider ml-1 shrink-0">✓ CONNECTED</span>}
+              {repo.archived && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-cw-red/10 text-cw-red tracking-wider ml-1 shrink-0">ARCHIVED</span>}
             </div>
             
-            {!compact && <div className="text-[13px] text-cw-txt2 truncate pr-4 mt-1">{repo.desc || 'No description provided.'}</div>}
+            <div className={`text-[12px] text-cw-txt2 mt-1 line-clamp-1 ${compact ? '' : 'pr-4'}`}>{repo.desc || 'No description provided.'}</div>
             
-            {/* Meta tags */}
-            <div className="flex items-center gap-4 mt-2.5 flex-wrap">
+            {/* Mobile / Compact Meta tags (hidden on desktop if !compact) */}
+            <div className={`flex items-center gap-3 mt-2 flex-wrap ${!compact ? 'md:hidden' : ''}`}>
               <div className="flex items-center gap-1.5">
                 <div className="w-2 h-2 rounded-full" style={{ backgroundColor: langColors[repo.lang] || langColors.Unknown }} />
-                <span className="text-[11px] text-cw-txt font-medium">{repo.lang}</span>
+                <span className="text-[11px] text-cw-txt">{repo.lang}</span>
               </div>
-              {repo.stars > 0 && (
-                <div className="flex items-center gap-1">
-                  <Star size={12} className="text-cw-amber fill-cw-amber" />
-                  <span className="text-[11px] text-cw-txt">{repo.stars}</span>
-                </div>
-              )}
-              {repo.forks > 0 && (
-                <div className="flex items-center gap-1">
-                  <GitBranch size={12} className="text-cw-txt2" />
-                  <span className="text-[11px] text-cw-txt2">{repo.forks}</span>
-                </div>
-              )}
-              {repo.issues > 0 && (
-                <div className="flex items-center gap-1">
-                  <AlertCircle size={12} className={repo.issues > 10 ? 'text-cw-red' : 'text-cw-amber'} />
-                  <span className={`text-[11px] ${repo.issues > 10 ? 'text-cw-red' : 'text-cw-amber'}`}>{repo.issues} issues</span>
-                </div>
-              )}
-              <span className="flex items-center gap-1.5 text-[11px] text-cw-txt3"><Clock size={11} /> {timeAgo(repo.pushed)}</span>
-              {!compact && repo.size > 0 && <span className="text-[11px] text-cw-txt3">{(repo.size / 1024).toFixed(1)} MB</span>}
+              {repo.stars > 0 && <span className="flex items-center gap-1 text-[11px] text-cw-txt"><Star size={11} className="text-cw-amber fill-cw-amber" /> {repo.stars}</span>}
+              <span className="flex items-center gap-1 text-[11px] text-cw-txt3"><Clock size={11} /> {timeAgo(repo.pushed)}</span>
             </div>
-            
-            {/* Topics */}
-            {!compact && repo.topics?.length > 0 && (
-              <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-                {repo.topics.slice(0, 5).map(t => (
-                  <span key={t} className="px-2 py-0.5 rounded-full bg-cw-purple/10 text-cw-purple border border-cw-purple/20 text-[10px]">{t}</span>
-                ))}
-              </div>
-            )}
           </div>
 
-          {!compact && !repo.connected && !repo.archived && (
-            <div className="shrink-0 pt-2 flex items-center gap-2">
-              <button 
-                onClick={(e) => { e.stopPropagation(); setExpandedRepo(isExpanded ? null : repo.full); }}
-                className="w-8 h-[30px] flex items-center justify-center bg-cw-bg2 border border-cw-bdr hover:bg-cw-bg3 text-cw-txt3 hover:text-cw-txt text-[12px] font-medium rounded-lg transition-colors"
-                title="Configure Agents"
-              >
-                <ChevronDown size={14} className={`transform transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
-              </button>
-              <button 
-                onClick={(e) => { e.stopPropagation(); handleInlineConnect(repo); }}
-                disabled={connecting}
-                className="px-4 h-[30px] bg-cw-purple hover:brightness-110 text-white text-[12px] font-semibold rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50"
-              >
-                {connecting ? <Loader size={14} className="animate-spin" /> : <GitBranch size={14} />}
-                Connect
-              </button>
+          {/* Table Column 2: Language (Desktop only when !compact) */}
+          {!compact && (
+            <div className="hidden md:flex flex-1 min-w-[100px] items-center gap-2">
+              <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: langColors[repo.lang] || langColors.Unknown }} />
+              <span className="text-[13px] text-cw-txt font-medium">{repo.lang}</span>
             </div>
           )}
 
-          {!compact && repo.connected && !repo.archived && (
-            <div className="shrink-0 pt-2 flex items-center gap-2">
+          {/* Table Column 3: Stats (Desktop only when !compact) */}
+          {!compact && (
+            <div className="hidden md:flex flex-1 min-w-[120px] items-center gap-3 text-[12px] text-cw-txt2">
+              {repo.stars > 0 && <span className="flex items-center gap-1" title="Stars"><Star size={13} className="text-cw-amber" /> {repo.stars}</span>}
+              {repo.forks > 0 && <span className="flex items-center gap-1" title="Forks"><GitBranch size={13} /> {repo.forks}</span>}
+              {repo.issues > 0 && <span className={`flex items-center gap-1 ${repo.issues > 10 ? 'text-cw-red' : 'text-cw-amber'}`} title="Issues"><AlertCircle size={13} /> {repo.issues}</span>}
+              {repo.stars === 0 && repo.forks === 0 && repo.issues === 0 && <span className="text-cw-txt3 opacity-50">—</span>}
+            </div>
+          )}
+
+          {/* Table Column 4: Updated (Desktop only when !compact) */}
+          {!compact && (
+            <div className="hidden md:flex flex-1 min-w-[100px] flex-col justify-center text-[12px]">
+              <span className="text-cw-txt font-medium mb-0.5">{timeAgo(repo.pushed)}</span>
+              {repo.size > 0 && <span className="text-cw-txt3">{(repo.size / 1024).toFixed(1)} MB</span>}
+            </div>
+          )}
+
+          {/* Table Column 5 / Compact Action: Actions */}
+          <div className={`shrink-0 flex items-center justify-end gap-2 ${compact ? 'pt-2 md:pt-0' : 'w-[120px]'}`}>
+            {!repo.connected && !repo.archived && (
+              <>
+                {!compact && (
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); setExpandedRepo(isExpanded ? null : repo.full); }}
+                    className="w-8 h-[30px] flex items-center justify-center bg-cw-bg2 border border-cw-bdr hover:bg-cw-bg3 text-cw-txt3 hover:text-cw-txt text-[12px] font-medium rounded-lg transition-colors"
+                  >
+                    <ChevronDown size={14} className={`transform transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                  </button>
+                )}
+                <button 
+                  onClick={(e) => { e.stopPropagation(); handleInlineConnect(repo); }}
+                  disabled={connecting}
+                  className={`h-[30px] bg-cw-purple hover:brightness-110 text-white font-semibold rounded-lg transition-colors flex items-center justify-center gap-2 whitespace-nowrap disabled:opacity-50 ${compact ? 'px-3 text-[11px]' : 'px-4 text-[12px]'}`}
+                >
+                  {connecting ? <Loader size={14} className="animate-spin" /> : <GitBranch size={14} />}
+                  <span className={compact ? 'hidden sm:inline' : ''}>Connect</span>
+                </button>
+              </>
+            )}
+
+            {repo.connected && !repo.archived && (
               <button 
                 onClick={(e) => { e.stopPropagation(); window.location.href = `/repositories/${repo.full}`; }}
-                className="px-4 h-[30px] bg-[#2EA043] hover:bg-[#2c974b] text-white text-[12px] font-semibold rounded-lg transition-colors flex items-center gap-2"
+                className={`h-[30px] bg-[#2EA043] hover:bg-[#2c974b] text-white font-semibold rounded-lg transition-colors flex items-center justify-center gap-1 whitespace-nowrap ${compact ? 'px-2.5 text-[11px]' : 'px-4 text-[12px]'}`}
               >
-                Go to Repo
+                Go <span className={compact ? 'hidden sm:inline' : ''}>to Repo</span>
                 <ArrowRight size={14} />
               </button>
-            </div>
-          )}
-
-          {compact && repo.connected && !repo.archived && (
-            <div className="shrink-0 flex items-center ml-2">
-              <button 
-                onClick={(e) => { e.stopPropagation(); window.location.href = `/repositories/${repo.full}`; }}
-                className="px-2.5 h-[24px] bg-[#2EA043] hover:bg-[#2c974b] text-white text-[11px] font-bold rounded flex items-center gap-1 transition-colors"
-              >
-                Go
-                <ArrowRight size={12} />
-              </button>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
-        {/* Scope Selector Drawer */}
+        {/* Scope Selector Drawer (Expands below the row) */}
         {!compact && isExpanded && !repo.connected && (
-          <div className="border-t border-cw-bdr bg-cw-bg/50 p-5 animate-in slide-in-from-top-2 duration-200">
+          <div className="border-t border-cw-bdr bg-cw-bg2/50 p-5 md:pl-[4.5rem] animate-in slide-in-from-top-2 duration-200">
             <h4 className="text-[13px] font-semibold text-cw-txt mb-1">Which agents should guard {repo.name}?</h4>
             <p className="text-[11px] text-cw-txt2 mb-4">Toggle the automated checks you want to run on every pull request.</p>
             
-            <div className="grid grid-cols-2 gap-3 mb-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-5">
               {AGENTS.map(agent => {
                 const isActive = config.agents[agent.id as keyof RepoConfig['agents']];
                 return (
                   <div 
                     key={agent.id}
                     onClick={() => toggleAgent(repo.full, agent.id as keyof RepoConfig['agents'])}
-                    className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-all ${isActive ? 'bg-cw-purple/10 border-cw-purple/40' : 'bg-cw-bg3 border-cw-bdr hover:border-cw-txt3'} ${agent.locked ? 'cursor-not-allowed opacity-90' : ''}`}
+                    className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-all ${isActive ? 'bg-cw-purple/10 border-cw-purple/40' : 'bg-cw-bg border-cw-bdr hover:border-cw-txt3'} ${agent.locked ? 'cursor-not-allowed opacity-90' : ''}`}
                   >
                     <div className={`mt-0.5 w-[16px] h-[16px] rounded-[4px] border-[1.5px] flex items-center justify-center shrink-0 ${isActive ? 'border-cw-purple bg-cw-purple' : 'border-cw-txt3 bg-transparent'}`}>
                       {isActive && <Check size={10} color="#fff" />}
                     </div>
                     <div>
-                      <div className="text-[12px] font-semibold text-cw-txt flex items-center gap-1.5">
-                        <agent.icon size={13} className={isActive ? 'text-cw-purple' : 'text-cw-txt3'} />
+                      <div className="text-[12px] font-semibold text-cw-txt flex items-center gap-1.5 line-clamp-1">
+                        <agent.icon size={13} className={isActive ? 'text-cw-purple' : 'text-cw-txt3 shrink-0'} />
                         {agent.name}
-                        {agent.locked && <span className="text-[9px] px-1 bg-cw-bg2 text-cw-txt3 border border-cw-bdr rounded">Always on</span>}
+                        {agent.locked && <span className="text-[9px] px-1 bg-cw-bg2 text-cw-txt3 border border-cw-bdr rounded shrink-0">Always on</span>}
                       </div>
-                      <div className="text-[11px] text-cw-txt3 mt-0.5 leading-tight">{agent.desc}</div>
+                      <div className="text-[11px] text-cw-txt3 mt-0.5 leading-tight line-clamp-2">{agent.desc}</div>
                     </div>
                   </div>
                 );
@@ -453,7 +459,7 @@ export function ConnectRepo({ user, onConnect, onSkip, activeOrg, setActiveOrg, 
         
         {/* Main Left Content */}
         <div className="flex-1 overflow-y-auto w-full transition-all duration-300">
-          <div className="max-w-[900px] mx-auto px-8 pt-8 pb-32 flex flex-col items-center">
+          <div className="w-full max-w-[1200px] mx-auto px-4 md:px-8 pt-8 pb-32 flex flex-col items-center">
             <h1 className="text-4xl text-cw-txt mb-2 tracking-tight" style={{ fontFamily: "'DM Sans', sans-serif" }}>
               Welcome back, <span className="text-cw-purple">{firstName}</span> 👋
             </h1>
@@ -500,7 +506,7 @@ export function ConnectRepo({ user, onConnect, onSkip, activeOrg, setActiveOrg, 
             </button>
 
             {/* Filters Row (Main Page) */}
-            <div className="w-full max-w-[800px] flex flex-wrap gap-4 items-center justify-center mb-8">
+            <div className="w-full max-w-[1000px] flex flex-wrap gap-4 items-center justify-center mb-8">
               
               {/* Custom Workspace Dropdown */}
               <div className="relative">
@@ -591,7 +597,7 @@ export function ConnectRepo({ user, onConnect, onSkip, activeOrg, setActiveOrg, 
             </div>
 
             {/* Main List (First 8) */}
-            <div className="w-full max-w-[800px] transition-all">
+            <div className="w-full transition-all">
               {loading ? (
                 <div className="py-20 flex justify-center"><Loader size={24} className="animate-spin text-cw-purple" /></div>
               ) : error ? (
@@ -600,10 +606,22 @@ export function ConnectRepo({ user, onConnect, onSkip, activeOrg, setActiveOrg, 
                 <div className="py-10 text-cw-txt3 text-center">No repositories found matching filters.</div>
               ) : (
                 <>
-                  <div className="flex flex-col gap-2 w-full">
-                    {filteredRepos.slice(0, 8).map(repo => (
-                      <RepoCard key={repo.full} repo={repo} />
-                    ))}
+                  <div className="flex flex-col w-full border border-cw-bdr rounded-xl bg-cw-bg2 overflow-hidden shadow-sm">
+                    {/* Table Header */}
+                    <div className="hidden md:flex items-center px-4 py-3 border-b border-cw-bdr bg-cw-bg3 text-[11px] font-bold text-cw-txt3 uppercase tracking-wider">
+                      <div className="w-8 shrink-0"></div>
+                      <div className="flex-[2] min-w-[200px]">Repository</div>
+                      <div className="flex-1 min-w-[100px]">Language</div>
+                      <div className="flex-1 min-w-[120px]">Stats</div>
+                      <div className="flex-1 min-w-[100px]">Updated</div>
+                      <div className="w-[120px] text-right shrink-0">Action</div>
+                    </div>
+                    {/* Table Body */}
+                    <div className="flex flex-col bg-cw-bg">
+                      {filteredRepos.slice(0, 8).map(repo => (
+                        <RepoCard key={repo.full} repo={repo} />
+                      ))}
+                    </div>
                   </div>
                   
                   {filteredRepos.length > 8 && (
