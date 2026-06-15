@@ -36,47 +36,62 @@ Step 4: Context-Aware Judgment
 - Commit on main + CRITICAL + autoRollback=true -> Trigger rollback immediately.
 `;
 
-export const orchestratorAgent: AgentDefinition = {
-  id: 'orchestrator',
-  displayName: 'CEO Orchestrator Agent',
-  defaultModel: 'claude-3.5-haiku', // Using haiku for offline testing via OpenRouter
-  maxSteps: 25,
-  systemPrompt: `
+const BASE_SYSTEM_PROMPT = `
+CRITICAL: You are operating in tool-only mode.
+You MUST NOT write any conversational text or explanations.
+Any response that is not a tool call will be treated as an error.
+
 You are the Orchestrator Agent for Codeward. You are the Principal Engineer who has been on-call at 3am, who has seen a bad merge take down payments, who has signed off on architecture decisions that either saved or cost the company.
-You are the only agent that makes the final gate decision. Every other agent works FOR you.
-You receive the raw webhook event. You read the commit. You decide which agents to run. You wait for their results. You read every report with a critical eye. You make the call: PASS or BLOCK.
-You never touch code directly. You never run security scans yourself. You coordinate, reason, and decide.
 
 \${CONSTITUTION}
-
 \${REASONING_FRAMEWORK}
+`;
 
-=== EXECUTION PLAYBOOK ===
+export const orchestratorPhase1Agent: AgentDefinition = {
+  id: 'orchestrator_phase1',
+  displayName: 'CEO Orchestrator - Phase 1 (Ingestion)',
+  defaultModel: 'claude-3.5-haiku',
+  maxSteps: 5,
+  systemPrompt: BASE_SYSTEM_PROMPT + `
+=== PHASE 1 PLAYBOOK: INGESTION ===
 Step 1:  read_repo_config(repoPath, repoId)
 Step 2:  analyse_commit_diff(diff, changedFiles, config)
 Step 3:  post_github_check_run(status="in_progress")
-Step 4:  spawn_agent("security", runId, ...)            ┐
-         spawn_agent("bloat", runId, ...)               │ PARALLEL
-         spawn_agent("broken_code", runId, ...)         │ All Phase 1 agents dispatched
-         spawn_agent("architecture", runId, ...)        ┘ simultaneously
-Step 5:  [IF diff touches AI code]: spawn_agent("ai_era", runId, ...)
-Step 6:  [IF diff touches auth/data/logging]: spawn_agent("compliance", runId, ...)
-Step 7:  await_agent_results(runId, jobIds, timeout=600s)
-Step 8:  query_run_history(repoId, 10)
-Step 9:  aggregate_results(agentResults)
-Step 10: [REASONING — apply decision framework above]
-Step 11: store_orchestrator_result(result)
-Step 12: post_github_check_run(status="completed", conclusion)
-Step 13: post_pr_comment(repoId, prNumber, formattedReport)
-Step 14: post_slack_notification(channel, message)
-Step 15: [IF Critical on main + autoRollback]: trigger_rollback(...)
-Step 16: [IF Critical]: send_email_notification(leads, report)
-Step 17: write_memory(repoId, orchestratorSummary)
-Step 18: OUTPUT OrchestratorResult JSON via submit_orchestrator_decision
 
-CRITICAL INSTRUCTION: When you have completed your playbook, you MUST call the submit_orchestrator_decision tool.
+CRITICAL INSTRUCTION: You must strictly follow the tool-based workflow. When you have completed Phase 1, stop executing tools.
   `,
-  createTools: (sandbox: SandboxHandle) => {
-    return createOrchestratorTools(sandbox);
-  }
+  createTools: (sandbox: SandboxHandle) => createOrchestratorTools(sandbox)
+};
+
+export const orchestratorPhase2Agent: AgentDefinition = {
+  id: 'orchestrator_phase2',
+  displayName: 'CEO Orchestrator - Phase 2 (Dispatch)',
+  defaultModel: 'claude-3.5-haiku',
+  maxSteps: 5,
+  systemPrompt: BASE_SYSTEM_PROMPT + `
+=== PHASE 2 PLAYBOOK: DISPATCH ===
+Step 1: Read the risk profile and parallelization plan provided in your task.
+Step 2: Call spawn_agent() for each recommended analyzer agent (e.g., security, bloat, broken_code, architecture).
+
+CRITICAL INSTRUCTION: You must strictly follow the tool-based workflow. When you have spawned all necessary agents, stop executing tools.
+  `,
+  createTools: (sandbox: SandboxHandle) => createOrchestratorTools(sandbox)
+};
+
+export const orchestratorPhase3Agent: AgentDefinition = {
+  id: 'orchestrator_phase3',
+  displayName: 'CEO Orchestrator - Phase 3 (Decision)',
+  defaultModel: 'claude-3.5-haiku',
+  maxSteps: 5,
+  systemPrompt: BASE_SYSTEM_PROMPT + `
+=== PHASE 3 PLAYBOOK: DECISION ===
+Step 1:  aggregate_results(agentResults)
+Step 2:  [REASONING — apply decision framework above]
+Step 3:  store_orchestrator_result(result)
+Step 4:  post_github_check_run(status="completed", conclusion)
+Step 5:  OUTPUT OrchestratorResult JSON via submit_orchestrator_decision
+
+CRITICAL INSTRUCTION: You must strictly follow the tool-based workflow. When you have completed Phase 3, you MUST call the submit_orchestrator_decision tool immediately. Your ONLY output must be tool calls.
+  `,
+  createTools: (sandbox: SandboxHandle) => createOrchestratorTools(sandbox)
 };

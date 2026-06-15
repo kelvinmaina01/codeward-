@@ -11,8 +11,6 @@
  * If you want to replace Claude entirely, you write a new provider file
  * and swap the import in registry.ts. Zero agent code changes.
  * ============================================================================
- */
-
 import { generateText } from 'ai';
 import { createOpenAI } from '@ai-sdk/openai';
 import type { AgentProvider, AgentRunConfig, AgentResult, AgentFinding } from '../provider.js';
@@ -32,12 +30,8 @@ export class AnthropicProvider implements AgentProvider {
     const startTime = Date.now();
 
     let finalModel = model;
-    if (finalModel === 'claude-3-5-haiku-latest') {
-      finalModel = 'claude-3.5-haiku';
-    }
-
     // OpenRouter requires the provider prefix (e.g., anthropic/claude-3.5-haiku)
-    const openRouterModelName = finalModel.startsWith('anthropic/') ? finalModel : `anthropic/${finalModel}`;
+    const openRouterModelName = finalModel.includes('/') ? finalModel : `anthropic/${finalModel}`;
 
     try {
       const result = await generateText({
@@ -45,18 +39,24 @@ export class AnthropicProvider implements AgentProvider {
         system: config.systemPrompt,
         prompt: config.taskPrompt,
         tools: config.tools as any,
-        maxSteps: config.maxSteps,
+        maxSteps: 40,
       });
 
-      // Check if the agent successfully used the 'submit_security_report' final tool
+      // Check if the agent successfully used a final submission tool
       let rawFindings: any[] = [];
-      const submitToolCall = result.toolCalls?.find(tc => tc.toolName === 'submit_security_report');
+      let orchestratorDecision: any = null;
+
+      const securityToolCall = result.toolCalls?.find(tc => tc.toolName === 'submit_security_report');
+      const orchestratorToolCall = result.toolCalls?.find(tc => tc.toolName === 'submit_orchestrator_decision');
       
-      if (submitToolCall) {
+      if (securityToolCall) {
         // @ts-ignore
-        const report = submitToolCall.args as any;
+        const report = securityToolCall.args as any;
         rawFindings = report.findings || [];
         console.log(`[AnthropicProvider] Captured structured report from 'submit_security_report' tool.`);
+      } else if (orchestratorToolCall) {
+        orchestratorDecision = orchestratorToolCall.args;
+        console.log(`[AnthropicProvider] Captured structured decision from 'submit_orchestrator_decision' tool.`);
       } else {
         // Fallback: Parse the JSON array from the final text
         rawFindings = this.extractFindings(result.text);
@@ -71,6 +71,21 @@ export class AnthropicProvider implements AgentProvider {
       });
 
       const score = this.computeScore(strictFindings);
+
+      if (orchestratorDecision) {
+        return {
+          agentId: config.agentId,
+          status: orchestratorDecision.gateDecision === 'BLOCK' ? 'failed' : 'passed',
+          findings: [orchestratorDecision],
+          score: orchestratorDecision.overallWeightedScore || 100,
+          duration: Date.now() - startTime,
+          modelUsed: finalModel,
+          tokenUsage: {
+            input: (result.usage as any)?.promptTokens ?? 0,
+            output: (result.usage as any)?.completionTokens ?? 0,
+          },
+        };
+      }
 
       return {
         agentId: config.agentId,

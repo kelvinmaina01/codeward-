@@ -1,4 +1,13 @@
-import { pgTable, serial, text, varchar, timestamp, integer, boolean, jsonb, real } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, varchar, timestamp, integer, boolean, jsonb, real, uuid } from "drizzle-orm/pg-core";
+
+export interface Finding {
+  severity: "info" | "low" | "medium" | "high" | "critical";
+  category: string;
+  title: string;
+  description: string;
+  file?: string;
+  line?: number;
+}
 
 export const organization = pgTable('organization', {
   id: serial('id').primaryKey(),
@@ -150,4 +159,15 @@ export const verification = pgTable("verification", {
 	expiresAt: timestamp('expiresAt').notNull(),
 	createdAt: timestamp('createdAt'),
 	updatedAt: timestamp('updatedAt')
+});
+
+export const agentReports = pgTable("agent_reports", {
+  id:          uuid("id").defaultRandom().primaryKey(),
+  runId:       text("run_id").notNull(),
+  agentType:   text("agent_type").notNull(),
+  status:      text("status").notNull().default("pending"), // pending | completed | error
+  severity:    text("severity"),
+  findings:    jsonb("findings").$type<Finding[]>().default([]),
+  completedAt: timestamp("completed_at"),
+  createdAt:   timestamp("created_at").defaultNow(),
 });
