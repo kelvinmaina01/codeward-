@@ -6,18 +6,43 @@ interface Props {
 }
 
 import { mockHealthData, mockDebtData, mockActivityRows } from '../../lib/mockAgentData';
+import { api } from '../../lib/api';
+import { useEffect, useState } from 'react';
 
 export function Dashboard({ onRunClick }: Props) {
+  const [stats, setStats] = useState({
+    repositoriesProtected: 0,
+    runsToday: 0,
+    debtRemoved: 0,
+    interventions: 0
+  });
+
+  useEffect(() => {
+    api.api.stats.dashboard.$get()
+      .then(res => res.json())
+      .then(data => {
+        if (!('error' in data)) {
+          setStats({
+            repositoriesProtected: data.repositoriesProtected,
+            runsToday: data.runsToday,
+            debtRemoved: data.debtRemoved,
+            interventions: data.interventions
+          });
+        }
+      })
+      .catch(console.error);
+  }, []);
+
   return (
     <div className="flex-1 overflow-y-auto px-8 py-6 bg-cw-bg text-cw-txt flex flex-col gap-6">
       
       {/* Row 1: 4 Stat Cards */}
       <div className="grid grid-cols-4 gap-4">
         {[
-          { label: 'REPOSITORIES PROTECTED', value: '3/6', sub: 'Active tracking' },
-          { label: 'RUNS TODAY', value: '0', sub: '0 this week' },
-          { label: 'DEBT REMOVED', value: '-1346', sub: 'Lines of bloated code removed' },
-          { label: 'INTERVENTIONS', value: '1', sub: 'Automatic rollbacks triggered' },
+          { label: 'REPOSITORIES PROTECTED', value: stats.repositoriesProtected + '/6', sub: 'Active tracking' },
+          { label: 'RUNS TODAY', value: stats.runsToday.toString(), sub: '0 this week' },
+          { label: 'DEBT REMOVED', value: stats.debtRemoved.toString(), sub: 'Lines of bloated code removed' },
+          { label: 'INTERVENTIONS', value: stats.interventions.toString(), sub: 'Automatic rollbacks triggered' },
         ].map(stat => (
           <div key={stat.label} className="bg-cw-bg2 border border-cw-bdr rounded-lg p-5 flex flex-col">
             <span className="text-[11px] font-semibold tracking-wider text-cw-txt3 mb-3">{stat.label}</span>

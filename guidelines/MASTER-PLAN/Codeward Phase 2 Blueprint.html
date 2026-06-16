@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <title>Codeward — Phase 2 Blueprint (The Great Wiring & Business Logic)</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0 }
+        :root {
+            --bg: #0f1117; --bg2: #161b27; --bg3: #1e2535; --bg4: #252d3d;
+            --txt: #e8e8e6; --txt2: #aaa; --txt3: #666;
+            --bdr: #2a3040; --bdr2: #3a4255;
+            --blue: #4B7BEC; --green: #22C55E; --red: #EF4444;
+            --amber: #F59E0B; --purple: #8B5CF6; --teal: #14B8A6;
+            --pink: #EC4899; --orange: #F97316;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg); color: var(--txt);
+            line-height: 1.6; font-size: 13px;
+        }
+        .page { max-width: 1200px; margin: 0 auto; padding: 2rem 1.5rem }
+        .tabs { display: flex; gap: 4px; margin-bottom: 2rem; border-bottom: 0.5px solid var(--bdr); padding-bottom: 0; flex-wrap: wrap }
+        .tab { padding: 8px 16px; font-size: 12px; font-weight: 500; cursor: pointer; color: var(--txt2); border-bottom: 2px solid transparent; transition: all .15s; margin-bottom: -1px }
+        .tab:hover { color: var(--txt) }
+        .tab.active { color: var(--blue); border-bottom-color: var(--blue) }
+        .tab-content { display: none }
+        .tab-content.active { display: block }
+        h1 { font-size: 26px; font-weight: 500; letter-spacing: -.03em; margin-bottom: .25rem }
+        h2 { font-size: 18px; font-weight: 500; margin: 1.75rem 0 .75rem; color: var(--txt) }
+        h3 { font-size: 13px; font-weight: 500; color: var(--txt2); text-transform: uppercase; letter-spacing: .07em; margin: 1.25rem 0 .6rem }
+        .sub { font-size: 13px; color: var(--txt3); margin-bottom: 2rem }
+        .card { background: var(--bg2); border: 0.5px solid var(--bdr); border-radius: 10px; padding: 14px 16px; margin-bottom: 10px }
+        .g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px }
+        .g3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px }
+        .tag { display: inline-block; font-size: 10px; padding: 2px 8px; border-radius: 4px; font-weight: 500; margin: 2px }
+        .tag-blue { background: rgba(75, 123, 236, .15); color: #93B4F8; border: 0.5px solid rgba(75, 123, 236, .3) }
+        .tag-green { background: rgba(34, 197, 94, .12); color: #86EFAC; border: 0.5px solid rgba(34, 197, 94, .25) }
+        .tag-amber { background: rgba(245, 158, 11, .12); color: #FCD34D; border: 0.5px solid rgba(245, 158, 11, .25) }
+        .tag-purple { background: rgba(139, 92, 246, .12); color: #C4B5FD; border: 0.5px solid rgba(139, 92, 246, .25) }
+        .tag-gray { background: var(--bg3); color: var(--txt2); border: 0.5px solid var(--bdr) }
+        .warn { border-left: 3px solid var(--amber); background: rgba(245, 158, 11, .07); border-radius: 0 8px 8px 0; padding: 10px 14px; margin: 10px 0 }
+        .warn-t { font-size: 12px; font-weight: 500; color: #FCD34D; margin-bottom: 4px }
+        .good { border-left: 3px solid var(--green); background: rgba(34, 197, 94, .07); border-radius: 0 8px 8px 0; padding: 10px 14px; margin: 10px 0 }
+        .good-t { font-size: 12px; font-weight: 500; color: #86EFAC; margin-bottom: 4px }
+        p { font-size: 13px; color: var(--txt2); line-height: 1.7; margin-bottom: .75rem }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <h1>Codeward Phase 2 Blueprint</h1>
+        <p class="sub">Deep Architecture: The Bridge, Repo Onboarding, AI Credits, and End-to-End Orchestration.</p>
+
+        <!-- TABS -->
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('bridge',this)">1. Bridging The Gap (RPC & DB)</div>
+            <div class="tab" onclick="switchTab('repo',this)">2. Repo Connection Workflow</div>
+            <div class="tab" onclick="switchTab('credits',this)">3. AI Credits & Billing</div>
+            <div class="tab" onclick="switchTab('chat',this)">4. AIAgent Threading</div>
+            <div class="tab" onclick="switchTab('pipelines',this)">5. Diff & Deployment Loop</div>
+            <div class="tab" onclick="switchTab('game',this)">6. Gamification Engine</div>
+        </div>
+
+        <!-- TAB: BRIDGE -->
+        <div class="tab-content active" id="tab-bridge">
+            <h2>1. Bridging the UI and the Backend</h2>
+            <div class="card">
+                <h3>The Hono RPC & WebSocket Strategy</h3>
+                <p>To eliminate mock data, we must bridge `apps/web` to `apps/api`. We will NOT build disjoint REST endpoints. We will use <strong>Hono RPC (hono/client)</strong> to achieve end-to-end type safety from the DB schema all the way to the React props.</p>
+                <div class="g2">
+                    <div style="background:var(--bg3);padding:10px;border-radius:8px">
+                        <span class="tag tag-blue">The Data Bridge: Hono RPC</span>
+                        <p style="margin-top:5px;font-size:11px">We will export the Hono `AppType` from `apps/api/src/index.ts` and use `hc` (Hono Client) in the frontend. This gives us autocomplete on all DB models (like `runs` and `agent_tasks`) inside React without manually defining types.</p>
+                    </div>
+                    <div style="background:var(--bg3);padding:10px;border-radius:8px">
+                        <span class="tag tag-amber">The Real-Time Bridge: WebSockets</span>
+                        <p style="margin-top:5px;font-size:11px">We will introduce `@hono/node-ws`. The frontend will connect a WebSocket to `/ws/live-feed`. The backend will listen to BullMQ `completed` and `progress` events, broadcasting JSON to the frontend to animate the agent rings.</p>
+                    </div>
+                </div>
+                <h3 style="margin-top: 1rem;">Database Schema Expansion</h3>
+                <p>We will expand `db/schema.ts` to support Phase 2:</p>
+                <ul style="font-size:12px;color:var(--txt2);margin-left:20px;line-height:1.7">
+                    <li>Add <code>aiCredits</code> integer column to the <code>organization</code> table to track billing.</li>
+                    <li>Add <code>visibility</code> enum (private/public) to <code>runs</code> to support the Global Feed.</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- TAB: REPO -->
+        <div class="tab-content" id="tab-repo">
+            <h2>2. Connecting a New Repo (The Missing Onboarding)</h2>
+            <div class="card">
+                <h3>GitHub App OAuth & Sync</h3>
+                <p>A user must be able to securely connect their repository. We cannot run agents without code.</p>
+                <div class="g2">
+                    <div style="background:var(--bg3);padding:10px;border-radius:8px">
+                        <span class="tag tag-green">GitHub App Installation</span>
+                        <p style="margin-top:5px;font-size:11px">We will build an endpoint <code>/api/github/install</code> that redirects the user to the GitHub App installation URL. Upon successful callback, we capture the <code>installation_id</code> and sync their accessible repositories to our <code>repositories</code> table.</p>
+                    </div>
+                    <div style="background:var(--bg3);padding:10px;border-radius:8px">
+                        <span class="tag tag-purple">ConnectRepo.tsx UI</span>
+                        <p style="margin-top:5px;font-size:11px">We will implement the <code>ConnectRepo.tsx</code> screen. It will fetch the synced repos via Hono RPC, list them with a "Connect" button, and trigger the very first "Baseline Audit" run to score the repo.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB: CREDITS -->
+        <div class="tab-content" id="tab-credits">
+            <h2>3. AI Credits & Stripe Billing</h2>
+            <div class="card">
+                <h3>The Cost of Intelligence</h3>
+                <p>Agents are expensive. Haiku and Sonnet burn tokens parsing ASTs. We must monetize and restrict access to prevent abuse.</p>
+                <ul style="font-size:12px;color:var(--txt2);margin-left:20px;line-height:1.7">
+                    <li><strong>Credit Ledger:</strong> Add a <code>credit_ledger</code> table to log every deduction (e.g., -150 credits for a Sonnet-4.5 security scan). This maps directly to the <code>tokenUsage</code> in <code>agent_tasks</code>.</li>
+                    <li><strong>Stripe Integration:</strong> Build a <code>/api/billing/checkout</code> endpoint using Stripe Checkout. Users buy "Credit Packs" (e.g., $50 for 10,000 AI Credits).</li>
+                    <li><strong>Free Tier:</strong> New organizations get 1,000 free credits on sign up (enough for 2-3 baseline audits) to test the platform.</li>
+                    <li><strong>Out of Credits:</strong> The webhook receiver will check the <code>organization.aiCredits</code> balance. If it's ≤ 0, the webhook is rejected and the agents do not run.</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- TAB: CHAT -->
+        <div class="tab-content" id="tab-chat">
+            <h2>4. The Codeward AI Command Center (`AIAgent.tsx`)</h2>
+            <div class="card">
+                <p>The AI Agent panel will evolve into a fully threaded chat experience powered by `claude-sonnet-4-5`.</p>
+                <ul style="font-size:12px;color:var(--txt2);margin-left:20px;line-height:1.7">
+                    <li><strong>Tool Use:</strong> The chat agent will have access to `query_run_history`, `explain_debt_item`, and `spawn_security_scan`.</li>
+                    <li><strong>Memory:</strong> We will implement the `agent_memory` database queries so the AI remembers context across sessions.</li>
+                    <li><strong>Streaming:</strong> Implement Server-Sent Events (SSE) so the Claude response streams directly into the side-pull drawer.</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- TAB: PIPELINES -->
+        <div class="tab-content" id="tab-pipelines">
+            <h2>5. The Diff Viewer & GitHub Workflow</h2>
+            <div class="card">
+                <p>When the Bloat Agent refactors a function, we must render the diff and allow the user to approve it.</p>
+                <div class="g2">
+                    <div style="background:var(--bg3);padding:10px;border-radius:8px">
+                        <span class="tag tag-green">Component: DiffViewer</span>
+                        <p style="margin-top:5px;font-size:11px">Build a split diff viewer. Show the old AST logic vs the AI's optimized logic. Render comments explaining the improvements.</p>
+                    </div>
+                    <div style="background:var(--bg3);padding:10px;border-radius:8px">
+                        <span class="tag tag-amber">Component: Staging/Approvals</span>
+                        <p style="margin-top:5px;font-size:11px">Wire the "Approve and Merge" button to the GitHub App API (`github/client.ts`). Approving in the dashboard triggers a PR merge.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB: GAMIFICATION -->
+        <div class="tab-content" id="tab-game">
+            <h2>6. Gamification Engine</h2>
+            <div class="card">
+                <p>As requested, we will expand the gamification aspects to encourage engineers to clear their technical debt.</p>
+                <ul style="font-size:12px;color:var(--txt2);margin-left:20px;line-height:1.7">
+                    <li><strong>Global Feed:</strong> Set up a Supabase view for opted-in "cleared debt" events to stream achievements across all organizations.</li>
+                    <li><strong>The Leaderboard:</strong> Rank engineers based on their cumulative "Debt Removed" score. Render real badges (Gold, Silver, Bronze) in the UI.</li>
+                    <li><strong>Settings Opt-in:</strong> Build `Settings.tsx` for privacy toggles: "Show my cleared debt on the Global Feed".</li>
+                </ul>
+            </div>
+        </div>
+
+    </div>
+    <script>
+        function switchTab(id, el) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.getElementById('tab-' + id).classList.add('active');
+            el.classList.add('active');
+            window.scrollTo(0, 0);
+        }
+    </script>
+</body>
+</html>

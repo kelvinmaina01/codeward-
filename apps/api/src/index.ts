@@ -43,21 +43,30 @@ app.on(['POST', 'GET'], '/api/auth/*', (c) => {
   return auth.handler(c.req.raw);
 });
 
-// Mount webhooks router
-app.route('/api/webhooks', webhookRouter);
+import { statsRouter } from './routes/stats.js';
+import { wsRouter, setupWs } from './routes/ws.js';
+import { createNodeWebSocket } from '@hono/node-ws';
 
-// Mount repos router
-app.route('/api/repos', reposRouter);
+const { injectWebSocket, upgradeWebSocket } = createNodeWebSocket({ app });
+setupWs(upgradeWebSocket);
 
-// Mount PR router (nested logically under /api/repos/:owner/:repo/pr)
-app.route('/api/repos', prRouter);
+const routes = app
+  .route('/api/webhooks', webhookRouter)
+  .route('/api/repos', reposRouter)
+  .route('/api/repos', prRouter)
+  .route('/api/stats', statsRouter)
+  .route('/ws', wsRouter);
+
+export type AppType = typeof routes;
 
 const port = 3001;
 console.log(`Server is running on port ${port}`);
 
-serve({
+const server = serve({
   fetch: app.fetch,
   port
 });
+
+injectWebSocket(server);
 
 console.log(`[AgentSystem] Worker ready — listening for agent-jobs on BullMQ`);

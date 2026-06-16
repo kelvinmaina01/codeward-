@@ -21,10 +21,11 @@ import { Settings } from './components/Settings';
 import { Integrations } from './components/Integrations';
 import { Alerts } from './components/Alerts';
 import { RunDetail } from './components/RunDetail';
+import { LegalPage } from './components/LegalPage';
 import { useSession, signOut } from '../lib/auth';
 import { Toaster } from 'sonner';
 
-type Page = 'signin' | 'signup' | 'connect' | 'app';
+type Page = 'signin' | 'signup' | 'connect' | 'app' | 'terms' | 'privacy';
 const themeOrder: Theme[] = ['dark', 'cream', 'white'];
 
 const themeIcons: Record<Theme, React.ReactNode> = {
@@ -139,8 +140,10 @@ export default function App() {
     setPage('app');
   };
 
-  if (page === 'signin' || page === 'signup') return <AuthPage onBack={() => setPage('signin')} theme={theme} onCycleTheme={cycleTheme} />;
+  if (page === 'signin' || page === 'signup') return <AuthPage onBack={() => setPage('signin')} theme={theme} onCycleTheme={cycleTheme} onNavigate={(p) => setPage(p)} />;
   if (page === 'connect' && session?.user) return <ConnectRepo user={{ name: session.user.name, email: session.user.email, image: session.user.image }} onConnect={handleConnect} onSkip={() => setPage('app')} activeOrg={activeOrg} setActiveOrg={setActiveOrg} orgs={globalOrgs} theme={theme} onCycleTheme={cycleTheme} />;
+  if (page === 'terms') return <LegalPage type="terms" onBack={() => setPage('signin')} theme={theme} onCycleTheme={cycleTheme} themeIcon={themeIcons[theme]} />;
+  if (page === 'privacy') return <LegalPage type="privacy" onBack={() => setPage('signin')} theme={theme} onCycleTheme={cycleTheme} themeIcon={themeIcons[theme]} />;
 
   const showingRunDetail = !!runDetailSha;
   const topbar = topbarConfig[screen];
@@ -243,9 +246,13 @@ export default function App() {
           </div>
           <div className={`flex-1 min-w-0 transition-opacity duration-300 ${isSidebarPinned ? 'opacity-100' : 'opacity-0'}`}>
             <div className="text-[13px] text-cw-txt font-medium">{displayUser.name}</div>
+            <div className="flex gap-2 text-[10px] text-cw-txt3 mt-0.5">
+              <button onClick={() => setPage('terms')} className="hover:text-cw-txt transition-colors">Terms</button>
+              <button onClick={() => setPage('privacy')} className="hover:text-cw-txt transition-colors">Privacy</button>
+            </div>
           </div>
           <button 
-            onClick={async () => { await signOut(); setPage('landing'); }} 
+            onClick={async () => { await signOut(); setPage('signin'); }} 
             title="Sign out" 
             className={`bg-transparent border-none cursor-pointer text-cw-red p-1 hover:bg-cw-red/10 rounded transition-all duration-300 ${isSidebarPinned ? 'opacity-100' : 'opacity-0'}`}
           >

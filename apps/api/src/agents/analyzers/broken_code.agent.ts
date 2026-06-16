@@ -1,5 +1,6 @@
 import { tool } from "ai";
 import { z } from "zod";
+import { SandboxHandle } from '../../sandbox/local-exec.js';
 import { runAnalyzerAgent } from "../base-analyzer.agent.js";
 
 const submitReport = tool({
@@ -53,13 +54,15 @@ CRITICAL INSTRUCTION: When you have completed your playbook, you MUST call the s
 export async function runBrokenCodeAgent(
   runId: string,
   repoPath: string,
-  diffSummary: string
+  diffSummary: string,
+  sandbox?: SandboxHandle
 ) {
   await runAnalyzerAgent({
     agentType: "broken_code",
     runId,
     repoPath,
     diffSummary,
+    sandbox,
     systemPrompt: SYSTEM_PROMPT,
     tools: { submit_report: submitReport },
   });

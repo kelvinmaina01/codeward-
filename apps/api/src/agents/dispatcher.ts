@@ -11,7 +11,9 @@ import { runBrokenCodeAgent }   from "./analyzers/broken_code.agent.js";
 import { runComplianceAgent }   from "./analyzers/compliance.agent.js";
 import { runDataDxAgent }       from "./analyzers/data_dx.agent.js";
 
-const AGENT_MAP: Record<string, (runId: string, repoPath: string, diffSummary: string) => Promise<void>> = {
+import { SandboxHandle } from "../sandbox/local-exec.js";
+
+const AGENT_MAP: Record<string, (runId: string, repoPath: string, diffSummary: string, sandbox?: SandboxHandle) => Promise<void>> = {
   architecture:  runArchitectureAgent,
   security:      runSecurityAgent,
   bloat:         runBloatAgent,
@@ -30,7 +32,8 @@ export async function dispatchAgents(
   agentsToSpawn: string[],
   runId: string,
   repoPath: string,
-  diffSummary: string
+  diffSummary: string,
+  sandbox?: SandboxHandle
 ): Promise<void> {
   console.log(`[Dispatcher] Spawning ${agentsToSpawn.length} agents in parallel`);
 
@@ -42,7 +45,7 @@ export async function dispatchAgents(
         console.warn(`[Dispatcher] Unknown agent type: ${agentType}`);
         return Promise.resolve();
       }
-      return runner(runId, repoPath, diffSummary);
+      return runner(runId, repoPath, diffSummary, sandbox);
     })
   );
 

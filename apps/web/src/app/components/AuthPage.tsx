@@ -7,6 +7,7 @@ interface Props {
   onBack: () => void;
   theme: Theme;
   onCycleTheme: () => void;
+  onNavigate: (page: 'terms' | 'privacy') => void;
 }
 
 const themeIcons: Record<Theme, React.ReactNode> = {
@@ -15,7 +16,7 @@ const themeIcons: Record<Theme, React.ReactNode> = {
   white: <Sun size={14} />,
 };
 
-export function AuthPage({ onBack, theme, onCycleTheme }: Props) {
+export function AuthPage({ onBack, theme, onCycleTheme, onNavigate }: Props) {
   const [loading, setLoading] = useState<string | null>(null);
 
   const handleOAuth = async (provider: 'github' | 'gitlab') => {
@@ -138,7 +139,7 @@ export function AuthPage({ onBack, theme, onCycleTheme }: Props) {
 
             <div className="text-center mt-12 text-[13px] text-cw-txt3 leading-[1.6]">
               By continuing you agree to Codeward's<br />
-              <span className="text-cw-txt2 cursor-pointer hover:underline font-semibold">Terms of Service</span> and <span className="text-cw-txt2 cursor-pointer hover:underline font-semibold">Privacy Policy</span>
+              <span onClick={() => onNavigate('terms')} className="text-cw-txt2 cursor-pointer hover:underline font-semibold hover:text-cw-txt transition-colors">Terms of Service</span> and <span onClick={() => onNavigate('privacy')} className="text-cw-txt2 cursor-pointer hover:underline font-semibold hover:text-cw-txt transition-colors">Privacy Policy</span>
             </div>
           </div>
         </div>

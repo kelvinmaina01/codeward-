@@ -1,5 +1,6 @@
 import { tool } from "ai";
 import { z } from "zod";
+import { SandboxHandle } from '../../sandbox/local-exec.js';
 import { runAnalyzerAgent } from "../base-analyzer.agent.js";
 
 const submitReport = tool({
@@ -45,13 +46,15 @@ You MUST call submit_report. No conversational text.
 export async function runBloatAgent(
   runId: string,
   repoPath: string,
-  diffSummary: string
+  diffSummary: string,
+  sandbox?: SandboxHandle
 ) {
   await runAnalyzerAgent({
     agentType: "bloat",
     runId,
     repoPath,
     diffSummary,
+    sandbox,
     systemPrompt: SYSTEM_PROMPT,
     tools: { submit_report: submitReport },
   });

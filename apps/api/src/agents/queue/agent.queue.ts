@@ -25,6 +25,7 @@ import { agentTasks } from '../../db/schema.js';
 import { eq } from 'drizzle-orm';
 import { getProvider } from '../core/registry.js';
 import type { AgentDefinition, SandboxHandle, AgentRunConfig } from '../core/provider.js';
+import { LocalExecSandbox } from '../../sandbox/local-exec.js';
 
 dotenv.config();
 
@@ -89,6 +90,7 @@ export const agentWorker = new Worker('agent-jobs', async (job: Job<AgentJobData
   }).returning();
 
   const taskId = taskRow.id;
+  let sandbox: LocalExecSandbox | null = null;
 
   try {
     // -----------------------------------------------------------------------
@@ -103,18 +105,10 @@ export const agentWorker = new Worker('agent-jobs', async (job: Job<AgentJobData
     // 2. Create a sandbox handle
     // -----------------------------------------------------------------------
     // In production, this would spin up a Fly Machine.
-    // For now, we create a mock sandbox that the orchestrator will replace
-    // with a real one when we wire up the full pipeline.
-    const sandbox: SandboxHandle = {
-      exec: async (cmd: string) => {
-        console.log(`[AgentWorker] Sandbox exec: ${cmd}`);
-        // TODO: Replace with real FlySandbox.exec() when orchestrator is wired
-        return { exitCode: 0, stdout: '', stderr: '' };
-      },
-      destroy: async () => {
-        // TODO: Replace with real FlySandbox.destroy()
-      },
-    };
+    // For local dev, we clone the repo natively using LocalExecSandbox.
+    sandbox = new LocalExecSandbox();
+    // We clone the repository dynamically for the agent
+    await sandbox.init(`https://github.com/${repoFullName}.git`, commitSHA);
 
     // -----------------------------------------------------------------------
     // 3. Build the tools
@@ -175,6 +169,10 @@ export const agentWorker = new Worker('agent-jobs', async (job: Job<AgentJobData
       .where(eq(agentTasks.id, taskId));
 
     throw error; // Re-throw so BullMQ can handle retries
+  } finally {
+    if (sandbox) {
+      await sandbox.destroy();
+    }
   }
 
 }, {
@@ -183,13 +181,38 @@ export const agentWorker = new Worker('agent-jobs', async (job: Job<AgentJobData
 });
 
 // ---------------------------------------------------------------------------
-// Event Logging
+// Event Logging & Real-time Broadcast
 // ---------------------------------------------------------------------------
+
+import { broadcast } from '../../routes/ws.js';
+
+agentWorker.on('active', (job) => {
+  broadcast('agent_active', {
+    repo: job.data.repoFullName,
+    sha: job.data.commitSHA,
+    agent: job.data.agentId,
+    status: 'Running'
+  });
+});
 
 agentWorker.on('completed', (job) => {
   console.log(`[AgentQueue] Job ${job.id} completed (${job.data.agentId})`);
+  broadcast('agent_completed', {
+    repo: job.data.repoFullName,
+    sha: job.data.commitSHA,
+    agent: job.data.agentId,
+    status: 'Completed',
+    score: job.returnvalue?.score
+  });
 });
 
 agentWorker.on('failed', (job, err) => {
-  console.error(`[AgentQueue] Job ${job?.id} failed (${job?.data.agentId}):`, err.message);
+  console.error(`[AgentQueue] Job ${job?.id} failed (${job?.data?.agentId}):`, err.message);
+  broadcast('agent_failed', {
+    repo: job?.data?.repoFullName || 'unknown',
+    sha: job?.data?.commitSHA || 'unknown',
+    agent: job?.data?.agentId || 'unknown',
+    status: 'Failed',
+    error: err.message
+  });
 });
