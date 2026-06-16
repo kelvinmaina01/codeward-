@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, Shield, Lock, FileText, CheckCircle2, AlertTriangle } from 'lucide-react';
-import { Theme } from './types';
+import { Theme } from '../types';
 
 interface LegalPageProps {
   type: 'terms' | 'privacy';

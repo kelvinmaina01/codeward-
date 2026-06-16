@@ -21,7 +21,7 @@ import { Settings } from './components/Settings';
 import { Integrations } from './components/Integrations';
 import { Alerts } from './components/Alerts';
 import { RunDetail } from './components/RunDetail';
-import { LegalPage } from './components/LegalPage';
+import { LegalPage } from './components/legal/LegalPage';
 import { useSession, signOut } from '../lib/auth';
 import { Toaster } from 'sonner';
 
