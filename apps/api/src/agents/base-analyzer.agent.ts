@@ -13,6 +13,7 @@ export interface AnalyzerConfig {
   diffSummary: string;
   systemPrompt: string;
   sandbox?: SandboxHandle;
+  tools?: any;
 }
 
 export async function runAnalyzerAgent(config: AnalyzerConfig): Promise<void> {

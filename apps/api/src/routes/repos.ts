@@ -366,8 +366,8 @@ reposRouter.post('/connect', async (c) => {
 
       // 6. Trigger Baseline Audit via BullMQ
       try {
-        const { agentWorker } = await import('../agents/queue/agent.queue.js');
-        await agentWorker.add('baseline-audit', {
+        const { agentQueue } = await import('../agents/queue/agent.queue.js');
+        await agentQueue.add('baseline-audit', {
           owner: repo.owner,
           repo: repo.name,
           installationId: 0, // We would pull this from the DB in a real app

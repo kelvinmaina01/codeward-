@@ -1,5 +1,5 @@
 import React from 'react';
-import { Delete01Icon, Cancel01Icon, BotIcon, Analytics01Icon, Globe01Icon, Mail01Icon, ViewIcon, Edit01Icon, PauseIcon, PackageIcon, Notification01Icon, Tick01Icon, Alert01Icon, InformationIcon } from 'hugeicons-react';
+import { Delete01Icon, Cancel01Icon, AiChat01Icon as BotIcon, Analytics01Icon, GlobeIcon as Globe01Icon, AiMail01Icon as Mail01Icon, AiViewIcon as ViewIcon, AiEditingIcon as Edit01Icon, CallPausedIcon as PauseIcon, Package01Icon as PackageIcon, ChatNotification01Icon as Notification01Icon, CheckmarkCircle01Icon as Tick01Icon, Alert01Icon, InformationCircleIcon as InformationIcon } from 'hugeicons-react';
 
 export const privacyContent = [
   {

@@ -1,9 +1,8 @@
-import { tool } from "ai";
 import { z } from "zod";
 import { SandboxHandle } from '../../sandbox/local-exec.js';
 import { runAnalyzerAgent } from "../base-analyzer.agent.js";
 
-const submitReport = tool({
+const submitReport = {
   description: "Submit performance analysis findings",
   parameters: z.object({
     severity: z.enum(["info", "low", "medium", "high", "critical"]),
@@ -16,8 +15,8 @@ const submitReport = tool({
       line: z.number().optional(),
     }))
   }),
-  execute: async (args) => args,
-});
+  
+};
 
 const SYSTEM_PROMPT = `
 You are the Codeward Performance Analyzer.

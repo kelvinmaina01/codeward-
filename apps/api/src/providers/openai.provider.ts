@@ -11,7 +11,8 @@ export interface AgentRunConfig {
   maxTokens?: number;
   temperature?: number;
   tools?: AgentTool[];
-  messages: Array<{ role: string; content: string }>;
+  maxSteps?: number;
+  messages: any[];
 }
 
 export interface AgentResult {

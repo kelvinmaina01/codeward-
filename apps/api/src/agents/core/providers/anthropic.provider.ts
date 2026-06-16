@@ -39,7 +39,6 @@ export class AnthropicProvider implements AgentProvider {
         system: config.systemPrompt,
         prompt: config.taskPrompt,
         tools: config.tools as any,
-        maxSteps: 40,
       });
 
       // Check if the agent successfully used a final submission tool
@@ -50,12 +49,11 @@ export class AnthropicProvider implements AgentProvider {
       const orchestratorToolCall = result.toolCalls?.find(tc => tc.toolName === 'submit_orchestrator_decision');
       
       if (securityToolCall) {
-        // @ts-ignore
-        const report = securityToolCall.args as any;
+        const report = (securityToolCall as any).args || (securityToolCall as any).arguments || {};
         rawFindings = report.findings || [];
         console.log(`[AnthropicProvider] Captured structured report from 'submit_security_report' tool.`);
       } else if (orchestratorToolCall) {
-        orchestratorDecision = orchestratorToolCall.args;
+        orchestratorDecision = (orchestratorToolCall as any).args || (orchestratorToolCall as any).arguments;
         console.log(`[AnthropicProvider] Captured structured decision from 'submit_orchestrator_decision' tool.`);
       } else {
         // Fallback: Parse the JSON array from the final text
