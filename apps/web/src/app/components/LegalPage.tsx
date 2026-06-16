@@ -12,69 +12,7 @@ interface LegalPageProps {
 
 import { termsContent } from './TermsContent';
 
-const privacyContent = [
-  {
-    id: 'information-collected',
-    title: 'Information We Collect',
-    content: (
-      <div className="space-y-4">
-        <p>We collect account information (email, name, organization) and repository metadata (commit history, branch names, PR discussions).</p>
-      </div>
-    )
-  },
-  {
-    id: 'source-code',
-    title: 'Handling of Source Code',
-    content: (
-      <div className="space-y-4">
-        <div className="bg-cw-green/10 border border-cw-green/30 rounded-xl p-5 flex gap-4 mt-4">
-          <Lock className="text-cw-green shrink-0" size={24} />
-          <div>
-            <h4 className="font-semibold text-cw-green mb-1 text-base">Zero-Retention Code Processing</h4>
-            <p className="text-cw-green/80 text-sm leading-relaxed">
-              Your source code is strictly used for the duration of an active agent run. We read the files necessary to resolve your technical debt or feature requests, and we discard the local copies immediately upon run completion. Your code is never stored in our permanent databases.
-            </p>
-          </div>
-        </div>
-      </div>
-    )
-  },
-  {
-    id: 'third-party',
-    title: 'Third-Party AI Providers',
-    content: (
-      <div className="space-y-4">
-        <div className="bg-cw-amber/10 border border-cw-amber/30 rounded-xl p-5 flex gap-4 mt-4">
-          <Shield className="text-cw-amber shrink-0" size={24} />
-          <div>
-            <h4 className="font-semibold text-cw-amber mb-1 text-base">Sub-processors</h4>
-            <p className="text-cw-amber/80 text-sm leading-relaxed">
-              To power our agents, portions of your codebase (specifically, files requested by the agent) are sent to third-party LLM providers (e.g., OpenAI, Anthropic) via API. We maintain strict Data Processing Agreements with these providers ensuring zero-retention policies and explicitly prohibiting the use of your data for model training.
-            </p>
-          </div>
-        </div>
-      </div>
-    )
-  },
-  {
-    id: 'how-we-use',
-    title: 'How We Use Your Data',
-    content: (
-      <div className="space-y-4">
-        <p>We use your telemetry and run-state metadata (but not your source code) to improve our orchestrator routing, fix platform bugs, and track autonomous agent success rates.</p>
-      </div>
-    )
-  },
-  {
-    id: 'your-rights',
-    title: 'Your Rights',
-    content: (
-      <div className="space-y-4">
-        <p>You may disconnect your repositories at any time, which instantly revokes all access tokens and halts all agent activities. You may also request the deletion of your Codeward account and associated metadata by contacting support.</p>
-      </div>
-    )
-  }
-];
+import { privacyContent } from './PrivacyContent';
 
 export function LegalPage({ type, onBack, theme, onCycleTheme, themeIcon }: LegalPageProps) {
   const isTerms = type === 'terms';

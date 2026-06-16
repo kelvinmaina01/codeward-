@@ -106,7 +106,7 @@ export default function App() {
     if (!isPending) {
       if (session?.user && (page === 'signin' || page === 'signup')) {
         setPage('connect');
-      } else if (!session?.user && page !== 'signin' && page !== 'signup') {
+      } else if (!session?.user && page !== 'signin' && page !== 'signup' && page !== 'terms' && page !== 'privacy') {
         setPage('signin');
       }
 
