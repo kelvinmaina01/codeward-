@@ -8,9 +8,9 @@
  * If you ever need to change how we talk to Claude (prompt caching, extended
  * thinking, different API version), you change THIS file and nothing else.
  * 
- * If you want to replace Claude entirely, you write a new provider file
  * and swap the import in registry.ts. Zero agent code changes.
  * ============================================================================
+ */
 import { generateText } from 'ai';
 import { createOpenAI } from '@ai-sdk/openai';
 import type { AgentProvider, AgentRunConfig, AgentResult, AgentFinding } from '../provider.js';
