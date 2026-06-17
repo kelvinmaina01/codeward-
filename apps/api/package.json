@@ -24,11 +24,13 @@
     "hono": "^4.4.0",
     "ioredis": "^5.4.1",
     "octokit": "^5.0.5",
+    "p-retry": "^8.0.0",
     "postgres": "^3.4.9",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "resend": "^6.12.4",
-    "zod": "^3.25.76"
+    "zod": "^3.25.76",
+    "zod-to-json-schema": "^3.25.2"
   },
   "devDependencies": {
     "@types/node": "^20.14.2",

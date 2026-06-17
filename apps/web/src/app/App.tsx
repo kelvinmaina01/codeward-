@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import {
   LayoutDashboard, Radio, GitCompare, ShieldAlert, BarChart3,
   Bot, Monitor, Clock, GitFork, Award, Settings as SettingsIcon,
-  Sun, Moon, Circle, Menu, LogOut, LucideIcon, UsersRound, ChevronDown, Plus, Blocks, Bell, Globe, X
+  Sun, Moon, Circle, Menu, LogOut, LucideIcon, UsersRound, ChevronDown, Plus, Blocks, Bell, Globe, X,
+  LayoutGrid, TerminalSquare
 } from 'lucide-react';
 import { Theme, Screen } from './components/types';
 import { AuthPage } from './components/AuthPage';
@@ -99,6 +100,7 @@ export default function App() {
   const [globalOrgs, setGlobalOrgs] = useState<string[]>([]);
   const [activeOrg, setActiveOrg] = useState<string>('');
   const [isGlobalFeedOpen, setIsGlobalFeedOpen] = useState(false);
+  const [liveFeedView, setLiveFeedView] = useState<'stream' | 'canvas'>('canvas');
 
   const theme = themeOrder[themeIdx];
   const cycleTheme = () => setThemeIdx(i => (i + 1) % themeOrder.length);
@@ -152,7 +154,7 @@ export default function App() {
   const renderScreen = () => {
     switch (screen) {
       case 'dashboard': return <Dashboard onRunClick={s => setRunDetailSha(s)} />;
-      case 'livefeed':  return <LiveFeed />;
+      case 'livefeed':  return <LiveFeed viewMode={liveFeedView} />;
       case 'diff':      return <DiffViewer />;
       case 'security':  return <Security />;
       case 'debt':      return <DebtReport />;
@@ -290,14 +292,25 @@ export default function App() {
                   <Plus size={14} /> Connect new repo
                 </button>
               )}
+              {screen === 'livefeed' && (
+                <div className="flex items-center gap-2 mr-2">
+                  <button
+                    onClick={() => setLiveFeedView('stream')}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md border text-[12px] font-medium transition-colors ${liveFeedView === 'stream' ? 'bg-cw-bg2 border-cw-bdr text-cw-txt shadow-sm' : 'border-transparent text-cw-txt2 hover:text-cw-txt hover:bg-cw-bg2/50'}`}
+                  >
+                    <TerminalSquare size={14} /> Stream
+                  </button>
+                  <button
+                    onClick={() => setLiveFeedView('canvas')}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md border text-[12px] font-medium transition-colors ${liveFeedView === 'canvas' ? 'bg-cw-bg2 border-cw-bdr text-cw-txt shadow-sm' : 'border-transparent text-cw-txt2 hover:text-cw-txt hover:bg-cw-bg2/50'}`}
+                  >
+                    <LayoutGrid size={14} /> Agent Canvas
+                  </button>
+                </div>
+              )}
+              <div className="flex-1" />
               <button onClick={() => setIsGlobalFeedOpen(true)} className="px-4 py-2 rounded-md border border-cw-bdr bg-cw-bg2 text-cw-txt text-[13px] font-medium hover:bg-cw-bg3 transition-colors flex items-center gap-2">
                 <Globe size={14} /> Global feed
-              </button>
-              <button className="px-4 py-2 rounded-md border border-cw-bdr bg-cw-bg2 text-cw-txt text-[13px] font-medium hover:bg-cw-bg3 transition-colors flex items-center gap-2">
-                <UsersRound size={14} /> Overview
-              </button>
-              <button className="px-4 py-2 rounded-md border border-cw-bdr bg-cw-bg2 text-cw-txt text-[13px] font-medium hover:bg-cw-bg3 transition-colors flex items-center gap-2">
-                <LayoutDashboard size={14} /> Refresh
               </button>
               <button 
                 onClick={cycleTheme} 

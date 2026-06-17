@@ -1,0 +1,2226 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <title>Codeward — Health Certificate & Debt Report</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0
+        }
+
+        :root {
+            --bg: #0a0a0f;
+            --bg2: #13131e;
+            --bg3: #1a1a2a;
+            --bg4: #22223a;
+            --txt: #f0f0ee;
+            --txt2: #9a9aaa;
+            --txt3: #44445a;
+            --bdr: rgba(255, 255, 255, .08);
+            --bdr2: rgba(255, 255, 255, .14);
+            --blue: #4B7BEC;
+            --green: #22C55E;
+            --red: #EF4444;
+            --amber: #F59E0B;
+            --purple: #8B5CF6;
+            --teal: #14B8A6;
+            --grd: linear-gradient(135deg, #4B7BEC, #8B5CF6);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
+            background: var(--bg);
+            color: var(--txt);
+            font-size: 13px;
+            line-height: 1.6
+        }
+
+        /* APP SHELL */
+        .shell {
+            display: flex;
+            height: 100vh;
+            overflow: hidden
+        }
+
+        .sidebar {
+            width: 200px;
+            min-width: 200px;
+            background: var(--bg2);
+            border-right: .5px solid var(--bdr);
+            display: flex;
+            flex-direction: column;
+            padding: .75rem 0
+        }
+
+        .logo {
+            padding: .25rem 1rem .75rem;
+            font-size: 15px;
+            font-weight: 600;
+            letter-spacing: -.03em;
+            border-bottom: .5px solid var(--bdr);
+            margin-bottom: .5rem
+        }
+
+        .logo span {
+            background: var(--grd);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text
+        }
+
+        .nav-group {
+            padding: .4rem 1rem .1rem;
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--txt3);
+            letter-spacing: .08em;
+            text-transform: uppercase
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 14px;
+            font-size: 12px;
+            color: var(--txt2);
+            cursor: pointer;
+            border-radius: 0;
+            margin: 1px 6px;
+            border-radius: 6px;
+            transition: background .1s
+        }
+
+        .nav-item:hover {
+            background: var(--bg3)
+        }
+
+        .nav-item.active {
+            background: var(--bg3);
+            color: var(--txt);
+            font-weight: 500
+        }
+
+        .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            flex-shrink: 0
+        }
+
+        .dot-g {
+            background: var(--green)
+        }
+
+        .dot-a {
+            background: var(--amber)
+        }
+
+        .dot-r {
+            background: var(--red)
+        }
+
+        .dot-b {
+            background: var(--blue)
+        }
+
+        .main {
+            flex: 1;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column
+        }
+
+        .topbar {
+            padding: .65rem 1.25rem;
+            border-bottom: .5px solid var(--bdr);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--bg2);
+            flex-shrink: 0
+        }
+
+        .tb-title {
+            font-size: 14px;
+            font-weight: 500
+        }
+
+        .tb-sub {
+            font-size: 11px;
+            color: var(--txt3)
+        }
+
+        .tb-actions {
+            display: flex;
+            gap: 6px;
+            align-items: center
+        }
+
+        .btn {
+            font-size: 11px;
+            padding: 5px 11px;
+            border-radius: 7px;
+            border: .5px solid var(--bdr2);
+            background: var(--bg2);
+            color: var(--txt2);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: all .15s;
+            white-space: nowrap
+        }
+
+        .btn:hover {
+            background: var(--bg3);
+            color: var(--txt)
+        }
+
+        .btn-primary {
+            background: var(--grd);
+            color: #fff;
+            border: none;
+            font-weight: 500
+        }
+
+        .btn-primary:hover {
+            opacity: .88
+        }
+
+        .content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1.25rem
+        }
+
+        /* SCREENS */
+        .screen {
+            display: none
+        }
+
+        .screen.active {
+            display: block
+        }
+
+        /* TABS inside page */
+        .page-tabs {
+            display: flex;
+            gap: 0;
+            border-bottom: .5px solid var(--bdr);
+            margin-bottom: 1.25rem
+        }
+
+        .page-tab {
+            font-size: 12px;
+            padding: 8px 16px;
+            cursor: pointer;
+            color: var(--txt2);
+            border-bottom: 2px solid transparent;
+            transition: all .15s
+        }
+
+        .page-tab.active {
+            color: var(--txt);
+            border-bottom-color: var(--blue);
+            font-weight: 500
+        }
+
+        .tab-pane {
+            display: none
+        }
+
+        .tab-pane.active {
+            display: block
+        }
+
+        /* ═══════════════════════════════════════ */
+        /* HEALTH CERTIFICATE PAGE */
+        /* ═══════════════════════════════════════ */
+
+        /* Score card hero */
+        .cert-hero {
+            background: linear-gradient(160deg, rgba(34, 197, 94, .1), rgba(20, 184, 166, .06), rgba(10, 10, 15, 0));
+            border: .5px solid rgba(34, 197, 94, .25);
+            border-radius: 16px;
+            padding: 2rem;
+            text-align: center;
+            margin-bottom: 1rem;
+            position: relative;
+            overflow: hidden
+        }
+
+        .cert-hero::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(34, 197, 94, .08), transparent);
+            pointer-events: none
+        }
+
+        .cert-score-wrap {
+            position: relative;
+            display: inline-block;
+            margin-bottom: .75rem
+        }
+
+        .cert-ring {
+            width: 140px;
+            height: 140px;
+            position: relative;
+            margin: 0 auto .75rem
+        }
+
+        .cert-ring svg {
+            width: 140px;
+            height: 140px;
+            transform: rotate(-90deg)
+        }
+
+        .cert-ring-bg {
+            stroke: var(--bg4);
+            stroke-width: 10;
+            fill: none
+        }
+
+        .cert-ring-fg {
+            stroke: var(--green);
+            stroke-width: 10;
+            fill: none;
+            stroke-linecap: round;
+            transition: stroke-dashoffset 1.5s ease
+        }
+
+        .cert-ring-num {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center
+        }
+
+        .cert-num {
+            font-size: 44px;
+            font-weight: 700;
+            color: var(--green);
+            letter-spacing: -.04em;
+            line-height: 1
+        }
+
+        .cert-denom {
+            font-size: 14px;
+            color: var(--txt3)
+        }
+
+        .cert-repo {
+            font-size: 13px;
+            color: var(--txt2);
+            margin-bottom: .75rem
+        }
+
+        .cert-badge-green {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(34, 197, 94, .12);
+            border: .5px solid rgba(34, 197, 94, .3);
+            border-radius: 20px;
+            padding: 5px 16px;
+            font-size: 12px;
+            color: var(--green);
+            font-weight: 500
+        }
+
+        .cert-meta {
+            font-size: 11px;
+            color: var(--txt3);
+            margin-top: .65rem
+        }
+
+        /* Grade bands */
+        .grade-bands {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+            margin-bottom: 1rem
+        }
+
+        .grade-band {
+            background: var(--bg2);
+            border: .5px solid var(--bdr);
+            border-radius: 10px;
+            padding: .75rem;
+            text-align: center
+        }
+
+        .grade-band.current {
+            border-color: rgba(34, 197, 94, .4);
+            background: rgba(34, 197, 94, .07)
+        }
+
+        .gb-grade {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 2px
+        }
+
+        .gb-range {
+            font-size: 10px;
+            color: var(--txt3);
+            margin-bottom: 3px
+        }
+
+        .gb-label {
+            font-size: 11px;
+            color: var(--txt2)
+        }
+
+        /* Score breakdown */
+        .score-breakdown {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 1rem
+        }
+
+        .sb-card {
+            background: var(--bg2);
+            border: .5px solid var(--bdr);
+            border-radius: 10px;
+            padding: .85rem 1rem
+        }
+
+        .sb-cat {
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--txt2);
+            margin-bottom: .5rem;
+            display: flex;
+            align-items: center;
+            gap: 6px
+        }
+
+        .sb-score {
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 3px
+        }
+
+        .sb-bar {
+            height: 4px;
+            background: var(--bg4);
+            border-radius: 2px;
+            overflow: hidden
+        }
+
+        .sb-bar-fill {
+            height: 4px;
+            border-radius: 2px;
+            transition: width 1s ease
+        }
+
+        .sb-status {
+            font-size: 10px;
+            color: var(--txt3);
+            margin-top: 4px
+        }
+
+        /* Timeline */
+        .timeline-chart {
+            background: var(--bg2);
+            border: .5px solid var(--bdr);
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 1rem
+        }
+
+        .tc-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem
+        }
+
+        .tc-title {
+            font-size: 12px;
+            font-weight: 500
+        }
+
+        .tc-range {
+            display: flex;
+            gap: 4px
+        }
+
+        .tc-btn {
+            font-size: 10px;
+            padding: 3px 8px;
+            border-radius: 5px;
+            border: .5px solid var(--bdr);
+            background: transparent;
+            color: var(--txt3);
+            cursor: pointer
+        }
+
+        .tc-btn.active {
+            background: var(--bg3);
+            color: var(--txt2)
+        }
+
+        .chart-area {
+            position: relative;
+            height: 80px;
+            overflow: hidden
+        }
+
+        .chart-svg {
+            width: 100%;
+            height: 80px
+        }
+
+        .chart-line {
+            fill: none;
+            stroke: var(--green);
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round
+        }
+
+        .chart-area-fill {
+            fill: url(#chartGrad);
+            opacity: .3
+        }
+
+        .chart-point {
+            fill: var(--green);
+            cursor: pointer
+        }
+
+        .chart-point:hover {
+            fill: #fff;
+            r: 5
+        }
+
+        .chart-labels {
+            display: flex;
+            justify-content: space-between;
+            margin-top: .35rem
+        }
+
+        .chart-label {
+            font-size: 10px;
+            color: var(--txt3)
+        }
+
+        /* Compare section */
+        .compare-bar-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 1rem
+        }
+
+        .cbl-row {
+            display: flex;
+            align-items: center;
+            gap: 10px
+        }
+
+        .cbl-label {
+            font-size: 11px;
+            color: var(--txt2);
+            min-width: 90px
+        }
+
+        .cbl-bar-wrap {
+            flex: 1;
+            height: 6px;
+            background: var(--bg4);
+            border-radius: 3px;
+            overflow: hidden
+        }
+
+        .cbl-bar {
+            height: 6px;
+            border-radius: 3px;
+            transition: width 1s ease
+        }
+
+        .cbl-val {
+            font-size: 11px;
+            font-weight: 600;
+            min-width: 30px;
+            text-align: right
+        }
+
+        .cbl-badge {
+            font-size: 10px;
+            padding: 1px 6px;
+            border-radius: 4px;
+            margin-left: 4px
+        }
+
+        /* Share section */
+        .share-card {
+            background: var(--bg2);
+            border: .5px solid var(--bdr);
+            border-radius: 12px;
+            padding: 1.1rem;
+            margin-bottom: 1rem
+        }
+
+        .share-card-title {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--txt3);
+            text-transform: uppercase;
+            letter-spacing: .07em;
+            margin-bottom: .75rem
+        }
+
+        .share-url {
+            background: var(--bg3);
+            border: .5px solid var(--bdr2);
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-size: 12px;
+            color: var(--txt2);
+            font-family: monospace;
+            margin-bottom: .75rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between
+        }
+
+        .share-btns {
+            display: flex;
+            gap: 7px;
+            flex-wrap: wrap;
+            margin-bottom: .75rem
+        }
+
+        .share-note {
+            font-size: 11px;
+            color: var(--txt3);
+            line-height: 1.5
+        }
+
+        /* Badge preview */
+        .badge-preview {
+            background: var(--bg3);
+            border-radius: 8px;
+            padding: .75rem;
+            margin-bottom: .75rem;
+            display: flex;
+            align-items: center;
+            gap: 10px
+        }
+
+        .badge-code {
+            background: var(--bg);
+            border-radius: 6px;
+            padding: 6px 10px;
+            font-family: monospace;
+            font-size: 10px;
+            color: var(--green);
+            flex: 1;
+            overflow: auto;
+            white-space: nowrap
+        }
+
+        /* Public feed */
+        .feed-card {
+            background: var(--bg2);
+            border: .5px solid var(--bdr);
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 1rem
+        }
+
+        .feed-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 6px 0;
+            border-bottom: .5px solid rgba(255, 255, 255, .04)
+        }
+
+        .feed-item:last-child {
+            border: none
+        }
+
+        .feed-avatar {
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            background: var(--bg4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 700;
+            flex-shrink: 0
+        }
+
+        .feed-repo {
+            font-size: 12px;
+            font-weight: 500;
+            flex: 1
+        }
+
+        .feed-score {
+            font-size: 13px;
+            font-weight: 700
+        }
+
+        .feed-time {
+            font-size: 10px;
+            color: var(--txt3)
+        }
+
+        /* Print preview card */
+        .print-card {
+            background: var(--bg2);
+            border: .5px solid var(--bdr);
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 1rem
+        }
+
+        .print-preview {
+            background: #fff;
+            border-radius: 8px;
+            padding: 1.25rem;
+            color: #111
+        }
+
+        .print-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #eee
+        }
+
+        .print-logo {
+            font-size: 16px;
+            font-weight: 700;
+            color: #4B7BEC
+        }
+
+        .print-date {
+            font-size: 11px;
+            color: #888
+        }
+
+        .print-score-big {
+            text-align: center;
+            padding: 1rem;
+            background: linear-gradient(135deg, #F0FDF4, #DCFCE7);
+            border-radius: 8px;
+            margin-bottom: .75rem
+        }
+
+        .print-score-n {
+            font-size: 48px;
+            font-weight: 700;
+            color: #16A34A;
+            line-height: 1
+        }
+
+        .print-findings {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: .5rem;
+            margin-bottom: .75rem
+        }
+
+        .pf {
+            background: #f9f9f9;
+            border-radius: 6px;
+            padding: .5rem;
+            text-align: center
+        }
+
+        .pf-n {
+            font-size: 18px;
+            font-weight: 700;
+            color: #111
+        }
+
+        .pf-l {
+            font-size: 10px;
+            color: #888
+        }
+
+        .print-sig {
+            display: flex;
+            justify-content: space-between;
+            padding-top: .75rem;
+            border-top: 1px solid #eee;
+            font-size: 10px;
+            color: #888
+        }
+
+        /* ═══════════════════════════════════════ */
+        /* DEBT REPORT PAGE */
+        /* ═══════════════════════════════════════ */
+
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin-bottom: 1rem
+        }
+
+        .stat {
+            background: var(--bg2);
+            border: .5px solid var(--bdr);
+            border-radius: 10px;
+            padding: .85rem 1rem;
+            position: relative;
+            overflow: hidden
+        }
+
+        .stat::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 2px
+        }
+
+        .stat-r::after {
+            background: var(--red)
+        }
+
+        .stat-a::after {
+            background: var(--amber)
+        }
+
+        .stat-g::after {
+            background: var(--green)
+        }
+
+        .stat-b::after {
+            background: var(--blue)
+        }
+
+        .stat-n {
+            font-size: 26px;
+            font-weight: 700;
+            line-height: 1;
+            margin-bottom: 3px
+        }
+
+        .stat-l {
+            font-size: 11px;
+            color: var(--txt2)
+        }
+
+        .stat-trend {
+            font-size: 10px;
+            margin-top: 3px
+        }
+
+        .trend-up-good {
+            color: var(--green)
+        }
+
+        .trend-down-bad {
+            color: var(--red)
+        }
+
+        .trend-neutral {
+            color: var(--txt3)
+        }
+
+        /* Filter bar */
+        .filter-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 1rem;
+            flex-wrap: wrap
+        }
+
+        .filter-chip {
+            font-size: 11px;
+            padding: 4px 11px;
+            border-radius: 20px;
+            border: .5px solid var(--bdr);
+            color: var(--txt2);
+            cursor: pointer;
+            transition: all .15s
+        }
+
+        .filter-chip:hover {
+            border-color: var(--bdr2)
+        }
+
+        .filter-chip.active {
+            font-weight: 500
+        }
+
+        .filter-sep {
+            height: 16px;
+            width: .5px;
+            background: var(--bdr);
+            flex-shrink: 0
+        }
+
+        .search-box {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--bg2);
+            border: .5px solid var(--bdr);
+            border-radius: 7px;
+            padding: 5px 10px;
+            font-size: 11px;
+            color: var(--txt2)
+        }
+
+        .search-box input {
+            background: transparent;
+            border: none;
+            outline: none;
+            font-size: 11px;
+            color: var(--txt);
+            width: 120px
+        }
+
+        /* Debt category sections */
+        .debt-section {
+            margin-bottom: .85rem
+        }
+
+        .ds-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: .65rem 1rem;
+            border-radius: 10px 10px 0 0;
+            cursor: pointer
+        }
+
+        .ds-head-left {
+            display: flex;
+            align-items: center;
+            gap: 8px
+        }
+
+        .ds-title {
+            font-size: 13px;
+            font-weight: 600
+        }
+
+        .ds-meta {
+            font-size: 11px;
+            opacity: .8
+        }
+
+        .ds-arrow {
+            font-size: 12px;
+            transition: transform .2s
+        }
+
+        .ds-arrow.open {
+            transform: rotate(90deg)
+        }
+
+        .ds-body {
+            border: .5px solid;
+            border-top: none;
+            border-radius: 0 0 10px 10px;
+            overflow: hidden
+        }
+
+        .debt-item {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0;
+            border-bottom: .5px solid rgba(255, 255, 255, .04)
+        }
+
+        .debt-item:last-child {
+            border: none
+        }
+
+        .di {
+            padding: .85rem 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 3px
+        }
+
+        .di-title {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--txt);
+            display: flex;
+            align-items: center;
+            gap: 6px
+        }
+
+        .di-desc {
+            font-size: 11px;
+            color: var(--txt2);
+            line-height: 1.4
+        }
+
+        .di-actions {
+            display: flex;
+            gap: 5px;
+            margin-top: 5px;
+            flex-wrap: wrap
+        }
+
+        .di-status {
+            font-size: 10px;
+            padding: 2px 7px;
+            border-radius: 4px;
+            font-weight: 500;
+            white-space: nowrap
+        }
+
+        .st-fixed {
+            background: rgba(34, 197, 94, .12);
+            color: var(--green)
+        }
+
+        .st-open {
+            background: rgba(245, 158, 11, .12);
+            color: var(--amber)
+        }
+
+        .st-ignored {
+            background: var(--bg4);
+            color: var(--txt3)
+        }
+
+        .st-inprogress {
+            background: rgba(75, 123, 236, .12);
+            color: var(--blue)
+        }
+
+        /* Trend mini chart */
+        .trend-chart {
+            background: var(--bg2);
+            border: .5px solid var(--bdr);
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 1rem
+        }
+
+        .trend-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: .75rem
+        }
+
+        .tg-item {
+            background: var(--bg3);
+            border-radius: 8px;
+            padding: .75rem
+        }
+
+        .tg-label {
+            font-size: 11px;
+            color: var(--txt2);
+            margin-bottom: .35rem;
+            display: flex;
+            justify-content: space-between
+        }
+
+        .tg-bar-row {
+            display: flex;
+            gap: 2px;
+            align-items: flex-end;
+            height: 32px
+        }
+
+        .tg-bar {
+            background: var(--bg4);
+            border-radius: 2px 2px 0 0;
+            flex: 1;
+            transition: height .5s ease;
+            min-height: 3px;
+            cursor: pointer;
+            position: relative
+        }
+
+        .tg-bar:hover {
+            opacity: .75
+        }
+
+        /* Fix queue */
+        .fix-queue {
+            background: var(--bg2);
+            border: .5px solid var(--bdr);
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 1rem
+        }
+
+        .fq-head {
+            padding: .75rem 1rem;
+            border-bottom: .5px solid var(--bdr);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--bg3)
+        }
+
+        .fq-title {
+            font-size: 12px;
+            font-weight: 500
+        }
+
+        .fq-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: .65rem 1rem;
+            border-bottom: .5px solid rgba(255, 255, 255, .04);
+            font-size: 11px;
+            transition: background .1s;
+            cursor: pointer
+        }
+
+        .fq-row:hover {
+            background: var(--bg3)
+        }
+
+        .fq-row:last-child {
+            border: none
+        }
+
+        .fq-priority {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0
+        }
+
+        .fq-title-text {
+            flex: 1;
+            color: var(--txt2)
+        }
+
+        .fq-effort {
+            font-size: 10px;
+            padding: 1px 6px;
+            border-radius: 4px;
+            background: var(--bg4);
+            color: var(--txt3)
+        }
+
+        .fq-assign {
+            font-size: 10px;
+            color: var(--txt3);
+            min-width: 60px;
+            text-align: right
+        }
+
+        .fq-status {
+            font-size: 10px;
+            padding: 1px 6px;
+            border-radius: 4px;
+            white-space: nowrap
+        }
+
+        /* What was fixed */
+        .fixed-section {
+            background: var(--bg2);
+            border: .5px solid rgba(34, 197, 94, .2);
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 1rem
+        }
+
+        .fixed-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 5px 0;
+            border-bottom: .5px solid rgba(255, 255, 255, .04);
+            font-size: 11px
+        }
+
+        .fixed-row:last-child {
+            border: none
+        }
+
+        .fixed-check {
+            color: var(--green);
+            font-size: 14px;
+            flex-shrink: 0;
+            margin-top: 1px
+        }
+
+        .fixed-text {
+            color: var(--txt2);
+            flex: 1;
+            line-height: 1.4
+        }
+
+        .fixed-agent {
+            font-size: 10px;
+            color: var(--txt3);
+            white-space: nowrap
+        }
+
+        /* Export bar */
+        .export-bar {
+            background: var(--bg2);
+            border: .5px solid var(--bdr);
+            border-radius: 12px;
+            padding: .85rem 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem
+        }
+
+        .export-label {
+            font-size: 12px;
+            font-weight: 500
+        }
+
+        .export-sub {
+            font-size: 11px;
+            color: var(--txt3)
+        }
+
+        .export-btns {
+            display: flex;
+            gap: 6px
+        }
+
+        /* Chips */
+        .chip {
+            display: inline-block;
+            font-size: 10px;
+            padding: 2px 7px;
+            border-radius: 4px;
+            font-weight: 500
+        }
+
+        .chip-r {
+            background: rgba(239, 68, 68, .12);
+            color: #FCA5A5
+        }
+
+        .chip-a {
+            background: rgba(245, 158, 11, .12);
+            color: #FCD34D
+        }
+
+        .chip-g {
+            background: rgba(34, 197, 94, .12);
+            color: #86EFAC
+        }
+
+        .chip-b {
+            background: rgba(75, 123, 236, .12);
+            color: #93B4F8
+        }
+
+        .chip-d {
+            background: var(--bg4);
+            color: var(--txt3)
+        }
+
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, .75);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem
+        }
+
+        .modal-overlay.open {
+            display: flex
+        }
+
+        .modal {
+            background: var(--bg2);
+            border: .5px solid var(--bdr2);
+            border-radius: 16px;
+            width: 100%;
+            max-width: 480px;
+            overflow: hidden
+        }
+
+        .modal-head {
+            padding: 1rem 1.25rem;
+            background: var(--bg3);
+            border-bottom: .5px solid var(--bdr);
+            display: flex;
+            align-items: center;
+            justify-content: space-between
+        }
+
+        .modal-title {
+            font-size: 14px;
+            font-weight: 600
+        }
+
+        .modal-body {
+            padding: 1.25rem
+        }
+
+        .modal-close {
+            cursor: pointer;
+            color: var(--txt2);
+            font-size: 18px;
+            background: none;
+            border: none
+        }
+    </style>
+</head>
+
+<body>
+    <div class="shell">
+
+        <!-- SIDEBAR -->
+        <div class="sidebar">
+            <div class="logo">Code<span>ward</span></div>
+            <div class="nav-group">Health</div>
+            <div class="nav-item active" onclick="showScreen('cert',this)">
+                <div class="dot dot-g"></div>Certificate
+            </div>
+            <div class="nav-item" onclick="showScreen('debt',this)">
+                <div class="dot dot-a"></div>Debt report
+            </div>
+            <div class="nav-group">Analysis</div>
+            <div class="nav-item">
+                <div class="dot dot-r"></div>Security
+            </div>
+            <div class="nav-item">
+                <div class="dot dot-b"></div>Live feed
+            </div>
+            <div class="nav-item">
+                <div class="dot"></div>Diff viewer
+            </div>
+            <div class="nav-group">Deploy</div>
+            <div class="nav-item">
+                <div class="dot dot-g"></div>Staging
+            </div>
+            <div class="nav-item">
+                <div class="dot"></div>History
+            </div>
+        </div>
+
+        <!-- MAIN -->
+        <div class="main">
+
+            <!-- ══════════════════ HEALTH CERTIFICATE ══════════════════ -->
+            <div class="screen active" id="screen-cert">
+                <div class="topbar">
+                    <div>
+                        <div class="tb-title">Health certificate</div>
+                        <div class="tb-sub">shareable · updates on every scan · acme-corp / my-api</div>
+                    </div>
+                    <div class="tb-actions">
+                        <button class="btn" onclick="document.getElementById('print-modal').classList.add('open')">🖨️
+                            Print / Export</button>
+                        <button class="btn">🌐 Global feed</button>
+                        <button class="btn btn-primary"
+                            onclick="navigator.clipboard&&navigator.clipboard.writeText('https://codeward.io/cert/acme-corp/my-api');alert('Link copied!')">Share
+                            link</button>
+                    </div>
+                </div>
+                <div class="content">
+                    <div class="page-tabs">
+                        <div class="page-tab active" onclick="switchTab('cert','tab-overview',this)">Overview</div>
+                        <div class="page-tab" onclick="switchTab('cert','tab-history',this)">Score history</div>
+                        <div class="page-tab" onclick="switchTab('cert','tab-share',this)">Share & embed</div>
+                        <div class="page-tab" onclick="switchTab('cert','tab-feed',this)">Global feed</div>
+                    </div>
+
+                    <!-- OVERVIEW TAB -->
+                    <div class="tab-pane active" id="cert-tab-overview">
+
+                        <div class="cert-hero">
+                            <div class="cert-ring">
+                                <svg viewBox="0 0 140 140">
+                                    <defs>
+                                        <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="0%" stop-color="#22C55E" />
+                                            <stop offset="100%" stop-color="transparent" />
+                                        </linearGradient>
+                                    </defs>
+                                    <circle class="cert-ring-bg" cx="70" cy="70" r="58" />
+                                    <circle class="cert-ring-fg" cx="70" cy="70" r="58" id="cert-ring"
+                                        stroke-dasharray="364.4" stroke-dashoffset="364.4" />
+                                </svg>
+                                <div class="cert-ring-num">
+                                    <div class="cert-num" id="cert-score-num">0</div>
+                                    <div class="cert-denom">/100</div>
+                                </div>
+                            </div>
+                            <div class="cert-repo">Codeward health score · acme-corp / my-api</div>
+                            <div class="cert-badge-green">✓ Passed Codeward security & quality review</div>
+                            <div class="cert-meta">Last scan: 4 minutes ago · 0 critical · 0 high · 1 medium · 142/142
+                                tests passing</div>
+                        </div>
+
+                        <div class="grade-bands">
+                            <div class="grade-band">
+                                <div class="gb-grade" style="color:var(--red)">F</div>
+                                <div class="gb-range">0–49</div>
+                                <div class="gb-label">Critical debt</div>
+                            </div>
+                            <div class="grade-band">
+                                <div class="gb-grade" style="color:var(--amber)">D</div>
+                                <div class="gb-range">50–64</div>
+                                <div class="gb-label">Poor</div>
+                            </div>
+                            <div class="grade-band">
+                                <div class="gb-grade" style="color:var(--amber)">C</div>
+                                <div class="gb-range">65–74</div>
+                                <div class="gb-label">Moderate</div>
+                            </div>
+                            <div class="grade-band">
+                                <div class="gb-grade" style="color:var(--blue)">B</div>
+                                <div class="gb-range">75–89</div>
+                                <div class="gb-label">Good</div>
+                            </div>
+                            <div class="grade-band current">
+                                <div class="gb-grade" style="color:var(--green)">A</div>
+                                <div class="gb-range">90–100</div>
+                                <div class="gb-label">Excellent ✓</div>
+                            </div>
+                        </div>
+
+                        <div class="score-breakdown">
+                            <div class="sb-card">
+                                <div class="sb-cat" style="color:#FCA5A5">🔴 Security</div>
+                                <div class="sb-score" style="color:var(--green)">100</div>
+                                <div class="sb-bar">
+                                    <div class="sb-bar-fill" style="width:100%;background:var(--green)"></div>
+                                </div>
+                                <div class="sb-status">0 issues · ×2.0 weight</div>
+                            </div>
+                            <div class="sb-card">
+                                <div class="sb-cat" style="color:#FCA5A5">🔴 Broken code</div>
+                                <div class="sb-score" style="color:var(--green)">100</div>
+                                <div class="sb-bar">
+                                    <div class="sb-bar-fill" style="width:100%;background:var(--green)"></div>
+                                </div>
+                                <div class="sb-status">142/142 tests · ×1.8 weight</div>
+                            </div>
+                            <div class="sb-card">
+                                <div class="sb-cat" style="color:#86EFAC">🟢 AI-era</div>
+                                <div class="sb-score" style="color:var(--green)">96</div>
+                                <div class="sb-bar">
+                                    <div class="sb-bar-fill" style="width:96%;background:var(--teal)"></div>
+                                </div>
+                                <div class="sb-status">1 low risk · ×1.5 weight</div>
+                            </div>
+                            <div class="sb-card">
+                                <div class="sb-cat" style="color:#93B4F8">🔵 Architecture</div>
+                                <div class="sb-score" style="color:var(--amber)">82</div>
+                                <div class="sb-bar">
+                                    <div class="sb-bar-fill" style="width:82%;background:var(--amber)"></div>
+                                </div>
+                                <div class="sb-status">1 N+1 open · ×1.2 weight</div>
+                            </div>
+                            <div class="sb-card">
+                                <div class="sb-cat" style="color:#FCD34D">🟡 Bloat</div>
+                                <div class="sb-score" style="color:var(--green)">91</div>
+                                <div class="sb-bar">
+                                    <div class="sb-bar-fill" style="width:91%;background:var(--green)"></div>
+                                </div>
+                                <div class="sb-status">−247 lines removed · ×1.0</div>
+                            </div>
+                            <div class="sb-card">
+                                <div class="sb-cat" style="color:#C4B5FD">⚖️ Compliance</div>
+                                <div class="sb-score" style="color:var(--amber)">88</div>
+                                <div class="sb-bar">
+                                    <div class="sb-bar-fill" style="width:88%;background:var(--amber)"></div>
+                                </div>
+                                <div class="sb-status">1 WCAG warning · ×1.6</div>
+                            </div>
+                        </div>
+
+                        <div class="compare-bar-list">
+                            <div
+                                style="font-size:11px;font-weight:600;color:var(--txt3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.5rem">
+                                How you compare</div>
+                            <div class="cbl-row"><span class="cbl-label">Your score</span>
+                                <div class="cbl-bar-wrap">
+                                    <div class="cbl-bar" style="width:91%;background:var(--green)"></div>
+                                </div><span class="cbl-val" style="color:var(--green)">91</span><span
+                                    class="cbl-badge chip chip-g">Top 8%</span>
+                            </div>
+                            <div class="cbl-row"><span class="cbl-label">Lovable repos</span>
+                                <div class="cbl-bar-wrap">
+                                    <div class="cbl-bar" style="width:58%;background:var(--amber)"></div>
+                                </div><span class="cbl-val" style="color:var(--amber)">58</span><span
+                                    class="cbl-badge chip chip-a">avg</span>
+                            </div>
+                            <div class="cbl-row"><span class="cbl-label">Cursor repos</span>
+                                <div class="cbl-bar-wrap">
+                                    <div class="cbl-bar" style="width:71%;background:var(--blue)"></div>
+                                </div><span class="cbl-val" style="color:var(--blue)">71</span><span
+                                    class="cbl-badge chip chip-b">avg</span>
+                            </div>
+                            <div class="cbl-row"><span class="cbl-label">All Codeward</span>
+                                <div class="cbl-bar-wrap">
+                                    <div class="cbl-bar" style="width:67%;background:var(--txt3)"></div>
+                                </div><span class="cbl-val" style="color:var(--txt3)">67</span><span
+                                    class="cbl-badge chip chip-d">median</span>
+                            </div>
+                        </div>
+
+                    </div><!-- /overview tab -->
+
+                    <!-- HISTORY TAB -->
+                    <div class="tab-pane" id="cert-tab-history">
+                        <div class="timeline-chart">
+                            <div class="tc-head">
+                                <div class="tc-title">Health score over time — my-api</div>
+                                <div class="tc-range">
+                                    <button class="tc-btn active">30d</button>
+                                    <button class="tc-btn">90d</button>
+                                    <button class="tc-btn">1y</button>
+                                </div>
+                            </div>
+                            <div class="chart-area">
+                                <svg class="chart-svg" viewBox="0 0 600 80" preserveAspectRatio="none">
+                                    <defs>
+                                        <linearGradient id="chartGrad2" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="0%" stop-color="#22C55E" stop-opacity=".4" />
+                                            <stop offset="100%" stop-color="#22C55E" stop-opacity="0" />
+                                        </linearGradient>
+                                    </defs>
+                                    <path class="chart-area-fill"
+                                        d="M0,72 L30,68 L90,65 L150,60 L210,58 L270,52 L330,50 L390,44 L450,36 L510,22 L570,7 L600,7 L600,80 L0,80 Z"
+                                        fill="url(#chartGrad2)" />
+                                    <path class="chart-line"
+                                        d="M0,72 L30,68 L90,65 L150,60 L210,58 L270,52 L330,50 L390,44 L450,36 L510,22 L570,7" />
+                                    <circle class="chart-point" cx="0" cy="72" r="3.5" />
+                                    <circle class="chart-point" cx="90" cy="65" r="3.5" />
+                                    <circle class="chart-point" cx="210" cy="58" r="3.5" />
+                                    <circle class="chart-point" cx="330" cy="50" r="3.5" />
+                                    <circle class="chart-point" cx="450" cy="36" r="3.5" />
+                                    <circle class="chart-point" cx="570" cy="7" r="5" fill="#fff" stroke="#22C55E"
+                                        stroke-width="2" />
+                                    <text x="558" y="5" font-size="10" fill="#22C55E" text-anchor="middle">91</text>
+                                </svg>
+                            </div>
+                            <div class="chart-labels">
+                                <span class="chart-label">May 18</span>
+                                <span class="chart-label">May 25</span>
+                                <span class="chart-label">Jun 1</span>
+                                <span class="chart-label">Jun 8</span>
+                                <span class="chart-label">Jun 15</span>
+                                <span class="chart-label">Today</span>
+                            </div>
+                        </div>
+                        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+                            <div class="sb-card">
+                                <div class="sb-cat">Starting score</div>
+                                <div class="sb-score" style="color:var(--red)">52</div>
+                                <div class="sb-status">May 18 · first audit</div>
+                            </div>
+                            <div class="sb-card">
+                                <div class="sb-cat">Peak improvement</div>
+                                <div class="sb-score" style="color:var(--green)">+39 pts</div>
+                                <div class="sb-status">over 30 days</div>
+                            </div>
+                            <div class="sb-card">
+                                <div class="sb-cat">Debt items removed</div>
+                                <div class="sb-score" style="color:var(--blue)">127</div>
+                                <div class="sb-status">across all categories</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SHARE TAB -->
+                    <div class="tab-pane" id="cert-tab-share">
+                        <div class="share-card">
+                            <div class="share-card-title">Share this certificate</div>
+                            <div class="share-url">
+                                <span>https://codeward.io/cert/acme-corp/my-api</span>
+                                <button class="btn" onclick="alert('Copied!')">Copy</button>
+                            </div>
+                            <div class="share-btns">
+                                <button class="btn btn-primary" onclick="alert('Link copied!')">📋 Copy link</button>
+                                <button class="btn"
+                                    onclick="document.getElementById('print-modal').classList.add('open')">📄 Download
+                                    PDF</button>
+                                <button class="btn"
+                                    onclick="document.getElementById('badge-modal').classList.add('open')">🏷️ Embed
+                                    badge</button>
+                                <button class="btn">🐦 Share to X</button>
+                                <button class="btn">💼 LinkedIn</button>
+                            </div>
+                            <div class="share-note">Show this on your landing page, investor decks, or README. Every
+                                visitor who clicks it and wants the same for their codebase is your next customer.</div>
+                        </div>
+                        <div class="share-card">
+                            <div class="share-card-title">README badge</div>
+                            <div class="badge-preview">
+                                <div
+                                    style="background:#1a1a2a;border-radius:6px;padding:4px 10px;display:flex;align-items:center;gap:7px;font-size:12px">
+                                    <span
+                                        style="background:var(--grd);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-weight:700">Codeward</span>
+                                    <span
+                                        style="background:var(--green);color:#fff;font-size:11px;padding:1px 7px;border-radius:4px;font-weight:700">A
+                                        · 91/100</span>
+                                </div>
+                                <div class="badge-code">[![Codeward
+                                    Health](https://codeward.io/badge/acme-corp/my-api)](https://codeward.io/cert/acme-corp/my-api)
+                                </div>
+                                <button class="btn" onclick="alert('Markdown copied!')">Copy</button>
+                            </div>
+                            <div class="share-note">Updates automatically on every scan. Always shows your latest score.
+                            </div>
+                        </div>
+                        <div class="share-card">
+                            <div class="share-card-title">Certificate visibility</div>
+                            <div style="display:flex;flex-direction:column;gap:8px">
+                                <label
+                                    style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;color:var(--txt2)"><input
+                                        type="radio" name="vis" checked> Public — anyone with the link can view</label>
+                                <label
+                                    style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;color:var(--txt2)"><input
+                                        type="radio" name="vis"> Private — only your team</label>
+                                <label
+                                    style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;color:var(--txt2)"><input
+                                        type="radio" name="vis"> Investor mode — enhanced PDF with full audit
+                                    trail</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- GLOBAL FEED TAB -->
+                    <div class="tab-pane" id="cert-tab-feed">
+                        <div class="feed-card">
+                            <div
+                                style="font-size:12px;font-weight:500;margin-bottom:.75rem;display:flex;justify-content:space-between;align-items:center">
+                                <span>🌐 Live global feed — real teams, real scores</span>
+                                <span style="font-size:10px;color:var(--txt3)">Updated in real time</span>
+                            </div>
+                            <div class="feed-item">
+                                <div class="feed-avatar" style="background:rgba(75,123,236,.2);color:#93B4F8">AC</div>
+                                <div class="feed-repo">acme-corp / payments-api</div>
+                                <div class="feed-score" style="color:var(--red)">52</div><span class="chip chip-a"
+                                    style="margin:0 6px">D</span>
+                                <div class="feed-time">just now</div>
+                            </div>
+                            <div class="feed-item">
+                                <div class="feed-avatar" style="background:rgba(34,197,94,.2);color:#86EFAC">SV</div>
+                                <div class="feed-repo">startup-ventures / web-app</div>
+                                <div class="feed-score" style="color:var(--green)">94</div><span class="chip chip-g"
+                                    style="margin:0 6px">A</span>
+                                <div class="feed-time">1m ago</div>
+                            </div>
+                            <div class="feed-item">
+                                <div class="feed-avatar" style="background:rgba(139,92,246,.2);color:#C4B5FD">NK</div>
+                                <div class="feed-repo">nkosi-dev / auth-service</div>
+                                <div class="feed-score" style="color:var(--green)">88</div><span class="chip chip-b"
+                                    style="margin:0 6px">B</span>
+                                <div class="feed-time">3m ago</div>
+                            </div>
+                            <div class="feed-item">
+                                <div class="feed-avatar" style="background:rgba(245,158,11,.2);color:#FCD34D">TF</div>
+                                <div class="feed-repo">techfounders / mvp-backend</div>
+                                <div class="feed-score" style="color:var(--amber)">67</div><span class="chip chip-a"
+                                    style="margin:0 6px">C</span>
+                                <div class="feed-time">5m ago</div>
+                            </div>
+                            <div class="feed-item">
+                                <div class="feed-avatar" style="background:rgba(239,68,68,.2);color:#FCA5A5">LB</div>
+                                <div class="feed-repo">lagosbuild / ecommerce</div>
+                                <div class="feed-score" style="color:var(--red)">41</div><span class="chip chip-r"
+                                    style="margin:0 6px">F</span>
+                                <div class="feed-time">8m ago</div>
+                            </div>
+                            <div class="feed-item">
+                                <div class="feed-avatar" style="background:rgba(20,184,166,.2);color:#5EEAD4">CP</div>
+                                <div class="feed-repo">codepath / student-project</div>
+                                <div class="feed-score" style="color:var(--green)">79</div><span class="chip chip-b"
+                                    style="margin:0 6px">B</span>
+                                <div class="feed-time">12m ago</div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div><!-- /cert content -->
+            </div><!-- /cert screen -->
+
+            <!-- ══════════════════ DEBT REPORT ══════════════════ -->
+            <div class="screen" id="screen-debt">
+                <div class="topbar">
+                    <div>
+                        <div class="tb-title">Debt report</div>
+                        <div class="tb-sub">my-api · commit 3fa2c1 · Jun 17, 2026</div>
+                    </div>
+                    <div class="tb-actions">
+                        <select class="btn"
+                            style="padding:5px 10px;background:var(--bg2);color:var(--txt2);border:.5px solid var(--bdr2)">
+                            <option>This run (3fa2c1)</option>
+                            <option>Last week</option>
+                            <option>30-day summary</option>
+                        </select>
+                        <button class="btn">📤 Export CSV</button>
+                        <button class="btn" onclick="document.getElementById('print-modal').classList.add('open')">🖨️
+                            Export PDF</button>
+                        <button class="btn btn-primary">+ Assign to sprint</button>
+                    </div>
+                </div>
+                <div class="content">
+                    <div class="page-tabs">
+                        <div class="page-tab active" onclick="switchTab('debt','tab-findings',this)">All findings</div>
+                        <div class="page-tab" onclick="switchTab('debt','tab-fixed',this)">What was fixed ✓</div>
+                        <div class="page-tab" onclick="switchTab('debt','tab-queue',this)">Fix queue</div>
+                        <div class="page-tab" onclick="switchTab('debt','tab-trends',this)">Trends</div>
+                    </div>
+
+                    <!-- ALL FINDINGS -->
+                    <div class="tab-pane active" id="debt-tab-findings">
+
+                        <div class="stat-grid">
+                            <div class="stat stat-r">
+                                <div class="stat-n" style="color:var(--red)">3</div>
+                                <div class="stat-l">Critical security</div>
+                                <div class="stat-trend trend-up-good">↑ −3 from last run</div>
+                            </div>
+                            <div class="stat stat-a">
+                                <div class="stat-n" style="color:var(--amber)">8</div>
+                                <div class="stat-l">Duplicate functions</div>
+                                <div class="stat-trend trend-up-good">↑ Auto-fixed all 8</div>
+                            </div>
+                            <div class="stat stat-g">
+                                <div class="stat-n" style="color:var(--green)">247</div>
+                                <div class="stat-l">Dead code lines removed</div>
+                                <div class="stat-trend trend-neutral">New this run</div>
+                            </div>
+                            <div class="stat stat-b">
+                                <div class="stat-n" style="color:var(--green)">91</div>
+                                <div class="stat-l">Health score</div>
+                                <div class="stat-trend trend-up-good">↑ +16 from baseline</div>
+                            </div>
+                        </div>
+
+                        <div class="filter-bar">
+                            <div class="filter-chip active"
+                                style="background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.3);color:#FCA5A5"
+                                onclick="this.classList.toggle('active')">🔴 Security</div>
+                            <div class="filter-chip active"
+                                style="background:rgba(245,158,11,.1);border-color:rgba(245,158,11,.3);color:#FCD34D"
+                                onclick="this.classList.toggle('active')">🟡 Bloat</div>
+                            <div class="filter-chip active"
+                                style="background:rgba(75,123,236,.1);border-color:rgba(75,123,236,.3);color:#93B4F8"
+                                onclick="this.classList.toggle('active')">🔵 Architecture</div>
+                            <div class="filter-chip active"
+                                style="background:rgba(34,197,94,.1);border-color:rgba(34,197,94,.3);color:#86EFAC"
+                                onclick="this.classList.toggle('active')">🟢 AI-era</div>
+                            <div class="filter-sep"></div>
+                            <div class="filter-chip" onclick="this.classList.toggle('active')">Open only</div>
+                            <div class="filter-chip" onclick="this.classList.toggle('active')">Auto-fixed</div>
+                            <div class="search-box"><span>🔍</span><input type="text" placeholder="Search findings...">
+                            </div>
+                        </div>
+
+                        <!-- Security -->
+                        <div class="debt-section">
+                            <div class="ds-head"
+                                style="background:rgba(239,68,68,.08);border:.5px solid rgba(239,68,68,.25);border-radius:10px"
+                                onclick="toggleSection(this)">
+                                <div class="ds-head-left">
+                                    <div class="ds-title" style="color:#FCA5A5">🔴 Security debt</div>
+                                    <div class="ds-meta" style="color:#FCA5A5">Critical · 3 issues · all auto-fixed
+                                    </div>
+                                </div>
+                                <div style="display:flex;align-items:center;gap:8px"><span class="chip chip-r">×2.0
+                                        weight</span><span class="ds-arrow open">▶</span></div>
+                            </div>
+                            <div class="ds-body" style="border-color:rgba(239,68,68,.15)">
+                                <div class="debt-item">
+                                    <div class="di">
+                                        <div class="di-title">Hardcoded API keys<span class="chip chip-g">Fixed</span>
+                                        </div>
+                                        <div class="di-desc">2 live keys in config.js · moved to .env · git history
+                                            flagged for rotation</div>
+                                        <div class="di-actions"><button class="btn"
+                                                style="font-size:10px;padding:2px 8px">View diff</button><button
+                                                class="btn" style="font-size:10px;padding:2px 8px">GitHub Issue
+                                                #103</button></div>
+                                    </div>
+                                    <div class="di">
+                                        <div class="di-title">Missing route auth<span class="chip chip-g">Fixed</span>
+                                        </div>
+                                        <div class="di-desc">/api/admin/users unprotected · auth middleware added
+                                            automatically</div>
+                                        <div class="di-actions"><button class="btn"
+                                                style="font-size:10px;padding:2px 8px">View PR comment</button></div>
+                                    </div>
+                                </div>
+                                <div class="debt-item">
+                                    <div class="di">
+                                        <div class="di-title">RLS missing on users table<span
+                                                class="chip chip-g">Fixed</span></div>
+                                        <div class="di-desc">Supabase policy added · per-user row isolation enforced
+                                        </div>
+                                        <div class="di-actions"><button class="btn"
+                                                style="font-size:10px;padding:2px 8px">View SQL</button></div>
+                                    </div>
+                                    <div class="di">
+                                        <div class="di-title">AI: no max_tokens guard<span
+                                                class="chip chip-a">Suggested</span></div>
+                                        <div class="di-desc">LLM endpoint exposed to cost attack · limit not yet applied
+                                            — needs manual review</div>
+                                        <div class="di-actions"><button class="btn btn-primary"
+                                                style="font-size:10px;padding:2px 8px">Apply fix</button><button
+                                                class="btn" style="font-size:10px;padding:2px 8px">Dismiss</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Bloat -->
+                        <div class="debt-section">
+                            <div class="ds-head"
+                                style="background:rgba(245,158,11,.06);border:.5px solid rgba(245,158,11,.2);border-radius:10px"
+                                onclick="toggleSection(this)">
+                                <div class="ds-head-left">
+                                    <div class="ds-title" style="color:#FCD34D">🟡 Bloat debt</div>
+                                    <div class="ds-meta" style="color:#FCD34D">High · 8 duplicates · 247 lines removed
+                                    </div>
+                                </div>
+                                <div style="display:flex;align-items:center;gap:8px"><span class="chip chip-a">×1.0
+                                        weight</span><span class="ds-arrow open">▶</span></div>
+                            </div>
+                            <div class="ds-body" style="border-color:rgba(245,158,11,.12)">
+                                <div class="debt-item">
+                                    <div class="di">
+                                        <div class="di-title">validateEmail() × 3<span class="chip chip-g">Fixed</span>
+                                        </div>
+                                        <div class="di-desc">Found in auth/, api/, utils/ · merged to
+                                            utils/validators.js</div>
+                                        <div class="di-actions"><button class="btn"
+                                                style="font-size:10px;padding:2px 8px">View diff</button></div>
+                                    </div>
+                                    <div class="di">
+                                        <div class="di-title">formatDate() × 4<span class="chip chip-g">Fixed</span>
+                                        </div>
+                                        <div class="di-desc">4 files had identical logic · extracted to utils/dates.js
+                                        </div>
+                                        <div class="di-actions"><button class="btn"
+                                                style="font-size:10px;padding:2px 8px">View diff</button></div>
+                                    </div>
+                                </div>
+                                <div class="debt-item">
+                                    <div class="di">
+                                        <div class="di-title">Commented dead code<span class="chip chip-g">Fixed</span>
+                                        </div>
+                                        <div class="di-desc">52 lines in api/users.js · last modified 14 months ago ·
+                                            removed</div>
+                                    </div>
+                                    <div class="di">
+                                        <div class="di-title">Unused package: moment.js<span
+                                                class="chip chip-g">Fixed</span></div>
+                                        <div class="di-desc">Never imported after date-fns migration · removed from
+                                            package.json</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Architecture -->
+                        <div class="debt-section">
+                            <div class="ds-head"
+                                style="background:rgba(75,123,236,.06);border:.5px solid rgba(75,123,236,.2);border-radius:10px"
+                                onclick="toggleSection(this)">
+                                <div class="ds-head-left">
+                                    <div class="ds-title" style="color:#93B4F8">🔵 Architecture debt</div>
+                                    <div class="ds-meta" style="color:#93B4F8">Medium · N+1 pattern · 2 missing indexes
+                                    </div>
+                                </div>
+                                <div style="display:flex;align-items:center;gap:8px"><span class="chip chip-b">×1.2
+                                        weight</span><span class="ds-arrow open">▶</span></div>
+                            </div>
+                            <div class="ds-body" style="border-color:rgba(75,123,236,.12)">
+                                <div class="debt-item">
+                                    <div class="di">
+                                        <div class="di-title">N+1 on /api/users<span class="chip chip-a">Open</span>
+                                        </div>
+                                        <div class="di-desc">1 query per user row · fix: JOIN profiles in main query ·
+                                            estimated 40% latency gain</div>
+                                        <div class="di-actions"><button class="btn btn-primary"
+                                                style="font-size:10px;padding:2px 8px">View fix</button><button
+                                                class="btn" style="font-size:10px;padding:2px 8px">Assign</button></div>
+                                    </div>
+                                    <div class="di">
+                                        <div class="di-title">Missing index: orders.user_id<span
+                                                class="chip chip-a">Open</span></div>
+                                        <div class="di-desc">Full scan on 84k rows · CREATE INDEX suggested · will
+                                            improve order queries 10–20×</div>
+                                        <div class="di-actions"><button class="btn btn-primary"
+                                                style="font-size:10px;padding:2px 8px">Copy SQL</button></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div><!-- /findings tab -->
+
+                    <!-- WHAT WAS FIXED -->
+                    <div class="tab-pane" id="debt-tab-fixed">
+                        <div class="fixed-section">
+                            <div
+                                style="font-size:12px;font-weight:500;color:var(--green);margin-bottom:.85rem;display:flex;justify-content:space-between">
+                                <span>✅ Auto-fixed this run — 14 items</span>
+                                <button class="btn" style="font-size:10px;padding:2px 8px">Export changes</button>
+                            </div>
+                            <div class="fixed-row"><span class="fixed-check">✓</span><span
+                                    class="fixed-text"><strong>Hardcoded Stripe key</strong> in config.js:14 → moved to
+                                    process.env.STRIPE_KEY · git history flagged</span><span
+                                    class="fixed-agent">Security Agent</span></div>
+                            <div class="fixed-row"><span class="fixed-check">✓</span><span
+                                    class="fixed-text"><strong>validateEmail()</strong> duplicated 3× → merged into
+                                    utils/validators.js:42</span><span class="fixed-agent">Bloat Agent</span></div>
+                            <div class="fixed-row"><span class="fixed-check">✓</span><span
+                                    class="fixed-text"><strong>formatDate()</strong> duplicated 4× → extracted to
+                                    utils/dates.js · 4 files updated</span><span class="fixed-agent">Bloat Agent</span>
+                            </div>
+                            <div class="fixed-row"><span class="fixed-check">✓</span><span class="fixed-text"><strong>52
+                                        lines of commented dead code</strong> in api/users.js removed · last modified 14
+                                    months ago</span><span class="fixed-agent">Bloat Agent</span></div>
+                            <div class="fixed-row"><span class="fixed-check">✓</span><span
+                                    class="fixed-text"><strong>moment.js</strong> removed from package.json · never
+                                    imported after date-fns migration</span><span class="fixed-agent">Bloat Agent</span>
+                            </div>
+                            <div class="fixed-row"><span class="fixed-check">✓</span><span
+                                    class="fixed-text"><strong>GET /api/admin/users</strong> auth middleware added · was
+                                    returning 200 with no token</span><span class="fixed-agent">Security Agent</span>
+                            </div>
+                            <div class="fixed-row"><span class="fixed-check">✓</span><span
+                                    class="fixed-text"><strong>Supabase RLS policy</strong> added on users table ·
+                                    per-user row isolation enforced</span><span class="fixed-agent">Security
+                                    Agent</span></div>
+                            <div class="fixed-row"><span class="fixed-check">✓</span><span
+                                    class="fixed-text"><strong>OpenAI API key</strong> hardcoded in services/ai.js:8 →
+                                    moved to env var</span><span class="fixed-agent">Security Agent</span></div>
+                        </div>
+                        <div style="background:var(--bg2);border:.5px solid var(--bdr);border-radius:12px;padding:1rem">
+                            <div style="font-size:12px;font-weight:500;margin-bottom:.75rem">⏳ Still open — requires
+                                human review (2 items)</div>
+                            <div class="fixed-row" style="padding:6px 0"><span
+                                    style="color:var(--amber);font-size:14px;flex-shrink:0">⚠</span><span
+                                    class="fixed-text"><strong>AI: no max_tokens guard</strong> on /api/chat · LLM cost
+                                    attack risk · 1-line fix suggested but needs your review</span><button
+                                    class="btn btn-primary"
+                                    style="font-size:10px;padding:3px 9px;white-space:nowrap">Apply fix</button></div>
+                            <div class="fixed-row" style="padding:6px 0"><span
+                                    style="color:var(--amber);font-size:14px;flex-shrink:0">⚠</span><span
+                                    class="fixed-text"><strong>N+1 on /api/users</strong> · JOIN refactor suggested ·
+                                    test changes needed before applying</span><button class="btn"
+                                    style="font-size:10px;padding:3px 9px;white-space:nowrap">View fix</button></div>
+                        </div>
+                    </div>
+
+                    <!-- FIX QUEUE -->
+                    <div class="tab-pane" id="debt-tab-queue">
+                        <div class="fix-queue">
+                            <div class="fq-head">
+                                <div class="fq-title">Fix queue — prioritised by impact × effort</div>
+                                <button class="btn btn-primary" style="font-size:10px">Export to Jira / Linear</button>
+                            </div>
+                            <div class="fq-row">
+                                <div class="fq-priority" style="background:var(--red)"></div><span
+                                    class="fq-title-text"><strong>Apply max_tokens guard</strong> — /api/chat LLM cost
+                                    risk</span><span class="fq-effort">~5 min</span><span
+                                    class="fq-assign">Unassigned</span><span class="fq-status chip chip-r">P0</span>
+                            </div>
+                            <div class="fq-row">
+                                <div class="fq-priority" style="background:var(--amber)"></div><span
+                                    class="fq-title-text"><strong>Fix N+1 on /api/users</strong> — JOIN
+                                    refactor</span><span class="fq-effort">~30 min</span><span
+                                    class="fq-assign">@james</span><span class="fq-status chip chip-a">P1</span>
+                            </div>
+                            <div class="fq-row">
+                                <div class="fq-priority" style="background:var(--amber)"></div><span
+                                    class="fq-title-text"><strong>CREATE INDEX on orders.user_id</strong></span><span
+                                    class="fq-effort">~10 min</span><span class="fq-assign">@sarah</span><span
+                                    class="fq-status chip chip-a">P1</span>
+                            </div>
+                            <div class="fq-row">
+                                <div class="fq-priority" style="background:var(--blue)"></div><span
+                                    class="fq-title-text"><strong>Rate limiting on POST
+                                        /api/auth/login</strong></span><span class="fq-effort">~45 min</span><span
+                                    class="fq-assign">Unassigned</span><span class="fq-status chip chip-b">P2</span>
+                            </div>
+                            <div class="fq-row">
+                                <div class="fq-priority" style="background:var(--txt3)"></div><span
+                                    class="fq-title-text"><strong>WCAG contrast fix — 3 components</strong></span><span
+                                    class="fq-effort">~20 min</span><span class="fq-assign">@design</span><span
+                                    class="fq-status chip chip-d">P3</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TRENDS -->
+                    <div class="tab-pane" id="debt-tab-trends">
+                        <div class="trend-chart">
+                            <div style="font-size:12px;font-weight:500;margin-bottom:.85rem">Debt category trends — last
+                                8 runs</div>
+                            <div class="trend-grid">
+                                <div class="tg-item">
+                                    <div class="tg-label"><span>Security findings</span><span
+                                            style="color:var(--green)">↓ 9 → 0</span></div>
+                                    <div class="tg-bar-row" id="trend-security"></div>
+                                </div>
+                                <div class="tg-item">
+                                    <div class="tg-label"><span>Duplicate functions</span><span
+                                            style="color:var(--green)">↓ 23 → 8</span></div>
+                                    <div class="tg-bar-row" id="trend-dupes"></div>
+                                </div>
+                                <div class="tg-item">
+                                    <div class="tg-label"><span>Architecture debt</span><span
+                                            style="color:var(--amber)">→ 2 open</span></div>
+                                    <div class="tg-bar-row" id="trend-arch"></div>
+                                </div>
+                                <div class="tg-item">
+                                    <div class="tg-label"><span>Health score</span><span style="color:var(--green)">↑ 52
+                                            → 91</span></div>
+                                    <div class="tg-bar-row" id="trend-score"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- EXPORT BAR always visible -->
+                    <div class="export-bar">
+                        <div>
+                            <div class="export-label">Export this report</div>
+                            <div class="export-sub">For standups, sprints, investor due diligence, or compliance filing
+                            </div>
+                        </div>
+                        <div class="export-btns">
+                            <button class="btn">📄 PDF report</button>
+                            <button class="btn">📊 CSV (all findings)</button>
+                            <button class="btn">🔗 Linear / Jira</button>
+                            <button class="btn">📧 Email to team</button>
+                            <button class="btn btn-primary"
+                                onclick="document.getElementById('print-modal').classList.add('open')">🖨️ Full print
+                                view</button>
+                        </div>
+                    </div>
+
+                </div><!-- /debt content -->
+            </div><!-- /debt screen -->
+
+        </div><!-- /main -->
+    </div><!-- /shell -->
+
+    <!-- PRINT MODAL -->
+    <div class="modal-overlay" id="print-modal">
+        <div class="modal">
+            <div class="modal-head">
+                <div class="modal-title">Export / Print options</div>
+                <button class="modal-close"
+                    onclick="document.getElementById('print-modal').classList.remove('open')">✕</button>
+            </div>
+            <div class="modal-body">
+                <div style="margin-bottom:1rem">
+                    <div style="font-size:12px;font-weight:500;margin-bottom:.65rem">Certificate / Report format</div>
+                    <div style="display:flex;flex-direction:column;gap:7px">
+                        <label
+                            style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;color:var(--txt2)"><input
+                                type="radio" name="fmt" checked> <strong style="color:var(--txt)">Health certificate
+                                PDF</strong> — shareable, investor-ready, signed by Codeward</label>
+                        <label
+                            style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;color:var(--txt2)"><input
+                                type="radio" name="fmt"> <strong style="color:var(--txt)">Full debt audit PDF</strong> —
+                            all findings, evidence, fix recommendations</label>
+                        <label
+                            style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;color:var(--txt2)"><input
+                                type="radio" name="fmt"> <strong style="color:var(--txt)">Executive summary</strong> —
+                            1-page brief for CTOs and boards</label>
+                        <label
+                            style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;color:var(--txt2)"><input
+                                type="radio" name="fmt"> <strong style="color:var(--txt)">Compliance report</strong> —
+                            EU AI Act / GDPR format, includes audit trail</label>
+                        <label
+                            style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;color:var(--txt2)"><input
+                                type="radio" name="fmt"> <strong style="color:var(--txt)">CSV export</strong> — all
+                            findings for spreadsheet / Jira import</label>
+                    </div>
+                </div>
+                <div class="print-card">
+                    <div
+                        style="font-size:11px;color:var(--txt3);margin-bottom:.5rem;text-transform:uppercase;letter-spacing:.06em">
+                        PDF preview</div>
+                    <div class="print-preview">
+                        <div class="print-header">
+                            <div class="print-logo">⬡ Codeward</div>
+                            <div class="print-date">Health Certificate · June 17, 2026<br>acme-corp / my-api</div>
+                        </div>
+                        <div class="print-score-big">
+                            <div class="print-score-n">91</div>
+                            <div style="font-size:12px;color:#16A34A;margin-top:3px;font-weight:500">Grade A — Excellent
+                            </div>
+                            <div style="font-size:11px;color:#888;margin-top:4px">Passed Codeward security & quality
+                                review</div>
+                        </div>
+                        <div class="print-findings">
+                            <div class="pf">
+                                <div class="pf-n" style="color:#DC2626">0</div>
+                                <div class="pf-l">Critical issues</div>
+                            </div>
+                            <div class="pf">
+                                <div class="pf-n" style="color:#D97706">1</div>
+                                <div class="pf-l">Medium issues</div>
+                            </div>
+                            <div class="pf">
+                                <div class="pf-n" style="color:#16A34A">142</div>
+                                <div class="pf-l">Tests passing</div>
+                            </div>
+                        </div>
+                        <div class="print-sig">
+                            <span>Verified by Codeward · 9 AI agents · 100+ checks</span>
+                            <span>cert.codeward.io/verify/abc123</span>
+                        </div>
+                    </div>
+                </div>
+                <button class="btn btn-primary" style="width:100%;padding:10px;font-size:13px"
+                    onclick="document.getElementById('print-modal').classList.remove('open');alert('PDF downloading...')">Download
+                    PDF</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- BADGE MODAL -->
+    <div class="modal-overlay" id="badge-modal">
+        <div class="modal">
+            <div class="modal-head">
+                <div class="modal-title">Embed the Codeward badge</div>
+                <button class="modal-close"
+                    onclick="document.getElementById('badge-modal').classList.remove('open')">✕</button>
+            </div>
+            <div class="modal-body">
+                <div style="display:flex;flex-direction:column;gap:.75rem">
+                    <div style="font-size:12px;color:var(--txt2)">Choose badge style</div>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap">
+                        <div
+                            style="background:var(--bg3);border-radius:6px;padding:8px 12px;display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;border:.5px solid var(--blue)">
+                            <span
+                                style="background:var(--grd);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-weight:700">Codeward</span><span
+                                style="background:var(--green);color:#fff;font-size:11px;padding:1px 7px;border-radius:4px">A
+                                · 91</span></div>
+                        <div
+                            style="background:var(--bg3);border-radius:6px;padding:8px 12px;font-size:11px;cursor:pointer;border:.5px solid var(--bdr)">
+                            Flat dark</div>
+                        <div
+                            style="background:#fff;border-radius:6px;padding:8px 12px;font-size:11px;cursor:pointer;border:.5px solid var(--bdr);color:#111">
+                            Light</div>
+                    </div>
+                    <div style="font-size:12px;color:var(--txt2);margin-top:.25rem">Markdown (README)</div>
+                    <div class="badge-code" style="font-size:11px;padding:8px;border-radius:6px">[![Codeward
+                        Health](https://codeward.io/badge/acme-corp/my-api.svg)](https://codeward.io/cert/acme-corp/my-api)
+                    </div>
+                    <div style="font-size:12px;color:var(--txt2)">HTML embed</div>
+                    <div class="badge-code" style="font-size:11px;padding:8px;border-radius:6px">&lt;a
+                        href="https://codeward.io/cert/acme-corp/my-api"&gt;&lt;img
+                        src="https://codeward.io/badge/acme-corp/my-api.svg"&gt;&lt;/a&gt;</div>
+                    <button class="btn btn-primary"
+                        onclick="document.getElementById('badge-modal').classList.remove('open');alert('Copied!')">Copy
+                        Markdown</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Animate ring
+        setTimeout(() => {
+            const ring = document.getElementById('cert-ring');
+            const score = 91;
+            const circumference = 364.4;
+            const offset = circumference - (score / 100) * circumference;
+            ring.style.strokeDashoffset = offset;
+            let count = 0;
+            const el = document.getElementById('cert-score-num');
+            const timer = setInterval(() => {
+                count += 2;
+                if (count >= score) { count = score; clearInterval(timer); }
+                el.textContent = count;
+            }, 20);
+        }, 400);
+
+        // Trend bars
+        const trendData = {
+            'trend-security': [9, 8, 7, 5, 4, 2, 1, 0],
+            'trend-dupes': [23, 20, 18, 15, 12, 10, 9, 8],
+            'trend-arch': [8, 7, 6, 5, 4, 3, 2, 2],
+            'trend-score': [52, 58, 63, 69, 74, 79, 85, 91],
+        };
+        const trendColors = { 'trend-security': '#EF4444', 'trend-dupes': '#F59E0B', 'trend-arch': '#4B7BEC', 'trend-score': '#22C55E' };
+        Object.entries(trendData).forEach(([id, vals]) => {
+            const container = document.getElementById(id);
+            if (!container) return;
+            const max = Math.max(...vals);
+            vals.forEach(v => {
+                const bar = document.createElement('div');
+                bar.className = 'tg-bar';
+                const pct = (v / max) * 100;
+                bar.style.height = '4px';
+                bar.style.background = trendColors[id] || '#4B7BEC';
+                bar.style.opacity = '.35';
+                setTimeout(() => { bar.style.height = pct + '%'; bar.style.opacity = '1'; }, 200);
+                bar.title = `Run: ${v}`;
+                container.appendChild(bar);
+            });
+        });
+
+        // Screen switch
+        function showScreen(id, el) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            document.getElementById('screen-' + id).classList.add('active');
+            if (el) el.classList.add('active');
+        }
+
+        // Tab switch
+        function switchTab(page, tabId, el) {
+            const allTabs = document.querySelectorAll(`#screen-${page} .tab-pane`);
+            const allBtns = document.querySelectorAll(`#screen-${page} .page-tab`);
+            allTabs.forEach(t => t.classList.remove('active'));
+            allBtns.forEach(b => b.classList.remove('active'));
+            document.getElementById(`${page}-${tabId}`).classList.add('active');
+            if (el) el.classList.add('active');
+        }
+
+        // Collapsible sections
+        function toggleSection(el) {
+            const body = el.nextElementSibling;
+            const arrow = el.querySelector('.ds-arrow');
+            const isOpen = arrow.classList.contains('open');
+            body.style.display = isOpen ? 'none' : 'block';
+            arrow.classList.toggle('open', !isOpen);
+        }
+
+        // Modal close on overlay click
+        document.querySelectorAll('.modal-overlay').forEach(o => o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open') }));
+    </script>
+</body>
+
+</html>

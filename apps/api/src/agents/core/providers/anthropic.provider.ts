@@ -34,11 +34,23 @@ export class AnthropicProvider implements AgentProvider {
     const openRouterModelName = finalModel.includes('/') ? finalModel : `anthropic/${finalModel}`;
 
     try {
+      const { tool } = await import('ai');
+      const aiTools: Record<string, any> = {};
+      if (config.tools) {
+        for (const [name, t] of Object.entries(config.tools)) {
+           aiTools[name] = tool({
+             description: t.description,
+             parameters: t.parameters as any,
+             execute: t.execute as any
+           } as any);
+        }
+      }
+
       const result = await generateText({
         model: openrouter(openRouterModelName),
         system: config.systemPrompt,
         prompt: config.taskPrompt,
-        tools: config.tools as any,
+        tools: aiTools,
       });
 
       // Check if the agent successfully used a final submission tool

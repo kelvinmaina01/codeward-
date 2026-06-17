@@ -5,6 +5,16 @@ export async function runAgentLoop(config: AgentRunConfig, provider: AgentProvid
   const maxSteps = config.maxSteps || 15;
 
   for (let step = 0; step < maxSteps; step++) {
+    const isLastStep = step === maxSteps - 1;
+
+    // On the very last step, inject a system nudge forcing the agent to submit
+    if (isLastStep) {
+      currentMessages.push({
+        role: "user",
+        content: "⚠️ SYSTEM: You have reached the maximum allowed steps. You MUST call your submit_* tool NOW with whatever findings you have. Do NOT make any more exploration calls."
+      });
+    }
+
     const result = await provider.execute({ ...config, messages: currentMessages });
     
     // Push the raw assistant message which contains the proper tool_calls field
@@ -18,27 +28,30 @@ export async function runAgentLoop(config: AgentRunConfig, provider: AgentProvid
       return result.text;
     }
     
-    // Check if the agent called a terminal tool like submit_report
-    const isTerminal = result.toolCalls.some(call => call.name === "submit_report" || call.name === "submit_phase1_result" || call.name === "submit_orchestrator_decision");
+    // Dynamic terminal detection: any tool starting with "submit_" is terminal
+    const isTerminal = result.toolCalls.some(call => call.name.startsWith("submit_"));
     
     // Execute each tool call
     const toolResults = await Promise.all(
       result.toolCalls.map(async (call) => {
         const tool = config.tools?.find(t => t.name === call.name);
         if (!tool) {
+          console.warn(`[AgentLoop] Unknown tool called: ${call.name}`);
           return { id: call.id, name: call.name, content: `Unknown tool: ${call.name}` };
         }
         try {
           const res = await tool.execute(call.input);
           return { id: call.id, name: call.name, content: JSON.stringify(res) };
         } catch (e: any) {
+          console.error(`[AgentLoop] Tool "${call.name}" error:`, e.message);
           return { id: call.id, name: call.name, content: `Error: ${e.message}` };
         }
       })
     );
 
     if (isTerminal) {
-      return result.text; // Exit early if report submitted
+      console.log(`[AgentLoop] Terminal tool called at step ${step + 1}/${maxSteps}. Exiting.`);
+      return result.text;
     }
 
     // Format tool results as proper role: 'tool' messages
@@ -52,5 +65,6 @@ export async function runAgentLoop(config: AgentRunConfig, provider: AgentProvid
     }
   }
 
-  return "Max steps reached";
+  console.warn(`[AgentLoop] Max steps (${maxSteps}) exhausted without terminal tool call.`);
+  return "Max steps reached without submission";
 }

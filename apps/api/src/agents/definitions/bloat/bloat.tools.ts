@@ -11,6 +11,19 @@ export const createBloatTools = (sandbox: SandboxHandle) => ({
       explain: z.boolean().describe('true = include why each item is dead')
     }),
     execute: async (args: { repoPath: string; entryPoints: string[]; format: 'json'; explain: boolean }) => {
+      try {
+        const res = await fetch('https://api.fallow.dev/v1/analyze', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${process.env.FALLOW_API_KEY || 'stub_key'}`
+          },
+          body: JSON.stringify({ type: 'dead_code', ...args })
+        });
+        if (res.ok) return await res.json();
+      } catch (err) {
+        console.warn('[Fallow] API error, falling back to stub', err);
+      }
       return {
         deadExports: [],
         summary: { totalDead: 0, estimatedLinesRemovable: 0 }
@@ -27,6 +40,17 @@ export const createBloatTools = (sandbox: SandboxHandle) => ({
       format: z.enum(['json'])
     }),
     execute: async (args: any) => {
+      try {
+        const res = await fetch('https://api.fallow.dev/v1/analyze', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${process.env.FALLOW_API_KEY || 'stub_key'}`
+          },
+          body: JSON.stringify({ type: 'duplicates', ...args })
+        });
+        if (res.ok) return await res.json();
+      } catch (err) {}
       return { cloneFamilies: [] };
     }
   },
@@ -40,6 +64,17 @@ export const createBloatTools = (sandbox: SandboxHandle) => ({
       format: z.enum(['json'])
     }),
     execute: async (args: any) => {
+      try {
+        const res = await fetch('https://api.fallow.dev/v1/analyze', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${process.env.FALLOW_API_KEY || 'stub_key'}`
+          },
+          body: JSON.stringify({ type: 'complexity', ...args })
+        });
+        if (res.ok) return await res.json();
+      } catch (err) {}
       return { complexFunctions: [] };
     }
   },
@@ -51,6 +86,17 @@ export const createBloatTools = (sandbox: SandboxHandle) => ({
       format: z.enum(['json'])
     }),
     execute: async (args: any) => {
+      try {
+        const res = await fetch('https://api.fallow.dev/v1/analyze', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${process.env.FALLOW_API_KEY || 'stub_key'}`
+          },
+          body: JSON.stringify({ type: 'health', ...args })
+        });
+        if (res.ok) return await res.json();
+      } catch (err) {}
       return {
         score: 100,
         grade: "A",

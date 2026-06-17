@@ -1,6 +1,7 @@
 import type { AgentDefinition, SandboxHandle } from '../core/provider.js';
 import { z } from 'zod';
 import { createBloatTools } from './bloat/bloat.tools.js';
+import { createSandboxTools } from '../tools/sandbox.tools.js';
 
 const CONSTITUTION = `
 === CODEWARD BLOAT AGENT CONSTITUTION ===
@@ -50,20 +51,11 @@ Step 20: OUTPUT BloatAgentResult JSON via submit_bloat_report tool
 CRITICAL INSTRUCTION: When you have completed your playbook, you MUST call the submit_bloat_report tool.
   `,
   createTools: (sandbox: SandboxHandle) => {
-    const tools = createBloatTools(sandbox);
+    const sandboxTools = createSandboxTools(sandbox);
+    const bloatTools = createBloatTools(sandbox);
     return {
-      ...tools,
-      // Provide stub wrappers for the inherited generic tools
-      grep_search: {
-        description: 'Search for a text pattern across all files in the repository.',
-        parameters: z.object({ pattern: z.string(), path: z.string().optional() }),
-        execute: async () => ({ matches: '', matchCount: 0 })
-      },
-      read_file: {
-        description: 'Read the full contents of a file from the cloned repository.',
-        parameters: z.object({ path: z.string() }),
-        execute: async () => ({ content: '' })
-      }
+      ...sandboxTools,
+      ...bloatTools
     };
   }
 };

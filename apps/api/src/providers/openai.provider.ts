@@ -45,35 +45,54 @@ export class NativeOpenAIProvider implements AgentProvider {
     };
 
     if (config.tools && config.tools.length > 0) {
+      const { zodToJsonSchema } = await import("zod-to-json-schema");
       payload.tools = config.tools.map(t => ({
         type: "function",
         function: {
           name: t.name,
           description: t.description,
-          parameters: t.parameters
+          parameters: (t.parameters && t.parameters._def) ? zodToJsonSchema(t.parameters) : t.parameters
         }
       }));
       payload.tool_choice = "required";
     }
 
-    console.log("-> Calling OpenAI API...");
-    const response = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`
-      },
-      body: JSON.stringify(payload)
+    const operation = async () => {
+      console.log(`-> Calling OpenAI API...`);
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout
+
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`
+        },
+        body: JSON.stringify(payload),
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      console.log(`<- OpenAI API responded with status ${response.status}`);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`OpenAI API error ${response.status}: ${errorText}`);
+      }
+
+      const data = await response.json();
+      return this.parseResponse(data);
+    };
+
+    const { default: pRetry } = await import('p-retry');
+    
+    return pRetry(operation, {
+      retries: 3,
+      onFailedAttempt: (error: any) => {
+        console.error(`[NativeOpenAIProvider] API Error (Attempt ${error.attemptNumber} failed. ${error.retriesLeft} retries left): ${error.message}`);
+      }
     });
-    console.log(`<- OpenAI API responded with status ${response.status}`);
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`OpenAI API error ${response.status}: ${errorText}`);
-    }
-
-    const data = await response.json();
-    return this.parseResponse(data);
   }
 
   private parseResponse(data: any): AgentResult {

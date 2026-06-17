@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { mockLiveFeedLogs } from '../../lib/mockAgentData';
 import { WS_URL } from '../../lib/api';
+import { AgentCanvas } from './AgentCanvas';
 
 const clsColor: Record<string, string> = {
-  ok: 'text-[#22C55E]',
-  err: 'text-[#EF4444]',
-  inf: 'text-[#60A5FA]',
-  warn: 'text-[#F59E0B]',
-  plain: 'text-[#aaa]',
+  ok: 'text-cw-green',
+  err: 'text-cw-red',
+  inf: 'text-cw-blue',
+  warn: 'text-cw-amber',
+  plain: 'text-cw-txt3',
 };
 
 type LogEntry = {
@@ -17,13 +18,19 @@ type LogEntry = {
   cursor?: boolean;
 };
 
-export function LiveFeed() {
+interface LiveFeedProps {
+  viewMode: 'stream' | 'canvas';
+}
+
+export function LiveFeed({ viewMode }: LiveFeedProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const [logs, setLogs] = useState<LogEntry[]>(mockLiveFeedLogs);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [logs]);
+    if (viewMode === 'stream') {
+      bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [logs, viewMode]);
 
   useEffect(() => {
     const ws = new WebSocket(`${WS_URL}/ws/feed`);
@@ -71,21 +78,28 @@ export function LiveFeed() {
   }, []);
 
   return (
-    <div className="flex-1 overflow-y-auto px-5 py-4">
-      <div className="bg-[#0f1117] rounded-lg px-3 py-2.5 font-mono text-[11px] leading-[1.7] overflow-y-auto max-h-[520px]">
-        {logs.map((l, i) => (
-          <div key={i} className="flex gap-2.5 mb-[1px]">
-            <span className="text-[#555] shrink-0">{l.ts}</span>
-            <span className={clsColor[l.cls] || 'text-[#aaa]'}>
-              {l.text}
-              {l.cursor && <span className="inline-block w-[7px] h-[11px] bg-[#e8e8e6] rounded-[1px] align-middle ml-1 animate-[blink_0.8s_infinite]" />}
-            </span>
+    <div className="flex-1 flex flex-col h-full overflow-hidden">
+      {viewMode === 'canvas' ? (
+        <AgentCanvas />
+      ) : (
+        <div className="flex-1 overflow-y-auto px-5 py-4">
+          <div className="bg-cw-log-bg rounded-lg px-3 py-2.5 font-mono text-[11px] leading-[1.7] overflow-y-auto h-full border border-cw-bdr">
+            {logs.map((l, i) => (
+              <div key={i} className="flex gap-2.5 mb-[1px]">
+                <span className="text-cw-txt3 shrink-0">{l.ts}</span>
+                <span className={clsColor[l.cls] || 'text-cw-txt2'}>
+                  {l.text}
+                  {l.cursor && <span className="inline-block w-[7px] h-[11px] bg-cw-txt2 rounded-[1px] align-middle ml-1 animate-[blink_0.8s_infinite]" />}
+                </span>
+              </div>
+            ))}
+            <div ref={bottomRef} />
           </div>
-        ))}
-        <div ref={bottomRef} />
-      </div>
-      <style>{`@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}`}</style>
+          <style>{`@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}`}</style>
+        </div>
+      )}
     </div>
   );
 }
+
 
