@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { X, RefreshCw, GitMerge, Clock, ExternalLink, GitBranch } from 'lucide-react';
 import { toast } from 'sonner';
+import { API_URL } from '../../lib/api';
 
 interface Props {
   sha?: string;
@@ -80,7 +81,7 @@ export function RunDetail({ sha, onBack }: Props) {
       setLoadingPr(true);
       try {
         // Hitting our backend octokit bridge
-        const res = await fetch(`http://localhost:3001/api/repos/acme-corp/my-api/pr/42`, { credentials: 'include' });
+        const res = await fetch(`${API_URL}/api/repos/acme-corp/my-api/pr/42`, { credentials: 'include' });
         if (res.ok) {
           const data = await res.json();
           setPrData(data);
@@ -124,7 +125,7 @@ export function RunDetail({ sha, onBack }: Props) {
     setIsMerging(true);
     try {
       // Hit our backend merge endpoint
-      // const res = await fetch(`http://localhost:3001/api/repos/acme-corp/my-api/pr/42/merge`, { method: 'POST', credentials: 'include' });
+      // const res = await fetch(`${API_URL}/api/repos/acme-corp/my-api/pr/42/merge`, { method: 'POST', credentials: 'include' });
       await new Promise(r => setTimeout(r, 1200)); // Simulate API call
       
       setPrData(prev => prev ? { ...prev, merged: true, state: 'merged' } : null);

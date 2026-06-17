@@ -24,6 +24,7 @@ import { RunDetail } from './components/RunDetail';
 import { LegalPage } from './components/legal/LegalPage';
 import { useSession, signOut } from '../lib/auth';
 import { Toaster } from 'sonner';
+import { API_URL } from '../lib/api';
 
 type Page = 'signin' | 'signup' | 'connect' | 'app' | 'terms' | 'privacy';
 const themeOrder: Theme[] = ['dark', 'cream', 'white'];
@@ -111,7 +112,7 @@ export default function App() {
       }
 
       if (session?.user && globalOrgs.length === 0) {
-        fetch('http://localhost:3001/api/repos/connected', { credentials: 'include' })
+        fetch(`${API_URL}/api/repos/connected`, { credentials: 'include' })
           .then(async res => {
             const text = await res.text();
             try {

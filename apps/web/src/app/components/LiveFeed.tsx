@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { mockLiveFeedLogs } from '../../lib/mockAgentData';
+import { WS_URL } from '../../lib/api';
 
 const clsColor: Record<string, string> = {
   ok: 'text-[#22C55E]',
@@ -25,7 +26,7 @@ export function LiveFeed() {
   }, [logs]);
 
   useEffect(() => {
-    const ws = new WebSocket('ws://localhost:3001/ws/feed');
+    const ws = new WebSocket(`${WS_URL}/ws/feed`);
 
     ws.onopen = () => {
       setLogs(prev => [...prev, {

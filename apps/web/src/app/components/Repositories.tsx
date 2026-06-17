@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Search, Loader, AlertCircle, Plus, Play, Pause, Settings as SettingsIcon, BarChart2, GitFork, Lock, Globe } from 'lucide-react';
 import { toast } from 'sonner';
+import { API_URL } from '../../lib/api';
 
 interface RepoConfig {
   agents: Record<string, boolean>;
@@ -61,7 +62,7 @@ export function Repositories({ activeOrg }: { activeOrg?: string }) {
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch('http://localhost:3001/api/repos/connected', { credentials: 'include' });
+        const res = await fetch(`${API_URL}/api/repos/connected`, { credentials: 'include' });
         if (!res.ok) throw new Error((await res.json()).error || 'Failed to fetch connected repos');
         const data = await res.json();
         

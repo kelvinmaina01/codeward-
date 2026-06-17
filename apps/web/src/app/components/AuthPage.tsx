@@ -25,7 +25,7 @@ export function AuthPage({ onBack, theme, onCycleTheme, onNavigate }: Props) {
     try {
       await signIn.social({
         provider,
-        callbackURL: 'http://localhost:5173/', // MUST be absolute to redirect to frontend, not API
+        callbackURL: window.location.origin + '/', // MUST be absolute to redirect to frontend, not API
       });
     } catch (err) {
       console.error(err);

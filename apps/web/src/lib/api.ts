@@ -1,6 +1,7 @@
 import { hc } from 'hono/client';
 import type { AppType } from '../../../../api/src/index';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+export const WS_URL = API_URL.replace('http', 'ws');
 
 export const api = hc<AppType>(API_URL);
