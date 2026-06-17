@@ -11,8 +11,11 @@ RUN npm install
 # Copy the rest of the application source code
 COPY . .
 
-# Expose the default port (Railway will override this with $PORT dynamically)
+# Build the TypeScript code
+RUN npm run build
+
+# Expose the default port
 EXPOSE 3000
 
-# Start the API using tsx
-CMD ["npx", "tsx", "src/index.ts"]
+# Start the API
+CMD ["npm", "start"]
