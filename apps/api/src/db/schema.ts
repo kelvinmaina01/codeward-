@@ -57,6 +57,7 @@ export const runs = pgTable('runs', {
   repoId: integer('repo_id').references(() => repositories.id),
   commitSha: varchar('commit_sha', { length: 40 }).notNull(),
   status: varchar('status', { length: 50 }).notNull(), // 'queued', 'running', 'completed', 'failed', 'agent_failed'
+  visibility: varchar('visibility', { length: 20 }).default('private').notNull(), // 'private' or 'public'
   score: integer('score'),
   rawLogs: text('raw_logs'), // Stores exact sandbox logs for Dashboard
   createdAt: timestamp('created_at').defaultNow(),

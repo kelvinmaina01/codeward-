@@ -50,16 +50,21 @@ import { createNodeWebSocket } from '@hono/node-ws';
 const { injectWebSocket, upgradeWebSocket } = createNodeWebSocket({ app });
 setupWs(upgradeWebSocket);
 
+import { githubRouter } from './routes/github.js';
+import { chatRouter } from './routes/chat.js';
+
 const routes = app
   .route('/api/webhooks', webhookRouter)
   .route('/api/repos', reposRouter)
   .route('/api/repos', prRouter)
   .route('/api/stats', statsRouter)
+  .route('/api/github', githubRouter)
+  .route('/api/chat', chatRouter)
   .route('/ws', wsRouter);
 
 export type AppType = typeof routes;
 
-const port = 3001;
+const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 3001;
 console.log(`Server is running on port ${port}`);
 
 const server = serve({

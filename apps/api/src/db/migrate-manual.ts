@@ -11,6 +11,19 @@ async function run() {
       ALTER TABLE repositories ADD COLUMN IF NOT EXISTS "audit_triggered_at" timestamp;
       ALTER TABLE repositories ADD COLUMN IF NOT EXISTS "audit_completed_at" timestamp;
       ALTER TABLE repositories ADD COLUMN IF NOT EXISTS "baseline_score" integer;
+
+      CREATE TABLE IF NOT EXISTS "agent_reports" (
+        "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+        "run_id" text NOT NULL,
+        "agent_type" text NOT NULL,
+        "status" text DEFAULT 'pending' NOT NULL,
+        "severity" text,
+        "findings" jsonb DEFAULT '[]'::jsonb,
+        "completed_at" timestamp,
+        "created_at" timestamp DEFAULT now()
+      );
+
+      ALTER TABLE "runs" ADD COLUMN IF NOT EXISTS "visibility" varchar(20) DEFAULT 'private' NOT NULL;
     `);
     console.log('Migration successful!');
   } catch (error) {

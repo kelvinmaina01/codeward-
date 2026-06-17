@@ -53,29 +53,6 @@ reposRouter.get('/connected', async (c) => {
   }
 });
 
-/**
- * GET /api/repos/install
- * Callback from GitHub App installation
- */
-reposRouter.get('/install', async (c) => {
-  const installationId = c.req.query('installation_id');
-  const setupAction = c.req.query('setup_action'); // 'install' or 'update'
-
-  if (!installationId) {
-    return c.json({ error: 'Missing installation_id' }, 400);
-  }
-
-  // In a full implementation, we would:
-  // 1. Verify the installation ID with GitHub API
-  // 2. Fetch the repositories accessible to this installation
-  // 3. Upsert into the db (which we actually already do in /connect)
-  // 4. Update the organization's installationId in the DB
-  
-  console.log(`[GitHub App] Installed/Updated with ID: ${installationId}, action: ${setupAction}`);
-  
-  // Redirect back to the frontend dashboard or connect page
-  return c.redirect('http://localhost:5173/dashboard?installation=success');
-});
 
 /**
  * GET /api/repos

@@ -6,6 +6,9 @@
     "node": ">=22.0.0"
   },
   "scripts": {
+    "build:web": "npm run build --prefix apps/web",
+    "build:api": "npm run build --prefix apps/api",
+    "build": "npm run build:api && npm run build:web",
     "dev:web": "npm run dev --prefix apps/web",
     "dev:api": "npm run dev --prefix apps/api",
     "dev": "npm run dev:web & npm run dev:api"

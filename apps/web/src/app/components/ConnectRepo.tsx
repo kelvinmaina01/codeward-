@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Search, Star, Lock, Globe, Check, Loader, GitBranch, AlertCircle, RefreshCw, X, ChevronDown, Shield, FileWarning, Zap, Server, ShieldAlert, Cpu, LogOut, Clock, Sun, Moon, Circle, ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { signOut } from '../../lib/auth';
+import { api } from '../../lib/api';
 
 interface Props {
   user: { name: string; email?: string; image?: string };
@@ -133,14 +134,12 @@ export function ConnectRepo({ user, onConnect, onSkip, activeOrg, setActiveOrg, 
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch('http://localhost:3001/api/repos', { credentials: 'include' });
-        const text = await res.text();
-        let data;
-        try {
-          data = JSON.parse(text);
-        } catch (e) {
-          throw new Error('Server returned invalid JSON. Is the API running?');
+        const res = await api.api.repos.$get();
+        if (!res.ok) {
+          const errData = await res.json() as any;
+          throw new Error(errData.error || 'Failed to fetch repos');
         }
+        const data = await res.json() as any;
         
         if (!res.ok) throw new Error(data.error || 'Failed to fetch repos');
         
@@ -210,14 +209,12 @@ export function ConnectRepo({ user, onConnect, onSkip, activeOrg, setActiveOrg, 
         config: configs[r.full] || { agents: { security: true, bloat: true, broken_code: true, architecture: true, ai_era: true, compliance: true, data_dx: true } }
       }));
 
-      const res = await fetch('http://localhost:3001/api/repos/connect', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ repos: payload }),
-      });
+      const res = await api.api.repos.connect.$post({ json: { repos: payload } });
 
-      if (!res.ok) throw new Error((await res.json()).error || 'Failed to connect repos');
+      if (!res.ok) {
+        const errData = await res.json() as any;
+        throw new Error(errData.error || 'Failed to connect repos');
+      }
       
       toast.dismiss(connectToast);
       
