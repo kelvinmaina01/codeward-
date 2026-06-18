@@ -1,2 +1,8 @@
 packages:
   - '.'
+  - 'apps/*'
+allowBuilds:
+  '@tailwindcss/oxide': set this to true or false
+  '@tsparticles/engine': set this to true or false
+  esbuild: set this to true or false
+  msgpackr-extract: set this to true or false

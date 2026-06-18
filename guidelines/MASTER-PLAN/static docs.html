@@ -1,0 +1,2248 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <title>Codeward Docs — Your code, guarded forward</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0
+        }
+
+        :root {
+            --bg: #0f1117;
+            --bg2: #161b27;
+            --bg3: #1e2535;
+            --bg4: #252d3d;
+            --txt: #e8e8e6;
+            --txt2: #9a9aaa;
+            --txt3: #44445a;
+            --bdr: rgba(255, 255, 255, .08);
+            --bdr2: rgba(255, 255, 255, .13);
+            --blue: #4B7BEC;
+            --blue2: #6B93F4;
+            --green: #22C55E;
+            --red: #EF4444;
+            --amber: #F59E0B;
+            --purple: #8B5CF6;
+            --teal: #14B8A6;
+            --grd: linear-gradient(135deg, #4B7BEC, #8B5CF6);
+            --sidebar-width: 260px;
+            --toc-width: 220px;
+        }
+
+        html {
+            scroll-behavior: smooth
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
+            background: var(--bg);
+            color: var(--txt);
+            font-size: 14px;
+            line-height: 1.7
+        }
+
+        /* ─── TOP NAV ─── */
+        .topnav {
+            height: 56px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 1.5rem;
+            border-bottom: .5px solid var(--bdr);
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 200;
+            background: rgba(15, 17, 23, .92);
+            backdrop-filter: blur(20px);
+        }
+
+        .tn-left {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem
+        }
+
+        .logo {
+            font-size: 15px;
+            font-weight: 700;
+            letter-spacing: -.03em;
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            text-decoration: none;
+            color: var(--txt)
+        }
+
+        .logo-mark {
+            width: 24px;
+            height: 24px;
+            border-radius: 6px;
+            background: var(--grd);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            color: #fff;
+            font-weight: 700
+        }
+
+        .logo span {
+            background: var(--grd);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text
+        }
+
+        .tn-links {
+            display: flex;
+            gap: 0
+        }
+
+        .tn-link {
+            font-size: 13px;
+            padding: 6px 14px;
+            color: var(--txt2);
+            cursor: pointer;
+            border-radius: 7px;
+            transition: all .15s;
+            border: none;
+            background: transparent
+        }
+
+        .tn-link:hover {
+            color: var(--txt);
+            background: var(--bg3)
+        }
+
+        .tn-link.active {
+            color: var(--blue2);
+            background: rgba(75, 123, 236, .1)
+        }
+
+        .tn-right {
+            display: flex;
+            align-items: center;
+            gap: 8px
+        }
+
+        .search-bar {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            background: var(--bg2);
+            border: .5px solid var(--bdr2);
+            border-radius: 8px;
+            padding: 6px 12px;
+            font-size: 12px;
+            color: var(--txt3);
+            cursor: pointer;
+            transition: all .2s;
+            min-width: 200px
+        }
+
+        .search-bar:hover {
+            border-color: var(--blue);
+            color: var(--txt2)
+        }
+
+        .search-kbd {
+            font-size: 10px;
+            background: var(--bg3);
+            border: .5px solid var(--bdr2);
+            border-radius: 4px;
+            padding: 1px 5px;
+            margin-left: auto;
+            color: var(--txt3)
+        }
+
+        .tn-btn {
+            font-size: 12px;
+            padding: 6px 14px;
+            border-radius: 7px;
+            cursor: pointer;
+            border: none;
+            transition: all .15s
+        }
+
+        .tn-btn-ghost {
+            background: transparent;
+            border: .5px solid var(--bdr2);
+            color: var(--txt2)
+        }
+
+        .tn-btn-ghost:hover {
+            background: var(--bg3);
+            color: var(--txt)
+        }
+
+        .tn-btn-pri {
+            background: var(--grd);
+            color: #fff;
+            font-weight: 500
+        }
+
+        .tn-btn-pri:hover {
+            opacity: .88
+        }
+
+        /* ─── LAYOUT ─── */
+        .layout {
+            display: flex;
+            padding-top: 56px;
+            min-height: 100vh
+        }
+
+        /* ─── LEFT SIDEBAR ─── */
+        .sidebar {
+            width: var(--sidebar-width);
+            min-width: var(--sidebar-width);
+            height: calc(100vh - 56px);
+            position: sticky;
+            top: 56px;
+            overflow-y: auto;
+            border-right: .5px solid var(--bdr);
+            padding: .75rem 0 2rem;
+            scrollbar-width: thin;
+            scrollbar-color: var(--bg4) transparent;
+        }
+
+        .sidebar::-webkit-scrollbar {
+            width: 4px
+        }
+
+        .sidebar::-webkit-scrollbar-track {
+            background: transparent
+        }
+
+        .sidebar::-webkit-scrollbar-thumb {
+            background: var(--bg4);
+            border-radius: 2px
+        }
+
+        .sb-section {
+            margin-bottom: .25rem
+        }
+
+        .sb-section-title {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--txt3);
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            padding: .5rem 1.25rem .25rem;
+            margin-top: .5rem
+        }
+
+        .sb-item {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            padding: 5px 1.25rem;
+            font-size: 13px;
+            color: var(--txt2);
+            cursor: pointer;
+            border-radius: 0;
+            transition: background .1s;
+            text-decoration: none
+        }
+
+        .sb-item:hover {
+            color: var(--txt);
+            background: rgba(255, 255, 255, .04)
+        }
+
+        .sb-item.active {
+            color: var(--blue2);
+            background: rgba(75, 123, 236, .08);
+            font-weight: 500;
+            border-right: 2px solid var(--blue)
+        }
+
+        .sb-item.indent {
+            padding-left: 2rem
+        }
+
+        .sb-item.indent2 {
+            padding-left: 2.75rem
+        }
+
+        .sb-group-title {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 5px 1.25rem;
+            font-size: 13px;
+            color: var(--txt2);
+            cursor: pointer;
+            transition: color .1s
+        }
+
+        .sb-group-title:hover {
+            color: var(--txt)
+        }
+
+        .sb-group-title.open {
+            color: var(--txt);
+            font-weight: 500
+        }
+
+        .sb-group-arrow {
+            font-size: 11px;
+            color: var(--txt3);
+            transition: transform .2s
+        }
+
+        .sb-group-arrow.open {
+            transform: rotate(90deg)
+        }
+
+        .sb-group-children {
+            display: none
+        }
+
+        .sb-group-children.open {
+            display: block
+        }
+
+        .sb-badge {
+            font-size: 9px;
+            padding: 1px 5px;
+            border-radius: 3px;
+            font-weight: 600;
+            margin-left: auto
+        }
+
+        .sb-badge-new {
+            background: rgba(34, 197, 94, .15);
+            color: var(--green)
+        }
+
+        .sb-badge-beta {
+            background: rgba(245, 158, 11, .12);
+            color: var(--amber)
+        }
+
+        /* ─── MAIN CONTENT ─── */
+        .main {
+            flex: 1;
+            min-width: 0;
+            padding: 0 2.5rem 4rem;
+            max-width: calc(100% - var(--toc-width))
+        }
+
+        /* ─── RIGHT TOC ─── */
+        .toc {
+            width: var(--toc-width);
+            min-width: var(--toc-width);
+            height: calc(100vh - 56px);
+            position: sticky;
+            top: 56px;
+            overflow-y: auto;
+            padding: 1.5rem .5rem 2rem 1rem;
+            border-left: .5px solid var(--bdr);
+        }
+
+        .toc-title {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--txt3);
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            margin-bottom: .65rem
+        }
+
+        .toc-item {
+            display: block;
+            font-size: 12px;
+            color: var(--txt3);
+            padding: 3px 0 3px 10px;
+            border-left: 1.5px solid var(--bdr);
+            cursor: pointer;
+            transition: all .15s;
+            text-decoration: none
+        }
+
+        .toc-item:hover {
+            color: var(--txt2);
+            border-left-color: var(--txt3)
+        }
+
+        .toc-item.active {
+            color: var(--blue2);
+            border-left-color: var(--blue)
+        }
+
+        .toc-item.indent {
+            padding-left: 18px
+        }
+
+        .toc-divider {
+            height: .5px;
+            background: var(--bdr);
+            margin: .75rem 0
+        }
+
+        .toc-feedback {
+            font-size: 11px;
+            color: var(--txt3);
+            margin-top: .5rem
+        }
+
+        .toc-feedback-btns {
+            display: flex;
+            gap: 6px;
+            margin-top: .5rem
+        }
+
+        .fb-btn {
+            font-size: 11px;
+            padding: 4px 10px;
+            border-radius: 6px;
+            border: .5px solid var(--bdr);
+            background: transparent;
+            color: var(--txt3);
+            cursor: pointer;
+            transition: all .15s
+        }
+
+        .fb-btn:hover {
+            background: var(--bg3);
+            color: var(--txt2)
+        }
+
+        /* ─── CONTENT TYPOGRAPHY ─── */
+        .page {
+            display: none
+        }
+
+        .page.active {
+            display: block;
+            padding-top: 1.75rem
+        }
+
+        .breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: var(--txt3);
+            margin-bottom: 1.25rem;
+            flex-wrap: wrap
+        }
+
+        .bc-sep {
+            color: var(--txt3)
+        }
+
+        .bc-current {
+            color: var(--txt2)
+        }
+
+        .page-hero {
+            margin-bottom: 2.25rem;
+            padding-bottom: 2rem;
+            border-bottom: .5px solid var(--bdr)
+        }
+
+        .page-eyebrow {
+            font-size: 12px;
+            color: var(--blue2);
+            font-weight: 500;
+            letter-spacing: .05em;
+            margin-bottom: .5rem
+        }
+
+        .page-title {
+            font-size: 2rem;
+            font-weight: 700;
+            letter-spacing: -.03em;
+            line-height: 1.2;
+            margin-bottom: .85rem
+        }
+
+        .page-title span {
+            background: var(--grd);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text
+        }
+
+        .page-intro {
+            font-size: 15px;
+            color: var(--txt2);
+            line-height: 1.8;
+            max-width: 660px
+        }
+
+        h2 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            letter-spacing: -.02em;
+            margin: 2.25rem 0 .75rem;
+            padding-top: .5rem;
+            scroll-margin-top: 72px
+        }
+
+        h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            margin: 1.5rem 0 .5rem;
+            scroll-margin-top: 72px;
+            color: var(--txt)
+        }
+
+        h4 {
+            font-size: .9rem;
+            font-weight: 600;
+            margin: 1.25rem 0 .4rem;
+            color: var(--txt2)
+        }
+
+        p {
+            color: var(--txt2);
+            line-height: 1.8;
+            margin-bottom: .9rem
+        }
+
+        strong {
+            color: var(--txt);
+            font-weight: 600
+        }
+
+        a.doc-link {
+            color: var(--blue2);
+            text-decoration: none;
+            border-bottom: 1px solid rgba(75, 123, 236, .3);
+            transition: border-color .15s
+        }
+
+        a.doc-link:hover {
+            border-color: var(--blue2)
+        }
+
+        /* ─── CALLOUTS ─── */
+        .callout {
+            border-radius: 10px;
+            padding: .875rem 1rem;
+            margin: 1rem 0;
+            display: flex;
+            gap: .75rem;
+            align-items: flex-start
+        }
+
+        .callout-icon {
+            font-size: 16px;
+            flex-shrink: 0;
+            margin-top: 1px
+        }
+
+        .callout-body {}
+
+        .callout-title {
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 3px
+        }
+
+        .callout-desc {
+            font-size: 13px;
+            line-height: 1.6
+        }
+
+        .callout-note {
+            background: rgba(75, 123, 236, .07);
+            border: .5px solid rgba(75, 123, 236, .2)
+        }
+
+        .callout-note .callout-title {
+            color: #93B4F8
+        }
+
+        .callout-note .callout-desc {
+            color: var(--txt2)
+        }
+
+        .callout-warn {
+            background: rgba(245, 158, 11, .07);
+            border: .5px solid rgba(245, 158, 11, .2)
+        }
+
+        .callout-warn .callout-title {
+            color: #FCD34D
+        }
+
+        .callout-warn .callout-desc {
+            color: var(--txt2)
+        }
+
+        .callout-danger {
+            background: rgba(239, 68, 68, .07);
+            border: .5px solid rgba(239, 68, 68, .2)
+        }
+
+        .callout-danger .callout-title {
+            color: #FCA5A5
+        }
+
+        .callout-danger .callout-desc {
+            color: var(--txt2)
+        }
+
+        .callout-success {
+            background: rgba(34, 197, 94, .07);
+            border: .5px solid rgba(34, 197, 94, .2)
+        }
+
+        .callout-success .callout-title {
+            color: #86EFAC
+        }
+
+        .callout-success .callout-desc {
+            color: var(--txt2)
+        }
+
+        /* ─── CODE BLOCKS ─── */
+        .code-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--bg3);
+            border: .5px solid var(--bdr2);
+            border-bottom: none;
+            border-radius: 10px 10px 0 0;
+            padding: 7px 14px
+        }
+
+        .code-lang {
+            font-size: 11px;
+            color: var(--txt3);
+            font-family: 'SF Mono', 'Fira Code', monospace
+        }
+
+        .code-copy {
+            font-size: 11px;
+            padding: 3px 8px;
+            border-radius: 5px;
+            border: .5px solid var(--bdr);
+            background: transparent;
+            color: var(--txt3);
+            cursor: pointer;
+            transition: all .15s
+        }
+
+        .code-copy:hover {
+            background: var(--bg4);
+            color: var(--txt2)
+        }
+
+        pre {
+            background: #070b12;
+            border: .5px solid var(--bdr2);
+            border-radius: 0 0 10px 10px;
+            padding: 1rem 1.25rem;
+            overflow-x: auto;
+            margin-bottom: 1.25rem;
+            font-family: 'SF Mono', 'Fira Code', 'Courier New', monospace;
+            font-size: 12.5px;
+            line-height: 1.8;
+            color: #e8e8e6
+        }
+
+        .code-block-solo {
+            border-radius: 10px
+        }
+
+        pre .k {
+            color: #93B4F8
+        }
+
+        pre .s {
+            color: #86EFAC
+        }
+
+        pre .c {
+            color: var(--txt3)
+        }
+
+        pre .v {
+            color: #FCD34D
+        }
+
+        pre .fn {
+            color: #F9A8D4
+        }
+
+        pre .t {
+            color: #5EEAD4
+        }
+
+        /* ─── INLINE CODE ─── */
+        code:not(pre code) {
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 12px;
+            background: var(--bg3);
+            border: .5px solid var(--bdr2);
+            padding: 1px 6px;
+            border-radius: 5px;
+            color: var(--teal)
+        }
+
+        /* ─── STEPS ─── */
+        .steps {
+            margin: 1rem 0 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0
+        }
+
+        .step {
+            display: flex;
+            gap: 1rem;
+            position: relative
+        }
+
+        .step::before {
+            content: '';
+            position: absolute;
+            left: 15px;
+            top: 32px;
+            bottom: 0;
+            width: 1px;
+            background: var(--bdr)
+        }
+
+        .step:last-child::before {
+            display: none
+        }
+
+        .step-num {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: rgba(75, 123, 236, .15);
+            border: .5px solid rgba(75, 123, 236, .3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--blue2);
+            flex-shrink: 0;
+            margin-top: 2px;
+            position: relative;
+            z-index: 1
+        }
+
+        .step-content {
+            flex: 1;
+            padding-bottom: 1.5rem
+        }
+
+        .step-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--txt);
+            margin-bottom: .4rem
+        }
+
+        .step-desc {
+            font-size: 13px;
+            color: var(--txt2);
+            line-height: 1.7
+        }
+
+        /* ─── TABLES ─── */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0 1.25rem;
+            font-size: 13px
+        }
+
+        th {
+            text-align: left;
+            padding: 9px 12px;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--txt3);
+            text-transform: uppercase;
+            letter-spacing: .07em;
+            border-bottom: .5px solid var(--bdr2);
+            background: var(--bg2)
+        }
+
+        td {
+            padding: 9px 12px;
+            border-bottom: .5px solid var(--bdr);
+            color: var(--txt2);
+            vertical-align: top
+        }
+
+        tr:last-child td {
+            border: none
+        }
+
+        td:first-child {
+            color: var(--txt);
+            font-weight: 500;
+            font-family: 'SF Mono', monospace;
+            font-size: 12px
+        }
+
+        td code {
+            background: transparent;
+            border: none;
+            padding: 0;
+            font-size: 12px;
+            color: var(--teal)
+        }
+
+        /* ─── CARD GRID ─── */
+        .card-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin: 1rem 0 1.5rem
+        }
+
+        .doc-card {
+            background: var(--bg2);
+            border: .5px solid var(--bdr);
+            border-radius: 12px;
+            padding: 1.1rem;
+            cursor: pointer;
+            transition: all .2s;
+            text-decoration: none;
+            display: block
+        }
+
+        .doc-card:hover {
+            border-color: var(--bdr2);
+            transform: translateY(-1px)
+        }
+
+        .doc-card-icon {
+            font-size: 20px;
+            margin-bottom: .6rem
+        }
+
+        .doc-card-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--txt);
+            margin-bottom: .3rem;
+            display: flex;
+            align-items: center;
+            gap: 6px
+        }
+
+        .doc-card-desc {
+            font-size: 12px;
+            color: var(--txt2);
+            line-height: 1.5
+        }
+
+        /* ─── TABS (code) ─── */
+        .code-tabs {
+            margin: 1rem 0
+        }
+
+        .code-tab-bar {
+            display: flex;
+            gap: 0;
+            border-bottom: .5px solid var(--bdr);
+            margin-bottom: 0
+        }
+
+        .code-tab-btn {
+            font-size: 12px;
+            padding: 7px 14px;
+            cursor: pointer;
+            color: var(--txt3);
+            border-bottom: 2px solid transparent;
+            transition: all .15s;
+            background: transparent;
+            border-top: none;
+            border-left: none;
+            border-right: none
+        }
+
+        .code-tab-btn:hover {
+            color: var(--txt2)
+        }
+
+        .code-tab-btn.active {
+            color: var(--txt);
+            border-bottom-color: var(--blue)
+        }
+
+        .code-tab-pane {
+            display: none
+        }
+
+        .code-tab-pane.active {
+            display: block
+        }
+
+        /* ─── AGENT CARDS ─── */
+        .agent-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 8px;
+            margin: 1rem 0 1.5rem
+        }
+
+        .agent-doc-card {
+            background: var(--bg2);
+            border: .5px solid var(--bdr);
+            border-radius: 10px;
+            padding: .9rem;
+            transition: all .2s;
+            cursor: pointer
+        }
+
+        .agent-doc-card:hover {
+            border-color: var(--bdr2)
+        }
+
+        .adc-icon {
+            font-size: 16px;
+            margin-bottom: .4rem
+        }
+
+        .adc-name {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--txt);
+            margin-bottom: 2px
+        }
+
+        .adc-desc {
+            font-size: 11px;
+            color: var(--txt2);
+            line-height: 1.4
+        }
+
+        .adc-model {
+            font-size: 10px;
+            font-family: monospace;
+            color: var(--txt3);
+            margin-top: .35rem
+        }
+
+        /* ─── PARAM BLOCKS ─── */
+        .param-block {
+            border: .5px solid var(--bdr);
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 1rem 0
+        }
+
+        .param-row {
+            padding: .75rem 1rem;
+            border-bottom: .5px solid var(--bdr);
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem
+        }
+
+        .param-row:last-child {
+            border: none
+        }
+
+        .param-name {
+            font-family: 'SF Mono', monospace;
+            font-size: 12px;
+            color: var(--teal);
+            min-width: 140px;
+            flex-shrink: 0
+        }
+
+        .param-body {}
+
+        .param-type {
+            font-size: 10px;
+            padding: 1px 6px;
+            border-radius: 4px;
+            background: var(--bg3);
+            color: var(--txt3);
+            font-family: monospace;
+            margin-bottom: 3px;
+            display: inline-block
+        }
+
+        .param-req {
+            font-size: 10px;
+            padding: 1px 6px;
+            border-radius: 4px;
+            background: rgba(239, 68, 68, .1);
+            color: #FCA5A5;
+            margin-left: 4px;
+            display: inline-block
+        }
+
+        .param-desc {
+            font-size: 12px;
+            color: var(--txt2);
+            line-height: 1.5;
+            margin-top: 4px
+        }
+
+        /* ─── PREV/NEXT ─── */
+        .prev-next {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 3rem;
+            padding-top: 1.5rem;
+            border-top: .5px solid var(--bdr)
+        }
+
+        .pn-card {
+            background: var(--bg2);
+            border: .5px solid var(--bdr);
+            border-radius: 10px;
+            padding: 1rem;
+            cursor: pointer;
+            transition: all .2s;
+            display: flex;
+            align-items: center;
+            gap: .75rem
+        }
+
+        .pn-card:hover {
+            border-color: var(--bdr2)
+        }
+
+        .pn-card.next {
+            justify-content: flex-end;
+            text-align: right
+        }
+
+        .pn-dir {
+            font-size: 11px;
+            color: var(--txt3);
+            margin-bottom: 2px
+        }
+
+        .pn-title {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--txt)
+        }
+
+        .pn-arrow {
+            font-size: 18px;
+            color: var(--txt3)
+        }
+
+        /* ─── WELCOME CARDS ─── */
+        .welcome-cards {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+            margin: 1.5rem 0
+        }
+
+        .wc {
+            background: var(--bg2);
+            border: .5px solid var(--bdr);
+            border-radius: 14px;
+            padding: 1.25rem;
+            cursor: pointer;
+            transition: all .2s
+        }
+
+        .wc:hover {
+            border-color: var(--bdr2);
+            transform: translateY(-2px)
+        }
+
+        .wc-icon {
+            font-size: 22px;
+            margin-bottom: .65rem
+        }
+
+        .wc-title {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: .4rem
+        }
+
+        .wc-desc {
+            font-size: 12px;
+            color: var(--txt2);
+            line-height: 1.5
+        }
+
+        .wc-arrow {
+            font-size: 12px;
+            color: var(--txt3);
+            margin-top: .65rem
+        }
+
+        /* ─── ENV TABLE ─── */
+        .env-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: .65rem .75rem;
+            background: var(--bg2);
+            border: .5px solid var(--bdr);
+            border-radius: 7px;
+            margin-bottom: 5px
+        }
+
+        .env-key {
+            font-family: monospace;
+            font-size: 12px;
+            color: var(--teal);
+            min-width: 200px;
+            flex-shrink: 0
+        }
+
+        .env-desc {
+            font-size: 12px;
+            color: var(--txt2);
+            flex: 1;
+            line-height: 1.4
+        }
+
+        .env-badge {
+            font-size: 10px;
+            padding: 1px 6px;
+            border-radius: 4px;
+            background: rgba(34, 197, 94, .12);
+            color: var(--green);
+            white-space: nowrap
+        }
+
+        /* ─── SEARCH MODAL ─── */
+        .search-modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, .75);
+            z-index: 500;
+            align-items: flex-start;
+            justify-content: center;
+            padding: 6rem 1rem
+        }
+
+        .search-modal.open {
+            display: flex
+        }
+
+        .search-box-modal {
+            background: var(--bg2);
+            border: .5px solid var(--bdr2);
+            border-radius: 14px;
+            width: 100%;
+            max-width: 560px;
+            overflow: hidden
+        }
+
+        .search-input-wrap {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: .85rem 1.1rem;
+            border-bottom: .5px solid var(--bdr)
+        }
+
+        .search-input-wrap input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            outline: none;
+            font-size: 15px;
+            color: var(--txt)
+        }
+
+        .search-input-wrap input::placeholder {
+            color: var(--txt3)
+        }
+
+        .search-result {
+            display: flex;
+            align-items: flex-start;
+            gap: .75rem;
+            padding: .75rem 1rem;
+            cursor: pointer;
+            transition: background .1s
+        }
+
+        .search-result:hover {
+            background: var(--bg3)
+        }
+
+        .sr-icon {
+            font-size: 16px;
+            flex-shrink: 0;
+            margin-top: 1px
+        }
+
+        .sr-title {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--txt)
+        }
+
+        .sr-section {
+            font-size: 11px;
+            color: var(--txt3);
+            margin-top: 1px
+        }
+
+        .sr-snippet {
+            font-size: 12px;
+            color: var(--txt2);
+            margin-top: 2px;
+            line-height: 1.4
+        }
+
+        @media(max-width:900px) {
+            .sidebar {
+                display: none
+            }
+
+            .toc {
+                display: none
+            }
+
+            .main {
+                padding: 0 1.25rem 3rem;
+                max-width: 100%
+            }
+
+            .welcome-cards,
+            .agent-grid {
+                grid-template-columns: 1fr
+            }
+
+            .card-grid,
+            .prev-next {
+                grid-template-columns: 1fr
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- ─────────────────── TOP NAV ─────────────────── -->
+    <nav class="topnav">
+        <div class="tn-left">
+            <a class="logo" href="#">
+                <div class="logo-mark">⬡</div>
+                Code<span>ward</span>
+                <span style="font-size:11px;color:var(--txt3);font-weight:400;margin-left:4px">docs</span>
+            </a>
+            <div class="tn-links">
+                <button class="tn-link active" onclick="setSection('guide',this)">Guide</button>
+                <button class="tn-link" onclick="setSection('api',this)">API Reference</button>
+                <button class="tn-link" onclick="setSection('agents',this)">Agents</button>
+                <button class="tn-link" onclick="setSection('integrations',this)">Integrations</button>
+                <button class="tn-link" onclick="setSection('changelog',this)">Changelog</button>
+            </div>
+        </div>
+        <div class="tn-right">
+            <div class="search-bar" onclick="document.getElementById('search-modal').classList.add('open')">
+                <span style="font-size:14px">🔍</span>
+                <span>Search docs...</span>
+                <span class="search-kbd">⌘K</span>
+            </div>
+            <button class="tn-btn tn-btn-ghost">GitHub</button>
+            <button class="tn-btn tn-btn-pri">Dashboard →</button>
+        </div>
+    </nav>
+
+    <!-- ─────────────────── LAYOUT ─────────────────── -->
+    <div class="layout">
+
+        <!-- ─── LEFT SIDEBAR ─── -->
+        <aside class="sidebar" id="sidebar">
+            <div id="sidebar-guide">
+                <div class="sb-section">
+                    <div class="sb-section-title">Getting started</div>
+                    <a class="sb-item active" onclick="showPage('welcome',this)">Welcome to Codeward</a>
+                    <a class="sb-item" onclick="showPage('quickstart',this)">Quickstart (5 min)</a>
+                    <a class="sb-item" onclick="showPage('how-it-works',this)">How it works</a>
+                    <a class="sb-item" onclick="showPage('user-types',this)">New vs existing repos</a>
+                </div>
+                <div class="sb-section">
+                    <div class="sb-section-title">Installation</div>
+                    <a class="sb-item" onclick="showPage('install-github',this)">GitHub App setup</a>
+                    <a class="sb-item" onclick="showPage('install-config',this)">.codeward.yml config</a>
+                    <a class="sb-item" onclick="showPage('install-sandbox',this)">Sandbox & stack detection</a>
+                    <a class="sb-item" onclick="showPage('install-env',this)">Environment variables</a>
+                </div>
+                <div class="sb-section">
+                    <div class="sb-section-title">Core concepts</div>
+                    <div class="sb-group-title open" onclick="toggleGroup(this)">Trigger modes <span
+                            class="sb-group-arrow open">▶</span></div>
+                    <div class="sb-group-children open">
+                        <a class="sb-item indent" onclick="showPage('mode1',this)">Mode 1 — on connect</a>
+                        <a class="sb-item indent" onclick="showPage('mode2',this)">Mode 2 — on push</a>
+                        <a class="sb-item indent" onclick="showPage('state-machine',this)">Repo state machine</a>
+                    </div>
+                    <div class="sb-group-title" onclick="toggleGroup(this)">Debt framework <span
+                            class="sb-group-arrow">▶</span></div>
+                    <div class="sb-group-children">
+                        <a class="sb-item indent" onclick="showPage('debt-scoring',this)">Scoring model</a>
+                        <a class="sb-item indent" onclick="showPage('debt-security',this)">Security debt (18)</a>
+                        <a class="sb-item indent" onclick="showPage('debt-bloat',this)">Bloat debt (18)</a>
+                        <a class="sb-item indent" onclick="showPage('debt-broken',this)">Broken code (18)</a>
+                        <a class="sb-item indent" onclick="showPage('debt-arch',this)">Architecture (18)</a>
+                        <a class="sb-item indent" onclick="showPage('debt-ai',this)">AI-era debt (18) <span
+                                class="sb-badge sb-badge-new">NEW</span></a>
+                        <a class="sb-item indent" onclick="showPage('debt-compliance',this)">Compliance (10)</a>
+                    </div>
+                </div>
+                <div class="sb-section">
+                    <div class="sb-section-title">Agents</div>
+                    <a class="sb-item" onclick="showPage('agents-overview',this)">Overview</a>
+                    <a class="sb-item" onclick="showPage('guardian-agent',this)">Guardian Agent</a>
+                    <a class="sb-item" onclick="showPage('chat-agent',this)">Chat Agent</a>
+                    <a class="sb-item" onclick="showPage('orchestrator',this)">Orchestrator</a>
+                </div>
+                <div class="sb-section">
+                    <div class="sb-section-title">Integrations</div>
+                    <a class="sb-item" onclick="showPage('int-github',this)">GitHub MCP</a>
+                    <a class="sb-item" onclick="showPage('int-slack',this)">Slack</a>
+                    <a class="sb-item" onclick="showPage('int-whatsapp',this)">WhatsApp <span
+                            class="sb-badge sb-badge-beta">Beta</span></a>
+                    <a class="sb-item" onclick="showPage('int-calendar',this)">Calendar</a>
+                    <a class="sb-item" onclick="showPage('int-sentry',this)">Sentry</a>
+                </div>
+                <div class="sb-section">
+                    <div class="sb-section-title">Reference</div>
+                    <a class="sb-item" onclick="showPage('health-cert',this)">Health certificate</a>
+                    <a class="sb-item" onclick="showPage('pricing-credits',this)">Credits & billing</a>
+                    <a class="sb-item" onclick="showPage('security',this)">Security & privacy</a>
+                    <a class="sb-item" onclick="showPage('faq',this)">FAQ</a>
+                </div>
+            </div>
+        </aside>
+
+        <!-- ─── MAIN ─── -->
+        <main class="main" id="main-content">
+
+            <!-- ════════ WELCOME PAGE ════════ -->
+            <article class="page active" id="page-welcome">
+                <div class="breadcrumb"><span>Docs</span><span class="bc-sep">›</span><span>Getting started</span><span
+                        class="bc-sep">›</span><span class="bc-current">Welcome</span></div>
+                <div class="page-hero">
+                    <div class="page-eyebrow">Getting started</div>
+                    <h1 class="page-title">Welcome to <span>Codeward</span></h1>
+                    <p class="page-intro">Codeward deploys 9 AI agents in parallel the moment you push — security,
+                        bloat, broken code, architecture, AI-era debt, compliance, and more — all caught, fixed, and
+                        reported before a single line reaches production.</p>
+                </div>
+
+                <div class="callout callout-success">
+                    <span class="callout-icon">🚀</span>
+                    <div class="callout-body">
+                        <div class="callout-title">Jump straight in</div>
+                        <div class="callout-desc">If you want to start immediately, head to the <a class="doc-link"
+                                onclick="showPage('quickstart',null)">Quickstart guide</a>. You can connect your first
+                            repo and see results in under 5 minutes.</div>
+                    </div>
+                </div>
+
+                <h2 id="what-is">What is Codeward?</h2>
+                <p>Codeward is an autonomous code guardian that intercepts every git push, runs 100+ debt checks across
+                    9 specialised AI agents in a hermetically sealed sandbox, and reports back to your GitHub PR as
+                    proof of work — with real test results, real CVEs found, real refactors made.</p>
+                <p>Unlike linters or static analysis tools, Codeward <strong>actually runs your code</strong>. It
+                    installs your dependencies, seeds a test database, executes your test suite, fires OWASP ZAP, scans
+                    your git history with truffleHog, and loads k6 for performance profiling — all inside an ephemeral
+                    VM that is destroyed after every run.</p>
+
+                <h2 id="core-concepts">Core concepts</h2>
+                <div class="card-grid">
+                    <div class="doc-card" onclick="showPage('mode1',null)">
+                        <div class="doc-card-icon">🔌</div>
+                        <div class="doc-card-title">Mode 1 — on connect →</div>
+                        <div class="doc-card-desc">When you connect a repo, Codeward runs a full audit of the entire
+                            codebase immediately.</div>
+                    </div>
+                    <div class="doc-card" onclick="showPage('mode2',null)">
+                        <div class="doc-card-icon">⚡</div>
+                        <div class="doc-card-title">Mode 2 — on push →</div>
+                        <div class="doc-card-desc">Every git push triggers a sandbox run against the diff. The guard is
+                            always on.</div>
+                    </div>
+                    <div class="doc-card" onclick="showPage('agents-overview',null)">
+                        <div class="doc-card-icon">🤖</div>
+                        <div class="doc-card-title">9 parallel agents →</div>
+                        <div class="doc-card-desc">Specialised agents run simultaneously. Security, Bloat, Broken Code,
+                            Architecture, AI-era, and more.</div>
+                    </div>
+                    <div class="doc-card" onclick="showPage('guardian-agent',null)">
+                        <div class="doc-card-icon">💜</div>
+                        <div class="doc-card-title">Guardian Agent →</div>
+                        <div class="doc-card-desc">Posts inline PR comments, creates GitHub Issues, formally approves or
+                            blocks merges.</div>
+                    </div>
+                </div>
+
+                <h2 id="five-step-flow">Five-step workflow</h2>
+                <div class="steps">
+                    <div class="step">
+                        <div class="step-num">1</div>
+                        <div class="step-content">
+                            <div class="step-title">Connect your repo</div>
+                            <div class="step-desc">Install the Codeward GitHub App, select your repos, and choose a
+                                trust mode. Webhook installed automatically in under 90 seconds.</div>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-num">2</div>
+                        <div class="step-content">
+                            <div class="step-title">Sandbox provisions</div>
+                            <div class="step-desc">Codeward detects your stack from <code>package.json</code> /
+                                <code>requirements.txt</code> / <code>Gemfile</code>, spins up a Firecracker microVM
+                                with all tools pre-installed, and clones your repo.</div>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-num">3</div>
+                        <div class="step-content">
+                            <div class="step-title">Agents run in parallel</div>
+                            <div class="step-desc">All 9 agents fire simultaneously via <code>Promise.all()</code>.
+                                Security, Bloat, Broken Code, Architecture, and AI-era agents each run independently
+                                with their own context window and tool access.</div>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-num">4</div>
+                        <div class="step-content">
+                            <div class="step-title">Guardian posts to GitHub</div>
+                            <div class="step-desc">The Guardian Agent reads all findings, posts inline diff comments on
+                                specific lines, creates GitHub Issues for unresolved findings, and submits a formal PR
+                                review — approve or request changes.</div>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-num">5</div>
+                        <div class="step-content">
+                            <div class="step-title">Sandbox destroyed</div>
+                            <div class="step-desc">The VM is always destroyed after every run, regardless of outcome.
+                                Your code never persists in Codeward's infrastructure — only the structured findings
+                                JSON is stored.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="welcome-cards">
+                    <div class="wc" onclick="showPage('quickstart',null)">
+                        <div class="wc-icon">⚡</div>
+                        <div class="wc-title">Quickstart</div>
+                        <div class="wc-desc">Connect your first repo and see your first scan results in under 5 minutes.
+                        </div>
+                        <div class="wc-arrow">Get started →</div>
+                    </div>
+                    <div class="wc" onclick="showPage('install-github',null)">
+                        <div class="wc-icon">🐙</div>
+                        <div class="wc-title">GitHub App setup</div>
+                        <div class="wc-desc">Install the Codeward GitHub App on your organisation or individual repos.
+                        </div>
+                        <div class="wc-arrow">Installation →</div>
+                    </div>
+                    <div class="wc" onclick="showPage('agents-overview',null)">
+                        <div class="wc-icon">🤖</div>
+                        <div class="wc-title">Agent reference</div>
+                        <div class="wc-desc">Every agent, its tools, its model, and what debt category it covers.</div>
+                        <div class="wc-arrow">Explore agents →</div>
+                    </div>
+                </div>
+
+                <div class="prev-next">
+                    <div></div>
+                    <div class="pn-card next" onclick="showPage('quickstart',null)">
+                        <div>
+                            <div class="pn-dir">Next</div>
+                            <div class="pn-title">Quickstart (5 min)</div>
+                        </div><span class="pn-arrow">→</span>
+                    </div>
+                </div>
+            </article>
+
+            <!-- ════════ QUICKSTART ════════ -->
+            <article class="page" id="page-quickstart">
+                <div class="breadcrumb"><span>Docs</span><span class="bc-sep">›</span><span>Getting started</span><span
+                        class="bc-sep">›</span><span class="bc-current">Quickstart</span></div>
+                <div class="page-hero">
+                    <div class="page-eyebrow">Getting started</div>
+                    <h1 class="page-title">Quickstart — <span>5 minutes to your first scan</span></h1>
+                    <p class="page-intro">From zero to your first Codeward analysis running on a real GitHub repo in
+                        under 5 minutes.</p>
+                </div>
+
+                <div class="callout callout-note"><span class="callout-icon">💡</span>
+                    <div class="callout-body">
+                        <div class="callout-title">Prerequisites</div>
+                        <div class="callout-desc">A GitHub account with at least one repository. No credit card required
+                            — the free plan covers 5 runs per day.</div>
+                    </div>
+                </div>
+
+                <h2 id="qs-step1">Step 1 — Create your account</h2>
+                <p>Go to <a class="doc-link" href="#">codeward.io</a> and click <strong>Sign in with GitHub</strong>.
+                    Codeward uses GitHub OAuth — no separate password needed.</p>
+
+                <h2 id="qs-step2">Step 2 — Install the GitHub App</h2>
+                <p>After signing in, you'll be prompted to install the Codeward GitHub App. You can install it on your
+                    entire organisation or specific repos.</p>
+                <div class="callout callout-warn"><span class="callout-icon">⚠️</span>
+                    <div class="callout-body">
+                        <div class="callout-title">Permissions requested</div>
+                        <div class="callout-desc">Contents (Read), Checks (Read & Write), Pull Requests (Read & Write),
+                            Metadata (Read). Codeward never pushes to <code>main</code> without explicit approval.</div>
+                    </div>
+                </div>
+
+                <h2 id="qs-step3">Step 3 — Select repos and choose trust mode</h2>
+                <p>After installing the App, select which repos Codeward should guard. For each repo, choose a trust
+                    mode:</p>
+                <table>
+                    <tr>
+                        <th>Mode</th>
+                        <th>What it does</th>
+                        <th>Best for</th>
+                    </tr>
+                    <tr>
+                        <td>suggest</td>
+                        <td>Shows findings and proposed fixes. Never commits automatically.</td>
+                        <td>New users, sensitive repos</td>
+                    </tr>
+                    <tr>
+                        <td>auto-refactor</td>
+                        <td>Auto-commits safe refactors (duplicates, dead code) to the branch.</td>
+                        <td>Most teams</td>
+                    </tr>
+                    <tr>
+                        <td>full-auto</td>
+                        <td>Auto-commits and auto-merges after all gates pass.</td>
+                        <td>Well-tested repos</td>
+                    </tr>
+                </table>
+
+                <h2 id="qs-step4">Step 4 — Make your first push</h2>
+                <p>Push any commit to a connected repo. You'll immediately see a yellow check run appear on your PR:</p>
+                <div class="code-header"><span class="code-lang">bash</span><button class="code-copy"
+                        onclick="this.textContent='Copied!';setTimeout(()=>this.textContent='Copy',1500)">Copy</button>
+                </div>
+                <pre>$ git push origin main
+<span class="c"># Codeward intercepts within 200ms</span>
+<span class="c"># GitHub PR shows: ● Codeward Analysis — in progress</span></pre>
+
+                <h2 id="qs-step5">Step 5 — Read your first report</h2>
+                <p>Within 3–6 minutes the Guardian Agent will post a comment on your PR with the full findings. Check
+                    your <a class="doc-link" href="#">Codeward dashboard</a> for the live feed during the run.</p>
+
+                <div class="callout callout-success"><span class="callout-icon">✅</span>
+                    <div class="callout-body">
+                        <div class="callout-title">You're done</div>
+                        <div class="callout-desc">Codeward will now run automatically on every future push to connected
+                            repos. No further setup required.</div>
+                    </div>
+                </div>
+
+                <div class="prev-next">
+                    <div class="pn-card" onclick="showPage('welcome',null)"><span class="pn-arrow">←</span>
+                        <div>
+                            <div class="pn-dir">Previous</div>
+                            <div class="pn-title">Welcome to Codeward</div>
+                        </div>
+                    </div>
+                    <div class="pn-card next" onclick="showPage('install-github',null)">
+                        <div>
+                            <div class="pn-dir">Next</div>
+                            <div class="pn-title">GitHub App setup</div>
+                        </div><span class="pn-arrow">→</span>
+                    </div>
+                </div>
+            </article>
+
+            <!-- ════════ INSTALL ENV ════════ -->
+            <article class="page" id="page-install-env">
+                <div class="breadcrumb"><span>Docs</span><span class="bc-sep">›</span><span>Installation</span><span
+                        class="bc-sep">›</span><span class="bc-current">Environment variables</span></div>
+                <div class="page-hero">
+                    <div class="page-eyebrow">Installation</div>
+                    <h1 class="page-title">Environment <span>variables</span></h1>
+                    <p class="page-intro">Every environment variable Codeward needs, where to get it, and which services
+                        they connect to.</p>
+                </div>
+
+                <div class="callout callout-danger"><span class="callout-icon">🔴</span>
+                    <div class="callout-body">
+                        <div class="callout-title">Never commit .env</div>
+                        <div class="callout-desc">Add <code>.env</code> to your <code>.gitignore</code> before anything
+                            else. Codeward will flag it as a Critical security finding if it detects a committed env
+                            file.</div>
+                    </div>
+                </div>
+
+                <h2 id="env-required">Required variables</h2>
+                <div class="env-row"><span class="env-key">ANTHROPIC_API_KEY</span>
+                    <div class="env-desc">Powers all 9 agents. Get from <strong>console.anthropic.com → API
+                            Keys</strong>.</div><span class="env-badge">Required</span>
+                </div>
+                <div class="env-row"><span class="env-key">GITHUB_APP_ID</span>
+                    <div class="env-desc">Your GitHub App's numeric ID. Found in GitHub → Settings → Developer → GitHub
+                        Apps.</div><span class="env-badge">Required</span>
+                </div>
+                <div class="env-row"><span class="env-key">GITHUB_APP_PRIVATE_KEY</span>
+                    <div class="env-desc">RSA private key (.pem). Generated in GitHub App settings → Generate a private
+                        key.</div><span class="env-badge">Required</span>
+                </div>
+                <div class="env-row"><span class="env-key">GITHUB_WEBHOOK_SECRET</span>
+                    <div class="env-desc">HMAC secret for verifying webhook payloads. Generate:
+                        <code>openssl rand -hex 32</code></div><span class="env-badge">Required</span>
+                </div>
+                <div class="env-row"><span class="env-key">DATABASE_URL</span>
+                    <div class="env-desc">Supabase Postgres connection string. Project → Settings → Database →
+                        Transaction mode URL.</div><span class="env-badge">Required</span>
+                </div>
+                <div class="env-row"><span class="env-key">SUPABASE_URL</span>
+                    <div class="env-desc">Your Supabase project URL. Project Settings → API → Project URL.</div><span
+                        class="env-badge">Required</span>
+                </div>
+                <div class="env-row"><span class="env-key">SUPABASE_SERVICE_KEY</span>
+                    <div class="env-desc">Service role key — backend only. Never expose to frontend. Project Settings →
+                        API → service_role.</div><span class="env-badge">Required</span>
+                </div>
+                <div class="env-row"><span class="env-key">UPSTASH_REDIS_URL</span>
+                    <div class="env-desc">BullMQ job queue. upstash.com → Create Database → REST →
+                        UPSTASH_REDIS_REST_URL.</div><span class="env-badge">Required</span>
+                </div>
+                <div class="env-row"><span class="env-key">UPSTASH_REDIS_TOKEN</span>
+                    <div class="env-desc">Upstash REST token. Same page as URL above.</div><span
+                        class="env-badge">Required</span>
+                </div>
+                <div class="env-row"><span class="env-key">R2_ACCOUNT_ID</span>
+                    <div class="env-desc">Cloudflare R2 account ID. Dashboard → R2 → Manage API Tokens.</div><span
+                        class="env-badge">Required</span>
+                </div>
+                <div class="env-row"><span class="env-key">R2_ACCESS_KEY_ID</span>
+                    <div class="env-desc">R2 access key. Same token creation page.</div><span
+                        class="env-badge">Required</span>
+                </div>
+                <div class="env-row"><span class="env-key">R2_SECRET_ACCESS_KEY</span>
+                    <div class="env-desc">R2 secret. Generated once — save it immediately.</div><span
+                        class="env-badge">Required</span>
+                </div>
+                <div class="env-row"><span class="env-key">R2_BUCKET_NAME</span>
+                    <div class="env-desc">Your R2 bucket name, e.g. <code>codeward-runs</code>.</div><span
+                        class="env-badge">Required</span>
+                </div>
+                <div class="env-row"><span class="env-key">FLY_API_TOKEN</span>
+                    <div class="env-desc">Fly.io sandbox provisioning. fly.io → Account → Access Tokens.</div><span
+                        class="env-badge">Required</span>
+                </div>
+                <div class="env-row"><span class="env-key">RESEND_API_KEY</span>
+                    <div class="env-desc">Transactional email. resend.com → API Keys. Free 3,000/month.</div><span
+                        class="env-badge">Required</span>
+                </div>
+                <div class="env-row"><span class="env-key">BETTER_AUTH_SECRET</span>
+                    <div class="env-desc">JWT signing secret. Generate: <code>openssl rand -base64 32</code></div><span
+                        class="env-badge">Required</span>
+                </div>
+
+                <div class="prev-next">
+                    <div class="pn-card" onclick="showPage('install-sandbox',null)"><span class="pn-arrow">←</span>
+                        <div>
+                            <div class="pn-dir">Previous</div>
+                            <div class="pn-title">Sandbox & stack detection</div>
+                        </div>
+                    </div>
+                    <div class="pn-card next" onclick="showPage('mode1',null)">
+                        <div>
+                            <div class="pn-dir">Next</div>
+                            <div class="pn-title">Mode 1 — on connect</div>
+                        </div><span class="pn-arrow">→</span>
+                    </div>
+                </div>
+            </article>
+
+            <!-- ════════ AGENTS OVERVIEW ════════ -->
+            <article class="page" id="page-agents-overview">
+                <div class="breadcrumb"><span>Docs</span><span class="bc-sep">›</span><span>Agents</span><span
+                        class="bc-sep">›</span><span class="bc-current">Overview</span></div>
+                <div class="page-hero">
+                    <div class="page-eyebrow">Agents</div>
+                    <h1 class="page-title">The 9 agents — <span>how they work together</span></h1>
+                    <p class="page-intro">Not one LLM trying to do everything. Nine independent agents running in
+                        parallel, each with a focused role, specific tools, and the right model for that task.</p>
+                </div>
+
+                <h2 id="agent-list">All agents</h2>
+                <div class="agent-grid">
+                    <div class="agent-doc-card" onclick="showPage('guardian-agent',null)">
+                        <div class="adc-icon">💜</div>
+                        <div class="adc-name">Guardian Agent</div>
+                        <div class="adc-desc">PR reviews, inline comments, issue creation, approve/block</div>
+                        <div class="adc-model">claude-sonnet-4-6 + GitHub MCP</div>
+                    </div>
+                    <div class="agent-doc-card">
+                        <div class="adc-icon">🔴</div>
+                        <div class="adc-name">Security Agent</div>
+                        <div class="adc-desc">18 checks — secrets, CVEs, RLS, OWASP, supply chain</div>
+                        <div class="adc-model">claude-haiku-4-5 + tools</div>
+                    </div>
+                    <div class="agent-doc-card">
+                        <div class="adc-icon">🟡</div>
+                        <div class="adc-name">Bloat Agent</div>
+                        <div class="adc-desc">18 checks — duplicates, dead code, Fallow integration</div>
+                        <div class="adc-model">claude-haiku-4-5 + Fallow MCP</div>
+                    </div>
+                    <div class="agent-doc-card">
+                        <div class="adc-icon">🔴</div>
+                        <div class="adc-name">Broken Code Agent</div>
+                        <div class="adc-desc">18 checks — failing tests, flaky detection, type gaps</div>
+                        <div class="adc-model">claude-haiku-4-5 + Vitest</div>
+                    </div>
+                    <div class="agent-doc-card">
+                        <div class="adc-icon">🔵</div>
+                        <div class="adc-name">Architecture Agent</div>
+                        <div class="adc-desc">18 checks — N+1, indexes, distributed monolith, load</div>
+                        <div class="adc-model">claude-haiku-4-5 + k6</div>
+                    </div>
+                    <div class="agent-doc-card">
+                        <div class="adc-icon">🟢</div>
+                        <div class="adc-name">AI-Era Agent</div>
+                        <div class="adc-desc">18 checks — prompt injection, RAG drift, PII, evasive tests</div>
+                        <div class="adc-model">claude-sonnet-4-6</div>
+                    </div>
+                    <div class="agent-doc-card">
+                        <div class="adc-icon">⚖️</div>
+                        <div class="adc-name">Compliance Agent</div>
+                        <div class="adc-desc">10 checks — EU AI Act, GDPR, WCAG, NHI. Runs daily.</div>
+                        <div class="adc-model">claude-sonnet-4-6 · scheduled</div>
+                    </div>
+                    <div class="agent-doc-card">
+                        <div class="adc-icon">📊</div>
+                        <div class="adc-name">Data & DX Agent</div>
+                        <div class="adc-desc">Pipelines, data contracts, alert fatigue. Weekly report.</div>
+                        <div class="adc-model">claude-haiku-4-5 · weekly</div>
+                    </div>
+                    <div class="agent-doc-card" onclick="showPage('chat-agent',null)">
+                        <div class="adc-icon">💬</div>
+                        <div class="adc-name">Chat Agent</div>
+                        <div class="adc-desc">Always-on. Spawns agents on demand. Reads all history.</div>
+                        <div class="adc-model">claude-sonnet-4-6 · always on</div>
+                    </div>
+                </div>
+
+                <h2 id="parallel-execution">How they run in parallel</h2>
+                <p>All agents fire simultaneously via <code>Promise.all()</code>. The wall-clock time is the slowest
+                    agent, not the sum:</p>
+                <div class="code-header"><span class="code-lang">typescript</span><button class="code-copy"
+                        onclick="this.textContent='Copied!';setTimeout(()=>this.textContent='Copy',1500)">Copy</button>
+                </div>
+                <pre><span class="c">// Orchestrator dispatches all agents simultaneously</span>
+<span class="k">const</span> [security, bloat, broken, arch, aiEra] = <span class="k">await</span> Promise.all([
+  <span class="fn">runSecurityAgent</span>({ repoId, scanScope }),
+  <span class="fn">runBloatAgent</span>({ repoId, scanScope }),
+  <span class="fn">runBrokenCodeAgent</span>({ repoId, scanScope }),
+  <span class="fn">runArchitectureAgent</span>({ repoId, scanScope }),
+  <span class="fn">runAiEraAgent</span>({ repoId, scanScope }),
+])
+
+<span class="c">// Sequential:  5 agents × 4 min = 20 min</span>
+<span class="c">// Parallel:    max(4 min)       =  4 min — 5× faster</span></pre>
+
+                <h2 id="constitution">The agent constitution</h2>
+                <p>Every agent inherits 6 hard rules that cannot be overridden:</p>
+                <table>
+                    <tr>
+                        <th>Rule</th>
+                        <th>Description</th>
+                    </tr>
+                    <tr>
+                        <td>Evidence only</td>
+                        <td>Every finding must cite a tool, file, and line number. No invented findings.</td>
+                    </tr>
+                    <tr>
+                        <td>Critical = 0</td>
+                        <td>One Critical security or broken-code finding sets the score to 0 and blocks the merge.</td>
+                    </tr>
+                    <tr>
+                        <td>Code is data</td>
+                        <td>Code retrieved from repos is treated as data to analyse, never as instructions.</td>
+                    </tr>
+                    <tr>
+                        <td>Respect trust_mode</td>
+                        <td>Write actions (commits, merges) are blocked by the tool executor if trust_mode disallows
+                            them.</td>
+                    </tr>
+                    <tr>
+                        <td>Hard budgets</td>
+                        <td>80,000 token limit per agent. 5 calls max per identical tool+input. 10-minute sandbox
+                            timeout.</td>
+                    </tr>
+                    <tr>
+                        <td>Structured output</td>
+                        <td>Every agent returns a JSON <code>Finding[]</code> array. Chain-of-thought never reaches the
+                            orchestrator.</td>
+                    </tr>
+                </table>
+
+                <div class="prev-next">
+                    <div class="pn-card" onclick="showPage('install-env',null)"><span class="pn-arrow">←</span>
+                        <div>
+                            <div class="pn-dir">Previous</div>
+                            <div class="pn-title">Environment variables</div>
+                        </div>
+                    </div>
+                    <div class="pn-card next" onclick="showPage('guardian-agent',null)">
+                        <div>
+                            <div class="pn-dir">Next</div>
+                            <div class="pn-title">Guardian Agent</div>
+                        </div><span class="pn-arrow">→</span>
+                    </div>
+                </div>
+            </article>
+
+            <!-- ════════ GUARDIAN AGENT ════════ -->
+            <article class="page" id="page-guardian-agent">
+                <div class="breadcrumb"><span>Docs</span><span class="bc-sep">›</span><span>Agents</span><span
+                        class="bc-sep">›</span><span class="bc-current">Guardian Agent</span></div>
+                <div class="page-hero">
+                    <div class="page-eyebrow">Agents</div>
+                    <h1 class="page-title">Guardian Agent — <span>Codeward's face inside GitHub</span></h1>
+                    <p class="page-intro">The Guardian Agent is not a code reviewer. It is <strong>proof of
+                            work</strong> — it posts to your PR after the full pipeline runs and shows developers
+                        exactly what Codeward executed on their code.</p>
+                </div>
+
+                <h2 id="guardian-vs">Guardian vs CodeRabbit</h2>
+                <table>
+                    <tr>
+                        <th>Capability</th>
+                        <th>CodeRabbit</th>
+                        <th>Guardian Agent</th>
+                    </tr>
+                    <tr>
+                        <td>Inline PR comments</td>
+                        <td>✓</td>
+                        <td>✓</td>
+                    </tr>
+                    <tr>
+                        <td>Actual test results</td>
+                        <td>✗</td>
+                        <td><strong style="color:var(--green)">✓ Real sandbox</strong></td>
+                    </tr>
+                    <tr>
+                        <td>Real CVE findings</td>
+                        <td>✗</td>
+                        <td><strong style="color:var(--green)">✓ Trivy + truffleHog</strong></td>
+                    </tr>
+                    <tr>
+                        <td>Auto-refactors code</td>
+                        <td>✗</td>
+                        <td><strong style="color:var(--green)">✓ Commits back</strong></td>
+                    </tr>
+                    <tr>
+                        <td>Creates GitHub Issues</td>
+                        <td>✗</td>
+                        <td><strong style="color:var(--green)">✓ Auto-creates</strong></td>
+                    </tr>
+                    <tr>
+                        <td>Blocks unsafe merges</td>
+                        <td>✗</td>
+                        <td><strong style="color:var(--green)">✓ Formal review</strong></td>
+                    </tr>
+                    <tr>
+                        <td>Responds in PR thread</td>
+                        <td>✓</td>
+                        <td>✓</td>
+                    </tr>
+                </table>
+
+                <h2 id="guardian-flow">What the Guardian does on every PR</h2>
+                <div class="steps">
+                    <div class="step">
+                        <div class="step-num">1</div>
+                        <div class="step-content">
+                            <div class="step-title">Posts "running" immediately</div>
+                            <div class="step-desc">Within 200ms of the webhook firing, Guardian posts a pending check
+                                run to GitHub. The PR shows a yellow dot: <code>Codeward Analysis — in progress</code>.
+                            </div>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-num">2</div>
+                        <div class="step-content">
+                            <div class="step-title">Watches the result stream</div>
+                            <div class="step-desc">As each agent finishes, Guardian receives structured JSON via BullMQ
+                                events and starts building the PR comment progressively.</div>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-num">3</div>
+                        <div class="step-content">
+                            <div class="step-title">Posts inline diff comments</div>
+                            <div class="step-desc">For every finding with a file path and line number, Guardian calls
+                                <code>add_pull_request_review_comment</code> on that exact diff line.</div>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-num">4</div>
+                        <div class="step-content">
+                            <div class="step-title">Creates GitHub Issues</div>
+                            <div class="step-desc">Any Critical or High finding not auto-fixed becomes a GitHub Issue
+                                automatically via <code>create_issue</code>. Labelled <code>codeward:security</code>,
+                                <code>priority:critical</code>, assigned to the PR author.</div>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-num">5</div>
+                        <div class="step-content">
+                            <div class="step-title">Submits formal PR review</div>
+                            <div class="step-desc">All gates pass → <code>create_pull_request_review</code> with
+                                conclusion <code>approved</code>. Critical finding → conclusion
+                                <code>request_changes</code>. The PR cannot merge until resolved.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <h2 id="guardian-open-source">Open source mode</h2>
+                <div class="callout callout-warn"><span class="callout-icon">⚠️</span>
+                    <div class="callout-body">
+                        <div class="callout-title">Never run untrusted code in your sandbox</div>
+                        <div class="callout-desc">External contributor PRs get lightweight static analysis only. Full
+                            sandbox runs require a maintainer to add the <code>codeward:run</code> label.</div>
+                    </div>
+                </div>
+
+                <div class="prev-next">
+                    <div class="pn-card" onclick="showPage('agents-overview',null)"><span class="pn-arrow">←</span>
+                        <div>
+                            <div class="pn-dir">Previous</div>
+                            <div class="pn-title">Agents overview</div>
+                        </div>
+                    </div>
+                    <div class="pn-card next" onclick="showPage('chat-agent',null)">
+                        <div>
+                            <div class="pn-dir">Next</div>
+                            <div class="pn-title">Chat Agent</div>
+                        </div><span class="pn-arrow">→</span>
+                    </div>
+                </div>
+            </article>
+
+            <!-- ════════ CHAT AGENT ════════ -->
+            <article class="page" id="page-chat-agent">
+                <div class="breadcrumb"><span>Docs</span><span class="bc-sep">›</span><span>Agents</span><span
+                        class="bc-sep">›</span><span class="bc-current">Chat Agent</span></div>
+                <div class="page-hero">
+                    <div class="page-eyebrow">Agents</div>
+                    <h1 class="page-title">Chat Agent — <span>your principal engineer on call</span></h1>
+                    <p class="page-intro">The Chat Agent is not a chatbot. It has full tool access to your codebase, all
+                        agent run history, and can spawn any sub-agent on demand. Ask it anything — it will run real
+                        analysis before answering.</p>
+                </div>
+
+                <div class="callout callout-note"><span class="callout-icon">💡</span>
+                    <div class="callout-body">
+                        <div class="callout-title">Powered by claude-sonnet-4-6</div>
+                        <div class="callout-desc">The Chat Agent uses Claude Sonnet for every message — ensuring
+                            nuanced, technically accurate responses across complex codebase questions.</div>
+                    </div>
+                </div>
+
+                <h2 id="chat-tools">Tools the Chat Agent can call</h2>
+                <div class="param-block">
+                    <div class="param-row"><span class="param-name">query_run_history</span>
+                        <div class="param-body"><span class="param-type">tool</span>
+                            <div class="param-desc">Read all previous agent run results for a repo. Enables questions
+                                like "what was the biggest security issue last month?"</div>
+                        </div>
+                    </div>
+                    <div class="param-row"><span class="param-name">spawn_any_agent</span>
+                        <div class="param-body"><span class="param-type">tool</span>
+                            <div class="param-desc">Trigger a targeted scan. "Run the Security Agent on payments-api
+                                right now" → agent fires and results return to the chat.</div>
+                        </div>
+                    </div>
+                    <div class="param-row"><span class="param-name">semantic_search</span>
+                        <div class="param-body"><span class="param-type">tool</span>
+                            <div class="param-desc">Search the codebase vector index. "Where is validateEmail defined
+                                across all repos?" — returns matching chunks with file paths and lines.</div>
+                        </div>
+                    </div>
+                    <div class="param-row"><span class="param-name">get_file_contents</span>
+                        <div class="param-body"><span class="param-type">tool</span>
+                            <div class="param-desc">Read any file in any connected repo. Used to give context when
+                                explaining a specific finding.</div>
+                        </div>
+                    </div>
+                    <div class="param-row"><span class="param-name">compare_repos</span>
+                        <div class="param-body"><span class="param-type">tool</span>
+                            <div class="param-desc">Cross-repo analysis. "Do we have the same N+1 pattern in all 4
+                                repos?" → reads architecture findings across all repos and compares.</div>
+                        </div>
+                    </div>
+                    <div class="param-row"><span class="param-name">explain_debt_item</span>
+                        <div class="param-body"><span class="param-type">tool</span>
+                            <div class="param-desc">Get plain-English explanation of any debt finding, including why it
+                                matters, how to fix it, and effort estimate.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <h2 id="chat-example">Example conversation</h2>
+                <div class="code-header"><span class="code-lang">conversation</span><button class="code-copy"
+                        onclick="this.textContent='Copied!';setTimeout(()=>this.textContent='Copy',1500)">Copy</button>
+                </div>
+                <pre><span class="t">Developer:</span> What's the biggest risk in payments-api right now?
+
+<span class="fn">Codeward AI:</span> Running Security Agent on payments-api now...
+
+Found it: POST /api/webhook has no rate limiting.
+100 requests fired in sandbox — all returned 200.
+Brute-force is trivially possible on your payment
+confirmation endpoint.
+
+<span class="s">Evidence:</span> k6 load test · /api/webhook · 100/100 returned 200
+<span class="s">Fix:</span> Add express-rate-limit middleware with max: 20, windowMs: 60_000
+<span class="s">Effort:</span> ~10 minutes
+
+Want me to open a PR with the fix?
+
+<span class="t">Developer:</span> Yes — and check if we have the same issue in auth-service
+
+<span class="fn">Codeward AI:</span> Checking auth-service now...
+auth-service has rate limiting on /api/auth/login (429 at request 11 ✓)
+But POST /api/auth/register has NO rate limit.
+
+Opening two PRs — payments-api fix and auth-service register fix.
+Running tests in parallel sandboxes now.</pre>
+
+                <div class="prev-next">
+                    <div class="pn-card" onclick="showPage('guardian-agent',null)"><span class="pn-arrow">←</span>
+                        <div>
+                            <div class="pn-dir">Previous</div>
+                            <div class="pn-title">Guardian Agent</div>
+                        </div>
+                    </div>
+                    <div class="pn-card next" onclick="showPage('install-env',null)">
+                        <div>
+                            <div class="pn-dir">Next</div>
+                            <div class="pn-title">Environment variables</div>
+                        </div><span class="pn-arrow">→</span>
+                    </div>
+                </div>
+            </article>
+
+            <!-- ════════ FALLBACK ════════ -->
+            <article class="page" id="page-fallback">
+                <div class="breadcrumb"><span>Docs</span><span class="bc-sep">›</span><span class="bc-current">Coming
+                        soon</span></div>
+                <div class="page-hero">
+                    <div class="page-eyebrow">Documentation</div>
+                    <h1 class="page-title">This page is <span>coming soon</span></h1>
+                    <p class="page-intro">We're still writing this section. In the meantime, use the search or browse
+                        the sidebar.</p>
+                </div>
+                <div class="callout callout-note"><span class="callout-icon">💡</span>
+                    <div class="callout-body">
+                        <div class="callout-title">Navigate using the sidebar</div>
+                        <div class="callout-desc">All available pages are listed on the left. Click any item to jump
+                            directly to that section.</div>
+                    </div>
+                </div>
+                <div class="welcome-cards">
+                    <div class="wc" onclick="showPage('welcome',null)">
+                        <div class="wc-icon">🏠</div>
+                        <div class="wc-title">Back to Welcome</div>
+                        <div class="wc-desc">Start from the beginning.</div>
+                        <div class="wc-arrow">Welcome →</div>
+                    </div>
+                    <div class="wc" onclick="showPage('quickstart',null)">
+                        <div class="wc-icon">⚡</div>
+                        <div class="wc-title">Quickstart</div>
+                        <div class="wc-desc">Get running in 5 minutes.</div>
+                        <div class="wc-arrow">Quickstart →</div>
+                    </div>
+                    <div class="wc" onclick="showPage('agents-overview',null)">
+                        <div class="wc-icon">🤖</div>
+                        <div class="wc-title">Agent reference</div>
+                        <div class="wc-desc">Explore all 9 agents.</div>
+                        <div class="wc-arrow">Agents →</div>
+                    </div>
+                </div>
+            </article>
+
+        </main>
+
+        <!-- ─── RIGHT TOC ─── -->
+        <aside class="toc" id="toc">
+            <div class="toc-title">On this page</div>
+            <div id="toc-items"></div>
+            <div class="toc-divider"></div>
+            <div class="toc-feedback">Was this page helpful?</div>
+            <div class="toc-feedback-btns">
+                <button class="fb-btn" onclick="this.textContent='👍 Thanks!';this.style.color='var(--green)'">👍
+                    Yes</button>
+                <button class="fb-btn" onclick="this.textContent='📝 Thanks!';this.style.color='var(--amber)'">👎
+                    No</button>
+            </div>
+            <div class="toc-divider"></div>
+            <a class="toc-item" style="padding-left:0;border:none;font-size:11px;color:var(--txt3)" href="#">✏️ Edit
+                this page</a>
+            <a class="toc-item" style="padding-left:0;border:none;font-size:11px;color:var(--txt3)" href="#">🐛 Report
+                an issue</a>
+        </aside>
+
+    </div><!-- /layout -->
+
+    <!-- SEARCH MODAL -->
+    <div class="search-modal" id="search-modal" onclick="if(event.target===this)this.classList.remove('open')">
+        <div class="search-box-modal">
+            <div class="search-input-wrap">
+                <span style="font-size:16px">🔍</span>
+                <input type="text" placeholder="Search the docs..." id="search-input" autofocus
+                    oninput="filterSearch(this.value)">
+                <button class="code-copy"
+                    onclick="document.getElementById('search-modal').classList.remove('open')">ESC</button>
+            </div>
+            <div id="search-results">
+                <div class="search-result"
+                    onclick="showPage('quickstart',null);document.getElementById('search-modal').classList.remove('open')">
+                    <span class="sr-icon">⚡</span>
+                    <div>
+                        <div class="sr-title">Quickstart (5 min)</div>
+                        <div class="sr-section">Getting started</div>
+                        <div class="sr-snippet">From zero to your first scan in under 5 minutes.</div>
+                    </div>
+                </div>
+                <div class="search-result"
+                    onclick="showPage('install-env',null);document.getElementById('search-modal').classList.remove('open')">
+                    <span class="sr-icon">🔑</span>
+                    <div>
+                        <div class="sr-title">Environment variables</div>
+                        <div class="sr-section">Installation</div>
+                        <div class="sr-snippet">ANTHROPIC_API_KEY, GITHUB_APP_ID, DATABASE_URL and more.</div>
+                    </div>
+                </div>
+                <div class="search-result"
+                    onclick="showPage('agents-overview',null);document.getElementById('search-modal').classList.remove('open')">
+                    <span class="sr-icon">🤖</span>
+                    <div>
+                        <div class="sr-title">Agents overview</div>
+                        <div class="sr-section">Agents</div>
+                        <div class="sr-snippet">9 parallel agents, how they coordinate, the constitution rules.</div>
+                    </div>
+                </div>
+                <div class="search-result"
+                    onclick="showPage('guardian-agent',null);document.getElementById('search-modal').classList.remove('open')">
+                    <span class="sr-icon">💜</span>
+                    <div>
+                        <div class="sr-title">Guardian Agent</div>
+                        <div class="sr-section">Agents</div>
+                        <div class="sr-snippet">PR reviews, inline comments, GitHub Issues, approve/block.</div>
+                    </div>
+                </div>
+                <div class="search-result"
+                    onclick="showPage('chat-agent',null);document.getElementById('search-modal').classList.remove('open')">
+                    <span class="sr-icon">💬</span>
+                    <div>
+                        <div class="sr-title">Chat Agent</div>
+                        <div class="sr-section">Agents</div>
+                        <div class="sr-snippet">Always-on principal engineer. Spawns agents on demand.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const pageTOCs = {
+            'welcome': ['what-is:What is Codeward?', 'core-concepts:Core concepts', 'five-step-flow:Five-step workflow'],
+            'quickstart': ['qs-step1:Step 1 — Create account', 'qs-step2:Step 2 — Install GitHub App', 'qs-step3:Step 3 — Trust mode', 'qs-step4:Step 4 — First push', 'qs-step5:Step 5 — Read results'],
+            'install-env': ['env-required:Required variables'],
+            'agents-overview': ['agent-list:All agents', 'parallel-execution:Parallel execution', 'constitution:Agent constitution'],
+            'guardian-agent': ['guardian-vs:Guardian vs CodeRabbit', 'guardian-flow:What Guardian does', 'guardian-open-source:Open source mode'],
+            'chat-agent': ['chat-tools:Chat agent tools', 'chat-example:Example conversation'],
+        };
+
+        const pageMap = {
+            'how-it-works': 'fallback', 'user-types': 'fallback', 'install-github': 'fallback',
+            'install-config': 'fallback', 'install-sandbox': 'fallback', 'mode1': 'fallback',
+            'mode2': 'fallback', 'state-machine': 'fallback', 'debt-scoring': 'fallback',
+            'debt-security': 'fallback', 'debt-bloat': 'fallback', 'debt-broken': 'fallback',
+            'debt-arch': 'fallback', 'debt-ai': 'fallback', 'debt-compliance': 'fallback',
+            'orchestrator': 'fallback', 'int-github': 'fallback', 'int-slack': 'fallback',
+            'int-whatsapp': 'fallback', 'int-calendar': 'fallback', 'int-sentry': 'fallback',
+            'health-cert': 'fallback', 'pricing-credits': 'fallback', 'security': 'fallback', 'faq': 'fallback',
+        };
+
+        let currentPage = 'welcome';
+        function showPage(id, clickedEl) {
+            const resolvedId = pageMap[id] || id;
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.sb-item').forEach(s => s.classList.remove('active'));
+            const target = document.getElementById('page-' + resolvedId) || document.getElementById('page-fallback');
+            target.classList.add('active');
+            if (clickedEl) clickedEl.classList.add('active');
+            currentPage = resolvedId;
+            updateTOC(id);
+            document.getElementById('main-content').scrollTop = 0;
+            window.scrollTo(0, 0);
+        }
+
+        function updateTOC(id) {
+            const toc = document.getElementById('toc-items');
+            const items = pageTOCs[id] || pageTOCs[pageMap[id]] || [];
+            toc.innerHTML = items.map(item => {
+                const [anchor, label] = item.split(':');
+                return `<a class="toc-item" href="#${anchor}" onclick="document.getElementById('${anchor}')?.scrollIntoView({behavior:'smooth',block:'start'})">${label}</a>`;
+            }).join('');
+        }
+
+        function toggleGroup(el) {
+            const arrow = el.querySelector('.sb-group-arrow');
+            const children = el.nextElementSibling;
+            const isOpen = arrow.classList.contains('open');
+            arrow.classList.toggle('open', !isOpen);
+            el.classList.toggle('open', !isOpen);
+            children.classList.toggle('open', !isOpen);
+        }
+
+        function setSection(sec, el) {
+            document.querySelectorAll('.tn-link').forEach(l => l.classList.remove('active'));
+            el.classList.add('active');
+        }
+
+        function filterSearch(val) {
+            // simple filter — in production would be proper search
+        }
+
+        // Keyboard shortcut
+        document.addEventListener('keydown', e => {
+            if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+                e.preventDefault();
+                const modal = document.getElementById('search-modal');
+                modal.classList.toggle('open');
+                if (modal.classList.contains('open')) setTimeout(() => document.getElementById('search-input').focus(), 50);
+            }
+            if (e.key === 'Escape') document.getElementById('search-modal').classList.remove('open');
+        });
+
+        updateTOC('welcome');
+    </script>
+</body>
+
+</html>
