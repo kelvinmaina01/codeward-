@@ -1,12 +1,13 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
+import { ArchitectureFlow } from './ArchitectureFlow';
 
 // ============================================================
 // Codeward Hero Section — Self-contained single-file component
 // Requires: React, Tailwind CSS
 // ============================================================
 
-function FadeInSection({ children, delay = 0 }: { children: React.ReactNode, delay?: number }) {
+function FadeInSection({ children, delay = 0, direction = 'up', className = '' }: { children: React.ReactNode, delay?: number, direction?: 'up' | 'left' | 'right', className?: string }) {
   const [isVisible, setVisible] = useState(false);
   const domRef = useRef<HTMLDivElement>(null);
 
@@ -27,11 +28,18 @@ function FadeInSection({ children, delay = 0 }: { children: React.ReactNode, del
     };
   }, []);
 
+  const getTranslate = () => {
+    if (isVisible) return 'translate-x-0 translate-y-0';
+    if (direction === 'left') return '-translate-x-16 translate-y-0';
+    if (direction === 'right') return 'translate-x-16 translate-y-0';
+    return 'translate-y-12 translate-x-0';
+  };
+
   return (
     <div
       ref={domRef}
-      className={`transition-all duration-1000 ease-out ${
-        isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'
+      className={`transition-all duration-1000 ease-out ${className} ${
+        isVisible ? 'opacity-100 translate-x-0 translate-y-0' : `opacity-0 ${getTranslate()}`
       }`}
       style={{ transitionDelay: `${delay}ms` }}
     >
@@ -50,7 +58,7 @@ type Particle = {
   size: number;
 };
 
-function ParticleField() {
+function ParticleField({ centered = false }: { centered?: boolean }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -111,8 +119,8 @@ function ParticleField() {
 
       ctx.clearRect(0, 0, width, height);
 
-      // Sphere positioned to the right of the hero text
-      const cx = width * 0.68;
+      // Sphere positioned based on 'centered' prop
+      const cx = centered ? width * 0.5 : width * 0.68;
       const cy = height * 0.5;
       const radius = Math.min(width, height) * 0.55;
 
@@ -232,8 +240,7 @@ function TestimonialsSection() {
       icon: "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Symbols/Warning.png",
       text: (
         <>
-          <span className="bg-yellow-300 text-black px-1 rounded-sm">Linters</span> catch semicolons.<br />
-          AI autocompletes mistakes.
+          Most AI tools just autocomplete mistakes faster. <span className="bg-yellow-300 text-black px-1 rounded-sm">Codeward</span> is the first platform we've used that actually understands our entire architecture, proactively finding and fixing deep logic flaws before they ever reach our main branch.
         </>
       ),
       author: "Jane Doe",
@@ -246,8 +253,7 @@ function TestimonialsSection() {
       icon: "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Symbols/Check%20Mark%20Button.png",
       text: (
         <>
-          Not a chatbot. A tool that<br />
-          actually <span className="bg-yellow-300 text-black px-1 rounded-sm">does the work</span>.
+          It's not just another chatbot that you have to micromanage. Codeward acts like a true senior engineer—<span className="bg-yellow-300 text-black px-1 rounded-sm">autonomously refactoring</span> legacy code and writing comprehensive test suites without needing my constant supervision.
         </>
       ),
       author: "John Smith",
@@ -260,8 +266,7 @@ function TestimonialsSection() {
       icon: "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Travel%20and%20places/Rocket.png",
       text: (
         <>
-          <span className="bg-yellow-300 text-black px-1 rounded-sm">Codeward</span> is like having a<br />
-          10x engineer on call 24/7.
+          Our technical debt was becoming unmanageable. Within weeks of deploying <span className="bg-yellow-300 text-black px-1 rounded-sm">Codeward</span>, it systematically eliminated thousands of lines of legacy code and upgraded our core modules, all while passing our strictest CI/CD pipelines.
         </>
       ),
       author: "Alice Johnson",
@@ -274,8 +279,7 @@ function TestimonialsSection() {
       icon: "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Objects/Light%20Bulb.png",
       text: (
         <>
-          It reviews code <span className="bg-yellow-300 text-black px-1 rounded-sm">autonomously</span>.<br />
-          My team moves twice as fast now.
+          The Review Agent is a total game-changer. It doesn't just leave vague comments on PRs—it <span className="bg-yellow-300 text-black px-1 rounded-sm">spins up sandboxes</span>, runs the failing tests, and commits self-healing patches instantly. Our velocity has literally doubled.
         </>
       ),
       author: "David Lee",
@@ -437,13 +441,7 @@ export default function CodewardHero() {
 
         {/* Product Hunt Badges */}
         <div className="absolute bottom-8 right-8 md:bottom-12 md:right-14 flex flex-col gap-4 sm:flex-row sm:gap-6 opacity-90 hover:opacity-100 transition-opacity">
-          <a href="#" target="_blank" rel="noopener noreferrer" className="transition-transform hover:scale-105">
-            <img 
-              src="https://i.ibb.co/5gKxgjSm/product-of-the-day-12.png" 
-              alt="Product Hunt - Product of the Day" 
-              className="h-[50px] w-auto drop-shadow-xl" 
-            />
-          </a>
+
           <a href="#" target="_blank" rel="noopener noreferrer" className="transition-transform hover:scale-105">
             <img 
               src="https://i.ibb.co/jPgJJdTs/developer-tools-badge.png" 
@@ -483,100 +481,120 @@ export default function CodewardHero() {
       {/* ── Social Proof / Trusted By Section ── */}
       <section className="bg-[#05060a] pt-12 pb-24 px-8 md:px-14">
         <div className="mx-auto max-w-[95%] xl:max-w-[1500px]">
-          <h3 className="text-center text-sm font-semibold uppercase tracking-widest text-white mb-12">
-            Loved and endorsed by developers and teams from
-          </h3>
+          <h2 className="text-center text-4xl md:text-5xl font-bold text-white mb-16 leading-tight">
+            Loved and endorsed by developers & teams from
+          </h2>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-8">
             
             {/* AI */}
-            <fieldset className="border border-white/10 rounded-xl px-6 pb-8 pt-4">
-              <legend className="px-3 text-[11px] font-semibold text-white uppercase tracking-wider mx-auto">AI</legend>
-              <div className="grid grid-cols-2 gap-x-2 gap-y-8 mt-4 pl-2">
-                <div className="flex items-center gap-3">
-                  <img src="https://www.google.com/s2/favicons?domain=openai.com&sz=128" alt="OpenAI" className="h-6 w-6 shrink-0 object-contain" />
-                  <span className="text-white/90 text-sm font-semibold tracking-wide truncate">OpenAI</span>
+            <fieldset className="border border-white/10 rounded-2xl px-8 pb-10 pt-6 bg-white/5 backdrop-blur-sm transition-transform hover:-translate-y-1">
+              <legend className="px-3 mx-auto">
+                <span className="relative inline-block px-3 py-1">
+                  <span className="absolute inset-0 bg-[#00F700] transform -skew-x-12 rounded-sm rotate-1" />
+                  <span className="relative text-xs font-bold text-black uppercase tracking-widest drop-shadow-md">AI</span>
+                </span>
+              </legend>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-10 mt-6">
+                <div className="flex items-center gap-4">
+                  <img src="https://www.google.com/s2/favicons?domain=openai.com&sz=128" alt="OpenAI" className="h-8 w-8 shrink-0 object-contain drop-shadow-md" />
+                  <span className="text-white/90 text-base font-semibold tracking-wide truncate">OpenAI</span>
                 </div>
-                <div className="flex items-center gap-3">
-                  <img src="https://www.google.com/s2/favicons?domain=anthropic.com&sz=128" alt="Anthropic" className="h-6 w-6 shrink-0 object-contain" />
-                  <span className="text-white/90 text-sm font-semibold tracking-wide truncate">Anthropic</span>
+                <div className="flex items-center gap-4">
+                  <img src="https://www.google.com/s2/favicons?domain=anthropic.com&sz=128" alt="Anthropic" className="h-8 w-8 shrink-0 object-contain drop-shadow-md" />
+                  <span className="text-white/90 text-base font-semibold tracking-wide truncate">Anthropic</span>
                 </div>
-                <div className="flex items-center gap-3">
-                  <img src="https://www.google.com/s2/favicons?domain=huggingface.co&sz=128" alt="HuggingFace" className="h-6 w-6 shrink-0 object-contain" />
-                  <span className="text-white/90 text-sm font-semibold tracking-wide truncate">HuggingFace</span>
+                <div className="flex items-center gap-4">
+                  <img src="https://www.google.com/s2/favicons?domain=huggingface.co&sz=128" alt="HuggingFace" className="h-8 w-8 shrink-0 object-contain drop-shadow-md" />
+                  <span className="text-white/90 text-base font-semibold tracking-wide truncate">HuggingFace</span>
                 </div>
-                <div className="flex items-center gap-3">
-                  <img src="https://www.google.com/s2/favicons?domain=mistral.ai&sz=128" alt="Mistral AI" className="h-6 w-6 shrink-0 object-contain" />
-                  <span className="text-white/90 text-sm font-semibold tracking-wide truncate">Mistral AI</span>
+                <div className="flex items-center gap-4">
+                  <img src="https://www.google.com/s2/favicons?domain=mistral.ai&sz=128" alt="Mistral AI" className="h-8 w-8 shrink-0 object-contain drop-shadow-md" />
+                  <span className="text-white/90 text-base font-semibold tracking-wide truncate">Mistral AI</span>
                 </div>
               </div>
             </fieldset>
 
             {/* Enterprise */}
-            <fieldset className="border border-white/10 rounded-xl px-6 pb-8 pt-4">
-              <legend className="px-3 text-[11px] font-semibold text-white uppercase tracking-wider mx-auto">Enterprise</legend>
-              <div className="grid grid-cols-2 gap-x-2 gap-y-8 mt-4 pl-2">
-                <div className="flex items-center gap-3">
-                  <img src="https://www.google.com/s2/favicons?domain=microsoft.com&sz=128" alt="Microsoft" className="h-6 w-6 shrink-0 object-contain" />
-                  <span className="text-white/90 text-sm font-semibold tracking-wide truncate">Microsoft</span>
+            <fieldset className="border border-white/10 rounded-2xl px-8 pb-10 pt-6 bg-white/5 backdrop-blur-sm transition-transform hover:-translate-y-1">
+              <legend className="px-3 mx-auto">
+                <span className="relative inline-block px-3 py-1">
+                  <span className="absolute inset-0 bg-[#00F700] transform -skew-x-12 rounded-sm -rotate-1" />
+                  <span className="relative text-xs font-bold text-black uppercase tracking-widest drop-shadow-md">Enterprise</span>
+                </span>
+              </legend>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-10 mt-6">
+                <div className="flex items-center gap-4">
+                  <img src="https://www.google.com/s2/favicons?domain=microsoft.com&sz=128" alt="Microsoft" className="h-8 w-8 shrink-0 object-contain drop-shadow-md" />
+                  <span className="text-white/90 text-base font-semibold tracking-wide truncate">Microsoft</span>
                 </div>
-                <div className="flex items-center gap-3">
-                  <img src="https://www.google.com/s2/favicons?domain=google.com&sz=128" alt="Google" className="h-6 w-6 shrink-0 object-contain" />
-                  <span className="text-white/90 text-sm font-semibold tracking-wide truncate">Google</span>
+                <div className="flex items-center gap-4">
+                  <img src="https://www.google.com/s2/favicons?domain=google.com&sz=128" alt="Google" className="h-8 w-8 shrink-0 object-contain drop-shadow-md" />
+                  <span className="text-white/90 text-base font-semibold tracking-wide truncate">Google</span>
                 </div>
-                <div className="flex items-center gap-3">
-                  <img src="https://www.google.com/s2/favicons?domain=paypal.com&sz=128" alt="PayPal" className="h-6 w-6 shrink-0 object-contain" />
-                  <span className="text-white/90 text-sm font-semibold tracking-wide truncate">PayPal</span>
+                <div className="flex items-center gap-4">
+                  <img src="https://www.google.com/s2/favicons?domain=paypal.com&sz=128" alt="PayPal" className="h-8 w-8 shrink-0 object-contain drop-shadow-md" />
+                  <span className="text-white/90 text-base font-semibold tracking-wide truncate">PayPal</span>
                 </div>
-                <div className="flex items-center gap-3">
-                  <img src="https://www.google.com/s2/favicons?domain=vercel.com&sz=128" alt="Vercel" className="h-6 w-6 shrink-0 object-contain" />
-                  <span className="text-white/90 text-sm font-semibold tracking-wide truncate">Vercel</span>
+                <div className="flex items-center gap-4">
+                  <img src="https://www.google.com/s2/favicons?domain=vercel.com&sz=128" alt="Vercel" className="h-8 w-8 shrink-0 object-contain drop-shadow-md" />
+                  <span className="text-white/90 text-base font-semibold tracking-wide truncate">Vercel</span>
                 </div>
               </div>
             </fieldset>
 
             {/* IoT/Infrastructure */}
-            <fieldset className="border border-white/10 rounded-xl px-6 pb-8 pt-4">
-              <legend className="px-3 text-[11px] font-semibold text-white uppercase tracking-wider mx-auto">IoT/Infrastructure</legend>
-              <div className="grid grid-cols-2 gap-x-2 gap-y-8 mt-4 pl-2">
-                <div className="flex items-center gap-3">
-                  <img src="https://www.google.com/s2/favicons?domain=aws.amazon.com&sz=128" alt="AWS" className="h-6 w-6 shrink-0 object-contain" />
-                  <span className="text-white/90 text-sm font-semibold tracking-wide truncate">AWS</span>
+            <fieldset className="border border-white/10 rounded-2xl px-8 pb-10 pt-6 bg-white/5 backdrop-blur-sm transition-transform hover:-translate-y-1">
+              <legend className="px-3 mx-auto">
+                <span className="relative inline-block px-3 py-1">
+                  <span className="absolute inset-0 bg-[#00F700] transform skew-x-12 rounded-sm rotate-2" />
+                  <span className="relative text-xs font-bold text-black uppercase tracking-widest drop-shadow-md">IoT/Infrastructure</span>
+                </span>
+              </legend>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-10 mt-6">
+                <div className="flex items-center gap-4">
+                  <img src="https://www.google.com/s2/favicons?domain=aws.amazon.com&sz=128" alt="AWS" className="h-8 w-8 shrink-0 object-contain drop-shadow-md" />
+                  <span className="text-white/90 text-base font-semibold tracking-wide truncate">AWS</span>
                 </div>
-                <div className="flex items-center gap-3">
-                  <img src="https://www.google.com/s2/favicons?domain=cloudflare.com&sz=128" alt="Cloudflare" className="h-6 w-6 shrink-0 object-contain" />
-                  <span className="text-white/90 text-sm font-semibold tracking-wide truncate">Cloudflare</span>
+                <div className="flex items-center gap-4">
+                  <img src="https://www.google.com/s2/favicons?domain=cloudflare.com&sz=128" alt="Cloudflare" className="h-8 w-8 shrink-0 object-contain drop-shadow-md" />
+                  <span className="text-white/90 text-base font-semibold tracking-wide truncate">Cloudflare</span>
                 </div>
-                <div className="flex items-center gap-3">
-                  <img src="https://www.google.com/s2/favicons?domain=safaricom.co.ke&sz=128" alt="Safaricom" className="h-6 w-6 shrink-0 object-contain" />
-                  <span className="text-white/90 text-sm font-semibold tracking-wide truncate">Safaricom</span>
+                <div className="flex items-center gap-4">
+                  <img src="https://www.google.com/s2/favicons?domain=safaricom.co.ke&sz=128" alt="Safaricom" className="h-8 w-8 shrink-0 object-contain drop-shadow-md" />
+                  <span className="text-white/90 text-base font-semibold tracking-wide truncate">Safaricom</span>
                 </div>
-                <div className="flex items-center gap-3">
-                  <img src="https://www.google.com/s2/favicons?domain=docker.com&sz=128" alt="Docker" className="h-6 w-6 shrink-0 object-contain" />
-                  <span className="text-white/90 text-sm font-semibold tracking-wide truncate">Docker</span>
+                <div className="flex items-center gap-4">
+                  <img src="https://www.google.com/s2/favicons?domain=docker.com&sz=128" alt="Docker" className="h-8 w-8 shrink-0 object-contain drop-shadow-md" />
+                  <span className="text-white/90 text-base font-semibold tracking-wide truncate">Docker</span>
                 </div>
               </div>
             </fieldset>
 
             {/* Finance */}
-            <fieldset className="border border-white/10 rounded-xl px-6 pb-8 pt-4">
-              <legend className="px-3 text-[11px] font-semibold text-white uppercase tracking-wider mx-auto">Finance</legend>
-              <div className="grid grid-cols-2 gap-x-2 gap-y-8 mt-4 pl-2">
-                <div className="flex items-center gap-3">
-                  <img src="https://www.google.com/s2/favicons?domain=stripe.com&sz=128" alt="Stripe" className="h-6 w-6 shrink-0 object-contain" />
-                  <span className="text-white/90 text-sm font-semibold tracking-wide truncate">Stripe</span>
+            <fieldset className="border border-white/10 rounded-2xl px-8 pb-10 pt-6 bg-white/5 backdrop-blur-sm transition-transform hover:-translate-y-1">
+              <legend className="px-3 mx-auto">
+                <span className="relative inline-block px-3 py-1">
+                  <span className="absolute inset-0 bg-[#00F700] transform -skew-x-6 rounded-sm -rotate-2" />
+                  <span className="relative text-xs font-bold text-black uppercase tracking-widest drop-shadow-md">Finance</span>
+                </span>
+              </legend>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-10 mt-6">
+                <div className="flex items-center gap-4">
+                  <img src="https://www.google.com/s2/favicons?domain=stripe.com&sz=128" alt="Stripe" className="h-8 w-8 shrink-0 object-contain drop-shadow-md" />
+                  <span className="text-white/90 text-base font-semibold tracking-wide truncate">Stripe</span>
                 </div>
-                <div className="flex items-center gap-3">
-                  <img src="https://www.google.com/s2/favicons?domain=plaid.com&sz=128" alt="Plaid" className="h-6 w-6 shrink-0 object-contain" />
-                  <span className="text-white/90 text-sm font-semibold tracking-wide truncate">Plaid</span>
+                <div className="flex items-center gap-4">
+                  <img src="https://www.google.com/s2/favicons?domain=plaid.com&sz=128" alt="Plaid" className="h-8 w-8 shrink-0 object-contain drop-shadow-md" />
+                  <span className="text-white/90 text-base font-semibold tracking-wide truncate">Plaid</span>
                 </div>
-                <div className="flex items-center gap-3">
-                  <img src="https://www.google.com/s2/favicons?domain=flutterwave.com&sz=128" alt="Flutterwave" className="h-6 w-6 shrink-0 object-contain" />
-                  <span className="text-white/90 text-sm font-semibold tracking-wide truncate">Flutterwave</span>
+                <div className="flex items-center gap-4">
+                  <img src="https://www.google.com/s2/favicons?domain=flutterwave.com&sz=128" alt="Flutterwave" className="h-8 w-8 shrink-0 object-contain drop-shadow-md" />
+                  <span className="text-white/90 text-base font-semibold tracking-wide truncate">Flutterwave</span>
                 </div>
-                <div className="flex items-center gap-3">
-                  <img src="https://www.google.com/s2/favicons?domain=paystack.com&sz=128" alt="Paystack" className="h-6 w-6 shrink-0 object-contain" />
-                  <span className="text-white/90 text-sm font-semibold tracking-wide truncate">Paystack</span>
+                <div className="flex items-center gap-4">
+                  <img src="https://www.google.com/s2/favicons?domain=paystack.com&sz=128" alt="Paystack" className="h-8 w-8 shrink-0 object-contain drop-shadow-md" />
+                  <span className="text-white/90 text-base font-semibold tracking-wide truncate">Paystack</span>
                 </div>
               </div>
             </fieldset>
@@ -594,155 +612,153 @@ export default function CodewardHero() {
         </div>
       </section>
 
+
       {/* ── Specialized AI Agents Section ── */}
       <section className="bg-[#05060a] py-32 px-8 md:px-20 border-t border-white/5">
         <div className="mx-auto max-w-7xl flex flex-col space-y-40">
           
           {/* Agent 1: Security Shield */}
-          <FadeInSection>
-            <div className="flex flex-col md:flex-row items-center gap-16">
-              <div className="flex-1 max-w-sm">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="flex items-center justify-center h-12 w-12 rounded-xl bg-red-500/10 text-red-500 border border-red-500/20">
-                    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                    </svg>
-                  </div>
-                  <div className="text-xs font-bold uppercase tracking-widest text-red-500">Security Agent</div>
+          <div className="flex flex-col md:flex-row items-center gap-16 overflow-hidden">
+            <FadeInSection direction="left" className="flex-1 max-w-xl">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="flex items-center justify-center h-12 w-12 rounded-xl bg-red-500/10 text-red-500 border border-red-500/20">
+                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                  </svg>
                 </div>
-                <h2 className="text-3xl font-bold text-white mb-4 leading-tight">Ironclad protection before you deploy</h2>
-                <p className="text-white/50 text-[15px] leading-relaxed mb-6">
-                  Shields your codebase from vulnerabilities and hardcoded secrets. It runs deep static analysis and provisions isolated ephemeral sandboxes to verify patches before any code reaches production.
-                </p>
-                <button onClick={() => navigate('/signup')} className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-white text-black text-sm font-semibold hover:bg-white/90 transition-colors">
-                  Secure your repo →
-                </button>
+                <div className="text-xs font-bold uppercase tracking-widest text-red-500">Security Agent</div>
               </div>
-              <div className="flex-1 w-full flex justify-center">
-                <div className="relative aspect-square w-full max-w-[400px] rounded-[2rem] bg-[#05060a] shadow-[0_0_40px_rgba(239,68,68,0.05)] overflow-hidden flex items-center justify-center border border-white/5">
-                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(239,68,68,0.15)_0%,_transparent_60%)] mix-blend-screen opacity-50" />
-                  <span className="relative z-10 text-white/80 font-medium text-lg tracking-wide">Security Dashboard</span>
-                </div>
+              <h2 className="text-4xl md:text-5xl font-bold text-white mb-6 leading-tight">Ironclad protection before you deploy</h2>
+              <p className="text-white/60 text-[17px] md:text-[19px] leading-relaxed mb-8">
+                Shields your codebase from vulnerabilities and hardcoded secrets. It runs deep static analysis and provisions isolated ephemeral sandboxes to verify patches before any code reaches production.
+              </p>
+              <button onClick={() => navigate('/signup')} className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-white text-black text-sm font-semibold hover:bg-white/90 transition-colors">
+                Secure your repo →
+              </button>
+            </FadeInSection>
+            <FadeInSection direction="right" className="flex-1 w-full flex justify-center">
+              <div className="relative aspect-square w-full max-w-[400px] rounded-[2rem] bg-[#05060a] shadow-[0_0_40px_rgba(239,68,68,0.05)] overflow-hidden flex items-center justify-center border border-white/5">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(239,68,68,0.15)_0%,_transparent_60%)] mix-blend-screen opacity-50" />
+                <span className="relative z-10 text-white/80 font-medium text-lg tracking-wide">Security Dashboard</span>
               </div>
-            </div>
-          </FadeInSection>
+            </FadeInSection>
+          </div>
 
           {/* Agent 2: Technical Debt */}
-          <FadeInSection>
-            <div className="flex flex-col md:flex-row items-center gap-16">
-              <div className="flex-1 max-w-sm">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="flex items-center justify-center h-12 w-12 rounded-xl bg-purple-500/10 text-purple-500 border border-purple-500/20">
-                    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                    </svg>
-                  </div>
-                  <div className="text-xs font-bold uppercase tracking-widest text-purple-500">Debt Agent</div>
+          <div className="flex flex-col md:flex-row items-center gap-16 overflow-hidden">
+            <FadeInSection direction="left" className="flex-1 max-w-xl">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="flex items-center justify-center h-12 w-12 rounded-xl bg-purple-500/10 text-purple-500 border border-purple-500/20">
+                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                  </svg>
                 </div>
-                <h2 className="text-3xl font-bold text-white mb-4 leading-tight">Crush legacy technical debt</h2>
-                <p className="text-white/50 text-[15px] leading-relaxed mb-6">
-                  Identifies, tracks, and autonomously eliminates technical debt. It highlights overly complex, legacy modules and writes modern, optimized refactors without breaking the underlying architecture.
-                </p>
-                <button onClick={() => navigate('/signup')} className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-white text-black text-sm font-semibold hover:bg-white/90 transition-colors">
-                  Eliminate tech debt →
-                </button>
+                <div className="text-xs font-bold uppercase tracking-widest text-purple-500">Debt Agent</div>
               </div>
-              <div className="flex-1 w-full flex justify-center">
-                <div className="relative aspect-square w-full max-w-[400px] rounded-[2rem] bg-[#05060a] shadow-[0_0_40px_rgba(168,85,247,0.05)] overflow-hidden flex items-center justify-center border border-white/5">
-                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(168,85,247,0.15)_0%,_transparent_60%)] mix-blend-screen opacity-50" />
-                  <span className="relative z-10 text-white/80 font-medium text-lg tracking-wide">Debt Tracker</span>
-                </div>
+              <h2 className="text-4xl md:text-5xl font-bold text-white mb-6 leading-tight">Crush legacy technical debt</h2>
+              <p className="text-white/60 text-[17px] md:text-[19px] leading-relaxed mb-8">
+                Identifies, tracks, and autonomously eliminates technical debt. It highlights overly complex, legacy modules and writes modern, optimized refactors without breaking the underlying architecture.
+              </p>
+              <button onClick={() => navigate('/signup')} className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-white text-black text-sm font-semibold hover:bg-white/90 transition-colors">
+                Eliminate tech debt →
+              </button>
+            </FadeInSection>
+            <FadeInSection direction="right" className="flex-1 w-full flex justify-center">
+              <div className="relative aspect-square w-full max-w-[400px] rounded-[2rem] bg-[#05060a] shadow-[0_0_40px_rgba(168,85,247,0.05)] overflow-hidden flex items-center justify-center border border-white/5">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(168,85,247,0.15)_0%,_transparent_60%)] mix-blend-screen opacity-50" />
+                <span className="relative z-10 text-white/80 font-medium text-lg tracking-wide">Debt Tracker</span>
               </div>
-            </div>
-          </FadeInSection>
+            </FadeInSection>
+          </div>
 
           {/* Agent 3: Sandbox Test */}
-          <FadeInSection>
-            <div className="flex flex-col md:flex-row items-center gap-16">
-              <div className="flex-1 max-w-sm">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="flex items-center justify-center h-12 w-12 rounded-xl bg-green-500/10 text-green-500 border border-green-500/20">
-                    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
-                    </svg>
-                  </div>
-                  <div className="text-xs font-bold uppercase tracking-widest text-green-500">Test Agent</div>
+          <div className="flex flex-col md:flex-row items-center gap-16 overflow-hidden">
+            <FadeInSection direction="left" className="flex-1 max-w-xl">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="flex items-center justify-center h-12 w-12 rounded-xl bg-green-500/10 text-green-500 border border-green-500/20">
+                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+                  </svg>
                 </div>
-                <h2 className="text-3xl font-bold text-white mb-4 leading-tight">Real tests in live sandboxes</h2>
-                <p className="text-white/50 text-[15px] leading-relaxed mb-6">
-                  Never merge broken code again. For every PR, the Test Agent spins up an ephemeral environment, executes your entire test suite, and ensures the code handles real-world scenarios flawlessly.
-                </p>
-                <button onClick={() => navigate('/signup')} className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-white text-black text-sm font-semibold hover:bg-white/90 transition-colors">
-                  Explore testing sandboxes →
-                </button>
+                <div className="text-xs font-bold uppercase tracking-widest text-green-500">Test Agent</div>
               </div>
-              <div className="flex-1 w-full flex justify-center">
-                <div className="relative aspect-square w-full max-w-[400px] rounded-[2rem] bg-[#05060a] shadow-[0_0_40px_rgba(34,197,94,0.05)] overflow-hidden flex items-center justify-center border border-white/5">
-                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(34,197,94,0.15)_0%,_transparent_60%)] mix-blend-screen opacity-50" />
-                  <span className="relative z-10 text-white/80 font-medium text-lg tracking-wide">Live Sandbox</span>
-                </div>
+              <h2 className="text-4xl md:text-5xl font-bold text-white mb-6 leading-tight">Real tests in live sandboxes</h2>
+              <p className="text-white/60 text-[17px] md:text-[19px] leading-relaxed mb-8">
+                Never merge broken code again. For every PR, the Test Agent spins up an ephemeral environment, executes your entire test suite, and ensures the code handles real-world scenarios flawlessly.
+              </p>
+              <button onClick={() => navigate('/signup')} className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-white text-black text-sm font-semibold hover:bg-white/90 transition-colors">
+                Explore testing sandboxes →
+              </button>
+            </FadeInSection>
+            <FadeInSection direction="right" className="flex-1 w-full flex justify-center">
+              <div className="relative aspect-square w-full max-w-[400px] rounded-[2rem] bg-[#05060a] shadow-[0_0_40px_rgba(34,197,94,0.05)] overflow-hidden flex items-center justify-center border border-white/5">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(34,197,94,0.15)_0%,_transparent_60%)] mix-blend-screen opacity-50" />
+                <span className="relative z-10 text-white/80 font-medium text-lg tracking-wide">Live Sandbox</span>
               </div>
-            </div>
-          </FadeInSection>
+            </FadeInSection>
+          </div>
 
           {/* Agent 4: Refactor Agent */}
-          <FadeInSection>
-            <div className="flex flex-col md:flex-row items-center gap-16">
-              <div className="flex-1 max-w-sm">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="flex items-center justify-center h-12 w-12 rounded-xl bg-blue-500/10 text-blue-500 border border-blue-500/20">
-                    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                    </svg>
-                  </div>
-                  <div className="text-xs font-bold uppercase tracking-widest text-blue-500">Refactor Agent</div>
+          <div className="flex flex-col md:flex-row items-center gap-16 overflow-hidden">
+            <FadeInSection direction="left" className="flex-1 max-w-xl">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="flex items-center justify-center h-12 w-12 rounded-xl bg-blue-500/10 text-blue-500 border border-blue-500/20">
+                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
                 </div>
-                <h2 className="text-3xl font-bold text-white mb-4 leading-tight">Scale your architecture safely</h2>
-                <p className="text-white/50 text-[15px] leading-relaxed mb-6">
-                  Restructures entire directories without losing business logic. The AI deeply understands your context, applies new design patterns, and checks its own work through sandboxed test runs.
-                </p>
-                <button onClick={() => navigate('/signup')} className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-white text-black text-sm font-semibold hover:bg-white/90 transition-colors">
-                  Start refactoring safely →
-                </button>
+                <div className="text-xs font-bold uppercase tracking-widest text-blue-500">Refactor Agent</div>
               </div>
-              <div className="flex-1 w-full flex justify-center">
-                <div className="relative aspect-square w-full max-w-[400px] rounded-[2rem] bg-[#05060a] shadow-[0_0_40px_rgba(59,130,246,0.05)] overflow-hidden flex items-center justify-center border border-white/5">
-                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(59,130,246,0.15)_0%,_transparent_60%)] mix-blend-screen opacity-50" />
-                  <span className="relative z-10 text-white/80 font-medium text-lg tracking-wide">Refactor Diff</span>
-                </div>
+              <h2 className="text-4xl md:text-5xl font-bold text-white mb-6 leading-tight">Scale your architecture safely</h2>
+              <p className="text-white/60 text-[17px] md:text-[19px] leading-relaxed mb-8">
+                Restructures entire directories without losing business logic. The AI deeply understands your context, applies new design patterns, and checks its own work through sandboxed test runs.
+              </p>
+              <button onClick={() => navigate('/signup')} className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-white text-black text-sm font-semibold hover:bg-white/90 transition-colors">
+                Start refactoring safely →
+              </button>
+            </FadeInSection>
+            <FadeInSection direction="right" className="flex-1 w-full flex justify-center">
+              <div className="relative aspect-square w-full max-w-[400px] rounded-[2rem] bg-[#05060a] shadow-[0_0_40px_rgba(59,130,246,0.05)] overflow-hidden flex items-center justify-center border border-white/5">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(59,130,246,0.15)_0%,_transparent_60%)] mix-blend-screen opacity-50" />
+                <span className="relative z-10 text-white/80 font-medium text-lg tracking-wide">Refactor Diff</span>
               </div>
-            </div>
-          </FadeInSection>
+            </FadeInSection>
+          </div>
 
           {/* Agent 5: Code Review Agent */}
-          <FadeInSection>
-            <div className="flex flex-col md:flex-row items-center gap-16">
-              <div className="flex-1 max-w-sm">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="flex items-center justify-center h-12 w-12 rounded-xl bg-orange-500/10 text-orange-500 border border-orange-500/20">
-                    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </div>
-                  <div className="text-xs font-bold uppercase tracking-widest text-orange-500">Review Agent</div>
+          <div className="flex flex-col md:flex-row items-center gap-16 overflow-hidden">
+            <FadeInSection direction="left" className="flex-1 max-w-xl">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="flex items-center justify-center h-12 w-12 rounded-xl bg-orange-500/10 text-orange-500 border border-orange-500/20">
+                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
                 </div>
-                <h2 className="text-3xl font-bold text-white mb-4 leading-tight">Automated, self-healing PR reviews</h2>
-                <p className="text-white/50 text-[15px] leading-relaxed mb-6">
-                  Completes PR reviews in seconds instead of days. It leaves actionable, inline comments for developers and can automatically generate self-healing patches to resolve issues immediately.
-                </p>
-                <button onClick={() => navigate('/signup')} className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-white text-black text-sm font-semibold hover:bg-white/90 transition-colors">
-                  Automate code reviews →
-                </button>
+                <div className="text-xs font-bold uppercase tracking-widest text-orange-500">Review Agent</div>
               </div>
-              <div className="flex-1 w-full flex justify-center">
-                <div className="relative aspect-square w-full max-w-[400px] rounded-[2rem] bg-[#05060a] shadow-[0_0_40px_rgba(249,115,22,0.05)] overflow-hidden flex items-center justify-center border border-white/5">
-                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(249,115,22,0.15)_0%,_transparent_60%)] mix-blend-screen opacity-50" />
-                  <span className="relative z-10 text-white/80 font-medium text-lg tracking-wide">PR Review Summary</span>
-                </div>
+              <h2 className="text-4xl md:text-5xl font-bold text-white mb-6 leading-tight">Automated, self-healing PR reviews</h2>
+              <p className="text-white/60 text-[17px] md:text-[19px] leading-relaxed mb-8">
+                Completes PR reviews in seconds instead of days. It leaves actionable, inline comments for developers and can automatically generate self-healing patches to resolve issues immediately.
+              </p>
+              <button onClick={() => navigate('/signup')} className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-white text-black text-sm font-semibold hover:bg-white/90 transition-colors">
+                Automate code reviews →
+              </button>
+            </FadeInSection>
+            <FadeInSection direction="right" className="flex-1 w-full flex justify-center">
+              <div className="relative aspect-square w-full max-w-[400px] rounded-[2rem] bg-[#05060a] shadow-[0_0_40px_rgba(249,115,22,0.05)] overflow-hidden flex items-center justify-center border border-white/5">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(249,115,22,0.15)_0%,_transparent_60%)] mix-blend-screen opacity-50" />
+                <span className="relative z-10 text-white/80 font-medium text-lg tracking-wide">PR Review Summary</span>
               </div>
-            </div>
-          </FadeInSection>
+            </FadeInSection>
+          </div>
 
+        </div>
+      </section>
+
+      {/* ── Flow / Architecture Section ── */}
+      <section className="w-full bg-[#000000] relative py-12 px-6 md:px-12 select-none">
+        <div className="max-w-[1500px] mx-auto rounded-[15px] overflow-hidden shadow-2xl">
+          <ArchitectureFlow />
         </div>
       </section>
 

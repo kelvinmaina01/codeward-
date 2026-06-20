@@ -1,0 +1,243 @@
+.container {
+  background-color: #F0EFF0;
+  padding: 80px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  overflow: hidden;
+  position: relative;
+}
+
+.header {
+  text-align: center;
+  max-width: 800px;
+  margin-bottom: 60px;
+  z-index: 2;
+}
+
+.title {
+  font-size: 42px;
+  font-weight: 700;
+  color: #111111;
+  line-height: 1.2;
+  margin-bottom: 20px;
+  letter-spacing: -0.02em;
+}
+
+.highlight {
+  color: #10B981; /* Deep emerald Codeward green */
+  position: relative;
+}
+
+.subtitle {
+  font-size: 18px;
+  color: #555555;
+  line-height: 1.6;
+}
+
+.flowWrapper {
+  position: relative;
+  width: 100%;
+  max-width: 1100px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 40px;
+  z-index: 2;
+}
+
+/* SVG Lines Overlay */
+.svgOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.line {
+  fill: none;
+  stroke: #10B981;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-dasharray: 8, 8;
+  animation: flowLine 1.5s linear infinite;
+  opacity: 0.6;
+}
+
+@keyframes flowLine {
+  to {
+    stroke-dashoffset: -16;
+  }
+}
+
+/* Card Common Styles */
+.card {
+  background-color: #FFFFFF;
+  border-radius: 16px;
+  border: 1px solid #E5E5E5;
+  padding: 24px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  position: relative;
+  z-index: 2;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06);
+}
+
+/* Column 1: Left */
+.col1 {
+  flex: 0 0 260px;
+  display: flex;
+  flex-direction: column;
+}
+
+.agentCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.agentAvatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #6366F1, #8B5CF6);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: bold;
+  margin-bottom: 12px;
+}
+
+.agentId {
+  font-size: 13px;
+  color: #666;
+  margin-bottom: 24px;
+  font-weight: 500;
+}
+
+.actionBtn {
+  width: 100%;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid #E5E5E5;
+  background: transparent;
+  color: #333;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.actionBtn:last-child {
+  margin-bottom: 0;
+}
+
+.actionBtn.active {
+  border-color: #10B981;
+  color: #10B981;
+  background-color: rgba(16, 185, 129, 0.05);
+}
+
+.actionBtn:hover:not(.active) {
+  background-color: #F9F9F9;
+}
+
+/* Center Node */
+.centerNode {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background-color: #111;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  z-index: 3;
+  box-shadow: 0 0 0 8px #F0EFF0;
+}
+
+/* Column 2: Middle Grid */
+.col2 {
+  flex: 0 0 320px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.gridCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 20px 12px;
+}
+
+.gridIconRow {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 16px;
+  color: #555;
+}
+
+.gridCardTitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: #111;
+}
+
+/* Column 3: Right Stack */
+.col3 {
+  flex: 0 0 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.resultCard {
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+}
+
+.resultIcon {
+  margin-bottom: 12px;
+}
+
+.resultTitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: #111;
+  margin-bottom: 6px;
+}
+
+.resultDesc {
+  font-size: 12px;
+  color: #666;
+  line-height: 1.5;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1024px) {
+  .flowWrapper {
+    flex-direction: column;
+    gap: 60px;
+  }
+  .svgOverlay {
+    display: none; /* Hide SVG lines on mobile layout */
+  }
+  .centerNode {
+    display: none;
+  }
+}
