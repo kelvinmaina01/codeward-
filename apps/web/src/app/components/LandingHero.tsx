@@ -994,7 +994,7 @@ export default function CodewardHero() {
                   <span className="text-black inline-block">code</span>
                 </FadeInSection>
                 <FadeInSection direction="right" delay={200}>
-                  <span className="text-[#3B0764] inline-block">ward</span>
+                  <span className="text-[#49007D] inline-block">ward</span>
                 </FadeInSection>
               </h2>
             </div>
