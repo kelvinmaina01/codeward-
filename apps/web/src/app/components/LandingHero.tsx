@@ -963,8 +963,8 @@ export default function CodewardHero() {
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-[radial-gradient(circle_at_center,_rgba(139,92,246,0.12)_0%,_transparent_60%)] pointer-events-none" />
         
         <FadeInSection className="relative z-10 flex flex-col items-center max-w-3xl">
-          <h2 className="text-6xl md:text-8xl font-extrabold text-white uppercase mb-8 drop-shadow-lg">
-            STILL CURIOUS?
+          <h2 className="text-6xl md:text-8xl font-extrabold text-white lowercase mb-8 drop-shadow-lg">
+            still curious?
           </h2>
           <p className="text-white/60 text-lg md:text-xl font-medium mb-12 leading-relaxed max-w-xl">
             The fastest way to understand Codeward is to watch it audit your own codebase. Connect it and see what it finds.
