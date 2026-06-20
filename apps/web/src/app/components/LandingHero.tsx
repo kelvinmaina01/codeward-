@@ -355,8 +355,8 @@ function TestimonialsSection() {
 export default function CodewardHero() {
   const navigate = useNavigate();
   return (
-    <div className="flex flex-col h-screen overflow-y-auto">
-      <section className="relative min-h-screen overflow-hidden bg-[#05060a] text-white shrink-0">
+    <div className="h-screen overflow-y-auto overflow-x-hidden bg-[#05060a]">
+      <section className="relative min-h-screen overflow-hidden bg-[#05060a] text-white">
         <style>
         {`
           /* Additional styles can go here */
@@ -816,9 +816,9 @@ export default function CodewardHero() {
                     {/* Inner Content overlaying the gradient box */}
                     <div className="absolute inset-0 p-6 flex flex-col justify-between z-10">
                       <div className="flex justify-start">
-                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/40 border border-white/10 backdrop-blur-md shadow-lg">
-                          <img src="https://i.ibb.co/3yZPcH69/codeward-logo.png" alt="Codeward" className="h-5 w-5 object-contain" />
-                          <span className="text-sm font-bold tracking-tight text-white">Code<span className="text-purple-400">ward</span></span>
+                        <div className="flex items-center gap-2">
+                          <img src="https://i.ibb.co/3yZPcH69/codeward-logo.png" alt="Codeward" className="h-5 w-5 object-contain drop-shadow-md" />
+                          <span className="text-sm font-bold tracking-tight text-white drop-shadow-md">Code<span className="text-purple-400">ward</span></span>
                         </div>
                       </div>
                       <div>
