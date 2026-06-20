@@ -135,7 +135,7 @@ export function ArchitectureFlow() {
         </div>
 
         {/* Column 2: Middle Grid */}
-        <div className={styles.col2} style={{ flex: '0 0 500px' }}>
+        <div className={styles.col2}>
           
           <div className={`${styles.card} ${styles.gridCard}`} id="flow-grid-1" style={{ alignItems: 'flex-start', textAlign: 'left' }}>
             <div className={styles.iconCircle} style={{ color: '#EF4444', backgroundColor: '#FEE2E2', marginBottom: '12px' }}>
