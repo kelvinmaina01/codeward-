@@ -776,12 +776,12 @@ export default function CodewardHero() {
               </button>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
               {[
                 {
                   category: "PRODUCT ENGINEERING",
                   title: "How to eliminate technical debt before it reaches production",
-                  gradient: "from-blue-600 via-indigo-600 to-transparent",
+                  gradient: "from-[#00b4db] to-[#0083b0]",
                   overlayText: "TECHNICAL DEBT",
                   date: "May 24, 2026",
                   readTime: "5 min read",
@@ -790,7 +790,7 @@ export default function CodewardHero() {
                 {
                   category: "AI",
                   title: "The role of specialized AI agents in automated code reviews",
-                  gradient: "from-purple-600 via-pink-600 to-transparent",
+                  gradient: "from-[#00b4db] to-[#0083b0]",
                   overlayText: "AI AGENTS",
                   date: "May 18, 2026",
                   readTime: "6 min read",
@@ -799,28 +799,19 @@ export default function CodewardHero() {
                 {
                   category: "SECURITY",
                   title: "Catching zero-day vulnerabilities directly in pull requests",
-                  gradient: "from-red-600 via-orange-600 to-transparent",
+                  gradient: "from-[#00b4db] to-[#0083b0]",
                   overlayText: "SECURITY SHIELD",
                   date: "May 12, 2026",
                   readTime: "4 min read",
                   author: "Sam Hacker",
-                },
-                {
-                  category: "PRODUCT",
-                  title: "Introducing Codeward 2.0: The Autonomous AI Code Platform",
-                  gradient: "from-emerald-600 via-teal-600 to-transparent",
-                  overlayText: "CODEWARD 2.0",
-                  date: "May 01, 2026",
-                  readTime: "8 min read",
-                  author: "Codeward Engineering",
                 }
               ].map((post, idx) => (
                 <div key={idx} className="group cursor-pointer flex flex-col">
                   {/* Custom Graphic Card */}
-                  <div className="relative h-56 rounded-[1.25rem] overflow-hidden bg-[#0a0c14] border border-white/10 group-hover:border-white/20 transition-all duration-300">
+                  <div className={`relative h-72 rounded-[1.25rem] overflow-hidden bg-gradient-to-br ${post.gradient} border border-white/10 group-hover:shadow-[0_0_30px_rgba(0,180,219,0.3)] transition-all duration-300`}>
                     {/* Background Glowing Gradients */}
-                    <div className={`absolute -inset-10 bg-gradient-to-br ${post.gradient} blur-3xl opacity-40 group-hover:opacity-70 transition-opacity duration-500`} />
-                    <div className="absolute inset-0 bg-[#05060a]/60 backdrop-blur-sm" />
+                    <div className="absolute inset-0 bg-gradient-to-tr from-black/20 via-transparent to-white/20 mix-blend-overlay" />
+                    <div className="absolute inset-0 bg-black/10" />
                     
                     {/* Inner Content overlaying the gradient box */}
                     <div className="absolute inset-0 p-6 flex flex-col justify-between z-10">
@@ -831,7 +822,7 @@ export default function CodewardHero() {
                         </div>
                       </div>
                       <div>
-                        <span className="text-[10px] font-bold tracking-widest text-white/50 uppercase mb-2 block drop-shadow-md">
+                        <span className="text-[10px] font-bold tracking-widest text-white/70 uppercase mb-2 block drop-shadow-md">
                           {post.overlayText}
                         </span>
                         <h4 className="text-lg font-bold text-white leading-tight drop-shadow-md">
