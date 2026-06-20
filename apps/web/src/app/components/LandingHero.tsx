@@ -66,6 +66,86 @@ function FadeInSection({ children, delay = 0, direction = 'up', className = '' }
   );
 }
 
+function FAQSection() {
+  const [showMore, setShowMore] = useState(false);
+
+  const initialFaqs = [
+    {
+      question: "Is this just another CodeRabbit?",
+      answer: "No. While tools like CodeRabbit focus heavily on PR summaries and superficial code review comments, Codeward is an active participant in your codebase. We don't just leave comments—our autonomous agents actively write the code, generate the fixes, and manage your technical debt directly."
+    },
+    {
+      question: "How does Codeward integrate with my existing CI/CD?",
+      answer: "Codeward connects directly to your GitHub, GitLab, or Bitbucket repositories. It listens for pull requests and branch updates, running its analysis and patching autonomously without disrupting your existing pipelines."
+    },
+    {
+      question: "Is my source code secure?",
+      answer: "Absolutely. We run all analysis in isolated, ephemeral sandboxes. Your code is never used to train public models, and our infrastructure is SOC2 compliant, ensuring military-grade security for your intellectual property."
+    },
+    {
+      question: "Can Codeward automatically fix the issues it finds?",
+      answer: "Yes! Our Self-healing Patches feature doesn't just point out errors; it generates ready-to-merge pull requests with verified fixes for vulnerabilities, test failures, and legacy technical debt."
+    },
+    {
+      question: "What languages and frameworks are supported?",
+      answer: "We support all major languages including TypeScript/JavaScript, Python, Go, Rust, Java, C++, and more. Our AI agents are context-aware and adapt to your specific framework and internal coding guidelines."
+    },
+    {
+      question: "How is this different from static analysis tools like SonarQube?",
+      answer: "Unlike static analysis tools that simply flag hundreds of issues and add to your backlog, Codeward actively refactors your codebase and writes the fixes for you. It's an active participant, not just a passive scanner."
+    }
+  ];
+
+  const advancedFaqs = [
+    {
+      question: "How do the Codeward AI Agents work?",
+      answer: "Codeward deploys specialized sub-agents—like an Architecture Agent, a Testing Agent, and a Security Agent—that collaborate. They review the codebase simultaneously, discuss optimal solutions in the background, and then execute complex, multi-file refactors that a single model couldn't handle."
+    },
+    {
+      question: "What happens during the first run on my repository?",
+      answer: "During the first run, Codeward performs a deep 'Knowledge Indexing'. It maps out your entire architecture, learns your team's coding conventions, and creates an initial baseline report of your technical debt and testing gaps. It may take slightly longer, but it's essential for contextual awareness."
+    },
+    {
+      question: "Are subsequent runs faster?",
+      answer: "Yes, drastically. Once the initial index is built, subsequent runs only analyze the delta (the new commits or pull requests). The agents use the cached knowledge graph to instantly understand how new changes affect the broader system, allowing for lightning-fast PR reviews and fixes."
+    },
+    {
+      question: "Do I need to write new tests for Codeward to work?",
+      answer: "No. Codeward utilizes your existing test suite to verify its own changes. If coverage is lacking, our Test Agent can even write new unit and integration tests to ensure the fixes are robust."
+    }
+  ];
+
+  return (
+    <section className="bg-[#05060a] py-32 px-8 md:px-20 border-t border-white/5">
+      <FadeInSection>
+        <div className="mx-auto max-w-[900px]">
+          <h2 className="text-4xl md:text-5xl font-bold text-white tracking-tight mb-16 text-center">Frequently Asked Questions</h2>
+          <div className="flex flex-col">
+            {initialFaqs.map((faq, idx) => (
+              <FAQItem key={idx} question={faq.question} answer={faq.answer} />
+            ))}
+            
+            <div className={`overflow-hidden transition-all duration-700 ease-in-out ${showMore ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'}`}>
+              {advancedFaqs.map((faq, idx) => (
+                <FAQItem key={`adv-${idx}`} question={faq.question} answer={faq.answer} />
+              ))}
+            </div>
+            
+            <div className="mt-12 flex justify-center">
+              <button 
+                onClick={() => setShowMore(!showMore)}
+                className="text-white/60 hover:text-[#8B5CF6] border-b border-white/30 hover:border-[#8B5CF6] transition-all text-lg font-bold pb-1"
+              >
+                {showMore ? "Show fewer questions" : "Learn more about Agents & Advanced features"}
+              </button>
+            </div>
+          </div>
+        </div>
+      </FadeInSection>
+    </section>
+  );
+}
+
 type Particle = {
   baseX: number;
   baseY: number;
@@ -875,43 +955,7 @@ export default function CodewardHero() {
       </section>
 
       {/* ── FAQ Section ── */}
-      <section className="bg-[#05060a] py-32 px-8 md:px-20 border-t border-white/5">
-        <FadeInSection>
-          <div className="mx-auto max-w-[900px]">
-            <h2 className="text-4xl md:text-5xl font-bold text-white tracking-tight mb-16 text-center">Frequently Asked Questions</h2>
-            <div className="flex flex-col">
-              {[
-                {
-                  question: "How does Codeward integrate with my existing CI/CD?",
-                  answer: "Codeward connects directly to your GitHub, GitLab, or Bitbucket repositories. It listens for pull requests and branch updates, running its analysis and patching autonomously without disrupting your existing pipelines."
-                },
-                {
-                  question: "Is my source code secure?",
-                  answer: "Absolutely. We run all analysis in isolated, ephemeral sandboxes. Your code is never used to train public models, and our infrastructure is SOC2 compliant, ensuring military-grade security for your intellectual property."
-                },
-                {
-                  question: "Can Codeward automatically fix the issues it finds?",
-                  answer: "Yes! Our Self-healing Patches feature doesn't just point out errors; it generates ready-to-merge pull requests with verified fixes for vulnerabilities, test failures, and legacy technical debt."
-                },
-                {
-                  question: "What languages and frameworks are supported?",
-                  answer: "We support all major languages including TypeScript/JavaScript, Python, Go, Rust, Java, C++, and more. Our AI agents are context-aware and adapt to your specific framework and internal coding guidelines."
-                },
-                {
-                  question: "How is this different from static analysis tools like SonarQube?",
-                  answer: "Unlike static analysis tools that simply flag hundreds of issues and add to your backlog, Codeward actively refactors your codebase and writes the fixes for you. It's an active participant, not just a passive scanner."
-                },
-                {
-                  question: "Do I need to write new tests for Codeward to work?",
-                  answer: "No. Codeward utilizes your existing test suite to verify its own changes. If coverage is lacking, our Test Agent can even write new unit and integration tests to ensure the fixes are robust."
-                }
-              ].map((faq, idx) => (
-                <FAQItem key={idx} question={faq.question} answer={faq.answer} />
-              ))}
-            </div>
-          </div>
-        </FadeInSection>
-      </section>
+      <FAQSection />
 
       {/* ── CTA Section ── */}
       <section className="bg-[#05060a] py-32 px-8 md:px-20 relative overflow-hidden flex flex-col items-center justify-center text-center">
@@ -947,7 +991,7 @@ export default function CodewardHero() {
                   <span className="text-black inline-block">code</span>
                 </FadeInSection>
                 <FadeInSection direction="right" delay={200}>
-                  <span className="text-[#8B5CF6] inline-block">ward</span>
+                  <span className="text-[#3B0764] inline-block">ward</span>
                 </FadeInSection>
               </h2>
             </div>
