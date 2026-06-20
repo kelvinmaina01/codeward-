@@ -7,6 +7,24 @@ import { ArchitectureFlow } from './ArchitectureFlow';
 // Requires: React, Tailwind CSS
 // ============================================================
 
+function FAQItem({ question, answer }: { question: string, answer: string }) {
+  const [isOpen, setIsOpen] = useState(false);
+  return (
+    <div className="border-b border-white/10">
+      <button 
+        className="w-full py-6 flex items-center justify-between text-left focus:outline-none group"
+        onClick={() => setIsOpen(!isOpen)}
+      >
+        <span className="text-lg md:text-xl font-bold text-white group-hover:text-[#8B5CF6] transition-colors pr-8">{question}</span>
+        <span className={`text-white/50 text-2xl transition-transform duration-300 ${isOpen ? 'rotate-45 text-white' : ''}`}>+</span>
+      </button>
+      <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isOpen ? 'max-h-96 opacity-100 pb-6' : 'max-h-0 opacity-0'}`}>
+        <p className="text-white/60 text-base md:text-lg leading-relaxed">{answer}</p>
+      </div>
+    </div>
+  );
+}
+
 function FadeInSection({ children, delay = 0, direction = 'up', className = '' }: { children: React.ReactNode, delay?: number, direction?: 'up' | 'left' | 'right', className?: string }) {
   const [isVisible, setVisible] = useState(false);
   const domRef = useRef<HTMLDivElement>(null);
@@ -856,8 +874,67 @@ export default function CodewardHero() {
         </FadeInSection>
       </section>
 
+      {/* ── FAQ Section ── */}
+      <section className="bg-[#05060a] py-32 px-8 md:px-20 border-t border-white/5">
+        <FadeInSection>
+          <div className="mx-auto max-w-[900px]">
+            <h2 className="text-4xl md:text-5xl font-bold text-white tracking-tight mb-16 text-center">Frequently Asked Questions</h2>
+            <div className="flex flex-col">
+              {[
+                {
+                  question: "How does Codeward integrate with my existing CI/CD?",
+                  answer: "Codeward connects directly to your GitHub, GitLab, or Bitbucket repositories. It listens for pull requests and branch updates, running its analysis and patching autonomously without disrupting your existing pipelines."
+                },
+                {
+                  question: "Is my source code secure?",
+                  answer: "Absolutely. We run all analysis in isolated, ephemeral sandboxes. Your code is never used to train public models, and our infrastructure is SOC2 compliant, ensuring military-grade security for your intellectual property."
+                },
+                {
+                  question: "Can Codeward automatically fix the issues it finds?",
+                  answer: "Yes! Our Self-healing Patches feature doesn't just point out errors; it generates ready-to-merge pull requests with verified fixes for vulnerabilities, test failures, and legacy technical debt."
+                },
+                {
+                  question: "What languages and frameworks are supported?",
+                  answer: "We support all major languages including TypeScript/JavaScript, Python, Go, Rust, Java, C++, and more. Our AI agents are context-aware and adapt to your specific framework and internal coding guidelines."
+                },
+                {
+                  question: "How is this different from static analysis tools like SonarQube?",
+                  answer: "Unlike static analysis tools that simply flag hundreds of issues and add to your backlog, Codeward actively refactors your codebase and writes the fixes for you. It's an active participant, not just a passive scanner."
+                },
+                {
+                  question: "Do I need to write new tests for Codeward to work?",
+                  answer: "No. Codeward utilizes your existing test suite to verify its own changes. If coverage is lacking, our Test Agent can even write new unit and integration tests to ensure the fixes are robust."
+                }
+              ].map((faq, idx) => (
+                <FAQItem key={idx} question={faq.question} answer={faq.answer} />
+              ))}
+            </div>
+          </div>
+        </FadeInSection>
+      </section>
+
+      {/* ── CTA Section ── */}
+      <section className="bg-[#05060a] py-32 px-8 md:px-20 relative overflow-hidden flex flex-col items-center justify-center text-center">
+        {/* Abstract Background Elements */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-[radial-gradient(circle_at_center,_rgba(139,92,246,0.12)_0%,_transparent_60%)] pointer-events-none" />
+        
+        <FadeInSection className="relative z-10 flex flex-col items-center max-w-3xl">
+          <h2 className="text-[60px] md:text-[90px] font-black tracking-tighter leading-[0.9] text-white uppercase mb-8 drop-shadow-lg transform scale-y-110">
+            STILL CURIOUS?
+          </h2>
+          <p className="text-white/60 text-lg md:text-xl font-medium mb-12 leading-relaxed max-w-xl">
+            The fastest way to understand Codeward is to watch it audit your own codebase. Connect it and see what it finds.
+          </p>
+          <button 
+            className="px-10 py-4 bg-white hover:bg-white/90 text-black text-lg font-bold rounded-full transition-all hover:scale-105 hover:shadow-[0_0_30px_rgba(255,255,255,0.2)]"
+          >
+            Connect your first repo
+          </button>
+        </FadeInSection>
+      </section>
+
       {/* ── Footer Section ── */}
-      <footer className="relative bg-[#C3DBFF] pt-32 pb-8 px-8 md:px-14 border-t border-black/5 overflow-hidden">
+      <footer className="relative bg-[#C3DBFF] rounded-t-[16px] pt-32 pb-8 px-8 md:px-14 border-t border-black/5 overflow-hidden">
         {/* Fabric Gradient Overlay */}
         <div className="absolute inset-0 bg-gradient-to-tr from-white/40 via-transparent to-black/5 mix-blend-overlay pointer-events-none" />
         
