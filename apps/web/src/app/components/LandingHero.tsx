@@ -919,7 +919,7 @@ export default function CodewardHero() {
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-[radial-gradient(circle_at_center,_rgba(139,92,246,0.12)_0%,_transparent_60%)] pointer-events-none" />
         
         <FadeInSection className="relative z-10 flex flex-col items-center max-w-3xl">
-          <h2 className="text-[60px] md:text-[90px] font-black tracking-tighter leading-[0.9] text-white uppercase mb-8 drop-shadow-lg transform scale-y-110">
+          <h2 className="text-6xl md:text-8xl font-extrabold text-white uppercase mb-8 drop-shadow-lg">
             STILL CURIOUS?
           </h2>
           <p className="text-white/60 text-lg md:text-xl font-medium mb-12 leading-relaxed max-w-xl">
@@ -934,28 +934,34 @@ export default function CodewardHero() {
       </section>
 
       {/* ── Footer Section ── */}
-      <footer className="relative bg-[#C3DBFF] rounded-t-[16px] pt-32 pb-8 px-8 md:px-14 border-t border-black/5 overflow-hidden">
-        {/* Fabric Gradient Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-tr from-white/40 via-transparent to-black/5 mix-blend-overlay pointer-events-none" />
-        
-        <div className="mx-auto max-w-[1500px] relative z-10">
-          {/* Huge Logo/Text Graphic */}
-          <div className="w-full flex justify-center mb-32 select-none pointer-events-none">
-            <h2 className="text-[14vw] md:text-[12vw] font-black tracking-tighter leading-none opacity-90 drop-shadow-xl lowercase">
-              <span className="text-black">code</span><span className="text-[#8B5CF6]">ward</span>
-            </h2>
-          </div>
+      <div className="px-4 md:px-8 pb-4 md:pb-8 bg-[#05060a]">
+        <footer className="relative bg-[#C3DBFF] rounded-[16px] pt-32 pb-8 px-8 md:px-14 overflow-hidden shadow-2xl">
+          {/* Fabric Gradient Overlay */}
+          <div className="absolute inset-0 bg-gradient-to-tr from-white/40 via-transparent to-black/5 mix-blend-overlay pointer-events-none" />
+          
+          <div className="mx-auto max-w-[1500px] relative z-10">
+            {/* Huge Logo/Text Graphic */}
+            <div className="w-full flex justify-center mb-32 select-none pointer-events-none overflow-hidden">
+              <h2 className="text-[14vw] md:text-[12vw] font-black tracking-tighter leading-none opacity-90 drop-shadow-xl lowercase flex items-center justify-center">
+                <FadeInSection direction="left" delay={200}>
+                  <span className="text-black inline-block">code</span>
+                </FadeInSection>
+                <FadeInSection direction="right" delay={200}>
+                  <span className="text-[#8B5CF6] inline-block">ward</span>
+                </FadeInSection>
+              </h2>
+            </div>
 
-          {/* Mission & Contact */}
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-8 mb-20">
-            <p className="text-black/80 text-lg md:text-xl font-medium max-w-sm leading-relaxed">
-              Codeward builds, tests, and optimizes your codebase.<br />
-              Automatically.
-            </p>
-            <a href="mailto:hello@codeward.ai" className="text-black hover:text-[#8B5CF6] transition-colors text-lg md:text-xl font-bold flex items-center gap-2 group">
-              <span className="group-hover:translate-x-1 transition-transform">→</span> hello@codeward.ai
-            </a>
-          </div>
+            {/* Mission & Contact */}
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-8 mb-20">
+              <p className="text-black/80 text-lg md:text-xl font-medium max-w-sm leading-relaxed">
+                Codeward builds, tests, and optimizes your codebase.<br />
+                Automatically.
+              </p>
+              <a href="mailto:hello@codeward.ai" className="text-black hover:text-[#8B5CF6] transition-colors text-lg md:text-xl font-bold flex items-center gap-2 group">
+                <span className="group-hover:translate-x-1 transition-transform">→</span> hello@codeward.ai
+              </a>
+            </div>
 
           {/* Links Grid */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-12 mb-24">
@@ -1024,6 +1030,7 @@ export default function CodewardHero() {
           </div>
         </div>
       </footer>
+      </div>
     </div>
   );
 }
