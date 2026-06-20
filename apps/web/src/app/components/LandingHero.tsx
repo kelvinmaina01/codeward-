@@ -856,8 +856,97 @@ export default function CodewardHero() {
         </FadeInSection>
       </section>
 
+      {/* ── Footer Section ── */}
+      <footer className="relative bg-[#8908EF] pt-32 pb-8 px-8 md:px-14 border-t border-white/5 overflow-hidden">
+        {/* Fabric Gradient Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-tr from-black/20 via-transparent to-white/10 mix-blend-overlay pointer-events-none" />
+        
+        <div className="mx-auto max-w-[1500px] relative z-10">
+          {/* Huge Logo/Text Graphic */}
+          <div className="w-full flex justify-center mb-32 select-none pointer-events-none">
+            <h2 className="text-[14vw] md:text-[12vw] font-black tracking-tighter leading-none bg-clip-text text-transparent bg-gradient-to-br from-[#8ca8e8] via-[#e2a8d6] to-[#d6eb9a] opacity-90 drop-shadow-2xl lowercase">
+              codeward
+            </h2>
+          </div>
+
+          {/* Mission & Contact */}
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-8 mb-20">
+            <p className="text-white/60 text-lg md:text-xl font-medium max-w-sm leading-relaxed">
+              Codeward builds, tests, and optimizes your codebase.<br />
+              Automatically.
+            </p>
+            <a href="mailto:hello@codeward.ai" className="text-white hover:text-purple-400 transition-colors text-lg md:text-xl font-medium flex items-center gap-2 group">
+              <span className="group-hover:translate-x-1 transition-transform">→</span> hello@codeward.ai
+            </a>
+          </div>
+
+          {/* Links Grid */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-12 mb-24">
+            <div className="flex flex-col gap-4">
+              <h4 className="text-white font-semibold mb-2">Product</h4>
+              <a href="#" className="text-white/60 hover:text-white transition-colors text-sm font-medium">AI Code Builder</a>
+              <a href="#" className="text-white/60 hover:text-white transition-colors text-sm font-medium">Automated Code Reviews</a>
+              <a href="#" className="text-white/60 hover:text-white transition-colors text-sm font-medium">Technical Debt Management</a>
+              <a href="#" className="text-white/60 hover:text-white transition-colors text-sm font-medium">Security Sandboxes</a>
+              <a href="#" className="text-white/60 hover:text-white transition-colors text-sm font-medium">Architecture Refactoring</a>
+              <a href="#" className="text-white/60 hover:text-white transition-colors text-sm font-medium">Tech Debt Calculator</a>
+              <a href="#" className="text-white/60 hover:text-white transition-colors text-sm font-medium">Playbooks</a>
+            </div>
+            <div className="flex flex-col gap-4">
+              <h4 className="text-white font-semibold mb-2">Solutions</h4>
+              <a href="#" className="text-white/60 hover:text-white transition-colors text-sm font-medium">For Startups</a>
+              <a href="#" className="text-white/60 hover:text-white transition-colors text-sm font-medium">For Enterprise</a>
+              <a href="#" className="text-white/60 hover:text-white transition-colors text-sm font-medium">For Open Source</a>
+              <a href="#" className="text-white/60 hover:text-white transition-colors text-sm font-medium">Y Combinator</a>
+            </div>
+            <div className="flex flex-col gap-4">
+              <h4 className="text-white font-semibold mb-2">Compare</h4>
+              <a href="#" className="text-white/60 hover:text-white transition-colors text-sm font-medium">Codeward vs Copilot</a>
+              <a href="#" className="text-white/60 hover:text-white transition-colors text-sm font-medium">Codeward vs Cursor</a>
+              <a href="#" className="text-white/60 hover:text-white transition-colors text-sm font-medium">Codeward vs SonarQube</a>
+              <a href="#" className="text-white/60 hover:text-white transition-colors text-sm font-medium">Codeward vs Snyk</a>
+              <a href="#" className="text-white/60 hover:text-white transition-colors text-sm font-medium">Alternatives</a>
+            </div>
+            <div className="flex flex-col gap-4">
+              <h4 className="text-white font-semibold mb-2">Company</h4>
+              <a href="#" className="text-white/60 hover:text-white transition-colors text-sm font-medium">Get a demo</a>
+              <a href="#" className="text-white/60 hover:text-white transition-colors text-sm font-medium">Blog</a>
+              <a href="#" className="text-white/60 hover:text-white transition-colors text-sm font-medium">Documentation</a>
+              <a href="#" className="text-white/60 hover:text-white transition-colors text-sm font-medium">FAQ</a>
+              <a href="#" className="text-white/60 hover:text-white transition-colors text-sm font-medium">The Codeward Effect</a>
+              <a href="#" className="text-white/60 hover:text-white transition-colors text-sm font-medium">Careers</a>
+              <a href="#" className="text-white/60 hover:text-white transition-colors text-sm font-medium">Contact</a>
+            </div>
+          </div>
+
+          {/* Integrations Block */}
+          <div className="mb-16">
+            <h4 className="text-white font-semibold mb-6">Integrations</h4>
+            <div className="text-white/60 text-sm font-medium leading-loose flex flex-wrap gap-x-3">
+              {["GitHub", "GitLab", "Bitbucket", "Jira", "Linear", "Slack", "Discord", "VS Code", "JetBrains", "Vercel", "AWS", "Google Cloud", "Azure", "Supabase", "Stripe", "Docker", "Kubernetes", "Datadog", "Sentry"].map((integration, i, arr) => (
+                <span key={integration} className="whitespace-nowrap">
+                  <a href="#" className="hover:text-white transition-colors">{integration}</a>
+                  {i < arr.length - 1 && <span className="ml-3">·</span>}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* Bottom Bar */}
+          <div className="flex flex-col md:flex-row justify-between items-center gap-6 pt-8 border-t border-white/10 text-white/50 text-sm font-medium">
+            <div className="flex flex-wrap items-center gap-6">
+              <span>©2026, Codeward</span>
+              <a href="#" className="hover:text-white transition-colors">Privacy</a>
+              <a href="#" className="hover:text-white transition-colors">Terms</a>
+              <a href="#" className="hover:text-white transition-colors">Trust</a>
+              <a href="#" className="hover:text-white transition-colors">Status</a>
+            </div>
+            <div className="flex items-center gap-2">
+              Made on Codeward by <span className="text-white font-bold text-lg leading-none">✦</span>
+            </div>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
-
-
