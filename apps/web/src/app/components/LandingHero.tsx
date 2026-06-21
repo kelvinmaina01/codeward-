@@ -493,38 +493,41 @@ function TestimonialsSection() {
 function VideoPlayer() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
-  const [scrollStyles, setScrollStyles] = useState({ scale: 0.6, opacity: 0 });
+  const [scrollStyles, setScrollStyles] = useState({ scale: 0.85, opacity: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const handleScroll = () => {
-      if (containerRef.current) {
-        const rect = containerRef.current.getBoundingClientRect();
-        const windowHeight = window.innerHeight;
-        
-        // Calculate how much of the element is in the viewport
-        const centerPos = windowHeight / 2;
-        const currentPos = rect.top + rect.height / 2;
-        const distanceFromCenter = currentPos - centerPos;
-        
-        // Normalize distance: 1 when far away (bottom), 0 when perfectly centered
-        const normalizedDistance = Math.max(0, distanceFromCenter / (windowHeight * 0.7));
-        
-        // Scale from 0.6 up to 1.05 when centered
-        const scale = 1.05 - (normalizedDistance * 0.45);
-        // Opacity from 0 to 1
-        const opacity = 1 - (normalizedDistance * 1.2);
-
-        setScrollStyles({
-          scale: Math.max(0.6, Math.min(scale, 1.05)),
-          opacity: Math.max(0, Math.min(opacity, 1))
-        });
-      }
+    const updateStyles = (rect: DOMRect | DOMRectReadOnly) => {
+      const windowHeight = window.innerHeight;
+      const elementTop = rect.top;
+      
+      const startRevealPos = windowHeight; 
+      const fullyRevealedPos = windowHeight * 0.6; 
+      
+      let progress = (startRevealPos - elementTop) / (startRevealPos - fullyRevealedPos);
+      progress = Math.max(0, Math.min(progress, 1));
+      
+      setScrollStyles({
+        scale: 0.85 + (progress * 0.20),
+        opacity: progress
+      });
     };
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        updateStyles(entries[0].boundingClientRect);
+      },
+      {
+        threshold: Array.from({ length: 101 }, (_, i) => i / 100)
+      }
+    );
     
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    handleScroll();
-    return () => window.removeEventListener('scroll', handleScroll);
+    if (containerRef.current) {
+      observer.observe(containerRef.current);
+      updateStyles(containerRef.current.getBoundingClientRect());
+    }
+    
+    return () => observer.disconnect();
   }, []);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
