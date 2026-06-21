@@ -28,6 +28,7 @@ import { useSession, signOut } from '../lib/auth';
 import { Toaster } from 'sonner';
 import { API_URL } from '../lib/api';
 import CodewardHero from './components/LandingHero';
+import { ComparePage } from './components/ComparePage';
 
 const themeOrder: Theme[] = ['dark', 'cream', 'white'];
 
@@ -403,6 +404,7 @@ export default function App() {
           <DashboardLayout />
         </RequireAuth>
       } />
+      <Route path="/compare/:competitorId" element={<ComparePage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

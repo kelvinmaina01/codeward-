@@ -1373,11 +1373,15 @@ export default function CodewardHero() {
             </div>
             <div className="flex flex-col gap-4">
               <h4 className="text-black font-bold mb-2">Compare</h4>
-              <a href="#" className="text-black/70 hover:text-black transition-colors text-sm font-semibold">Codeward vs Copilot</a>
-              <a href="#" className="text-black/70 hover:text-black transition-colors text-sm font-semibold">Codeward vs Cursor</a>
-              <a href="#" className="text-black/70 hover:text-black transition-colors text-sm font-semibold">Codeward vs SonarQube</a>
-              <a href="#" className="text-black/70 hover:text-black transition-colors text-sm font-semibold">Codeward vs Snyk</a>
-              <a href="#" className="text-black/70 hover:text-black transition-colors text-sm font-semibold">Alternatives</a>
+              <button onClick={() => navigate('/compare/coderabbit')} className="text-black/70 hover:text-black transition-colors text-sm font-semibold text-left">Codeward vs CodeRabbit</button>
+              <button onClick={() => navigate('/compare/greptile')} className="text-black/70 hover:text-black transition-colors text-sm font-semibold text-left">Codeward vs Greptile</button>
+              <button onClick={() => navigate('/compare/copilot')} className="text-black/70 hover:text-black transition-colors text-sm font-semibold text-left">Codeward vs Copilot</button>
+              <button onClick={() => navigate('/compare/cursor')} className="text-black/70 hover:text-black transition-colors text-sm font-semibold text-left">Codeward vs Cursor</button>
+              <button onClick={() => navigate('/compare/sonarqube')} className="text-black/70 hover:text-black transition-colors text-sm font-semibold text-left">Codeward vs SonarQube</button>
+              <button onClick={() => navigate('/compare/snyk')} className="text-black/70 hover:text-black transition-colors text-sm font-semibold text-left">Codeward vs Snyk</button>
+              <button onClick={() => navigate('/compare/deepsource')} className="text-black/70 hover:text-black transition-colors text-sm font-semibold text-left">Codeward vs DeepSource</button>
+              <button onClick={() => navigate('/compare/codeclimate')} className="text-black/70 hover:text-black transition-colors text-sm font-semibold text-left">Codeward vs Code Climate</button>
+              <button onClick={() => navigate('/compare/codacy')} className="text-black/70 hover:text-black transition-colors text-sm font-semibold text-left">Codeward vs Codacy</button>
             </div>
             <div className="flex flex-col gap-4">
               <h4 className="text-black font-bold mb-2">Company</h4>
