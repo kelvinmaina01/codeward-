@@ -777,7 +777,7 @@ export default function CodewardHero() {
         <div className="mx-auto max-w-7xl flex flex-col space-y-40">
           
           {/* Agent 1: Security Shield */}
-          <div className="flex flex-col md:flex-row items-center gap-16 overflow-hidden">
+          <div className="flex flex-col md:flex-row items-center gap-16">
             <FadeInSection direction="up" className="flex-1 max-w-xl">
               <h2 className="text-4xl md:text-5xl font-bold text-white mb-6 leading-tight">Ironclad protection before you deploy</h2>
               <p className="text-white/60 text-[17px] md:text-[19px] leading-relaxed mb-8">
@@ -796,7 +796,7 @@ export default function CodewardHero() {
           </div>
 
           {/* Agent 2: Technical Debt */}
-          <div className="flex flex-col md:flex-row items-center gap-16 overflow-hidden">
+          <div className="flex flex-col md:flex-row items-center gap-16">
             <FadeInSection direction="up" className="flex-1 max-w-xl">
               <h2 className="text-4xl md:text-5xl font-bold text-white mb-6 leading-tight">Crush legacy technical debt</h2>
               <p className="text-white/60 text-[17px] md:text-[19px] leading-relaxed mb-8">
@@ -815,7 +815,7 @@ export default function CodewardHero() {
           </div>
 
           {/* Agent 3: Sandbox Test */}
-          <div className="flex flex-col md:flex-row items-center gap-16 overflow-hidden">
+          <div className="flex flex-col md:flex-row items-center gap-16">
             <FadeInSection direction="up" className="flex-1 max-w-xl">
               <h2 className="text-4xl md:text-5xl font-bold text-white mb-6 leading-tight">Real tests in live sandboxes</h2>
               <p className="text-white/60 text-[17px] md:text-[19px] leading-relaxed mb-8">
@@ -834,7 +834,7 @@ export default function CodewardHero() {
           </div>
 
           {/* Agent 4: Refactor Agent */}
-          <div className="flex flex-col md:flex-row items-center gap-16 overflow-hidden">
+          <div className="flex flex-col md:flex-row items-center gap-16">
             <FadeInSection direction="up" className="flex-1 max-w-xl">
               <h2 className="text-4xl md:text-5xl font-bold text-white mb-6 leading-tight">Scale your architecture safely</h2>
               <p className="text-white/60 text-[17px] md:text-[19px] leading-relaxed mb-8">
@@ -853,7 +853,7 @@ export default function CodewardHero() {
           </div>
 
           {/* Agent 5: Code Review Agent */}
-          <div className="flex flex-col md:flex-row items-center gap-16 overflow-hidden">
+          <div className="flex flex-col md:flex-row items-center gap-16">
             <FadeInSection direction="up" className="flex-1 max-w-xl">
               <h2 className="text-4xl md:text-5xl font-bold text-white mb-6 leading-tight">Automated, self-healing PR reviews</h2>
               <p className="text-white/60 text-[17px] md:text-[19px] leading-relaxed mb-8">
