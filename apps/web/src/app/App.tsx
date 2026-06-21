@@ -29,6 +29,8 @@ import { Toaster } from 'sonner';
 import { API_URL } from '../lib/api';
 import CodewardHero from './components/LandingHero';
 import { ComparePage } from './components/ComparePage';
+import { BlogsPage } from './components/BlogsPage';
+import { SingleBlogPage } from './components/SingleBlogPage';
 
 const themeOrder: Theme[] = ['dark', 'cream', 'white'];
 
@@ -405,6 +407,8 @@ export default function App() {
         </RequireAuth>
       } />
       <Route path="/compare/:competitorId" element={<ComparePage />} />
+      <Route path="/blogs" element={<BlogsPage />} />
+      <Route path="/blogs/:slug" element={<SingleBlogPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

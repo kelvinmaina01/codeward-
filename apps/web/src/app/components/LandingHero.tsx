@@ -1223,7 +1223,7 @@ export default function CodewardHero() {
               {blogs.slice(0, 3).map((post, idx) => (
                 <div onClick={() => navigate(`/blogs/${post.slug}`)} key={idx} className="group cursor-pointer flex flex-col">
                   {/* Custom Graphic Card */}
-                  <div className={`relative h-72 rounded-[1.25rem] overflow-hidden bg-gradient-to-br ${post.gradient} border border-white/10 group-hover:shadow-[0_0_30px_rgba(139,92,246,0.3)] transition-all duration-300`}>
+                  <div className={`relative h-[400px] rounded-[1.25rem] overflow-hidden bg-gradient-to-br ${post.gradient} border border-white/10 group-hover:shadow-[0_0_30px_rgba(139,92,246,0.3)] transition-all duration-300`}>
                     {/* Background Glowing Gradients */}
                     <div className="absolute inset-0 bg-gradient-to-tr from-black/20 via-transparent to-white/20 mix-blend-overlay" />
                     <div className="absolute inset-0 bg-black/10" />

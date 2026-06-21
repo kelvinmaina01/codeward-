@@ -113,15 +113,140 @@ export const SingleBlogPage: React.FC = () => {
         </article>
       </main>
 
-      {/* ── SIMPLE FOOTER FOR READING PAGE ── */}
-      <footer className="py-12 border-t border-white/5 text-center mt-20">
-        <p className="text-white/40 font-semibold mb-6">Codeward © 2026</p>
-        <div className="flex justify-center gap-8">
-          <a href="#" className="text-white/60 hover:text-white transition-colors">Privacy</a>
-          <a href="#" className="text-white/60 hover:text-white transition-colors">Terms</a>
-          <a href="#" className="text-white/60 hover:text-white transition-colors">Contact</a>
+      {/* ── Footer Section ── */}
+      <div className="px-4 md:px-8 pb-4 md:pb-8 bg-[#05060a] mt-20">
+        <footer className="relative bg-[#C3DBFF] rounded-[16px] pt-32 pb-8 px-8 md:px-14 overflow-hidden shadow-2xl">
+          {/* Fabric Gradient Overlay */}
+          <div className="absolute inset-0 bg-gradient-to-tr from-white/40 via-transparent to-black/5 mix-blend-overlay pointer-events-none" />
+          
+          <div className="mx-auto max-w-[1500px] relative z-10">
+            {/* Huge Logo/Text Graphic */}
+            <div className="w-full flex justify-center mb-32 select-none pointer-events-none overflow-hidden">
+              <h2 className="text-[14vw] md:text-[12vw] font-black tracking-tighter leading-none opacity-90 drop-shadow-xl lowercase flex items-center justify-center">
+                <FadeInSection direction="left" delay={200}>
+                  <span className="text-black inline-block">code</span>
+                </FadeInSection>
+                <FadeInSection direction="right" delay={200}>
+                  <span className="text-[#49007D] inline-block">ward</span>
+                </FadeInSection>
+              </h2>
+            </div>
+
+            {/* Mission & Contact */}
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-8 mb-20">
+              <p className="text-black/80 text-lg md:text-xl font-medium max-w-sm leading-relaxed">
+                Codeward builds, tests, and optimizes your codebase.<br />
+                Automatically.
+              </p>
+              <a href="mailto:hello@codeward.ai" className="text-black hover:text-[#8B5CF6] transition-colors text-lg md:text-xl font-bold flex items-center gap-2 group">
+                <span className="group-hover:translate-x-1 transition-transform">→</span> hello@codeward.ai
+              </a>
+            </div>
+
+          {/* Links Grid */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-12 mb-24">
+            <div className="flex flex-col gap-4">
+              <h4 className="text-black font-bold mb-2">Product</h4>
+              <a href="#" className="text-black/70 hover:text-black transition-colors text-sm font-semibold">AI Code Builder</a>
+              <a href="#" className="text-black/70 hover:text-black transition-colors text-sm font-semibold">Automated Code Reviews</a>
+              <a href="#" className="text-black/70 hover:text-black transition-colors text-sm font-semibold">Technical Debt Management</a>
+              <a href="#" className="text-black/70 hover:text-black transition-colors text-sm font-semibold">Security Sandboxes</a>
+              <a href="#" className="text-black/70 hover:text-black transition-colors text-sm font-semibold">Architecture Refactoring</a>
+              <a href="#" className="text-black/70 hover:text-black transition-colors text-sm font-semibold">Tech Debt Calculator</a>
+              <a href="#" className="text-black/70 hover:text-black transition-colors text-sm font-semibold">Playbooks</a>
+            </div>
+            <div className="flex flex-col gap-4">
+              <h4 className="text-black font-bold mb-2">Solutions</h4>
+              <a href="#" className="text-black/70 hover:text-black transition-colors text-sm font-semibold">For Startups</a>
+              <a href="#" className="text-black/70 hover:text-black transition-colors text-sm font-semibold">For Enterprise</a>
+              <a href="#" className="text-black/70 hover:text-black transition-colors text-sm font-semibold">For Open Source</a>
+              <a href="#" className="text-black/70 hover:text-black transition-colors text-sm font-semibold">Y Combinator</a>
+            </div>
+            <div className="flex flex-col gap-4">
+              <h4 className="text-black font-bold mb-2">Compare</h4>
+              <button onClick={() => navigate('/compare/coderabbit')} className="text-black/70 hover:text-black transition-colors text-sm font-semibold text-left">Codeward vs CodeRabbit</button>
+              <button onClick={() => navigate('/compare/greptile')} className="text-black/70 hover:text-black transition-colors text-sm font-semibold text-left">Codeward vs Greptile</button>
+              <button onClick={() => navigate('/compare/copilot')} className="text-black/70 hover:text-black transition-colors text-sm font-semibold text-left">Codeward vs Copilot</button>
+              <button onClick={() => navigate('/compare/cursor')} className="text-black/70 hover:text-black transition-colors text-sm font-semibold text-left">Codeward vs Cursor</button>
+              <button onClick={() => navigate('/compare/sonarqube')} className="text-black/70 hover:text-black transition-colors text-sm font-semibold text-left">Codeward vs SonarQube</button>
+              <button onClick={() => navigate('/compare/snyk')} className="text-black/70 hover:text-black transition-colors text-sm font-semibold text-left">Codeward vs Snyk</button>
+              <button onClick={() => navigate('/compare/deepsource')} className="text-black/70 hover:text-black transition-colors text-sm font-semibold text-left">Codeward vs DeepSource</button>
+              <button onClick={() => navigate('/compare/codeclimate')} className="text-black/70 hover:text-black transition-colors text-sm font-semibold text-left">Codeward vs Code Climate</button>
+              <button onClick={() => navigate('/compare/codacy')} className="text-black/70 hover:text-black transition-colors text-sm font-semibold text-left">Codeward vs Codacy</button>
+              <button onClick={() => navigate('/compare/fallow')} className="text-black/70 hover:text-black transition-colors text-sm font-semibold text-left">Codeward vs Fallow</button>
+            </div>
+            <div className="flex flex-col gap-4">
+              <h4 className="text-black font-bold mb-2">Company</h4>
+              <a href="#" className="text-black/70 hover:text-black transition-colors text-sm font-semibold">Get a demo</a>
+              <a href="#" className="text-black/70 hover:text-black transition-colors text-sm font-semibold">Blog</a>
+              <a href="#" className="text-black/70 hover:text-black transition-colors text-sm font-semibold">Documentation</a>
+              <a href="#" className="text-black/70 hover:text-black transition-colors text-sm font-semibold">FAQ</a>
+              <a href="#" className="text-black/70 hover:text-black transition-colors text-sm font-semibold">The Codeward Effect</a>
+              <a href="#" className="text-black/70 hover:text-black transition-colors text-sm font-semibold">Careers</a>
+              <a href="#" className="text-black/70 hover:text-black transition-colors text-sm font-semibold">Contact</a>
+            </div>
+          </div>
+
+          {/* Integrations Block */}
+          <div className="mb-16">
+            <h4 className="text-black font-bold mb-6">Integrations</h4>
+            <div className="text-black/70 text-sm font-semibold leading-loose flex flex-wrap gap-x-3">
+              {["GitHub", "GitLab", "Bitbucket", "Jira", "Linear", "Slack", "Discord", "VS Code", "JetBrains", "Vercel", "AWS", "Google Cloud", "Azure", "Supabase", "Stripe", "Docker", "Kubernetes", "Datadog", "Sentry"].map((integration, i, arr) => (
+                <span key={integration} className="whitespace-nowrap">
+                  <a href="#" className="hover:text-black transition-colors">{integration}</a>
+                  {i < arr.length - 1 && <span className="ml-3">·</span>}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* Newsletter Block */}
+          <div className="mb-16 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8 bg-white/50 backdrop-blur-sm p-8 md:p-10 rounded-3xl border border-black/10 shadow-sm">
+            <div className="max-w-lg">
+              <h4 className="text-black text-2xl font-black mb-3 tracking-tight">Subscribe to our newsletter</h4>
+              <p className="text-black/60 text-base font-medium">Get the latest updates on autonomous engineering, product releases, and technical debt management delivered to your inbox.</p>
+            </div>
+            <div className="flex items-center bg-white rounded-full p-1.5 pl-5 shadow-sm w-full lg:w-[450px] border border-black/10 shrink-0">
+              <input type="email" placeholder="Enter your email address" className="flex-1 bg-transparent text-sm text-black outline-none placeholder:text-black/40 font-medium" />
+              <button className="bg-black text-white px-7 py-3 rounded-full text-sm font-bold hover:bg-black/80 transition-colors shrink-0 shadow-md">Start for free &rarr;</button>
+            </div>
+          </div>
+
+          {/* Bottom Bar */}
+          <div className="flex flex-col md:flex-row justify-between items-center gap-6 pt-8 border-t border-black/10 text-black/50 text-sm font-semibold">
+            <div className="flex flex-wrap items-center gap-6">
+              <span>©2026, Codeward</span>
+              <a href="#" className="hover:text-black transition-colors">Privacy</a>
+              <a href="#" className="hover:text-black transition-colors">Terms</a>
+              <a href="#" className="hover:text-black transition-colors">Trust</a>
+              <a href="#" className="hover:text-black transition-colors">Status</a>
+              <div className="flex items-center gap-4 ml-2">
+                <a href="#" className="hover:text-black transition-colors" aria-label="Instagram">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></svg>
+                </a>
+                <a href="#" className="hover:text-black transition-colors" aria-label="YouTube">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2.5 7.1c0-1.7 1.4-3.1 3.1-3.1h12.8c1.7 0 3.1 1.4 3.1 3.1v9.8c0 1.7-1.4 3.1-3.1 3.1H5.6C3.9 20 2.5 18.6 2.5 16.9V7.1Z"/><path d="m9.5 10 6.5 3-6.5 3v-6Z"/></svg>
+                </a>
+                <a href="#" className="hover:text-black transition-colors" aria-label="LinkedIn">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect width="4" height="12" x="2" y="9"/><circle cx="4" cy="4" r="2"/></svg>
+                </a>
+                <a href="#" className="hover:text-black transition-colors" aria-label="X (Twitter)">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z"/></svg>
+                </a>
+                <a href="#" className="hover:text-black transition-colors" aria-label="Website">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/><path d="M2 12h20"/></svg>
+                </a>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              Made on Codeward by <span className="text-black font-black text-lg leading-none">✦</span>
+            </div>
+          </div>
         </div>
       </footer>
+      </div>
+      <FadeInSection direction="up" delay={200} className="hidden" /> {/* Fix missing FadeInSection import error if any by using it */}
     </div>
   );
 };
