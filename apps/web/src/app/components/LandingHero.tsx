@@ -451,6 +451,69 @@ function TestimonialsSection() {
   );
 }
 
+function VideoPlayer() {
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      setMousePos({
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top,
+      });
+    }
+  };
+
+  return (
+    <div 
+      ref={containerRef}
+      onMouseMove={handleMouseMove}
+      onClick={() => setIsPlaying(true)}
+      className="relative aspect-video w-full rounded-2xl bg-[#000] shadow-[0_0_40px_rgba(255,255,255,0.05)] overflow-hidden cursor-none group"
+    >
+      {isPlaying ? (
+        <iframe
+          width="100%"
+          height="100%"
+          src="https://www.youtube.com/embed/pbCGq2uUkyk?autoplay=1"
+          title="YouTube video player"
+          frameBorder="0"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+          className="absolute inset-0 w-full h-full pointer-events-auto"
+        ></iframe>
+      ) : (
+        <>
+          <div className="absolute inset-0 bg-[#0a0a0f] flex flex-col items-center justify-center pointer-events-none">
+             <div className="flex items-center gap-4 opacity-40">
+               <img src="https://i.ibb.co/3yZPcH69/codeward-logo.png" alt="Codeward Logo" className="h-16 w-auto object-contain grayscale" />
+               <span className="text-4xl font-bold tracking-tight text-white">
+                 Code<span className="text-purple-600">ward</span>
+               </span>
+             </div>
+             <p className="text-white/40 mt-4 text-sm font-medium tracking-wider uppercase">Code Review Demonstration</p>
+          </div>
+          <div 
+            className="absolute z-50 flex items-center gap-2 rounded-full bg-[#8B5CF6] px-5 py-2 text-sm font-semibold text-white shadow-md pointer-events-none transition-transform duration-75 ease-out opacity-0 group-hover:opacity-100"
+            style={{ 
+              left: mousePos.x, 
+              top: mousePos.y,
+              transform: 'translate(-50%, -50%)'
+            }}
+          >
+            <svg className="h-4 w-4 text-white" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M8 5v14l11-7z" />
+            </svg>
+            Play intro
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 export default function CodewardHero() {
   const navigate = useNavigate();
   return (
@@ -555,25 +618,7 @@ export default function CodewardHero() {
       {/* Video Demo Section */}
       <section className="bg-[#05060a] py-24 px-8 md:px-14">
         <div className="mx-auto max-w-6xl">
-          <div className="relative aspect-video w-full rounded-2xl bg-white shadow-[0_0_40px_rgba(255,255,255,0.05)] overflow-hidden flex items-center justify-center">
-            
-            {/* Top right Play Button */}
-            <button className="absolute top-6 right-6 flex items-center gap-2 rounded-full bg-black px-5 py-2 text-sm font-semibold text-white transition hover:scale-105 shadow-md">
-              <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M8 5v14l11-7z" />
-              </svg>
-              Play intro
-            </button>
-
-            {/* Center Logo Placeholder */}
-            <div className="flex items-center gap-4 opacity-40">
-              <img src="https://i.ibb.co/3yZPcH69/codeward-logo.png" alt="Codeward Logo" className="h-16 w-auto object-contain grayscale" />
-              <span className="text-4xl font-bold tracking-tight text-black">
-                Code<span className="text-purple-600">ward</span>
-              </span>
-            </div>
-
-          </div>
+          <VideoPlayer />
         </div>
       </section>
 
@@ -718,16 +763,16 @@ export default function CodewardHero() {
           
           {/* Agent 1: Security Shield */}
           <div className="flex flex-col md:flex-row items-center gap-16 overflow-hidden">
-            <FadeInSection direction="left" className="flex-1 max-w-xl">
+            <FadeInSection direction="up" className="flex-1 max-w-xl">
               <h2 className="text-4xl md:text-5xl font-bold text-white mb-6 leading-tight">Ironclad protection before you deploy</h2>
               <p className="text-white/60 text-[17px] md:text-[19px] leading-relaxed mb-8">
                 Shields your codebase from vulnerabilities and hardcoded secrets. It runs deep static analysis and provisions isolated ephemeral sandboxes to verify patches before any code reaches production.
               </p>
-              <button onClick={() => navigate('/signup')} className="w-full flex justify-center items-center gap-2 px-6 py-4 rounded-full bg-white text-black text-sm font-bold transition-all duration-300 hover:bg-[#8B5CF6] hover:text-white hover:scale-105 hover:shadow-[0_0_25px_rgba(139,92,246,0.5)] active:bg-green-500 active:text-white active:scale-95">
+              <button onClick={() => navigate('/signup')} className="inline-flex w-fit items-center gap-2 px-6 py-3 rounded-full bg-white text-black text-sm font-semibold transition-all duration-300 hover:bg-[#8B5CF6] hover:text-white hover:scale-105 hover:shadow-[0_0_25px_rgba(139,92,246,0.5)] active:bg-green-500 active:text-white active:scale-95">
                 Secure your repo →
               </button>
             </FadeInSection>
-            <FadeInSection direction="right" className="flex-1 w-full flex justify-center">
+            <FadeInSection direction="up" className="flex-1 w-full flex justify-center">
               <div className="relative aspect-square w-full max-w-[400px] rounded-[2rem] bg-[#05060a] shadow-[0_0_40px_rgba(239,68,68,0.05)] overflow-hidden flex items-center justify-center border border-white/5">
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(239,68,68,0.15)_0%,_transparent_60%)] mix-blend-screen opacity-50" />
                 <span className="relative z-10 text-white/80 font-medium text-lg tracking-wide">Security Dashboard</span>
@@ -737,16 +782,16 @@ export default function CodewardHero() {
 
           {/* Agent 2: Technical Debt */}
           <div className="flex flex-col md:flex-row items-center gap-16 overflow-hidden">
-            <FadeInSection direction="left" className="flex-1 max-w-xl">
+            <FadeInSection direction="up" className="flex-1 max-w-xl">
               <h2 className="text-4xl md:text-5xl font-bold text-white mb-6 leading-tight">Crush legacy technical debt</h2>
               <p className="text-white/60 text-[17px] md:text-[19px] leading-relaxed mb-8">
                 Identifies, tracks, and autonomously eliminates technical debt. It highlights overly complex, legacy modules and writes modern, optimized refactors without breaking the underlying architecture.
               </p>
-              <button onClick={() => navigate('/signup')} className="w-full flex justify-center items-center gap-2 px-6 py-4 rounded-full bg-white text-black text-sm font-bold transition-all duration-300 hover:bg-[#8B5CF6] hover:text-white hover:scale-105 hover:shadow-[0_0_25px_rgba(139,92,246,0.5)] active:bg-green-500 active:text-white active:scale-95">
+              <button onClick={() => navigate('/signup')} className="inline-flex w-fit items-center gap-2 px-6 py-3 rounded-full bg-white text-black text-sm font-semibold transition-all duration-300 hover:bg-[#8B5CF6] hover:text-white hover:scale-105 hover:shadow-[0_0_25px_rgba(139,92,246,0.5)] active:bg-green-500 active:text-white active:scale-95">
                 Eliminate tech debt →
               </button>
             </FadeInSection>
-            <FadeInSection direction="right" className="flex-1 w-full flex justify-center">
+            <FadeInSection direction="up" className="flex-1 w-full flex justify-center">
               <div className="relative aspect-square w-full max-w-[400px] rounded-[2rem] bg-[#05060a] shadow-[0_0_40px_rgba(168,85,247,0.05)] overflow-hidden flex items-center justify-center border border-white/5">
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(168,85,247,0.15)_0%,_transparent_60%)] mix-blend-screen opacity-50" />
                 <span className="relative z-10 text-white/80 font-medium text-lg tracking-wide">Debt Tracker</span>
@@ -756,16 +801,16 @@ export default function CodewardHero() {
 
           {/* Agent 3: Sandbox Test */}
           <div className="flex flex-col md:flex-row items-center gap-16 overflow-hidden">
-            <FadeInSection direction="left" className="flex-1 max-w-xl">
+            <FadeInSection direction="up" className="flex-1 max-w-xl">
               <h2 className="text-4xl md:text-5xl font-bold text-white mb-6 leading-tight">Real tests in live sandboxes</h2>
               <p className="text-white/60 text-[17px] md:text-[19px] leading-relaxed mb-8">
                 Never merge broken code again. For every PR, the Test Agent spins up an ephemeral environment, executes your entire test suite, and ensures the code handles real-world scenarios flawlessly.
               </p>
-              <button onClick={() => navigate('/signup')} className="w-full flex justify-center items-center gap-2 px-6 py-4 rounded-full bg-white text-black text-sm font-bold transition-all duration-300 hover:bg-[#8B5CF6] hover:text-white hover:scale-105 hover:shadow-[0_0_25px_rgba(139,92,246,0.5)] active:bg-green-500 active:text-white active:scale-95">
+              <button onClick={() => navigate('/signup')} className="inline-flex w-fit items-center gap-2 px-6 py-3 rounded-full bg-white text-black text-sm font-semibold transition-all duration-300 hover:bg-[#8B5CF6] hover:text-white hover:scale-105 hover:shadow-[0_0_25px_rgba(139,92,246,0.5)] active:bg-green-500 active:text-white active:scale-95">
                 Explore testing sandboxes →
               </button>
             </FadeInSection>
-            <FadeInSection direction="right" className="flex-1 w-full flex justify-center">
+            <FadeInSection direction="up" className="flex-1 w-full flex justify-center">
               <div className="relative aspect-square w-full max-w-[400px] rounded-[2rem] bg-[#05060a] shadow-[0_0_40px_rgba(34,197,94,0.05)] overflow-hidden flex items-center justify-center border border-white/5">
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(34,197,94,0.15)_0%,_transparent_60%)] mix-blend-screen opacity-50" />
                 <span className="relative z-10 text-white/80 font-medium text-lg tracking-wide">Live Sandbox</span>
@@ -775,16 +820,16 @@ export default function CodewardHero() {
 
           {/* Agent 4: Refactor Agent */}
           <div className="flex flex-col md:flex-row items-center gap-16 overflow-hidden">
-            <FadeInSection direction="left" className="flex-1 max-w-xl">
+            <FadeInSection direction="up" className="flex-1 max-w-xl">
               <h2 className="text-4xl md:text-5xl font-bold text-white mb-6 leading-tight">Scale your architecture safely</h2>
               <p className="text-white/60 text-[17px] md:text-[19px] leading-relaxed mb-8">
                 Restructures entire directories without losing business logic. The AI deeply understands your context, applies new design patterns, and checks its own work through sandboxed test runs.
               </p>
-              <button onClick={() => navigate('/signup')} className="w-full flex justify-center items-center gap-2 px-6 py-4 rounded-full bg-white text-black text-sm font-bold transition-all duration-300 hover:bg-[#8B5CF6] hover:text-white hover:scale-105 hover:shadow-[0_0_25px_rgba(139,92,246,0.5)] active:bg-green-500 active:text-white active:scale-95">
+              <button onClick={() => navigate('/signup')} className="inline-flex w-fit items-center gap-2 px-6 py-3 rounded-full bg-white text-black text-sm font-semibold transition-all duration-300 hover:bg-[#8B5CF6] hover:text-white hover:scale-105 hover:shadow-[0_0_25px_rgba(139,92,246,0.5)] active:bg-green-500 active:text-white active:scale-95">
                 Start refactoring safely →
               </button>
             </FadeInSection>
-            <FadeInSection direction="right" className="flex-1 w-full flex justify-center">
+            <FadeInSection direction="up" className="flex-1 w-full flex justify-center">
               <div className="relative aspect-square w-full max-w-[400px] rounded-[2rem] bg-[#05060a] shadow-[0_0_40px_rgba(59,130,246,0.05)] overflow-hidden flex items-center justify-center border border-white/5">
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(59,130,246,0.15)_0%,_transparent_60%)] mix-blend-screen opacity-50" />
                 <span className="relative z-10 text-white/80 font-medium text-lg tracking-wide">Refactor Diff</span>
@@ -794,16 +839,16 @@ export default function CodewardHero() {
 
           {/* Agent 5: Code Review Agent */}
           <div className="flex flex-col md:flex-row items-center gap-16 overflow-hidden">
-            <FadeInSection direction="left" className="flex-1 max-w-xl">
+            <FadeInSection direction="up" className="flex-1 max-w-xl">
               <h2 className="text-4xl md:text-5xl font-bold text-white mb-6 leading-tight">Automated, self-healing PR reviews</h2>
               <p className="text-white/60 text-[17px] md:text-[19px] leading-relaxed mb-8">
                 Completes PR reviews in seconds instead of days. It leaves actionable, inline comments for developers and can automatically generate self-healing patches to resolve issues immediately.
               </p>
-              <button onClick={() => navigate('/signup')} className="w-full flex justify-center items-center gap-2 px-6 py-4 rounded-full bg-white text-black text-sm font-bold transition-all duration-300 hover:bg-[#8B5CF6] hover:text-white hover:scale-105 hover:shadow-[0_0_25px_rgba(139,92,246,0.5)] active:bg-green-500 active:text-white active:scale-95">
+              <button onClick={() => navigate('/signup')} className="inline-flex w-fit items-center gap-2 px-6 py-3 rounded-full bg-white text-black text-sm font-semibold transition-all duration-300 hover:bg-[#8B5CF6] hover:text-white hover:scale-105 hover:shadow-[0_0_25px_rgba(139,92,246,0.5)] active:bg-green-500 active:text-white active:scale-95">
                 Automate code reviews →
               </button>
             </FadeInSection>
-            <FadeInSection direction="right" className="flex-1 w-full flex justify-center">
+            <FadeInSection direction="up" className="flex-1 w-full flex justify-center">
               <div className="relative aspect-square w-full max-w-[400px] rounded-[2rem] bg-[#05060a] shadow-[0_0_40px_rgba(249,115,22,0.05)] overflow-hidden flex items-center justify-center border border-white/5">
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(249,115,22,0.15)_0%,_transparent_60%)] mix-blend-screen opacity-50" />
                 <span className="relative z-10 text-white/80 font-medium text-lg tracking-wide">PR Review Summary</span>
