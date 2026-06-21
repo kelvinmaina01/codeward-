@@ -1147,6 +1147,18 @@ export default function CodewardHero() {
             </div>
           </div>
 
+          {/* Newsletter Block */}
+          <div className="mb-16 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8 bg-white/50 backdrop-blur-sm p-8 md:p-10 rounded-3xl border border-black/10 shadow-sm">
+            <div className="max-w-lg">
+              <h4 className="text-black text-2xl font-black mb-3 tracking-tight">Subscribe to our newsletter</h4>
+              <p className="text-black/60 text-base font-medium">Get the latest updates on autonomous engineering, product releases, and technical debt management delivered to your inbox.</p>
+            </div>
+            <div className="flex items-center bg-white rounded-full p-1.5 pl-5 shadow-sm w-full lg:w-[450px] border border-black/10 shrink-0">
+              <input type="email" placeholder="Enter your email address" className="flex-1 bg-transparent text-sm text-black outline-none placeholder:text-black/40 font-medium" />
+              <button className="bg-black text-white px-7 py-3 rounded-full text-sm font-bold hover:bg-black/80 transition-colors shrink-0 shadow-md">Start for free</button>
+            </div>
+          </div>
+
           {/* Bottom Bar */}
           <div className="flex flex-col md:flex-row justify-between items-center gap-6 pt-8 border-t border-black/10 text-black/50 text-sm font-semibold">
             <div className="flex flex-wrap items-center gap-6">
@@ -1172,11 +1184,6 @@ export default function CodewardHero() {
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/><path d="M2 12h20"/></svg>
                 </a>
               </div>
-            </div>
-
-            <div className="flex items-center bg-white rounded-full p-1 pl-4 shadow-sm w-full md:w-auto md:min-w-[350px] border border-black/10">
-              <input type="email" placeholder="Enter your email address" className="flex-1 bg-transparent text-sm text-black outline-none placeholder:text-black/50" />
-              <button className="bg-black text-white px-5 py-2 rounded-full text-sm font-semibold hover:bg-black/80 transition-colors shrink-0">Start for free</button>
             </div>
 
             <div className="flex items-center gap-2">
