@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { ArchitectureFlow } from './ArchitectureFlow';
+import { FAQSection } from './FAQSection';
+import { blogs } from '../data/blogs';
 
 // ============================================================
 // Codeward Hero Section — Self-contained single-file component
@@ -838,6 +840,7 @@ export default function CodewardHero() {
             </div>
           </div>
           <a href="#docs" className="hover:text-white transition-colors">Docs</a>
+          <a href="/blogs" className="hover:text-white transition-colors">Blogs</a>
         </nav>
       </header>
 
@@ -1211,44 +1214,16 @@ export default function CodewardHero() {
           <div className="mx-auto max-w-[1500px]">
             <div className="flex items-center justify-between mb-12">
               <h2 className="text-3xl md:text-4xl font-bold text-white tracking-tight">Latest Insights</h2>
-              <button className="px-5 py-2.5 rounded-full bg-white/5 border border-white/10 text-white text-sm font-medium hover:bg-white/10 transition-colors">
+              <button onClick={() => navigate('/blogs')} className="px-5 py-2.5 rounded-full bg-white/5 border border-white/10 text-white text-sm font-medium hover:bg-white/10 transition-colors cursor-pointer">
                 Read all articles &rarr;
               </button>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
-              {[
-                {
-                  category: "PRODUCT ENGINEERING",
-                  title: "How to eliminate technical debt before it reaches production",
-                  gradient: "from-[#00b4db] to-[#0083b0]",
-                  overlayText: "TECHNICAL DEBT",
-                  date: "May 24, 2026",
-                  readTime: "5 min read",
-                  author: "Codeward Team",
-                },
-                {
-                  category: "AI",
-                  title: "The role of specialized AI agents in automated code reviews",
-                  gradient: "from-[#00b4db] to-[#0083b0]",
-                  overlayText: "AI AGENTS",
-                  date: "May 18, 2026",
-                  readTime: "6 min read",
-                  author: "Alex TypeScript",
-                },
-                {
-                  category: "SECURITY",
-                  title: "Catching zero-day vulnerabilities directly in pull requests",
-                  gradient: "from-[#00b4db] to-[#0083b0]",
-                  overlayText: "SECURITY SHIELD",
-                  date: "May 12, 2026",
-                  readTime: "4 min read",
-                  author: "Sam Hacker",
-                }
-              ].map((post, idx) => (
-                <div key={idx} className="group cursor-pointer flex flex-col">
+              {blogs.slice(0, 3).map((post, idx) => (
+                <div onClick={() => navigate(`/blogs/${post.slug}`)} key={idx} className="group cursor-pointer flex flex-col">
                   {/* Custom Graphic Card */}
-                  <div className={`relative h-72 rounded-[1.25rem] overflow-hidden bg-gradient-to-br ${post.gradient} border border-white/10 group-hover:shadow-[0_0_30px_rgba(0,180,219,0.3)] transition-all duration-300`}>
+                  <div className={`relative h-72 rounded-[1.25rem] overflow-hidden bg-gradient-to-br ${post.gradient} border border-white/10 group-hover:shadow-[0_0_30px_rgba(139,92,246,0.3)] transition-all duration-300`}>
                     {/* Background Glowing Gradients */}
                     <div className="absolute inset-0 bg-gradient-to-tr from-black/20 via-transparent to-white/20 mix-blend-overlay" />
                     <div className="absolute inset-0 bg-black/10" />
@@ -1273,16 +1248,18 @@ export default function CodewardHero() {
                   </div>
                   
                   {/* Article Meta text below the card */}
-                  <div className="mt-5 flex flex-col gap-2">
-                    <span className="text-[11px] font-bold text-white/40 uppercase tracking-widest">
-                      {post.category}
-                    </span>
-                    <h3 className="text-lg font-bold text-white/90 leading-snug group-hover:text-white transition-colors line-clamp-2">
-                      {post.title}
-                    </h3>
-                    <div className="flex items-center gap-2 mt-2">
+                  <div className="mt-5 flex flex-col gap-2 h-full justify-between">
+                    <div>
+                      <span className="text-[11px] font-bold text-white/40 uppercase tracking-widest">
+                        {post.category}
+                      </span>
+                      <h3 className="text-lg font-bold text-white/90 leading-snug group-hover:text-purple-400 transition-colors line-clamp-2 mt-1">
+                        {post.title}
+                      </h3>
+                    </div>
+                    <div className="flex items-center gap-2 mt-4">
                       <div className="h-6 w-6 rounded-full bg-white/10 overflow-hidden flex items-center justify-center">
-                        <img src={`https://api.dicebear.com/7.x/initials/svg?seed=${post.author.replace(' ', '+')}`} alt={post.author} className="h-full w-full object-cover" />
+                        <img src={`https://api.dicebear.com/7.x/initials/svg?seed=${post.authorAvatar}`} alt={post.author} className="h-full w-full object-cover" />
                       </div>
                       <span className="text-sm font-medium text-white/60">{post.author}</span>
                       <span className="text-white/30">•</span>
