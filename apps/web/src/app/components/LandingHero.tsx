@@ -134,9 +134,10 @@ function FAQSection() {
             <div className="mt-12 flex justify-center">
               <button 
                 onClick={() => setShowMore(!showMore)}
-                className="text-white/60 hover:text-[#8B5CF6] border-b border-white/30 hover:border-[#8B5CF6] transition-all text-lg font-bold pb-1"
+                className="text-white/60 hover:text-[#8B5CF6] border-b border-white/30 hover:border-[#8B5CF6] transition-all text-lg font-medium pb-1 flex items-center gap-2"
               >
                 {showMore ? "Show fewer questions" : "Learn more about Agents & Advanced features"}
+                <span className={`transition-transform duration-300 ${showMore ? 'rotate-180' : ''}`}>↓</span>
               </button>
             </div>
           </div>
@@ -963,7 +964,7 @@ export default function CodewardHero() {
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-[radial-gradient(circle_at_center,_rgba(139,92,246,0.12)_0%,_transparent_60%)] pointer-events-none" />
         
         <FadeInSection className="relative z-10 flex flex-col items-center max-w-3xl">
-          <h2 className="text-6xl md:text-8xl font-extrabold text-white lowercase mb-8 drop-shadow-lg">
+          <h2 className="text-6xl md:text-8xl font-semibold text-white lowercase mb-8 drop-shadow-lg">
             still curious?
           </h2>
           <p className="text-white/60 text-lg md:text-xl font-medium mb-12 leading-relaxed max-w-xl">
