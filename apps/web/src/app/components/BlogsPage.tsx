@@ -41,7 +41,7 @@ export const BlogsPage: React.FC = () => {
   const gridPosts = blogs.slice(1);
 
   return (
-    <div className="h-screen overflow-y-auto overflow-x-hidden bg-[#05060a] font-['Google_Sans_Flex']">
+    <div className="h-screen overflow-y-auto overflow-x-hidden bg-[#05060a] font-['DM_Sans']">
       {/* ── HEADER ── */}
       <header className="relative z-50 flex items-center justify-between px-8 py-6 md:px-14">
         <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/')}>

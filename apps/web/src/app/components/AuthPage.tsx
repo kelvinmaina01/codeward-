@@ -83,7 +83,7 @@ export function AuthPage({ onBack, theme: _theme, onCycleTheme, onNavigate: _onN
 
       <div className="w-full h-full max-w-[1600px] flex gap-6 md:gap-8 flex-col md:flex-row items-stretch justify-center relative z-10" style={{ minHeight: 'calc(100vh - 24px)' }}>
         {/* Left brand panel — centered, feature list above typing text */}
-        <div className="w-full md:w-1/2 flex flex-col items-center justify-center px-4 md:px-12 py-12 relative text-white font-['Google_Sans_Flex']">
+        <div className="w-full md:w-1/2 flex flex-col items-center justify-center px-4 md:px-12 py-12 relative text-white font-['DM_Sans']">
           <div className="relative z-10 flex flex-col items-center text-center w-full max-w-xl">
 
             {/* Typing text — above feature list, centered */}

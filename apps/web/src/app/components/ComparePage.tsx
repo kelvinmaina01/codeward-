@@ -44,7 +44,7 @@ export const ComparePage: React.FC = () => {
 
   if (!data) {
     return (
-      <div className="min-h-screen bg-[#05060a] text-white flex flex-col items-center justify-center font-['Google_Sans_Flex']">
+      <div className="min-h-screen bg-[#05060a] text-white flex flex-col items-center justify-center font-['DM_Sans']">
         <h1 className="text-4xl font-bold mb-4">Competitor not found</h1>
         <button onClick={() => navigate('/')} className="text-purple-500 hover:text-white">Return home</button>
       </div>
@@ -52,7 +52,7 @@ export const ComparePage: React.FC = () => {
   }
 
   return (
-    <div className="h-screen overflow-y-auto overflow-x-hidden bg-[#05060a] font-['Google_Sans_Flex']">
+    <div className="h-screen overflow-y-auto overflow-x-hidden bg-[#05060a] font-['DM_Sans']">
       {/* ── EXACT HEADER FROM LANDING PAGE ── */}
       <header className="relative z-50 flex items-center justify-between px-8 py-6 md:px-14">
         <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/')}>

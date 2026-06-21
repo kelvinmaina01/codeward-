@@ -24,7 +24,7 @@ export const SingleBlogPage: React.FC = () => {
 
   if (!post) {
     return (
-      <div className="min-h-screen bg-[#05060a] text-white flex flex-col items-center justify-center font-['Google_Sans_Flex']">
+      <div className="min-h-screen bg-[#05060a] text-white flex flex-col items-center justify-center font-['DM_Sans']">
         <h1 className="text-4xl font-bold mb-4">Blog not found</h1>
         <button onClick={() => navigate('/blogs')} className="text-purple-500 hover:text-white">Back to blogs</button>
       </div>
@@ -32,7 +32,7 @@ export const SingleBlogPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#05060a] text-white font-['Google_Sans_Flex'] selection:bg-purple-500/30">
+    <div className="min-h-screen bg-[#05060a] text-white font-['DM_Sans'] selection:bg-purple-500/30">
       {/* ── HEADER ── */}
       <header className="relative z-50 flex items-center justify-between px-8 py-6 md:px-14 border-b border-white/5">
         <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/')}>
