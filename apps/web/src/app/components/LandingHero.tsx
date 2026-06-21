@@ -1103,8 +1103,8 @@ export default function CodewardHero() {
                 Secure your repo →
               </button>
             </FadeInSection>
-            <FadeInSection direction="up" className="flex-1 w-full flex justify-center">
-              <div className="relative aspect-[3/4] w-full max-w-[380px] rounded-[2rem] bg-[#F0EFF0] overflow-hidden flex flex-col justify-end shadow-[0_0_50px_rgba(239,68,68,0.15)]">
+            <FadeInSection direction="up" className="flex-1 w-full flex justify-end">
+              <div className="relative aspect-video w-full max-w-[700px] rounded-[2rem] bg-[#F5F5EF] overflow-hidden flex flex-col justify-end shadow-[0_0_50px_rgba(239,68,68,0.15)]">
                 <div className="absolute inset-0 flex flex-col items-center justify-center z-0 p-8 text-center">
                    <span className="text-black/20 font-bold text-2xl tracking-widest uppercase">Security<br/>Dashboard</span>
                 </div>
@@ -1127,8 +1127,8 @@ export default function CodewardHero() {
                 Eliminate tech debt →
               </button>
             </FadeInSection>
-            <FadeInSection direction="up" className="flex-1 w-full flex justify-center">
-              <div className="relative aspect-[3/4] w-full max-w-[380px] rounded-[2rem] bg-[#F0EFF0] overflow-hidden flex flex-col justify-end shadow-[0_0_50px_rgba(168,85,247,0.15)]">
+            <FadeInSection direction="up" className="flex-1 w-full flex justify-end">
+              <div className="relative aspect-video w-full max-w-[700px] rounded-[2rem] bg-[#F5F5EF] overflow-hidden flex flex-col justify-end shadow-[0_0_50px_rgba(168,85,247,0.15)]">
                 <div className="absolute inset-0 flex flex-col items-center justify-center z-0 p-8 text-center">
                    <span className="text-black/20 font-bold text-2xl tracking-widest uppercase">Debt<br/>Tracker</span>
                 </div>
@@ -1150,8 +1150,8 @@ export default function CodewardHero() {
                 Explore testing sandboxes →
               </button>
             </FadeInSection>
-            <FadeInSection direction="up" className="flex-1 w-full flex justify-center">
-              <div className="relative aspect-[3/4] w-full max-w-[380px] rounded-[2rem] bg-[#F0EFF0] overflow-hidden flex flex-col justify-end shadow-[0_0_50px_rgba(34,197,94,0.15)]">
+            <FadeInSection direction="up" className="flex-1 w-full flex justify-end">
+              <div className="relative aspect-video w-full max-w-[700px] rounded-[2rem] bg-[#F5F5EF] overflow-hidden flex flex-col justify-end shadow-[0_0_50px_rgba(34,197,94,0.15)]">
                 <div className="absolute inset-0 flex flex-col items-center justify-center z-0 p-8 text-center">
                    <span className="text-black/20 font-bold text-2xl tracking-widest uppercase">Live<br/>Sandbox</span>
                 </div>
@@ -1173,8 +1173,8 @@ export default function CodewardHero() {
                 Start refactoring safely →
               </button>
             </FadeInSection>
-            <FadeInSection direction="up" className="flex-1 w-full flex justify-center">
-              <div className="relative aspect-[3/4] w-full max-w-[380px] rounded-[2rem] bg-[#F0EFF0] overflow-hidden flex flex-col justify-end shadow-[0_0_50px_rgba(59,130,246,0.15)]">
+            <FadeInSection direction="up" className="flex-1 w-full flex justify-end">
+              <div className="relative aspect-video w-full max-w-[700px] rounded-[2rem] bg-[#F5F5EF] overflow-hidden flex flex-col justify-end shadow-[0_0_50px_rgba(59,130,246,0.15)]">
                 <div className="absolute inset-0 flex flex-col items-center justify-center z-0 p-8 text-center">
                    <span className="text-black/20 font-bold text-2xl tracking-widest uppercase">Refactor<br/>Diff</span>
                 </div>
