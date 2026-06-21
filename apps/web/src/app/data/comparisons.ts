@@ -310,5 +310,36 @@ export const comparisons: Record<string, ComparisonData> = {
     faqs: [
       { q: "Does Codeward replace Codacy?", a: "If you rely heavily on specific esoteric linters, keep them. But for deep code review, vulnerability patching, and autonomous tech debt removal, Codeward provides much more value." }
     ]
+  },
+  fallow: {
+    id: "fallow",
+    name: "Fallow",
+    tagline: "Both improve your engineering workflow, but one tracks issues while the other fixes them.",
+    heroCodeward: "fixes the codebase",
+    heroCompetitor: "tracks the issues",
+    shortVersion: "Use Fallow to monitor code quality and maintain visibility over your repositories. Use Codeward's 8 specialized agents to actively dive into those repositories, spin up Firecracker sandboxes, and autonomously commit the fixes.",
+    numbersVsMoves: {
+      heading: "visibility vs. execution",
+      subheading: "One watches the code. The other writes it.",
+      competitorFocus: "Provide visibility into codebase health and track outstanding issues.",
+      codewardFocus: "Use the Orchestrator Agent to find issues, and the Refactor Agent to autonomously fix them via AST manipulation."
+    },
+    table: [
+      { feature: "What you want to do", codeward: "Fix the code", competitor: "Track the code" },
+      { feature: "Autonomous patches", codeward: "✔", competitor: "No" },
+      { feature: "Sandbox test execution", codeward: "✔", competitor: "No" },
+      { feature: "AI logic reasoning", codeward: "✔", competitor: "Limited" },
+      { feature: "Dashboard visibility", codeward: "✔", competitor: "✔" },
+      { feature: "Issue tracking integration", codeward: "✔", competitor: "✔" }
+    ],
+    verdict: {
+      heading: "From monitoring to repairing.",
+      p1: "Fallow provides an excellent lens into the health of your engineering projects, helping teams understand where their technical debt lies.",
+      p2: "Codeward is the engine that actually clears that debt. When a system flags an issue, Codeward spins up an ephemeral microVM, tests the code, and submits a PR with the fix.",
+      p3: "Monitor with Fallow. Repair with Codeward."
+    },
+    faqs: [
+      { q: "Is Codeward a Fallow replacement?", a: "Codeward focuses on autonomous execution rather than just tracking. If you want an AI that writes patches instead of just creating tickets, Codeward is the right choice." }
+    ]
   }
 };
