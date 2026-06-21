@@ -493,7 +493,7 @@ function TestimonialsSection() {
 function VideoPlayer() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
-  const [scrollStyles, setScrollStyles] = useState({ scale: 0.8, y: 150 });
+  const [scrollStyles, setScrollStyles] = useState({ scale: 0.6, opacity: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -510,14 +510,14 @@ function VideoPlayer() {
         // Normalize distance: 1 when far away (bottom), 0 when perfectly centered
         const normalizedDistance = Math.max(0, distanceFromCenter / (windowHeight * 0.7));
         
-        // Scale from 0.8 up to 1.05 when centered
-        const scale = 1.05 - (normalizedDistance * 0.25);
-        // Translate from 150px down to 0px
-        const y = normalizedDistance * 150;
+        // Scale from 0.6 up to 1.05 when centered
+        const scale = 1.05 - (normalizedDistance * 0.45);
+        // Opacity from 0 to 1
+        const opacity = 1 - (normalizedDistance * 1.2);
 
         setScrollStyles({
-          scale: Math.max(0.8, Math.min(scale, 1.05)),
-          y: Math.max(0, y)
+          scale: Math.max(0.6, Math.min(scale, 1.05)),
+          opacity: Math.max(0, Math.min(opacity, 1))
         });
       }
     };
@@ -543,8 +543,9 @@ function VideoPlayer() {
       onMouseMove={handleMouseMove}
       onClick={() => setIsPlaying(true)}
       style={{ 
-        transform: `scale(${scrollStyles.scale}) translateY(${scrollStyles.y}px)`,
-        transition: 'transform 0.1s ease-out'
+        transform: `scale(${scrollStyles.scale})`,
+        opacity: scrollStyles.opacity,
+        transition: 'transform 0.1s ease-out, opacity 0.2s ease-out'
       }}
       className="relative aspect-video w-full rounded-2xl bg-[#0a0a0f] border-2 border-white/80 shadow-[0_0_120px_rgba(139,92,246,0.3)] ring-4 ring-white/10 overflow-hidden cursor-none group hover:shadow-[0_0_160px_rgba(139,92,246,0.5)] hover:border-white"
     >
