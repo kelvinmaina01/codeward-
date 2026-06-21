@@ -471,7 +471,7 @@ function VideoPlayer() {
       ref={containerRef}
       onMouseMove={handleMouseMove}
       onClick={() => setIsPlaying(true)}
-      className="relative aspect-video w-full rounded-2xl bg-[#000] shadow-[0_0_40px_rgba(255,255,255,0.05)] overflow-hidden cursor-none group"
+      className="relative aspect-video w-full rounded-2xl bg-[#0a0a0f] border border-white/10 shadow-[0_0_80px_rgba(139,92,246,0.15)] ring-1 ring-white/5 overflow-hidden cursor-none group transition-all duration-500 hover:shadow-[0_0_120px_rgba(139,92,246,0.25)] hover:border-white/20"
     >
       {isPlaying ? (
         <iframe
