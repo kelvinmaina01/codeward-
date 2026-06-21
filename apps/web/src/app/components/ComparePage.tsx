@@ -279,7 +279,57 @@ export const ComparePage: React.FC = () => {
             </div>
           </div>
           <a href="#docs" className="hover:text-white transition-colors">Docs</a>
-          <a href="/blogs" className="hover:text-white transition-colors">Blogs</a>
+          {/* Blogs Mega Menu */}
+          <div className="group">
+            <button onClick={() => navigate('/blogs')} className="hover:text-white transition-colors flex items-center gap-1 py-4 cursor-pointer">
+              Blogs 
+              <svg className="w-4 h-4 opacity-70 group-hover:rotate-180 transition-transform" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
+            </button>
+            <div className="absolute top-full left-0 w-full px-8 md:px-14 mt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 transform group-hover:translate-y-0 translate-y-2 z-50">
+              <div className="bg-[#F5F5EF] rounded-3xl shadow-2xl overflow-hidden text-black flex flex-col md:flex-row p-8 md:p-12 gap-10 border border-black/5 relative w-full">
+                
+                {/* Left side: Advantage and Learn More */}
+                <div className="w-full md:w-[350px] flex flex-col justify-between shrink-0">
+                  <div>
+                    <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-6">Our Blog</h4>
+                    <h3 className="text-[26px] font-black text-black leading-tight mb-4 tracking-tight">Stay ahead of technical debt.</h3>
+                    <p className="text-gray-600 font-medium text-[15px] leading-relaxed mb-8">
+                      Discover actionable insights on autonomous engineering, code quality, and scaling your development velocity with AI. Read expert perspectives on how the smartest teams build software today.
+                    </p>
+                  </div>
+                  <button onClick={() => navigate('/blogs')} className="flex items-center justify-center gap-2 text-white bg-black hover:bg-black/80 px-6 py-3.5 rounded-full font-bold w-full md:w-fit transition-colors shadow-md">
+                    Explore all blogs &rarr;
+                  </button>
+                </div>
+
+                {/* Right side: Featured Blogs */}
+                <div className="flex-1 md:border-l border-black/10 md:pl-10">
+                  <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-6">Featured Reads</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {blogs.slice(0, 3).map((post, idx) => (
+                      <div onClick={() => navigate(`/blogs/${post.slug}`)} key={idx} className="group/blog cursor-pointer flex flex-col h-full">
+                        <div className="aspect-[16/10] overflow-hidden rounded-[1rem] mb-4 relative shadow-sm shrink-0 border border-black/5 bg-white">
+                          <img src={post.image} alt={post.title} className="w-full h-full object-cover group-hover/blog:scale-105 transition-transform duration-500" />
+                          <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm px-2.5 py-1 rounded-md text-[10px] font-bold text-black uppercase tracking-wider shadow-sm">
+                            {post.category}
+                          </div>
+                        </div>
+                        <h5 className="font-bold text-[16px] leading-snug text-black mb-2 group-hover/blog:text-[#8B5CF6] transition-colors line-clamp-3">
+                          {post.title}
+                        </h5>
+                        <div className="mt-auto pt-2 text-[13px] font-bold text-gray-500 flex items-center gap-2">
+                          <span>{post.readTime}</span>
+                          <span>·</span>
+                          <span>{post.date}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </div>
         </nav>
         <div className="flex items-center gap-6">
           <button onClick={() => navigate('/login')} className="text-sm font-semibold text-white hover:text-gray-300 transition-colors">Log in</button>
