@@ -1104,14 +1104,10 @@ export default function CodewardHero() {
               </button>
             </FadeInSection>
             <FadeInSection direction="up" className="flex-1 w-full flex justify-end">
-              <div className="relative aspect-video w-full max-w-[700px] rounded-[2rem] bg-[#F5F5EF] overflow-hidden flex flex-col justify-end shadow-[0_0_50px_rgba(239,68,68,0.15)]">
+              <div className="relative aspect-[4/3] w-full max-w-[700px] rounded-2xl bg-[#F5F5EF] overflow-hidden flex flex-col justify-center shadow-[0_0_50px_rgba(239,68,68,0.15)]">
                 <div className="absolute inset-0 flex flex-col items-center justify-center z-0 p-8 text-center">
                    <span className="text-black/20 font-bold text-2xl tracking-widest uppercase">Security<br/>Dashboard</span>
                 </div>
-                {/* Cloud cut-out at the bottom matching the section background */}
-                <svg className="w-full block relative z-10 text-[#05060a] translate-y-[1px]" viewBox="0 0 100 35" preserveAspectRatio="none">
-                  <path fill="currentColor" d="M0,35 L100,35 L100,25 Q85,5 70,25 Q50,-5 30,25 Q15,5 0,25 Z" />
-                </svg>
               </div>
             </FadeInSection>
           </div>
@@ -1128,13 +1124,10 @@ export default function CodewardHero() {
               </button>
             </FadeInSection>
             <FadeInSection direction="up" className="flex-1 w-full flex justify-end">
-              <div className="relative aspect-video w-full max-w-[700px] rounded-[2rem] bg-[#F5F5EF] overflow-hidden flex flex-col justify-end shadow-[0_0_50px_rgba(168,85,247,0.15)]">
+              <div className="relative aspect-[4/3] w-full max-w-[700px] rounded-2xl bg-[#F5F5EF] overflow-hidden flex flex-col justify-center shadow-[0_0_50px_rgba(168,85,247,0.15)]">
                 <div className="absolute inset-0 flex flex-col items-center justify-center z-0 p-8 text-center">
                    <span className="text-black/20 font-bold text-2xl tracking-widest uppercase">Debt<br/>Tracker</span>
                 </div>
-                <svg className="w-full block relative z-10 text-[#05060a] translate-y-[1px]" viewBox="0 0 100 35" preserveAspectRatio="none">
-                  <path fill="currentColor" d="M0,35 L100,35 L100,25 Q85,5 70,25 Q50,-5 30,25 Q15,5 0,25 Z" />
-                </svg>
               </div>
             </FadeInSection>
           </div>
@@ -1151,13 +1144,10 @@ export default function CodewardHero() {
               </button>
             </FadeInSection>
             <FadeInSection direction="up" className="flex-1 w-full flex justify-end">
-              <div className="relative aspect-video w-full max-w-[700px] rounded-[2rem] bg-[#F5F5EF] overflow-hidden flex flex-col justify-end shadow-[0_0_50px_rgba(34,197,94,0.15)]">
+              <div className="relative aspect-[4/3] w-full max-w-[700px] rounded-2xl bg-[#F5F5EF] overflow-hidden flex flex-col justify-center shadow-[0_0_50px_rgba(34,197,94,0.15)]">
                 <div className="absolute inset-0 flex flex-col items-center justify-center z-0 p-8 text-center">
                    <span className="text-black/20 font-bold text-2xl tracking-widest uppercase">Live<br/>Sandbox</span>
                 </div>
-                <svg className="w-full block relative z-10 text-[#05060a] translate-y-[1px]" viewBox="0 0 100 35" preserveAspectRatio="none">
-                  <path fill="currentColor" d="M0,35 L100,35 L100,25 Q85,5 70,25 Q50,-5 30,25 Q15,5 0,25 Z" />
-                </svg>
               </div>
             </FadeInSection>
           </div>
@@ -1174,13 +1164,10 @@ export default function CodewardHero() {
               </button>
             </FadeInSection>
             <FadeInSection direction="up" className="flex-1 w-full flex justify-end">
-              <div className="relative aspect-video w-full max-w-[700px] rounded-[2rem] bg-[#F5F5EF] overflow-hidden flex flex-col justify-end shadow-[0_0_50px_rgba(59,130,246,0.15)]">
+              <div className="relative aspect-[4/3] w-full max-w-[700px] rounded-2xl bg-[#F5F5EF] overflow-hidden flex flex-col justify-center shadow-[0_0_50px_rgba(59,130,246,0.15)]">
                 <div className="absolute inset-0 flex flex-col items-center justify-center z-0 p-8 text-center">
                    <span className="text-black/20 font-bold text-2xl tracking-widest uppercase">Refactor<br/>Diff</span>
                 </div>
-                <svg className="w-full block relative z-10 text-[#05060a] translate-y-[1px]" viewBox="0 0 100 35" preserveAspectRatio="none">
-                  <path fill="currentColor" d="M0,35 L100,35 L100,25 Q85,5 70,25 Q50,-5 30,25 Q15,5 0,25 Z" />
-                </svg>
               </div>
             </FadeInSection>
           </div>
@@ -1196,14 +1183,11 @@ export default function CodewardHero() {
                 Automate code reviews →
               </button>
             </FadeInSection>
-            <FadeInSection direction="up" className="flex-1 w-full flex justify-center">
-              <div className="relative aspect-[3/4] w-full max-w-[380px] rounded-[2rem] bg-[#F0EFF0] overflow-hidden flex flex-col justify-end shadow-[0_0_50px_rgba(249,115,22,0.15)]">
+            <FadeInSection direction="up" className="flex-1 w-full flex justify-end">
+              <div className="relative aspect-[4/3] w-full max-w-[700px] rounded-2xl bg-[#F5F5EF] overflow-hidden flex flex-col justify-center shadow-[0_0_50px_rgba(249,115,22,0.15)]">
                 <div className="absolute inset-0 flex flex-col items-center justify-center z-0 p-8 text-center">
                    <span className="text-black/20 font-bold text-2xl tracking-widest uppercase">PR Review<br/>Summary</span>
                 </div>
-                <svg className="w-full block relative z-10 text-[#05060a] translate-y-[1px]" viewBox="0 0 100 35" preserveAspectRatio="none">
-                  <path fill="currentColor" d="M0,35 L100,35 L100,25 Q85,5 70,25 Q50,-5 30,25 Q15,5 0,25 Z" />
-                </svg>
               </div>
             </FadeInSection>
           </div>
