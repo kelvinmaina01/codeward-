@@ -504,7 +504,7 @@ function VideoPlayer() {
       ref={containerRef}
       onMouseMove={handleMouseMove}
       onClick={() => setIsPlaying(true)}
-      className="relative aspect-video w-full rounded-2xl bg-[#0a0a0f] border border-white/10 shadow-[0_0_80px_rgba(139,92,246,0.15)] ring-1 ring-white/5 overflow-hidden cursor-none group transition-all duration-500 hover:shadow-[0_0_120px_rgba(139,92,246,0.25)] hover:border-white/20"
+      className="relative aspect-video w-full rounded-2xl bg-[#0a0a0f] border-2 border-white/80 shadow-[0_0_120px_rgba(139,92,246,0.3)] ring-4 ring-white/10 overflow-hidden cursor-none group transition-all duration-500 hover:shadow-[0_0_160px_rgba(139,92,246,0.5)] hover:border-white"
     >
       {isPlaying ? (
         <iframe
@@ -664,8 +664,9 @@ export default function CodewardHero() {
       </section>
 
       {/* Video Demo Section */}
-      <section className="bg-[#05060a] py-24 px-8 md:px-14">
-        <div className="mx-auto max-w-6xl">
+      <section className="relative bg-[#05060a] py-32 px-8 md:px-14 overflow-hidden">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(139,92,246,0.15)_0%,_transparent_50%)] mix-blend-screen pointer-events-none" />
+        <div className="mx-auto max-w-6xl relative z-10">
           <VideoPlayer />
         </div>
       </section>
