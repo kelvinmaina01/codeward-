@@ -613,7 +613,7 @@ export default function CodewardHero() {
       </div>
 
       {/* Top nav */}
-      <header className="relative z-10 flex items-center justify-between px-8 py-6 md:px-14">
+      <header className="relative z-50 flex items-center justify-between px-8 py-6 md:px-14">
         <div className="flex items-center gap-3">
           <img src="https://i.ibb.co/3yZPcH69/codeward-logo.png" alt="Codeward Logo" className="h-16 w-auto object-contain" />
           <span className="text-2xl font-bold tracking-tight text-white">
@@ -628,38 +628,38 @@ export default function CodewardHero() {
               <svg className="w-4 h-4 opacity-70 group-hover:rotate-180 transition-transform" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
             </button>
             <div className="absolute top-full left-0 w-full px-8 md:px-14 mt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 transform group-hover:translate-y-0 translate-y-2 z-50">
-              <div className="bg-[#f6f5f3] rounded-3xl shadow-2xl overflow-hidden text-black flex p-8 md:p-12 gap-10 border border-black/5 relative w-full">
+              <div className="bg-[#F5F5EF] rounded-3xl shadow-2xl overflow-hidden text-black flex p-8 md:p-12 gap-10 border border-black/5 relative w-full">
                 <div className="flex-1">
                   <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-8">Platform</h4>
                   <div className="grid grid-cols-3 gap-x-8 gap-y-12">
                     <a href="#" className="block group/link">
-                      <div className="font-bold text-[17px] mb-1.5 text-black group-hover/link:text-[#8B5CF6] transition-colors">AI Code Builder</div>
-                      <div className="text-sm text-gray-500 font-medium">Zero-shot application generation.</div>
+                      <div className="font-bold text-[17px] mb-1.5 text-black group-hover/link:text-[#8B5CF6] transition-colors">Orchestrator Agent</div>
+                      <div className="text-sm text-gray-500 font-medium">Coordinates analysis & gate decisions.</div>
                     </a>
                     <a href="#" className="block group/link">
-                      <div className="font-bold text-[17px] mb-1.5 text-black group-hover/link:text-[#8B5CF6] transition-colors">Automated Reviews</div>
-                      <div className="text-sm text-gray-500 font-medium">Self-healing PRs and inline feedback.</div>
+                      <div className="font-bold text-[17px] mb-1.5 text-black group-hover/link:text-[#8B5CF6] transition-colors">Security Agent</div>
+                      <div className="text-sm text-gray-500 font-medium">18 checks, OWASP, Trivy, Secrets.</div>
                     </a>
                     <a href="#" className="block group/link">
-                      <div className="font-bold text-[17px] mb-1.5 text-black group-hover/link:text-[#8B5CF6] transition-colors">Security Sandboxes</div>
-                      <div className="text-sm text-gray-500 font-medium">Isolated environments for safe execution.</div>
+                      <div className="font-bold text-[17px] mb-1.5 text-black group-hover/link:text-[#8B5CF6] transition-colors">Bloat Agent</div>
+                      <div className="text-sm text-gray-500 font-medium">AST duplication & dead code removal.</div>
                     </a>
                     <a href="#" className="block group/link">
-                      <div className="font-bold text-[17px] mb-1.5 text-black group-hover/link:text-[#8B5CF6] transition-colors">Tech Debt Manager</div>
-                      <div className="text-sm text-gray-500 font-medium">Identify and refactor legacy code.</div>
+                      <div className="font-bold text-[17px] mb-1.5 text-black group-hover/link:text-[#8B5CF6] transition-colors">Broken Code Agent</div>
+                      <div className="text-sm text-gray-500 font-medium">Sandbox test runs & flaky detection.</div>
                     </a>
                     <a href="#" className="block group/link">
-                      <div className="font-bold text-[17px] mb-1.5 text-black group-hover/link:text-[#8B5CF6] transition-colors">Architecture Refactoring</div>
-                      <div className="text-sm text-gray-500 font-medium">Safely restructure entire directories.</div>
+                      <div className="font-bold text-[17px] mb-1.5 text-black group-hover/link:text-[#8B5CF6] transition-colors">Architecture Agent</div>
+                      <div className="text-sm text-gray-500 font-medium">Load testing, k6, N+1 queries.</div>
                     </a>
                     <a href="#" className="block group/link">
-                      <div className="font-bold text-[17px] mb-1.5 text-black group-hover/link:text-[#8B5CF6] transition-colors">Testing Agent</div>
-                      <div className="text-sm text-gray-500 font-medium">Autonomous test suite generation.</div>
+                      <div className="font-bold text-[17px] mb-1.5 text-black group-hover/link:text-[#8B5CF6] transition-colors">AI-Era Agent</div>
+                      <div className="text-sm text-gray-500 font-medium">Prompt injection & RAG drift.</div>
                     </a>
                   </div>
                 </div>
                 <div className="w-[320px]">
-                  <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-6">Changelog</h4>
+                  <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-6">Infrastructure</h4>
                   <a href="#" className="block h-[180px] rounded-[1.25rem] bg-gradient-to-br from-[#E2E8F0] to-[#FFFFFF] p-6 relative overflow-hidden group/card shadow-inner transition-transform hover:scale-[1.02] border border-black/5">
                     <div className="absolute inset-0 flex items-center justify-center p-4">
                       <div className="w-[110%] h-[120%] bg-white rounded-lg shadow-sm border border-gray-100 flex flex-col p-4 opacity-90 group-hover/card:scale-[1.03] transition-transform duration-500">
@@ -676,7 +676,7 @@ export default function CodewardHero() {
                       </div>
                     </div>
                   </a>
-                  <div className="mt-4 font-bold text-[15px] text-black">Redesigned sandbox and testing experience</div>
+                  <div className="mt-4 font-bold text-[15px] text-black">Firecracker microVM sandboxes in {"<125ms"}</div>
                 </div>
               </div>
             </div>
@@ -689,33 +689,33 @@ export default function CodewardHero() {
               <svg className="w-4 h-4 opacity-70 group-hover:rotate-180 transition-transform" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
             </button>
             <div className="absolute top-full left-0 w-full px-8 md:px-14 mt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 transform group-hover:translate-y-0 translate-y-2 z-50">
-              <div className="bg-[#f6f5f3] rounded-3xl shadow-2xl overflow-hidden text-black flex p-8 md:p-12 gap-10 border border-black/5 relative w-full">
+              <div className="bg-[#F5F5EF] rounded-3xl shadow-2xl overflow-hidden text-black flex p-8 md:p-12 gap-10 border border-black/5 relative w-full">
                 <div className="flex-1">
                   <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-8">Use Cases</h4>
                   <div className="grid grid-cols-3 gap-x-8 gap-y-12">
                     <a href="#" className="block group/link">
-                      <div className="font-bold text-[17px] mb-1.5 text-black group-hover/link:text-[#8B5CF6] transition-colors">For Startups</div>
-                      <div className="text-sm text-gray-500 font-medium">Move fast without breaking things.</div>
+                      <div className="font-bold text-[17px] mb-1.5 text-black group-hover/link:text-[#8B5CF6] transition-colors">CI/CD Pipeline Shield</div>
+                      <div className="text-sm text-gray-500 font-medium">Block bad code automatically before merge.</div>
                     </a>
                     <a href="#" className="block group/link">
-                      <div className="font-bold text-[17px] mb-1.5 text-black group-hover/link:text-[#8B5CF6] transition-colors">For Enterprise</div>
-                      <div className="text-sm text-gray-500 font-medium">Scale your architecture securely.</div>
+                      <div className="font-bold text-[17px] mb-1.5 text-black group-hover/link:text-[#8B5CF6] transition-colors">Tech Debt Elimination</div>
+                      <div className="text-sm text-gray-500 font-medium">AST-based automatic code refactoring.</div>
                     </a>
                     <a href="#" className="block group/link">
-                      <div className="font-bold text-[17px] mb-1.5 text-black group-hover/link:text-[#8B5CF6] transition-colors">Open Source</div>
-                      <div className="text-sm text-gray-500 font-medium">Automate maintainer workflows.</div>
+                      <div className="font-bold text-[17px] mb-1.5 text-black group-hover/link:text-[#8B5CF6] transition-colors">Continuous Compliance</div>
+                      <div className="text-sm text-gray-500 font-medium">Scheduled GDPR, EU AI Act, WCAG checks.</div>
                     </a>
                     <a href="#" className="block group/link">
-                      <div className="font-bold text-[17px] mb-1.5 text-black group-hover/link:text-[#8B5CF6] transition-colors">Agencies</div>
-                      <div className="text-sm text-gray-500 font-medium">Deliver client work at lightspeed.</div>
+                      <div className="font-bold text-[17px] mb-1.5 text-black group-hover/link:text-[#8B5CF6] transition-colors">Security & Secrets</div>
+                      <div className="text-sm text-gray-500 font-medium">Scan for vulnerabilities and exposed keys.</div>
                     </a>
                     <a href="#" className="block group/link">
-                      <div className="font-bold text-[17px] mb-1.5 text-black group-hover/link:text-[#8B5CF6] transition-colors">Code Modernization</div>
-                      <div className="text-sm text-gray-500 font-medium">Upgrade frameworks seamlessly.</div>
+                      <div className="font-bold text-[17px] mb-1.5 text-black group-hover/link:text-[#8B5CF6] transition-colors">Flaky Test Resolution</div>
+                      <div className="text-sm text-gray-500 font-medium">10x re-runs to isolate non-determinism.</div>
                     </a>
                     <a href="#" className="block group/link">
-                      <div className="font-bold text-[17px] mb-1.5 text-black group-hover/link:text-[#8B5CF6] transition-colors">Cloud Migration</div>
-                      <div className="text-sm text-gray-500 font-medium">Automated infrastructure-as-code.</div>
+                      <div className="font-bold text-[17px] mb-1.5 text-black group-hover/link:text-[#8B5CF6] transition-colors">Enterprise Architecture</div>
+                      <div className="text-sm text-gray-500 font-medium">Scale safely with deep load testing.</div>
                     </a>
                   </div>
                 </div>
@@ -723,12 +723,12 @@ export default function CodewardHero() {
                   <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-6">Playbook</h4>
                   <a href="#" className="block h-[180px] rounded-[1.25rem] bg-gradient-to-br from-[#2E1065] via-[#4C1D95] to-[#7C3AED] p-6 relative overflow-hidden group/card shadow-inner transition-transform hover:scale-[1.02]">
                      <div className="absolute inset-0 opacity-20 mix-blend-overlay" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noiseFilter%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.85%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noiseFilter)%22/%3E%3C/svg%3E")' }}></div>
-                     <div className="absolute top-6 left-6 text-[10px] font-bold tracking-widest text-white/70 uppercase">Engineering</div>
+                     <div className="absolute top-6 left-6 text-[10px] font-bold tracking-widest text-white/70 uppercase">Architecture</div>
                      <div className="absolute bottom-6 left-6 text-[22px] font-bold leading-snug text-white z-10 w-[80%]">
-                       The Ultimate Guide to AI Migration
+                       The 100+ Check Validation Flow
                      </div>
                   </a>
-                  <div className="mt-4 font-bold text-[15px] text-black">How Acme Corp reduced tech debt by 80%</div>
+                  <div className="mt-4 font-bold text-[15px] text-black">How 8 agents run in parallel to secure your PRs</div>
                 </div>
               </div>
             </div>
@@ -743,33 +743,33 @@ export default function CodewardHero() {
               <svg className="w-4 h-4 opacity-70 group-hover:rotate-180 transition-transform" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
             </button>
             <div className="absolute top-full left-0 w-full px-8 md:px-14 mt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 transform group-hover:translate-y-0 translate-y-2 z-50">
-              <div className="bg-[#f6f5f3] rounded-3xl shadow-2xl overflow-hidden text-black flex p-8 md:p-12 gap-10 border border-black/5 relative w-full">
+              <div className="bg-[#F5F5EF] rounded-3xl shadow-2xl overflow-hidden text-black flex p-8 md:p-12 gap-10 border border-black/5 relative w-full">
                 <div className="flex-1">
                   <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-8">Resources</h4>
                   <div className="grid grid-cols-3 gap-x-8 gap-y-12">
                     <a href="#" className="block group/link">
-                      <div className="font-bold text-[17px] mb-1.5 text-black group-hover/link:text-[#8B5CF6] transition-colors">About us</div>
-                      <div className="text-sm text-gray-500 font-medium">Learn more about Codeward.</div>
+                      <div className="font-bold text-[17px] mb-1.5 text-black group-hover/link:text-[#8B5CF6] transition-colors">Dashboard</div>
+                      <div className="text-sm text-gray-500 font-medium">View live run feeds and health scores.</div>
                     </a>
                     <a href="#" className="block group/link">
-                      <div className="font-bold text-[17px] mb-1.5 text-black group-hover/link:text-[#8B5CF6] transition-colors">Knowledge base</div>
-                      <div className="text-sm text-gray-500 font-medium">Guides and answers to questions.</div>
+                      <div className="font-bold text-[17px] mb-1.5 text-black group-hover/link:text-[#8B5CF6] transition-colors">Documentation</div>
+                      <div className="text-sm text-gray-500 font-medium">Setup guides and integrations.</div>
                     </a>
                     <a href="#" className="block group/link">
-                      <div className="font-bold text-[17px] mb-1.5 text-black group-hover/link:text-[#8B5CF6] transition-colors">Hiring</div>
-                      <div className="text-sm text-gray-500 font-medium">Join our engineering team.</div>
+                      <div className="font-bold text-[17px] mb-1.5 text-black group-hover/link:text-[#8B5CF6] transition-colors">GitHub App</div>
+                      <div className="text-sm text-gray-500 font-medium">Install Codeward on your repositories.</div>
                     </a>
                     <a href="#" className="block group/link">
-                      <div className="font-bold text-[17px] mb-1.5 text-black group-hover/link:text-[#8B5CF6] transition-colors">Security</div>
-                      <div className="text-sm text-gray-500 font-medium">Enterprise-grade protection.</div>
+                      <div className="font-bold text-[17px] mb-1.5 text-black group-hover/link:text-[#8B5CF6] transition-colors">Pricing</div>
+                      <div className="text-sm text-gray-500 font-medium">Free, Pro, and Enterprise tiers.</div>
                     </a>
                     <a href="#" className="block group/link">
-                      <div className="font-bold text-[17px] mb-1.5 text-black group-hover/link:text-[#8B5CF6] transition-colors">Blog</div>
-                      <div className="text-sm text-gray-500 font-medium">Latest news and insights.</div>
+                      <div className="font-bold text-[17px] mb-1.5 text-black group-hover/link:text-[#8B5CF6] transition-colors">Sandbox Infrastructure</div>
+                      <div className="text-sm text-gray-500 font-medium">Learn how our Firecracker VMs work.</div>
                     </a>
                     <a href="#" className="block group/link">
-                      <div className="font-bold text-[17px] mb-1.5 text-black group-hover/link:text-[#8B5CF6] transition-colors">Community</div>
-                      <div className="text-sm text-gray-500 font-medium">Join our global developer network.</div>
+                      <div className="font-bold text-[17px] mb-1.5 text-black group-hover/link:text-[#8B5CF6] transition-colors">API Reference</div>
+                      <div className="text-sm text-gray-500 font-medium">Automate runs programmatically.</div>
                     </a>
                   </div>
                 </div>
@@ -779,7 +779,7 @@ export default function CodewardHero() {
                      <div className="absolute inset-0 opacity-40 mix-blend-overlay" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noiseFilter%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.85%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noiseFilter)%22/%3E%3C/svg%3E")' }}></div>
                      <div className="absolute top-6 left-6 text-[10px] font-bold tracking-widest text-white/70 uppercase">Engineering</div>
                      <div className="absolute bottom-6 left-6 text-[22px] font-bold leading-snug text-white z-10 w-[90%]">
-                       Manual reviews are a nightmare
+                       The Automated Principal Engineer
                      </div>
                   </a>
                   <div className="mt-4 font-bold text-[15px] text-black">Why manual code reviews are a bottleneck for teams</div>
@@ -795,7 +795,7 @@ export default function CodewardHero() {
               <svg className="w-4 h-4 opacity-70 group-hover:rotate-180 transition-transform" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
             </button>
             <div className="absolute top-full left-0 w-full px-8 md:px-14 mt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 transform group-hover:translate-y-0 translate-y-2 z-50">
-              <div className="bg-[#f6f5f3] rounded-3xl shadow-2xl overflow-hidden text-black flex p-8 md:p-12 gap-10 border border-black/5 relative w-full">
+              <div className="bg-[#F5F5EF] rounded-3xl shadow-2xl overflow-hidden text-black flex p-8 md:p-12 gap-10 border border-black/5 relative w-full">
                 <div className="flex-1">
                   <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-8">Developers</h4>
                   <div className="grid grid-cols-4 gap-x-8 gap-y-12">
@@ -804,16 +804,16 @@ export default function CodewardHero() {
                       <div className="text-sm text-gray-500 font-medium">Complete API documentation and reference.</div>
                     </a>
                     <a href="#" className="block group/link">
-                      <div className="font-bold text-[17px] mb-1.5 text-black group-hover/link:text-[#8B5CF6] transition-colors">Documentation</div>
-                      <div className="text-sm text-gray-500 font-medium">Comprehensive guides and tutorials.</div>
+                      <div className="font-bold text-[17px] mb-1.5 text-black group-hover/link:text-[#8B5CF6] transition-colors">GitHub Repository</div>
+                      <div className="text-sm text-gray-500 font-medium">Contribute to the core project.</div>
                     </a>
                     <a href="#" className="block group/link">
-                      <div className="font-bold text-[17px] mb-1.5 text-black group-hover/link:text-[#8B5CF6] transition-colors">Changelog</div>
-                      <div className="text-sm text-gray-500 font-medium">Latest updates and version changes.</div>
+                      <div className="font-bold text-[17px] mb-1.5 text-black group-hover/link:text-[#8B5CF6] transition-colors">Architecture Specs</div>
+                      <div className="text-sm text-gray-500 font-medium">BullMQ, Supabase, and Firecracker.</div>
                     </a>
                     <a href="#" className="block group/link">
-                      <div className="font-bold text-[17px] mb-1.5 text-black group-hover/link:text-[#8B5CF6] transition-colors">GitHub</div>
-                      <div className="text-sm text-gray-500 font-medium">Contribute to our open source project.</div>
+                      <div className="font-bold text-[17px] mb-1.5 text-black group-hover/link:text-[#8B5CF6] transition-colors">Custom Rules</div>
+                      <div className="text-sm text-gray-500 font-medium">Write your own AST checks.</div>
                     </a>
                   </div>
                 </div>
