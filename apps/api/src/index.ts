@@ -12,12 +12,18 @@ import { agentWorker } from './agents/queue/agent.queue.js';
 
 const app = new Hono();
 
+const allowedOrigins = [
+  'http://localhost:5173',
+  'https://codeward-frontend-production.up.railway.app',
+  process.env.FRONTEND_URL
+].filter(Boolean) as string[];
+
 // CORS for Better Auth routes (must be registered BEFORE the auth handler)
 // See: https://www.better-auth.com/docs/integrations/hono#cors
 app.use(
   '/api/auth/*',
   cors({
-    origin: 'http://localhost:5173',
+    origin: (origin) => allowedOrigins.includes(origin) ? origin : allowedOrigins[0],
     allowHeaders: ['Content-Type', 'Authorization'],
     allowMethods: ['POST', 'GET', 'OPTIONS'],
     exposeHeaders: ['Content-Length'],
@@ -28,7 +34,7 @@ app.use(
 
 // General CORS for other API routes
 app.use('*', cors({
-  origin: 'http://localhost:5173',
+  origin: (origin) => allowedOrigins.includes(origin) ? origin : allowedOrigins[0],
   credentials: true,
 }));
 
