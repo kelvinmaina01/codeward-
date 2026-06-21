@@ -399,6 +399,39 @@ function TestimonialsSection() {
     }
   };
 
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    
+    let direction = 1;
+    let isHovered = false;
+
+    const handleMouseEnter = () => { isHovered = true; };
+    const handleMouseLeave = () => { isHovered = false; };
+    
+    el.addEventListener('mouseenter', handleMouseEnter);
+    el.addEventListener('mouseleave', handleMouseLeave);
+
+    const intervalId = setInterval(() => {
+      if (isHovered) return; // Pause on hover
+      
+      // Check boundaries and reverse direction if needed
+      if (direction === 1 && el.scrollLeft >= el.scrollWidth - el.clientWidth - 50) {
+        direction = -1;
+      } else if (direction === -1 && el.scrollLeft <= 50) {
+        direction = 1;
+      }
+      
+      el.scrollBy({ left: 650 * direction, behavior: 'smooth' });
+    }, 3500); // Scroll every 3.5 seconds
+
+    return () => {
+      clearInterval(intervalId);
+      el.removeEventListener('mouseenter', handleMouseEnter);
+      el.removeEventListener('mouseleave', handleMouseLeave);
+    };
+  }, []);
+
   return (
     <section className="bg-[#05060a] py-24 pl-8 md:pl-20 border-t border-white/5">
       <div className="w-full">
