@@ -621,23 +621,184 @@ export default function CodewardHero() {
           </span>
         </div>
         <nav className="hidden gap-8 text-sm font-medium text-white/80 md:flex items-center">
-          <a href="#products" className="hover:text-white transition-colors">Products</a>
-          <a href="#use-cases" className="hover:text-white transition-colors">Use Cases</a>
-          <a href="#solution" className="hover:text-white transition-colors">Solutions</a>
+          {/* Products Mega Menu */}
+          <div className="group">
+            <button className="hover:text-white transition-colors flex items-center gap-1 py-4">
+              Products 
+              <svg className="w-4 h-4 opacity-70 group-hover:rotate-180 transition-transform" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
+            </button>
+            <div className="absolute top-full left-0 w-full px-8 md:px-14 mt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 transform group-hover:translate-y-0 translate-y-2 z-50">
+              <div className="bg-[#f6f5f3] rounded-3xl shadow-2xl overflow-hidden text-black flex p-8 md:p-12 gap-10 border border-black/5 relative w-full">
+                <div className="flex-1">
+                  <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-8">Platform</h4>
+                  <div className="grid grid-cols-3 gap-x-8 gap-y-12">
+                    <a href="#" className="block group/link">
+                      <div className="font-bold text-[17px] mb-1.5 text-black group-hover/link:text-[#8B5CF6] transition-colors">AI Code Builder</div>
+                      <div className="text-sm text-gray-500 font-medium">Zero-shot application generation.</div>
+                    </a>
+                    <a href="#" className="block group/link">
+                      <div className="font-bold text-[17px] mb-1.5 text-black group-hover/link:text-[#8B5CF6] transition-colors">Automated Reviews</div>
+                      <div className="text-sm text-gray-500 font-medium">Self-healing PRs and inline feedback.</div>
+                    </a>
+                    <a href="#" className="block group/link">
+                      <div className="font-bold text-[17px] mb-1.5 text-black group-hover/link:text-[#8B5CF6] transition-colors">Security Sandboxes</div>
+                      <div className="text-sm text-gray-500 font-medium">Isolated environments for safe execution.</div>
+                    </a>
+                    <a href="#" className="block group/link">
+                      <div className="font-bold text-[17px] mb-1.5 text-black group-hover/link:text-[#8B5CF6] transition-colors">Tech Debt Manager</div>
+                      <div className="text-sm text-gray-500 font-medium">Identify and refactor legacy code.</div>
+                    </a>
+                    <a href="#" className="block group/link">
+                      <div className="font-bold text-[17px] mb-1.5 text-black group-hover/link:text-[#8B5CF6] transition-colors">Architecture Refactoring</div>
+                      <div className="text-sm text-gray-500 font-medium">Safely restructure entire directories.</div>
+                    </a>
+                    <a href="#" className="block group/link">
+                      <div className="font-bold text-[17px] mb-1.5 text-black group-hover/link:text-[#8B5CF6] transition-colors">Testing Agent</div>
+                      <div className="text-sm text-gray-500 font-medium">Autonomous test suite generation.</div>
+                    </a>
+                  </div>
+                </div>
+                <div className="w-[320px]">
+                  <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-6">Changelog</h4>
+                  <a href="#" className="block h-[180px] rounded-[1.25rem] bg-gradient-to-br from-[#E2E8F0] to-[#FFFFFF] p-6 relative overflow-hidden group/card shadow-inner transition-transform hover:scale-[1.02] border border-black/5">
+                    <div className="absolute inset-0 flex items-center justify-center p-4">
+                      <div className="w-[110%] h-[120%] bg-white rounded-lg shadow-sm border border-gray-100 flex flex-col p-4 opacity-90 group-hover/card:scale-[1.03] transition-transform duration-500">
+                         <div className="h-3 w-16 bg-gray-200 rounded mb-4"></div>
+                         <div className="h-2 w-full bg-gray-100 rounded mb-2"></div>
+                         <div className="h-2 w-3/4 bg-gray-100 rounded mb-6"></div>
+                         <div className="flex gap-3">
+                           <div className="w-10 h-10 rounded bg-purple-100"></div>
+                           <div className="flex-1 space-y-2">
+                             <div className="h-2 w-full bg-gray-50 rounded"></div>
+                             <div className="h-2 w-1/2 bg-gray-50 rounded"></div>
+                           </div>
+                         </div>
+                      </div>
+                    </div>
+                  </a>
+                  <div className="mt-4 font-bold text-[15px] text-black">Redesigned sandbox and testing experience</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Solutions Mega Menu */}
+          <div className="group">
+            <button className="hover:text-white transition-colors flex items-center gap-1 py-4">
+              Solutions 
+              <svg className="w-4 h-4 opacity-70 group-hover:rotate-180 transition-transform" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
+            </button>
+            <div className="absolute top-full left-0 w-full px-8 md:px-14 mt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 transform group-hover:translate-y-0 translate-y-2 z-50">
+              <div className="bg-[#f6f5f3] rounded-3xl shadow-2xl overflow-hidden text-black flex p-8 md:p-12 gap-10 border border-black/5 relative w-full">
+                <div className="flex-1">
+                  <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-8">Use Cases</h4>
+                  <div className="grid grid-cols-3 gap-x-8 gap-y-12">
+                    <a href="#" className="block group/link">
+                      <div className="font-bold text-[17px] mb-1.5 text-black group-hover/link:text-[#8B5CF6] transition-colors">For Startups</div>
+                      <div className="text-sm text-gray-500 font-medium">Move fast without breaking things.</div>
+                    </a>
+                    <a href="#" className="block group/link">
+                      <div className="font-bold text-[17px] mb-1.5 text-black group-hover/link:text-[#8B5CF6] transition-colors">For Enterprise</div>
+                      <div className="text-sm text-gray-500 font-medium">Scale your architecture securely.</div>
+                    </a>
+                    <a href="#" className="block group/link">
+                      <div className="font-bold text-[17px] mb-1.5 text-black group-hover/link:text-[#8B5CF6] transition-colors">Open Source</div>
+                      <div className="text-sm text-gray-500 font-medium">Automate maintainer workflows.</div>
+                    </a>
+                    <a href="#" className="block group/link">
+                      <div className="font-bold text-[17px] mb-1.5 text-black group-hover/link:text-[#8B5CF6] transition-colors">Agencies</div>
+                      <div className="text-sm text-gray-500 font-medium">Deliver client work at lightspeed.</div>
+                    </a>
+                    <a href="#" className="block group/link">
+                      <div className="font-bold text-[17px] mb-1.5 text-black group-hover/link:text-[#8B5CF6] transition-colors">Code Modernization</div>
+                      <div className="text-sm text-gray-500 font-medium">Upgrade frameworks seamlessly.</div>
+                    </a>
+                    <a href="#" className="block group/link">
+                      <div className="font-bold text-[17px] mb-1.5 text-black group-hover/link:text-[#8B5CF6] transition-colors">Cloud Migration</div>
+                      <div className="text-sm text-gray-500 font-medium">Automated infrastructure-as-code.</div>
+                    </a>
+                  </div>
+                </div>
+                <div className="w-[320px]">
+                  <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-6">Playbook</h4>
+                  <a href="#" className="block h-[180px] rounded-[1.25rem] bg-gradient-to-br from-[#2E1065] via-[#4C1D95] to-[#7C3AED] p-6 relative overflow-hidden group/card shadow-inner transition-transform hover:scale-[1.02]">
+                     <div className="absolute inset-0 opacity-20 mix-blend-overlay" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noiseFilter%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.85%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noiseFilter)%22/%3E%3C/svg%3E")' }}></div>
+                     <div className="absolute top-6 left-6 text-[10px] font-bold tracking-widest text-white/70 uppercase">Engineering</div>
+                     <div className="absolute bottom-6 left-6 text-[22px] font-bold leading-snug text-white z-10 w-[80%]">
+                       The Ultimate Guide to AI Migration
+                     </div>
+                  </a>
+                  <div className="mt-4 font-bold text-[15px] text-black">How Acme Corp reduced tech debt by 80%</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <a href="#pricing" className="hover:text-white transition-colors">Pricing</a>
-          <a href="#blog" className="hover:text-white transition-colors">Blog</a>
-          <a href="#resources" className="hover:text-white transition-colors">Resources</a>
+
+          {/* Resources Mega Menu */}
+          <div className="group">
+            <button className="hover:text-white transition-colors flex items-center gap-1 py-4">
+              Resources 
+              <svg className="w-4 h-4 opacity-70 group-hover:rotate-180 transition-transform" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
+            </button>
+            <div className="absolute top-full left-0 w-full px-8 md:px-14 mt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 transform group-hover:translate-y-0 translate-y-2 z-50">
+              <div className="bg-[#f6f5f3] rounded-3xl shadow-2xl overflow-hidden text-black flex p-8 md:p-12 gap-10 border border-black/5 relative w-full">
+                <div className="flex-1">
+                  <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-8">Resources</h4>
+                  <div className="grid grid-cols-3 gap-x-8 gap-y-12">
+                    <a href="#" className="block group/link">
+                      <div className="font-bold text-[17px] mb-1.5 text-black group-hover/link:text-[#8B5CF6] transition-colors">About us</div>
+                      <div className="text-sm text-gray-500 font-medium">Learn more about Codeward.</div>
+                    </a>
+                    <a href="#" className="block group/link">
+                      <div className="font-bold text-[17px] mb-1.5 text-black group-hover/link:text-[#8B5CF6] transition-colors">Knowledge base</div>
+                      <div className="text-sm text-gray-500 font-medium">Guides and answers to questions.</div>
+                    </a>
+                    <a href="#" className="block group/link">
+                      <div className="font-bold text-[17px] mb-1.5 text-black group-hover/link:text-[#8B5CF6] transition-colors">Hiring</div>
+                      <div className="text-sm text-gray-500 font-medium">Join our engineering team.</div>
+                    </a>
+                    <a href="#" className="block group/link">
+                      <div className="font-bold text-[17px] mb-1.5 text-black group-hover/link:text-[#8B5CF6] transition-colors">Security</div>
+                      <div className="text-sm text-gray-500 font-medium">Enterprise-grade protection.</div>
+                    </a>
+                    <a href="#" className="block group/link">
+                      <div className="font-bold text-[17px] mb-1.5 text-black group-hover/link:text-[#8B5CF6] transition-colors">Blog</div>
+                      <div className="text-sm text-gray-500 font-medium">Latest news and insights.</div>
+                    </a>
+                    <a href="#" className="block group/link">
+                      <div className="font-bold text-[17px] mb-1.5 text-black group-hover/link:text-[#8B5CF6] transition-colors">Community</div>
+                      <div className="text-sm text-gray-500 font-medium">Join our global developer network.</div>
+                    </a>
+                  </div>
+                </div>
+                <div className="w-[320px]">
+                  <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-6">To read</h4>
+                  <a href="#" className="block h-[180px] rounded-[1.25rem] bg-gradient-to-br from-[#303833] via-[#434b41] to-[#252c23] p-6 relative overflow-hidden group/card shadow-inner transition-transform hover:scale-[1.02]">
+                     <div className="absolute inset-0 opacity-40 mix-blend-overlay" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noiseFilter%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.85%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noiseFilter)%22/%3E%3C/svg%3E")' }}></div>
+                     <div className="absolute top-6 left-6 text-[10px] font-bold tracking-widest text-white/70 uppercase">Engineering</div>
+                     <div className="absolute bottom-6 left-6 text-[22px] font-bold leading-snug text-white z-10 w-[90%]">
+                       Manual reviews are a nightmare
+                     </div>
+                  </a>
+                  <div className="mt-4 font-bold text-[15px] text-black">Why manual code reviews are a bottleneck for teams</div>
+                </div>
+              </div>
+            </div>
+          </div>
           
-          <div className="relative group">
+          {/* Developers Mega Menu */}
+          <div className="group">
             <button className="hover:text-white transition-colors flex items-center gap-1 py-4">
               Developers 
               <svg className="w-4 h-4 opacity-70 group-hover:rotate-180 transition-transform" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
             </button>
-            <div className="absolute top-[80%] left-1/2 -translate-x-1/2 mt-2 w-[800px] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 transform group-hover:translate-y-0 translate-y-2 z-50">
-              <div className="bg-[#f6f5f3] rounded-2xl shadow-2xl overflow-hidden text-black flex p-8 gap-10 border border-black/5 relative">
+            <div className="absolute top-full left-0 w-full px-8 md:px-14 mt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 transform group-hover:translate-y-0 translate-y-2 z-50">
+              <div className="bg-[#f6f5f3] rounded-3xl shadow-2xl overflow-hidden text-black flex p-8 md:p-12 gap-10 border border-black/5 relative w-full">
                 <div className="flex-1">
-                  <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-6">Developers</h4>
-                  <div className="grid grid-cols-2 gap-x-8 gap-y-10">
+                  <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-8">Developers</h4>
+                  <div className="grid grid-cols-4 gap-x-8 gap-y-12">
                     <a href="#" className="block group/link">
                       <div className="font-bold text-[17px] mb-1.5 text-black group-hover/link:text-[#8B5CF6] transition-colors">API Reference</div>
                       <div className="text-sm text-gray-500 font-medium">Complete API documentation and reference.</div>
