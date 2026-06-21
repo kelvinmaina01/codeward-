@@ -566,13 +566,16 @@ export default function CodewardHero() {
           <div className="mt-10 flex flex-wrap gap-4">
             <button
               onClick={() => navigate('/signup')}
-              className="rounded-full bg-white px-8 py-4 text-sm font-semibold text-black transition-all hover:bg-white/90 shadow-lg shadow-white/10 hover:scale-105 active:scale-95 duration-300"
+              className="rounded-full bg-white px-10 py-4 text-sm font-semibold text-black transition-all hover:bg-white/90 shadow-lg shadow-white/10 hover:scale-105 active:scale-95 duration-300 flex items-center gap-2"
             >
-              Start for free trial
+              <svg className="w-5 h-5 text-[#8B5CF6]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+              Start your 14 days trial
             </button>
             <button
               onClick={() => navigate('/login')}
-              className="group rounded-full bg-[#8B5CF6] px-6 py-3 text-sm font-semibold text-white transition-all hover:bg-green-500 hover:scale-105 active:scale-95 duration-300 flex items-center gap-4"
+              className="group rounded-full bg-[#8B5CF6] px-8 py-3 text-sm font-semibold text-white transition-all hover:bg-green-500 hover:scale-105 active:scale-95 duration-300 flex items-center gap-4"
             >
               <div className="flex -space-x-2">
                 <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white shadow-sm ring-2 ring-[#8B5CF6] group-hover:ring-green-500 transition-colors">
