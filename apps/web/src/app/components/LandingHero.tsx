@@ -149,6 +149,78 @@ function FAQSection() {
   );
 }
 
+function SecuritySection() {
+  return (
+    <section className="bg-[#05060a] pt-32 pb-48 px-8 md:px-20 font-['DM_Sans'] relative overflow-hidden">
+      <FadeInSection>
+        <div className="mx-auto max-w-[1200px] relative z-10">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-12">
+            <h2 className="text-3xl md:text-[40px] font-bold text-white tracking-tight mb-6 md:mb-0">Enterprise-grade security and privacy</h2>
+            <button className="px-5 py-2 border border-white/20 rounded-[8px] text-[15px] font-semibold text-white hover:bg-white/5 transition-colors">
+              Learn more
+            </button>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 border-y border-white/10 relative">
+            <div className="p-10 md:p-12 border-b md:border-b-0 md:border-r border-white/10 relative bg-[#05060a] z-10 hover:bg-white/[0.02] transition-colors">
+              <div className="h-10 mb-8 flex items-center opacity-70">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-white">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                  <path d="M9 12l2 2 4-4" />
+                </svg>
+              </div>
+              <h3 className="text-[22px] font-bold text-white mb-3 flex items-center gap-2">
+                SOC 2 Type II
+                <svg className="w-5 h-5 text-white/50" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
+              </h3>
+              <p className="text-white/60 leading-relaxed text-[16px] pr-4">
+                Your data is protected with enterprise-grade rigor. We never train models on your code.
+              </p>
+            </div>
+            
+            <div className="p-10 md:p-12 border-b md:border-b-0 md:border-r border-white/10 relative bg-[#05060a] z-10 hover:bg-white/[0.02] transition-colors">
+              <div className="h-10 mb-8 flex items-center opacity-70">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-white">
+                  <rect x="2" y="2" width="20" height="8" rx="2" ry="2" />
+                  <rect x="2" y="14" width="20" height="8" rx="2" ry="2" />
+                  <line x1="6" y1="6" x2="6.01" y2="6" />
+                  <line x1="6" y1="18" x2="6.01" y2="18" />
+                </svg>
+              </div>
+              <h3 className="text-[22px] font-bold text-white mb-3">
+                Flexible Deployment
+              </h3>
+              <p className="text-white/60 leading-relaxed text-[16px] pr-4">
+                Deploy Codeward on-prem, in your own VPC, or use our secure cloud infrastructure.
+              </p>
+            </div>
+            
+            <div className="p-10 md:p-12 relative bg-[#05060a] z-10 hover:bg-white/[0.02] transition-colors">
+              <div className="h-10 mb-8 flex items-center opacity-70">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-white">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="9" cy="7" r="4"></circle>
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                </svg>
+              </div>
+              <h3 className="text-[22px] font-bold text-white mb-3">
+                RBAC
+              </h3>
+              <p className="text-white/60 leading-relaxed text-[16px] pr-4">
+                Role-based access control to set granular user roles, permissions, and boundaries.
+              </p>
+            </div>
+          </div>
+          
+          {/* Subtle dot pattern at the bottom below the grid */}
+          <div className="absolute -bottom-24 left-0 w-full h-24 z-0" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(255,255,255,0.08) 1px, transparent 0)', backgroundSize: '48px 48px' }}></div>
+        </div>
+      </FadeInSection>
+    </section>
+  );
+}
+
 type Particle = {
   baseX: number;
   baseY: number;
@@ -1324,6 +1396,7 @@ export default function CodewardHero() {
       </section>
 
       {/* ── FAQ Section ── */}
+      <SecuritySection />
       <FAQSection />
 
       {/* ── CTA Section ── */}
