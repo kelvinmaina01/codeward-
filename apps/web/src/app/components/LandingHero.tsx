@@ -493,7 +493,39 @@ function TestimonialsSection() {
 function VideoPlayer() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const [scrollStyles, setScrollStyles] = useState({ scale: 0.8, y: 150 });
   const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect();
+        const windowHeight = window.innerHeight;
+        
+        // Calculate how much of the element is in the viewport
+        const centerPos = windowHeight / 2;
+        const currentPos = rect.top + rect.height / 2;
+        const distanceFromCenter = currentPos - centerPos;
+        
+        // Normalize distance: 1 when far away (bottom), 0 when perfectly centered
+        const normalizedDistance = Math.max(0, distanceFromCenter / (windowHeight * 0.7));
+        
+        // Scale from 0.8 up to 1.05 when centered
+        const scale = 1.05 - (normalizedDistance * 0.25);
+        // Translate from 150px down to 0px
+        const y = normalizedDistance * 150;
+
+        setScrollStyles({
+          scale: Math.max(0.8, Math.min(scale, 1.05)),
+          y: Math.max(0, y)
+        });
+      }
+    };
+    
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll();
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (containerRef.current) {
@@ -510,7 +542,11 @@ function VideoPlayer() {
       ref={containerRef}
       onMouseMove={handleMouseMove}
       onClick={() => setIsPlaying(true)}
-      className="relative aspect-video w-full rounded-2xl bg-[#0a0a0f] border-2 border-white/80 shadow-[0_0_120px_rgba(139,92,246,0.3)] ring-4 ring-white/10 overflow-hidden cursor-none group transition-all duration-500 hover:shadow-[0_0_160px_rgba(139,92,246,0.5)] hover:border-white"
+      style={{ 
+        transform: `scale(${scrollStyles.scale}) translateY(${scrollStyles.y}px)`,
+        transition: 'transform 0.1s ease-out'
+      }}
+      className="relative aspect-video w-full rounded-2xl bg-[#0a0a0f] border-2 border-white/80 shadow-[0_0_120px_rgba(139,92,246,0.3)] ring-4 ring-white/10 overflow-hidden cursor-none group hover:shadow-[0_0_160px_rgba(139,92,246,0.5)] hover:border-white"
     >
       {isPlaying ? (
         <iframe
@@ -670,9 +706,9 @@ export default function CodewardHero() {
       </section>
 
       {/* Video Demo Section */}
-      <section className="relative bg-[#05060a] py-32 px-8 md:px-14 overflow-hidden">
+      <section className="relative bg-[#05060a] py-32 px-8 md:px-14 overflow-hidden perspective-[1000px]">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(139,92,246,0.15)_0%,_transparent_50%)] mix-blend-screen pointer-events-none" />
-        <div className="mx-auto max-w-6xl relative z-10">
+        <div className="mx-auto max-w-[1300px] relative z-10">
           <VideoPlayer />
         </div>
       </section>
@@ -852,9 +888,14 @@ export default function CodewardHero() {
               </button>
             </FadeInSection>
             <FadeInSection direction="up" className="flex-1 w-full flex justify-center">
-              <div className="relative aspect-square w-full max-w-[400px] rounded-[2rem] bg-[#05060a] shadow-[0_0_40px_rgba(239,68,68,0.05)] overflow-hidden flex items-center justify-center border border-white/5">
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(239,68,68,0.15)_0%,_transparent_60%)] mix-blend-screen opacity-50" />
-                <span className="relative z-10 text-white/80 font-medium text-lg tracking-wide">Security Dashboard</span>
+              <div className="relative aspect-[3/4] w-full max-w-[380px] rounded-[2rem] bg-[#F0EFF0] overflow-hidden flex flex-col justify-end shadow-[0_0_50px_rgba(239,68,68,0.15)]">
+                <div className="absolute inset-0 flex flex-col items-center justify-center z-0 p-8 text-center">
+                   <span className="text-black/20 font-bold text-2xl tracking-widest uppercase">Security<br/>Dashboard</span>
+                </div>
+                {/* Cloud cut-out at the bottom matching the section background */}
+                <svg className="w-full block relative z-10 text-[#05060a] translate-y-[1px]" viewBox="0 0 100 35" preserveAspectRatio="none">
+                  <path fill="currentColor" d="M0,35 L100,35 L100,25 Q85,5 70,25 Q50,-5 30,25 Q15,5 0,25 Z" />
+                </svg>
               </div>
             </FadeInSection>
           </div>
@@ -871,9 +912,13 @@ export default function CodewardHero() {
               </button>
             </FadeInSection>
             <FadeInSection direction="up" className="flex-1 w-full flex justify-center">
-              <div className="relative aspect-square w-full max-w-[400px] rounded-[2rem] bg-[#05060a] shadow-[0_0_40px_rgba(168,85,247,0.05)] overflow-hidden flex items-center justify-center border border-white/5">
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(168,85,247,0.15)_0%,_transparent_60%)] mix-blend-screen opacity-50" />
-                <span className="relative z-10 text-white/80 font-medium text-lg tracking-wide">Debt Tracker</span>
+              <div className="relative aspect-[3/4] w-full max-w-[380px] rounded-[2rem] bg-[#F0EFF0] overflow-hidden flex flex-col justify-end shadow-[0_0_50px_rgba(168,85,247,0.15)]">
+                <div className="absolute inset-0 flex flex-col items-center justify-center z-0 p-8 text-center">
+                   <span className="text-black/20 font-bold text-2xl tracking-widest uppercase">Debt<br/>Tracker</span>
+                </div>
+                <svg className="w-full block relative z-10 text-[#05060a] translate-y-[1px]" viewBox="0 0 100 35" preserveAspectRatio="none">
+                  <path fill="currentColor" d="M0,35 L100,35 L100,25 Q85,5 70,25 Q50,-5 30,25 Q15,5 0,25 Z" />
+                </svg>
               </div>
             </FadeInSection>
           </div>
@@ -890,9 +935,13 @@ export default function CodewardHero() {
               </button>
             </FadeInSection>
             <FadeInSection direction="up" className="flex-1 w-full flex justify-center">
-              <div className="relative aspect-square w-full max-w-[400px] rounded-[2rem] bg-[#05060a] shadow-[0_0_40px_rgba(34,197,94,0.05)] overflow-hidden flex items-center justify-center border border-white/5">
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(34,197,94,0.15)_0%,_transparent_60%)] mix-blend-screen opacity-50" />
-                <span className="relative z-10 text-white/80 font-medium text-lg tracking-wide">Live Sandbox</span>
+              <div className="relative aspect-[3/4] w-full max-w-[380px] rounded-[2rem] bg-[#F0EFF0] overflow-hidden flex flex-col justify-end shadow-[0_0_50px_rgba(34,197,94,0.15)]">
+                <div className="absolute inset-0 flex flex-col items-center justify-center z-0 p-8 text-center">
+                   <span className="text-black/20 font-bold text-2xl tracking-widest uppercase">Live<br/>Sandbox</span>
+                </div>
+                <svg className="w-full block relative z-10 text-[#05060a] translate-y-[1px]" viewBox="0 0 100 35" preserveAspectRatio="none">
+                  <path fill="currentColor" d="M0,35 L100,35 L100,25 Q85,5 70,25 Q50,-5 30,25 Q15,5 0,25 Z" />
+                </svg>
               </div>
             </FadeInSection>
           </div>
@@ -909,9 +958,13 @@ export default function CodewardHero() {
               </button>
             </FadeInSection>
             <FadeInSection direction="up" className="flex-1 w-full flex justify-center">
-              <div className="relative aspect-square w-full max-w-[400px] rounded-[2rem] bg-[#05060a] shadow-[0_0_40px_rgba(59,130,246,0.05)] overflow-hidden flex items-center justify-center border border-white/5">
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(59,130,246,0.15)_0%,_transparent_60%)] mix-blend-screen opacity-50" />
-                <span className="relative z-10 text-white/80 font-medium text-lg tracking-wide">Refactor Diff</span>
+              <div className="relative aspect-[3/4] w-full max-w-[380px] rounded-[2rem] bg-[#F0EFF0] overflow-hidden flex flex-col justify-end shadow-[0_0_50px_rgba(59,130,246,0.15)]">
+                <div className="absolute inset-0 flex flex-col items-center justify-center z-0 p-8 text-center">
+                   <span className="text-black/20 font-bold text-2xl tracking-widest uppercase">Refactor<br/>Diff</span>
+                </div>
+                <svg className="w-full block relative z-10 text-[#05060a] translate-y-[1px]" viewBox="0 0 100 35" preserveAspectRatio="none">
+                  <path fill="currentColor" d="M0,35 L100,35 L100,25 Q85,5 70,25 Q50,-5 30,25 Q15,5 0,25 Z" />
+                </svg>
               </div>
             </FadeInSection>
           </div>
@@ -928,9 +981,13 @@ export default function CodewardHero() {
               </button>
             </FadeInSection>
             <FadeInSection direction="up" className="flex-1 w-full flex justify-center">
-              <div className="relative aspect-square w-full max-w-[400px] rounded-[2rem] bg-[#05060a] shadow-[0_0_40px_rgba(249,115,22,0.05)] overflow-hidden flex items-center justify-center border border-white/5">
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(249,115,22,0.15)_0%,_transparent_60%)] mix-blend-screen opacity-50" />
-                <span className="relative z-10 text-white/80 font-medium text-lg tracking-wide">PR Review Summary</span>
+              <div className="relative aspect-[3/4] w-full max-w-[380px] rounded-[2rem] bg-[#F0EFF0] overflow-hidden flex flex-col justify-end shadow-[0_0_50px_rgba(249,115,22,0.15)]">
+                <div className="absolute inset-0 flex flex-col items-center justify-center z-0 p-8 text-center">
+                   <span className="text-black/20 font-bold text-2xl tracking-widest uppercase">PR Review<br/>Summary</span>
+                </div>
+                <svg className="w-full block relative z-10 text-[#05060a] translate-y-[1px]" viewBox="0 0 100 35" preserveAspectRatio="none">
+                  <path fill="currentColor" d="M0,35 L100,35 L100,25 Q85,5 70,25 Q50,-5 30,25 Q15,5 0,25 Z" />
+                </svg>
               </div>
             </FadeInSection>
           </div>
