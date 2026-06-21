@@ -300,7 +300,7 @@ function TypingText() {
 function MissionTypingText() {
   const [text, setText] = useState("");
   const normalText = "Codeward is your autonomous\ncode quality platform, without\n";
-  const highlightedText = "the technical debt.";
+  const highlightedText = "the technical debt";
   const totalLength = normalText.length + highlightedText.length;
 
   useEffect(() => {
@@ -319,12 +319,18 @@ function MissionTypingText() {
 
   const normalPart = text.slice(0, normalText.length);
   const highlightPart = text.slice(normalText.length);
+  const isDoneTyping = text.length === totalLength;
 
   return (
     <span className="whitespace-pre-wrap text-white">
       {normalPart}
       {highlightPart && <span className="text-purple-400">{highlightPart}</span>}
-      <span className="inline-block h-[0.85em] w-[3px] translate-y-[0.1em] bg-purple-400 animate-pulse align-middle ml-1" />
+      {isDoneTyping && (
+        <span className="inline-block text-purple-500 font-black italic -rotate-12 origin-bottom scale-110 drop-shadow-[0_0_15px_rgba(168,85,247,0.8)] px-1">!</span>
+      )}
+      {!isDoneTyping && (
+        <span className="inline-block h-[0.85em] w-[3px] translate-y-[0.1em] bg-purple-400 animate-pulse align-middle ml-1" />
+      )}
     </span>
   );
 }
@@ -797,9 +803,13 @@ export default function CodewardHero() {
       </section>
 
       {/* ── Mission Statement Section ── */}
-      <section className="bg-[#05060a] py-32 px-8 md:px-20">
-        <div className="mx-auto max-w-6xl">
-          <p className="text-4xl md:text-6xl font-semibold leading-[1.25] tracking-tight">
+      <section 
+        className="relative py-32 px-8 md:px-20 bg-cover bg-center bg-no-repeat"
+        style={{ backgroundImage: "url('https://i.ibb.co/WvSNQbHd/enterprise-bg.avif')" }}
+      >
+        <div className="absolute inset-0 bg-black/50" />
+        <div className="mx-auto max-w-6xl relative z-10">
+          <p className="text-4xl md:text-6xl font-semibold leading-[1.25] tracking-tight text-white drop-shadow-lg">
             <MissionTypingText />
           </p>
         </div>
@@ -1125,7 +1135,30 @@ export default function CodewardHero() {
               <a href="#" className="hover:text-black transition-colors">Terms</a>
               <a href="#" className="hover:text-black transition-colors">Trust</a>
               <a href="#" className="hover:text-black transition-colors">Status</a>
+              <div className="flex items-center gap-4 ml-2">
+                <a href="#" className="hover:text-black transition-colors" aria-label="Instagram">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></svg>
+                </a>
+                <a href="#" className="hover:text-black transition-colors" aria-label="YouTube">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2.5 7.1c0-1.7 1.4-3.1 3.1-3.1h12.8c1.7 0 3.1 1.4 3.1 3.1v9.8c0 1.7-1.4 3.1-3.1 3.1H5.6C3.9 20 2.5 18.6 2.5 16.9V7.1Z"/><path d="m9.5 10 6.5 3-6.5 3v-6Z"/></svg>
+                </a>
+                <a href="#" className="hover:text-black transition-colors" aria-label="LinkedIn">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect width="4" height="12" x="2" y="9"/><circle cx="4" cy="4" r="2"/></svg>
+                </a>
+                <a href="#" className="hover:text-black transition-colors" aria-label="X (Twitter)">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z"/></svg>
+                </a>
+                <a href="#" className="hover:text-black transition-colors" aria-label="Website">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/><path d="M2 12h20"/></svg>
+                </a>
+              </div>
             </div>
+
+            <div className="flex items-center bg-white rounded-full p-1 pl-4 shadow-sm w-full md:w-auto md:min-w-[350px] border border-black/10">
+              <input type="email" placeholder="Enter your email address" className="flex-1 bg-transparent text-sm text-black outline-none placeholder:text-black/50" />
+              <button className="bg-black text-white px-5 py-2 rounded-full text-sm font-semibold hover:bg-black/80 transition-colors shrink-0">Start for free</button>
+            </div>
+
             <div className="flex items-center gap-2">
               Made on Codeward by <span className="text-black font-black text-lg leading-none">✦</span>
             </div>
