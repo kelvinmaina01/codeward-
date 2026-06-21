@@ -411,6 +411,7 @@ function TestimonialsSection() {
     
     let direction = 1;
     let isHovered = false;
+    let animationFrameId: number;
 
     const handleMouseEnter = () => { isHovered = true; };
     const handleMouseLeave = () => { isHovered = false; };
@@ -418,21 +419,22 @@ function TestimonialsSection() {
     el.addEventListener('mouseenter', handleMouseEnter);
     el.addEventListener('mouseleave', handleMouseLeave);
 
-    const intervalId = setInterval(() => {
-      if (isHovered) return; // Pause on hover
-      
-      // Check boundaries and reverse direction if needed
-      if (direction === 1 && el.scrollLeft >= el.scrollWidth - el.clientWidth - 50) {
-        direction = -1;
-      } else if (direction === -1 && el.scrollLeft <= 50) {
-        direction = 1;
+    const step = () => {
+      if (!isHovered) {
+        if (direction === 1 && el.scrollLeft >= el.scrollWidth - el.clientWidth - 2) {
+          direction = -1;
+        } else if (direction === -1 && el.scrollLeft <= 2) {
+          direction = 1;
+        }
+        el.scrollLeft += 1.5 * direction;
       }
-      
-      el.scrollBy({ left: 650 * direction, behavior: 'smooth' });
-    }, 3500); // Scroll every 3.5 seconds
+      animationFrameId = requestAnimationFrame(step);
+    };
+    
+    animationFrameId = requestAnimationFrame(step);
 
     return () => {
-      clearInterval(intervalId);
+      cancelAnimationFrame(animationFrameId);
       el.removeEventListener('mouseenter', handleMouseEnter);
       el.removeEventListener('mouseleave', handleMouseLeave);
     };
@@ -650,7 +652,7 @@ export default function CodewardHero() {
               <svg className="w-5 h-5 text-[#8B5CF6]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
-              Start your 14 days trial
+              Start your 14 days trial &rarr;
             </button>
             <button
               onClick={() => navigate('/login')}
@@ -857,7 +859,7 @@ export default function CodewardHero() {
               onClick={() => navigate('/signup')} 
               className="group inline-flex items-center gap-4 rounded-full bg-white px-8 py-3.5 text-sm font-bold text-black shadow-lg shadow-white/10 transition-all hover:bg-gray-100 hover:scale-105 active:scale-95 duration-300"
             >
-              <span>See it in action</span>
+              <span>See it in action &rarr;</span>
               <div className="flex -space-x-2">
                 <div className="flex h-8 w-8 items-center justify-center rounded-full bg-black ring-2 ring-white">
                   <svg className="h-5 w-5 text-white" viewBox="0 0 24 24" fill="currentColor">
@@ -1016,7 +1018,7 @@ export default function CodewardHero() {
             <div className="flex items-center justify-between mb-12">
               <h2 className="text-3xl md:text-4xl font-bold text-white tracking-tight">Latest Insights</h2>
               <button className="px-5 py-2.5 rounded-full bg-white/5 border border-white/10 text-white text-sm font-medium hover:bg-white/10 transition-colors">
-                Read all articles
+                Read all articles &rarr;
               </button>
             </div>
             
@@ -1121,7 +1123,7 @@ export default function CodewardHero() {
             <svg height="24" aria-hidden="true" viewBox="0 0 16 16" version="1.1" width="24" data-view-component="true" className="fill-current">
               <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"></path>
             </svg>
-            Connect your first repo
+            Connect your first repo &rarr;
           </button>
         </FadeInSection>
       </section>
@@ -1216,7 +1218,7 @@ export default function CodewardHero() {
             </div>
             <div className="flex items-center bg-white rounded-full p-1.5 pl-5 shadow-sm w-full lg:w-[450px] border border-black/10 shrink-0">
               <input type="email" placeholder="Enter your email address" className="flex-1 bg-transparent text-sm text-black outline-none placeholder:text-black/40 font-medium" />
-              <button className="bg-black text-white px-7 py-3 rounded-full text-sm font-bold hover:bg-black/80 transition-colors shrink-0 shadow-md">Start for free</button>
+              <button className="bg-black text-white px-7 py-3 rounded-full text-sm font-bold hover:bg-black/80 transition-colors shrink-0 shadow-md">Start for free &rarr;</button>
             </div>
           </div>
 
