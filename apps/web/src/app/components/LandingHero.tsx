@@ -719,19 +719,11 @@ export default function CodewardHero() {
           {/* Agent 1: Security Shield */}
           <div className="flex flex-col md:flex-row items-center gap-16 overflow-hidden">
             <FadeInSection direction="left" className="flex-1 max-w-xl">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="flex items-center justify-center h-12 w-12 rounded-xl bg-red-500/10 text-red-500 border border-red-500/20">
-                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                  </svg>
-                </div>
-                <div className="text-xs font-bold uppercase tracking-widest text-red-500">Security Agent</div>
-              </div>
               <h2 className="text-4xl md:text-5xl font-bold text-white mb-6 leading-tight">Ironclad protection before you deploy</h2>
               <p className="text-white/60 text-[17px] md:text-[19px] leading-relaxed mb-8">
                 Shields your codebase from vulnerabilities and hardcoded secrets. It runs deep static analysis and provisions isolated ephemeral sandboxes to verify patches before any code reaches production.
               </p>
-              <button onClick={() => navigate('/signup')} className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-white text-black text-sm font-semibold hover:bg-white/90 transition-colors">
+              <button onClick={() => navigate('/signup')} className="w-full flex justify-center items-center gap-2 px-6 py-4 rounded-full bg-white text-black text-sm font-bold transition-all duration-300 hover:bg-[#8B5CF6] hover:text-white hover:scale-105 hover:shadow-[0_0_25px_rgba(139,92,246,0.5)] active:bg-green-500 active:text-white active:scale-95">
                 Secure your repo →
               </button>
             </FadeInSection>
@@ -746,19 +738,11 @@ export default function CodewardHero() {
           {/* Agent 2: Technical Debt */}
           <div className="flex flex-col md:flex-row items-center gap-16 overflow-hidden">
             <FadeInSection direction="left" className="flex-1 max-w-xl">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="flex items-center justify-center h-12 w-12 rounded-xl bg-purple-500/10 text-purple-500 border border-purple-500/20">
-                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                  </svg>
-                </div>
-                <div className="text-xs font-bold uppercase tracking-widest text-purple-500">Debt Agent</div>
-              </div>
               <h2 className="text-4xl md:text-5xl font-bold text-white mb-6 leading-tight">Crush legacy technical debt</h2>
               <p className="text-white/60 text-[17px] md:text-[19px] leading-relaxed mb-8">
                 Identifies, tracks, and autonomously eliminates technical debt. It highlights overly complex, legacy modules and writes modern, optimized refactors without breaking the underlying architecture.
               </p>
-              <button onClick={() => navigate('/signup')} className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-white text-black text-sm font-semibold hover:bg-white/90 transition-colors">
+              <button onClick={() => navigate('/signup')} className="w-full flex justify-center items-center gap-2 px-6 py-4 rounded-full bg-white text-black text-sm font-bold transition-all duration-300 hover:bg-[#8B5CF6] hover:text-white hover:scale-105 hover:shadow-[0_0_25px_rgba(139,92,246,0.5)] active:bg-green-500 active:text-white active:scale-95">
                 Eliminate tech debt →
               </button>
             </FadeInSection>
@@ -773,19 +757,11 @@ export default function CodewardHero() {
           {/* Agent 3: Sandbox Test */}
           <div className="flex flex-col md:flex-row items-center gap-16 overflow-hidden">
             <FadeInSection direction="left" className="flex-1 max-w-xl">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="flex items-center justify-center h-12 w-12 rounded-xl bg-green-500/10 text-green-500 border border-green-500/20">
-                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
-                  </svg>
-                </div>
-                <div className="text-xs font-bold uppercase tracking-widest text-green-500">Test Agent</div>
-              </div>
               <h2 className="text-4xl md:text-5xl font-bold text-white mb-6 leading-tight">Real tests in live sandboxes</h2>
               <p className="text-white/60 text-[17px] md:text-[19px] leading-relaxed mb-8">
                 Never merge broken code again. For every PR, the Test Agent spins up an ephemeral environment, executes your entire test suite, and ensures the code handles real-world scenarios flawlessly.
               </p>
-              <button onClick={() => navigate('/signup')} className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-white text-black text-sm font-semibold hover:bg-white/90 transition-colors">
+              <button onClick={() => navigate('/signup')} className="w-full flex justify-center items-center gap-2 px-6 py-4 rounded-full bg-white text-black text-sm font-bold transition-all duration-300 hover:bg-[#8B5CF6] hover:text-white hover:scale-105 hover:shadow-[0_0_25px_rgba(139,92,246,0.5)] active:bg-green-500 active:text-white active:scale-95">
                 Explore testing sandboxes →
               </button>
             </FadeInSection>
@@ -800,19 +776,11 @@ export default function CodewardHero() {
           {/* Agent 4: Refactor Agent */}
           <div className="flex flex-col md:flex-row items-center gap-16 overflow-hidden">
             <FadeInSection direction="left" className="flex-1 max-w-xl">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="flex items-center justify-center h-12 w-12 rounded-xl bg-blue-500/10 text-blue-500 border border-blue-500/20">
-                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
-                </div>
-                <div className="text-xs font-bold uppercase tracking-widest text-blue-500">Refactor Agent</div>
-              </div>
               <h2 className="text-4xl md:text-5xl font-bold text-white mb-6 leading-tight">Scale your architecture safely</h2>
               <p className="text-white/60 text-[17px] md:text-[19px] leading-relaxed mb-8">
                 Restructures entire directories without losing business logic. The AI deeply understands your context, applies new design patterns, and checks its own work through sandboxed test runs.
               </p>
-              <button onClick={() => navigate('/signup')} className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-white text-black text-sm font-semibold hover:bg-white/90 transition-colors">
+              <button onClick={() => navigate('/signup')} className="w-full flex justify-center items-center gap-2 px-6 py-4 rounded-full bg-white text-black text-sm font-bold transition-all duration-300 hover:bg-[#8B5CF6] hover:text-white hover:scale-105 hover:shadow-[0_0_25px_rgba(139,92,246,0.5)] active:bg-green-500 active:text-white active:scale-95">
                 Start refactoring safely →
               </button>
             </FadeInSection>
@@ -827,19 +795,11 @@ export default function CodewardHero() {
           {/* Agent 5: Code Review Agent */}
           <div className="flex flex-col md:flex-row items-center gap-16 overflow-hidden">
             <FadeInSection direction="left" className="flex-1 max-w-xl">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="flex items-center justify-center h-12 w-12 rounded-xl bg-orange-500/10 text-orange-500 border border-orange-500/20">
-                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <div className="text-xs font-bold uppercase tracking-widest text-orange-500">Review Agent</div>
-              </div>
               <h2 className="text-4xl md:text-5xl font-bold text-white mb-6 leading-tight">Automated, self-healing PR reviews</h2>
               <p className="text-white/60 text-[17px] md:text-[19px] leading-relaxed mb-8">
                 Completes PR reviews in seconds instead of days. It leaves actionable, inline comments for developers and can automatically generate self-healing patches to resolve issues immediately.
               </p>
-              <button onClick={() => navigate('/signup')} className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-white text-black text-sm font-semibold hover:bg-white/90 transition-colors">
+              <button onClick={() => navigate('/signup')} className="w-full flex justify-center items-center gap-2 px-6 py-4 rounded-full bg-white text-black text-sm font-bold transition-all duration-300 hover:bg-[#8B5CF6] hover:text-white hover:scale-105 hover:shadow-[0_0_25px_rgba(139,92,246,0.5)] active:bg-green-500 active:text-white active:scale-95">
                 Automate code reviews →
               </button>
             </FadeInSection>
