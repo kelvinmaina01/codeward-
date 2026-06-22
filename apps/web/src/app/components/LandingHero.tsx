@@ -152,7 +152,7 @@ function FAQSection() {
 
 function SecuritySection() {
   return (
-    <section className="bg-[#05060a] pt-20 md:pt-24 pb-24 md:pb-32 px-8 md:px-20 font-['DM_Sans'] relative overflow-hidden">
+    <section className="bg-[#05060a] pt-20 md:pt-24 pb-20 md:pb-24 px-8 md:px-20 font-['DM_Sans'] relative overflow-hidden">
       <FadeInSection>
         <div className="mx-auto max-w-[1200px] relative z-10">
           <div className="mb-12 text-center md:text-left">
@@ -210,16 +210,17 @@ function SecuritySection() {
               </p>
             </div>
           </div>
-          
-          <div className="mt-16 flex justify-center relative z-10">
+
+          {/* Learn more button — right aligned */}
+          <div className="mt-12 flex justify-end relative z-10">
             <button className="inline-flex w-fit items-center gap-2 px-8 py-3.5 rounded-full bg-white text-black text-sm font-bold transition-all duration-300 hover:bg-[#8B5CF6] hover:text-white hover:scale-105 hover:shadow-[0_0_30px_rgba(139,92,246,0.4)] active:scale-95">
               Learn more &rarr;
             </button>
           </div>
-          
-          {/* Subtle dot pattern at the bottom below the grid */}
-          <div className="absolute -bottom-24 left-0 w-full h-24 z-0" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(255,255,255,0.4) 2px, transparent 0)', backgroundSize: '24px 24px' }}></div>
         </div>
+
+        {/* Dot pattern — absolute to the section, completely independent of content flow */}
+        <div className="absolute bottom-0 left-0 w-full h-20 z-0 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(255,255,255,0.35) 2px, transparent 0)', backgroundSize: '24px 24px' }}></div>
       </FadeInSection>
     </section>
   );
