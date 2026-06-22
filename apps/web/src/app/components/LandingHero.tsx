@@ -942,10 +942,20 @@ export default function CodewardHero() {
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     {blogs.slice(0, 3).map((post, idx) => (
                       <div onClick={() => navigate(`/blogs/${post.slug}`)} key={idx} className="group/blog cursor-pointer flex flex-col h-full">
-                        <div className="aspect-[16/10] overflow-hidden rounded-[1rem] mb-4 relative shadow-sm shrink-0 border border-black/5 bg-white">
-                          <img src={post.image} alt={post.title} className="w-full h-full object-cover group-hover/blog:scale-105 transition-transform duration-500" />
-                          <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm px-2.5 py-1 rounded-md text-[10px] font-bold text-black uppercase tracking-wider shadow-sm">
-                            {post.category}
+                        <div className={`aspect-[16/10] overflow-hidden rounded-[1rem] mb-4 relative shadow-sm shrink-0 border border-black/5 bg-gradient-to-br ${post.gradient || 'from-purple-900 to-indigo-900'}`}>
+                          <div className="absolute inset-0 bg-gradient-to-tr from-black/20 via-transparent to-white/20 mix-blend-overlay" />
+                          <div className="absolute inset-0 bg-black/10" />
+                          <div className="absolute inset-0 p-3 flex flex-col justify-between z-10">
+                            <div className="flex justify-start">
+                              <div className="bg-white/90 backdrop-blur-sm px-2 py-1 rounded-sm text-[9px] font-bold text-black uppercase tracking-wider shadow-sm">
+                                {post.category}
+                              </div>
+                            </div>
+                            <div>
+                              <span className="text-[10px] font-bold tracking-widest text-white/90 uppercase block drop-shadow-md">
+                                {post.overlayText || 'ENGINEERING'}
+                              </span>
+                            </div>
                           </div>
                         </div>
                         <h5 className="font-bold text-[16px] leading-snug text-black mb-2 group-hover/blog:text-[#8B5CF6] transition-colors line-clamp-3">

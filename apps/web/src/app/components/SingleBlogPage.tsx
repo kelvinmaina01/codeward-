@@ -79,6 +79,17 @@ export const SingleBlogPage: React.FC = () => {
 
           {/* ── MAIN ARTICLE CONTENT ── */}
           <article className="flex-1 w-full max-w-[700px]">
+          {/* ── ARTICLE HERO BACKGROUND ── */}
+          <div className={`relative h-[300px] md:h-[400px] w-full rounded-2xl overflow-hidden bg-gradient-to-br ${post.gradient || 'from-purple-900 to-indigo-900'} mb-12 shadow-2xl border border-white/10`}>
+            <div className="absolute inset-0 bg-gradient-to-tr from-black/20 via-transparent to-white/20 mix-blend-overlay" />
+            <div className="absolute inset-0 bg-black/10" />
+            <div className="absolute inset-0 p-8 flex flex-col justify-end">
+               <span className="text-2xl md:text-4xl font-bold tracking-widest text-white/50 uppercase drop-shadow-md">
+                 {post.overlayText || 'ENGINEERING'}
+               </span>
+            </div>
+          </div>
+
           <div className="flex items-center gap-3 mb-8">
             <span className="text-[12px] font-bold text-purple-400 uppercase tracking-widest bg-purple-400/10 px-3 py-1 rounded-full">{post.category}</span>
             <span className="text-sm font-medium text-white/40">{post.date}</span>
@@ -153,7 +164,15 @@ export const SingleBlogPage: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {blogs.filter(b => b.slug !== post.slug).slice(0, 3).map((relatedPost, idx) => (
               <div onClick={() => navigate(`/blogs/${relatedPost.slug}`)} key={idx} className="group/blog cursor-pointer flex flex-col h-full">
-                <div className="text-[12px] font-bold text-purple-400 uppercase tracking-widest mb-3">
+                  <div className={`relative h-[180px] rounded-xl overflow-hidden mb-5 bg-gradient-to-br ${relatedPost.gradient || 'from-purple-900 to-indigo-900'} border border-white/10`}>
+                    <div className="absolute inset-0 bg-gradient-to-tr from-black/20 via-transparent to-white/20 mix-blend-overlay" />
+                    <div className="absolute inset-0 p-4 flex items-end">
+                      <span className="text-[10px] font-bold tracking-widest text-white/90 uppercase drop-shadow-md">
+                        {relatedPost.overlayText || 'ENGINEERING'}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="text-[12px] font-bold text-purple-400 uppercase tracking-widest mb-3">
                   {relatedPost.category}
                 </div>
                 <h5 className="font-bold text-xl leading-snug text-white mb-4 group-hover/blog:text-[#8B5CF6] transition-colors line-clamp-3">
