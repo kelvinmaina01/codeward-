@@ -12,16 +12,16 @@ import { blogs } from '../data/blogs';
 function FAQItem({ question, answer }: { question: string, answer: string }) {
   const [isOpen, setIsOpen] = useState(false);
   return (
-    <div className="border-b border-white/10">
+    <div className="bg-[#1c1c1c] rounded-2xl mb-4 transition-colors hover:bg-[#252525]">
       <button 
-        className="w-full py-6 flex items-center justify-between text-left focus:outline-none group"
+        className="w-full px-6 py-5 flex items-center justify-between text-left focus:outline-none group"
         onClick={() => setIsOpen(!isOpen)}
       >
-        <span className="text-lg md:text-xl font-bold text-white group-hover:text-[#8B5CF6] transition-colors pr-8">{question}</span>
-        <span className={`text-white/50 text-2xl transition-transform duration-300 ${isOpen ? 'rotate-45 text-white' : ''}`}>+</span>
+        <span className="text-base md:text-lg font-medium text-white group-hover:text-white transition-colors pr-8">{question}</span>
+        <span className={`text-white/50 text-xl font-light transition-transform duration-300 ${isOpen ? 'rotate-45 text-white' : ''}`}>+</span>
       </button>
-      <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isOpen ? 'max-h-96 opacity-100 pb-6' : 'max-h-0 opacity-0'}`}>
-        <p className="text-white/60 text-base md:text-lg leading-relaxed">{answer}</p>
+      <div className={`overflow-hidden transition-all duration-300 ease-in-out px-6 ${isOpen ? 'max-h-96 opacity-100 pb-6' : 'max-h-0 opacity-0'}`}>
+        <p className="text-white/60 text-base leading-relaxed">{answer}</p>
       </div>
     </div>
   );
