@@ -18,25 +18,21 @@ const allowedOrigins = [
   process.env.FRONTEND_URL
 ].filter(Boolean) as string[];
 
+const corsConfig = {
+  origin: (origin: string | undefined) => {
+    return origin || 'http://localhost:5173';
+  },
+  allowHeaders: ['Content-Type', 'Authorization', 'Accept', 'x-client-name', 'x-client-version'],
+  allowMethods: ['POST', 'GET', 'OPTIONS', 'PUT', 'DELETE', 'PATCH'],
+  credentials: true,
+  maxAge: 600,
+};
+
 // CORS for Better Auth routes (must be registered BEFORE the auth handler)
-// See: https://www.better-auth.com/docs/integrations/hono#cors
-app.use(
-  '/api/auth/*',
-  cors({
-    origin: (origin) => allowedOrigins.includes(origin) ? origin : allowedOrigins[0],
-    allowHeaders: ['Content-Type', 'Authorization'],
-    allowMethods: ['POST', 'GET', 'OPTIONS'],
-    exposeHeaders: ['Content-Length'],
-    maxAge: 600,
-    credentials: true,
-  }),
-);
+app.use('/api/auth/*', cors(corsConfig));
 
 // General CORS for other API routes
-app.use('*', cors({
-  origin: (origin) => allowedOrigins.includes(origin) ? origin : allowedOrigins[0],
-  credentials: true,
-}));
+app.use('*', cors(corsConfig));
 
 app.get('/health', (c) => {
   return c.json({ status: 'ok', service: 'codeward-api' });
