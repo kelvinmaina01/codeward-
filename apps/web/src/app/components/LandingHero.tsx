@@ -155,11 +155,8 @@ function SecuritySection() {
     <section className="bg-[#05060a] pt-32 pb-48 px-8 md:px-20 font-['DM_Sans'] relative overflow-hidden">
       <FadeInSection>
         <div className="mx-auto max-w-[1200px] relative z-10">
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-12">
-            <h2 className="text-3xl md:text-[40px] font-bold text-white tracking-tight mb-6 md:mb-0">Enterprise-grade security and privacy</h2>
-            <button className="px-5 py-2 border border-white/20 rounded-[8px] text-[15px] font-semibold text-white hover:bg-white/5 transition-colors">
-              Learn more
-            </button>
+          <div className="mb-12 text-center md:text-left">
+            <h2 className="text-3xl md:text-[40px] font-bold text-white tracking-tight">Enterprise-grade security and privacy</h2>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 border-y border-white/10 relative">
@@ -212,6 +209,12 @@ function SecuritySection() {
                 Role-based access control to set granular user roles, permissions, and boundaries.
               </p>
             </div>
+          </div>
+          
+          <div className="mt-16 flex justify-center relative z-10">
+            <button className="inline-flex w-fit items-center gap-2 px-8 py-3.5 rounded-full bg-white text-black text-sm font-bold transition-all duration-300 hover:bg-[#8B5CF6] hover:text-white hover:scale-105 hover:shadow-[0_0_30px_rgba(139,92,246,0.4)] active:scale-95">
+              Learn more &rarr;
+            </button>
           </div>
           
           {/* Subtle dot pattern at the bottom below the grid */}
