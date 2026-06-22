@@ -48,8 +48,37 @@ export const SingleBlogPage: React.FC = () => {
       </header>
 
       <main className="pb-32">
-        {/* ── ARTICLE HEADER ── */}
-        <article className="max-w-[700px] mx-auto px-6 pt-16 md:pt-24">
+        {/* ── LAGO-STYLE TWO-COLUMN LAYOUT ── */}
+        <div className="max-w-[1100px] mx-auto px-6 pt-16 md:pt-24 flex flex-col lg:flex-row gap-16 items-start">
+          
+          {/* ── SIDEBAR (STICKY) ── */}
+          <aside className="hidden lg:flex flex-col w-[220px] shrink-0 sticky top-32">
+            <div className="mb-12">
+              <h4 className="text-[11px] font-bold text-white/40 uppercase tracking-widest mb-5">Share on</h4>
+              <div className="flex flex-col gap-4 text-white">
+                <button className="hover:text-[#8B5CF6] transition-colors flex items-center gap-3 font-bold text-[14px]">
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg>
+                  LinkedIn
+                </button>
+                <button className="hover:text-[#8B5CF6] transition-colors flex items-center gap-3 font-bold text-[14px]">
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z"/></svg>
+                  X
+                </button>
+              </div>
+            </div>
+            <div>
+              <h4 className="text-[11px] font-bold text-white/40 uppercase tracking-widest mb-5">Content</h4>
+              <nav className="flex flex-col gap-4 border-l-2 border-white/10 pl-5">
+                <a href="#" className="text-[14px] font-bold text-white hover:text-[#8B5CF6] transition-colors leading-snug">The invisible software supply chain</a>
+                <a href="#" className="text-[14px] font-semibold text-white/50 hover:text-white transition-colors leading-snug">Why billing can't be rented</a>
+                <a href="#" className="text-[14px] font-semibold text-white/50 hover:text-white transition-colors leading-snug">Why we launched Embedded</a>
+                <a href="#" className="text-[14px] font-semibold text-white/50 hover:text-white transition-colors leading-snug">The engineering reality</a>
+              </nav>
+            </div>
+          </aside>
+
+          {/* ── MAIN ARTICLE CONTENT ── */}
+          <article className="flex-1 w-full max-w-[700px]">
           <div className="flex items-center gap-3 mb-8">
             <span className="text-[12px] font-bold text-purple-400 uppercase tracking-widest bg-purple-400/10 px-3 py-1 rounded-full">{post.category}</span>
             <span className="text-sm font-medium text-white/40">{post.date}</span>
@@ -71,8 +100,8 @@ export const SingleBlogPage: React.FC = () => {
                 <div className="text-sm text-white/40">Engineering Team @ Codeward</div>
               </div>
             </div>
-            {/* Social Share/Follow Icons */}
-            <div className="flex items-center gap-4 text-white/40">
+            {/* Social Share/Follow Icons (Hidden on Desktop, shown in Sidebar) */}
+            <div className="flex lg:hidden items-center gap-4 text-white/40">
               <a href="#" className="hover:text-white transition-colors" aria-label="X (Twitter)">
                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z"/></svg>
               </a>
@@ -111,6 +140,64 @@ export const SingleBlogPage: React.FC = () => {
             </div>
           </div>
         </article>
+      </div>
+
+        {/* ── LAGO-STYLE 'MORE FROM THE BLOG' SECTION ── */}
+        <section className="max-w-[1200px] mx-auto px-6 mt-32">
+          <div className="flex items-center justify-between border-b border-white/10 pb-6 mb-12">
+            <h3 className="text-2xl font-bold text-white">More from the blog</h3>
+            <button onClick={() => navigate('/blogs')} className="text-sm font-semibold text-white/60 hover:text-white transition-colors">
+              Read all articles &rarr;
+            </button>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {blogs.filter(b => b.slug !== post.slug).slice(0, 3).map((relatedPost, idx) => (
+              <div onClick={() => navigate(`/blogs/${relatedPost.slug}`)} key={idx} className="group/blog cursor-pointer flex flex-col h-full">
+                <div className="text-[12px] font-bold text-purple-400 uppercase tracking-widest mb-3">
+                  {relatedPost.category}
+                </div>
+                <h5 className="font-bold text-xl leading-snug text-white mb-4 group-hover/blog:text-[#8B5CF6] transition-colors line-clamp-3">
+                  {relatedPost.title}
+                </h5>
+                <div className="flex items-center gap-3 mt-auto pt-4">
+                  <div className="h-8 w-8 rounded-full bg-white/10 overflow-hidden">
+                    <img src={`https://api.dicebear.com/7.x/initials/svg?seed=${relatedPost.authorAvatar}`} alt={relatedPost.author} className="h-full w-full object-cover" />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-sm font-bold text-white/90">{relatedPost.author}</span>
+                    <span className="text-[12px] text-white/40">{relatedPost.readTime}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* ── LAGO-STYLE NEWSLETTER SUBSCRIPTION ── */}
+        <section className="max-w-[1200px] mx-auto px-6 mt-32">
+          <div className="bg-[#1A1A1A] border border-white/10 rounded-2xl p-10 md:p-16 flex flex-col md:flex-row items-start md:items-center justify-between gap-10">
+            <div className="max-w-md">
+              <h2 className="text-3xl font-bold text-white mb-4 tracking-tight">Code<span className="text-[#8B5CF6]">ward</span></h2>
+              <p className="text-white/60 text-lg font-medium">Get the latest engineering news and updates — no hidden spam.</p>
+            </div>
+            <div className="w-full md:w-auto flex-1 max-w-md">
+              <form className="flex flex-col sm:flex-row gap-3" onSubmit={(e) => e.preventDefault()}>
+                <input 
+                  type="email" 
+                  placeholder="Email" 
+                  className="flex-1 bg-black/50 border border-white/20 rounded-lg px-4 py-3 text-white placeholder:text-white/40 focus:outline-none focus:border-[#8B5CF6] transition-colors"
+                  required
+                />
+                <button type="submit" className="bg-white text-black font-bold px-6 py-3 rounded-lg hover:bg-gray-200 transition-colors whitespace-nowrap">
+                  Subscribe
+                </button>
+              </form>
+              <p className="text-[12px] text-white/40 mt-3">
+                By signing up, you agree to Codeward's Privacy and Terms.
+              </p>
+            </div>
+          </div>
+        </section>
       </main>
 
       {/* ── Footer Section ── */}
