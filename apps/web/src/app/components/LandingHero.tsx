@@ -119,10 +119,10 @@ function FAQSection() {
   ];
 
   return (
-    <section className="bg-[#05060a] py-32 px-8 md:px-20 border-t border-white/5">
+    <section className="bg-[#05060a] py-20 md:py-24 px-8 md:px-20 border-t border-white/5">
       <FadeInSection>
         <div className="mx-auto max-w-[900px]">
-          <h2 className="text-4xl md:text-5xl font-bold text-white tracking-tight mb-16 text-center">Frequently Asked Questions</h2>
+          <h2 className="text-2xl md:text-3xl font-bold text-white tracking-tight mb-16 text-center">Frequently Asked Questions</h2>
           <div className="flex flex-col">
             {initialFaqs.map((faq, idx) => (
               <FAQItem key={idx} question={faq.question} answer={faq.answer} />
@@ -152,11 +152,11 @@ function FAQSection() {
 
 function SecuritySection() {
   return (
-    <section className="bg-[#05060a] pt-32 pb-48 px-8 md:px-20 font-['DM_Sans'] relative overflow-hidden">
+    <section className="bg-[#05060a] pt-20 md:pt-24 pb-24 md:pb-32 px-8 md:px-20 font-['DM_Sans'] relative overflow-hidden">
       <FadeInSection>
         <div className="mx-auto max-w-[1200px] relative z-10">
           <div className="mb-12 text-center md:text-left">
-            <h2 className="text-3xl md:text-[40px] font-bold text-white tracking-tight">Enterprise-grade security and privacy</h2>
+            <h2 className="text-3xl md:text-3xl md:text-4xl font-bold text-white tracking-tight">Enterprise-grade security and privacy</h2>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 border-y border-white/10 relative">
@@ -522,7 +522,7 @@ function TestimonialsSection() {
     <section className="bg-[#05060a] py-24 pl-8 md:pl-20 border-t border-white/5">
       <div className="w-full">
         <div className="max-w-[1500px] mr-auto">
-          <div className="flex items-center justify-between mb-12 pr-8 md:pr-20">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 md:mb-12 gap-6 md:gap-0 pr-8 md:pr-20">
             <h2 className="text-3xl md:text-5xl font-bold text-white tracking-tight">What developers are saying</h2>
             <div className="flex gap-4">
               <button onClick={scrollLeft} className="h-14 w-14 rounded-full border border-white/20 flex items-center justify-center text-white hover:bg-white/10 transition-colors shrink-0">
@@ -545,7 +545,7 @@ function TestimonialsSection() {
                 className={`${t.bgColor} shrink-0 w-[85vw] md:w-[650px] h-[550px] rounded-2xl p-12 flex flex-col justify-end relative shadow-2xl snap-start`}
               >
                 <div>
-                  <p className="text-3xl md:text-4xl text-black font-medium leading-[1.3] mb-12 tracking-tight">
+                  <p className="text-2xl md:text-3xl text-black font-medium leading-[1.3] mb-12 tracking-tight">
                     {t.text}
                   </p>
                   <div className="flex items-center gap-4">
@@ -1061,7 +1061,7 @@ export default function CodewardHero() {
       </section>
 
       {/* Video Demo Section */}
-      <section className="relative bg-[#05060a] py-32 px-8 md:px-14 overflow-hidden perspective-[1000px]">
+      <section className="relative bg-[#05060a] py-20 md:py-24 px-8 md:px-14 overflow-hidden perspective-[1000px]">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(139,92,246,0.15)_0%,_transparent_50%)] mix-blend-screen pointer-events-none" />
         <div className="mx-auto max-w-[1300px] relative z-10">
           <VideoPlayer />
@@ -1071,7 +1071,7 @@ export default function CodewardHero() {
       {/* ── Social Proof / Trusted By Section ── */}
       <section className="bg-[#05060a] pt-12 pb-24 px-8 md:px-14">
         <div className="mx-auto max-w-[95%] xl:max-w-[1500px]">
-          <h2 className="text-center text-4xl md:text-5xl font-bold text-white mb-16 leading-tight">
+          <h2 className="text-center text-2xl md:text-3xl font-bold text-white mb-16 leading-tight">
             Loved and endorsed by developers & teams from
           </h2>
           
@@ -1195,12 +1195,12 @@ export default function CodewardHero() {
 
       {/* ── Mission Statement Section ── */}
       <section 
-        className="relative py-32 px-8 md:px-20 bg-cover bg-center bg-no-repeat"
+        className="relative py-20 md:py-24 px-8 md:px-20 bg-cover bg-center bg-no-repeat"
         style={{ backgroundImage: "url('https://i.ibb.co/WvSNQbHd/enterprise-bg.avif')" }}
       >
         <div className="absolute inset-0 bg-black/10 mix-blend-overlay" />
         <div className="mx-auto max-w-6xl relative z-10 flex flex-col items-start">
-          <p className="text-4xl md:text-6xl font-semibold leading-[1.25] tracking-tight text-white drop-shadow-lg mb-10">
+          <p className="text-3xl md:text-5xl font-semibold leading-[1.25] tracking-tight text-white drop-shadow-lg mb-10">
             <MissionTypingText />
           </p>
           <FadeInSection delay={800} direction="up">
@@ -1228,14 +1228,14 @@ export default function CodewardHero() {
 
 
       {/* ── Specialized AI Agents Section ── */}
-      <section className="bg-[#05060a] py-32 px-8 md:px-20 border-t border-white/5">
+      <section className="bg-[#05060a] py-20 md:py-24 px-8 md:px-20 border-t border-white/5">
         <div className="mx-auto max-w-7xl flex flex-col space-y-40">
           
           {/* Agent 1: Security Shield */}
           <div className="flex flex-col md:flex-row items-center gap-16">
             <FadeInSection direction="up" className="flex-1 max-w-xl">
-              <h2 className="text-4xl md:text-5xl font-bold text-white mb-6 leading-tight">Ironclad protection before you deploy</h2>
-              <p className="text-white/60 text-[17px] md:text-[19px] leading-relaxed mb-8">
+              <h2 className="text-2xl md:text-3xl font-bold text-white mb-6 leading-tight">Ironclad protection before you deploy</h2>
+              <p className="text-white/60 text-base md:text-lg leading-relaxed mb-8">
                 Shields your codebase from vulnerabilities and hardcoded secrets. It runs deep static analysis and provisions isolated ephemeral sandboxes to verify patches before any code reaches production.
               </p>
               <button onClick={() => navigate('/signup')} className="inline-flex w-fit items-center gap-2 px-6 py-3 rounded-full bg-white text-black text-sm font-semibold transition-all duration-300 hover:bg-[#8B5CF6] hover:text-white hover:scale-105 hover:shadow-[0_0_25px_rgba(139,92,246,0.5)] active:bg-green-500 active:text-white active:scale-95">
@@ -1254,8 +1254,8 @@ export default function CodewardHero() {
           {/* Agent 2: Technical Debt */}
           <div className="flex flex-col md:flex-row items-center gap-16">
             <FadeInSection direction="up" className="flex-1 max-w-xl">
-              <h2 className="text-4xl md:text-5xl font-bold text-white mb-6 leading-tight">Crush legacy technical debt</h2>
-              <p className="text-white/60 text-[17px] md:text-[19px] leading-relaxed mb-8">
+              <h2 className="text-2xl md:text-3xl font-bold text-white mb-6 leading-tight">Crush legacy technical debt</h2>
+              <p className="text-white/60 text-base md:text-lg leading-relaxed mb-8">
                 Identifies, tracks, and autonomously eliminates technical debt. It highlights overly complex, legacy modules and writes modern, optimized refactors without breaking the underlying architecture.
               </p>
               <button onClick={() => navigate('/signup')} className="inline-flex w-fit items-center gap-2 px-6 py-3 rounded-full bg-white text-black text-sm font-semibold transition-all duration-300 hover:bg-[#8B5CF6] hover:text-white hover:scale-105 hover:shadow-[0_0_25px_rgba(139,92,246,0.5)] active:bg-green-500 active:text-white active:scale-95">
@@ -1274,8 +1274,8 @@ export default function CodewardHero() {
           {/* Agent 3: Sandbox Test */}
           <div className="flex flex-col md:flex-row items-center gap-16">
             <FadeInSection direction="up" className="flex-1 max-w-xl">
-              <h2 className="text-4xl md:text-5xl font-bold text-white mb-6 leading-tight">Real tests in live sandboxes</h2>
-              <p className="text-white/60 text-[17px] md:text-[19px] leading-relaxed mb-8">
+              <h2 className="text-2xl md:text-3xl font-bold text-white mb-6 leading-tight">Real tests in live sandboxes</h2>
+              <p className="text-white/60 text-base md:text-lg leading-relaxed mb-8">
                 Never merge broken code again. For every PR, the Test Agent spins up an ephemeral environment, executes your entire test suite, and ensures the code handles real-world scenarios flawlessly.
               </p>
               <button onClick={() => navigate('/signup')} className="inline-flex w-fit items-center gap-2 px-6 py-3 rounded-full bg-white text-black text-sm font-semibold transition-all duration-300 hover:bg-[#8B5CF6] hover:text-white hover:scale-105 hover:shadow-[0_0_25px_rgba(139,92,246,0.5)] active:bg-green-500 active:text-white active:scale-95">
@@ -1294,8 +1294,8 @@ export default function CodewardHero() {
           {/* Agent 4: Refactor Agent */}
           <div className="flex flex-col md:flex-row items-center gap-16">
             <FadeInSection direction="up" className="flex-1 max-w-xl">
-              <h2 className="text-4xl md:text-5xl font-bold text-white mb-6 leading-tight">Scale your architecture safely</h2>
-              <p className="text-white/60 text-[17px] md:text-[19px] leading-relaxed mb-8">
+              <h2 className="text-2xl md:text-3xl font-bold text-white mb-6 leading-tight">Scale your architecture safely</h2>
+              <p className="text-white/60 text-base md:text-lg leading-relaxed mb-8">
                 Restructures entire directories without losing business logic. The AI deeply understands your context, applies new design patterns, and checks its own work through sandboxed test runs.
               </p>
               <button onClick={() => navigate('/signup')} className="inline-flex w-fit items-center gap-2 px-6 py-3 rounded-full bg-white text-black text-sm font-semibold transition-all duration-300 hover:bg-[#8B5CF6] hover:text-white hover:scale-105 hover:shadow-[0_0_25px_rgba(139,92,246,0.5)] active:bg-green-500 active:text-white active:scale-95">
@@ -1314,8 +1314,8 @@ export default function CodewardHero() {
           {/* Agent 5: Code Review Agent */}
           <div className="flex flex-col md:flex-row items-center gap-16">
             <FadeInSection direction="up" className="flex-1 max-w-xl">
-              <h2 className="text-4xl md:text-5xl font-bold text-white mb-6 leading-tight">Automated, self-healing PR reviews</h2>
-              <p className="text-white/60 text-[17px] md:text-[19px] leading-relaxed mb-8">
+              <h2 className="text-2xl md:text-3xl font-bold text-white mb-6 leading-tight">Automated, self-healing PR reviews</h2>
+              <p className="text-white/60 text-base md:text-lg leading-relaxed mb-8">
                 Completes PR reviews in seconds instead of days. It leaves actionable, inline comments for developers and can automatically generate self-healing patches to resolve issues immediately.
               </p>
               <button onClick={() => navigate('/signup')} className="inline-flex w-fit items-center gap-2 px-6 py-3 rounded-full bg-white text-black text-sm font-semibold transition-all duration-300 hover:bg-[#8B5CF6] hover:text-white hover:scale-105 hover:shadow-[0_0_25px_rgba(139,92,246,0.5)] active:bg-green-500 active:text-white active:scale-95">
@@ -1345,11 +1345,11 @@ export default function CodewardHero() {
       <TestimonialsSection />
 
       {/* ── Latest Insights / Blogs Section ── */}
-      <InteractiveParticleGrid className="bg-[#05060a] py-32 px-8 md:px-20 border-t border-white/5">
+      <InteractiveParticleGrid className="bg-[#05060a] py-20 md:py-24 px-8 md:px-20 border-t border-white/5">
         <FadeInSection>
           <div className="mx-auto max-w-[1500px]">
-            <div className="flex items-center justify-between mb-12">
-              <h2 className="text-3xl md:text-4xl font-bold text-white tracking-tight">Latest Insights</h2>
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 md:mb-12 gap-6 md:gap-0">
+              <h2 className="text-2xl md:text-3xl font-bold text-white tracking-tight">Latest Insights</h2>
               <button onClick={() => navigate('/blogs')} className="px-5 py-2.5 rounded-full bg-white/5 border border-white/10 text-white text-sm font-medium hover:bg-white/10 transition-colors cursor-pointer">
                 Read all articles &rarr;
               </button>
@@ -1414,15 +1414,15 @@ export default function CodewardHero() {
       <FAQSection />
 
       {/* ── CTA Section ── */}
-      <section className="bg-[#05060a] py-32 px-8 md:px-20 relative overflow-hidden flex flex-col items-center justify-center text-center">
+      <section className="bg-[#05060a] py-20 md:py-24 px-8 md:px-20 relative overflow-hidden flex flex-col items-center justify-center text-center">
         {/* Abstract Background Elements */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-[radial-gradient(circle_at_center,_rgba(139,92,246,0.12)_0%,_transparent_60%)] pointer-events-none" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] md:w-[800px] md:h-[800px] max-w-[100vw] bg-[radial-gradient(circle_at_center,_rgba(139,92,246,0.12)_0%,_transparent_60%)] pointer-events-none" />
         
         <FadeInSection className="relative z-10 flex flex-col items-center max-w-3xl">
-          <h2 className="text-6xl md:text-8xl font-semibold text-white mb-8 drop-shadow-lg">
+          <h2 className="text-3xl md:text-5xl font-semibold text-white mb-8 drop-shadow-lg">
             Still Curious?
           </h2>
-          <p className="text-white/60 text-lg md:text-xl font-medium mb-12 leading-relaxed max-w-xl">
+          <p className="text-white/60 text-base md:text-lg font-medium mb-12 leading-relaxed max-w-xl">
             The fastest way to understand Codeward is to watch it audit your own codebase. Connect it and see what it finds.
           </p>
           <button 
@@ -1438,14 +1438,14 @@ export default function CodewardHero() {
 
       {/* ── Footer Section ── */}
       <div className="px-4 md:px-8 pb-4 md:pb-8 bg-[#05060a]">
-        <footer className="relative bg-[#C3DBFF] rounded-[16px] pt-32 pb-8 px-8 md:px-14 overflow-hidden shadow-2xl">
+        <footer className="relative bg-[#C3DBFF] rounded-[16px] pt-20 md:pt-24 pb-8 px-8 md:px-14 overflow-hidden shadow-2xl">
           {/* Fabric Gradient Overlay */}
           <div className="absolute inset-0 bg-gradient-to-tr from-white/40 via-transparent to-black/5 mix-blend-overlay pointer-events-none" />
           
           <div className="mx-auto max-w-[1500px] relative z-10">
             {/* Huge Logo/Text Graphic */}
-            <div className="w-full flex justify-center mb-32 select-none pointer-events-none overflow-hidden">
-              <h2 className="text-[14vw] md:text-[12vw] font-black tracking-tighter leading-none opacity-90 drop-shadow-xl lowercase flex items-center justify-center">
+            <div className="w-full flex justify-center mb-20 md:mb-24 select-none pointer-events-none overflow-hidden">
+              <h2 className="text-[12vw] md:text-[10vw] font-black tracking-tighter leading-none opacity-90 drop-shadow-xl lowercase flex items-center justify-center">
                 <FadeInSection direction="left" delay={200}>
                   <span className="text-black inline-block">code</span>
                 </FadeInSection>
@@ -1457,17 +1457,17 @@ export default function CodewardHero() {
 
             {/* Mission & Contact */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-8 mb-20">
-              <p className="text-black/80 text-lg md:text-xl font-medium max-w-sm leading-relaxed">
+              <p className="text-black/80 text-base md:text-lg font-medium max-w-sm leading-relaxed">
                 Codeward builds, tests, and optimizes your codebase.<br />
                 Automatically.
               </p>
-              <a href="mailto:hello@codeward.ai" className="text-black hover:text-[#8B5CF6] transition-colors text-lg md:text-xl font-bold flex items-center gap-2 group">
+              <a href="mailto:hello@codeward.ai" className="text-black hover:text-[#8B5CF6] transition-colors text-base md:text-lg font-bold flex items-center gap-2 group">
                 <span className="group-hover:translate-x-1 transition-transform">→</span> hello@codeward.ai
               </a>
             </div>
 
           {/* Links Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-12 mb-24">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12 mb-16 md:mb-20">
             <div className="flex flex-col gap-4">
               <h4 className="text-black font-bold mb-2">Product</h4>
               <a href="#" className="text-black/70 hover:text-black transition-colors text-sm font-semibold">AI Code Builder</a>
