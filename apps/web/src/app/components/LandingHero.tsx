@@ -1342,7 +1342,7 @@ export default function CodewardHero() {
       <TestimonialsSection />
 
       {/* ── Latest Insights / Blogs Section ── */}
-      <section className="bg-[#05060a] py-32 px-8 md:px-20 border-t border-white/5">
+      <InteractiveParticleGrid className="bg-[#05060a] py-32 px-8 md:px-20 border-t border-white/5">
         <FadeInSection>
           <div className="mx-auto max-w-[1500px]">
             <div className="flex items-center justify-between mb-12">
@@ -1404,7 +1404,7 @@ export default function CodewardHero() {
             </div>
           </div>
         </FadeInSection>
-      </section>
+      </InteractiveParticleGrid>
 
       {/* ── FAQ Section ── */}
       <SecuritySection />
@@ -1567,5 +1567,98 @@ export default function CodewardHero() {
       </footer>
       </div>
     </div>
+  );
+}
+
+function InteractiveParticleGrid({ children, className = '' }: { children: React.ReactNode, className?: string }) {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const mousePosRef = useRef({ x: -1000, y: -1000 });
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const container = containerRef.current;
+    if (!canvas || !container) return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    let animationFrameId: number;
+    const spacing = 26;
+
+    const resizeCanvas = () => {
+      canvas.width = container.clientWidth;
+      canvas.height = container.clientHeight;
+    };
+
+    const drawGrid = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      const cols = Math.floor(canvas.width / spacing) + 1;
+      const rows = Math.floor(canvas.height / spacing) + 1;
+
+      for (let i = 0; i <= cols; i++) {
+        for (let j = 0; j <= rows; j++) {
+          const x = i * spacing;
+          const y = j * spacing;
+
+          const dist = Math.hypot(x - mousePosRef.current.x, y - mousePosRef.current.y);
+          
+          const maxDist = 400; 
+          let alpha = 0.05; 
+          let radius = 1.2;
+          
+          if (dist < maxDist) {
+            const intensity = 1 - dist / maxDist;
+            alpha += intensity * 0.45;
+            radius += intensity * 1.5;
+          }
+
+          ctx.beginPath();
+          ctx.arc(x, y, radius, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+          ctx.fill();
+        }
+      }
+      animationFrameId = requestAnimationFrame(drawGrid);
+    };
+
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+    drawGrid();
+
+    return () => {
+      window.removeEventListener('resize', resizeCanvas);
+      cancelAnimationFrame(animationFrameId);
+    };
+  }, []);
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    const rect = containerRef.current?.getBoundingClientRect();
+    if (rect) {
+      mousePosRef.current = {
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top
+      };
+    }
+  };
+
+  const handleMouseLeave = () => {
+    mousePosRef.current = { x: -1000, y: -1000 };
+  };
+
+  return (
+    <section 
+      ref={containerRef}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+      className={`relative w-full overflow-hidden ${className}`}
+    >
+      <canvas ref={canvasRef} className="absolute inset-0 w-full h-full pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-t from-[#8B5CF6]/5 via-transparent to-transparent pointer-events-none" />
+      <div className="relative z-10 w-full h-full">
+        {children}
+      </div>
+    </section>
   );
 }
