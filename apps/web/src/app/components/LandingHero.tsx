@@ -36,7 +36,8 @@ function FadeInSection({ children, delay = 0, direction = 'up', className = '' }
       entries.forEach(entry => {
         if (entry.isIntersecting) {
           setVisible(true);
-          observer.unobserve(entry.target);
+        } else {
+          setVisible(false);
         }
       });
     }, { threshold: 0.15, rootMargin: "0px 0px -50px 0px" });
@@ -359,7 +360,7 @@ function TypingText() {
       setText(fullText.slice(0, i + 1));
       i++;
       if (i >= fullText.length) clearInterval(interval);
-    }, 120);
+    }, 60);
     return () => clearInterval(interval);
   }, []);
 
