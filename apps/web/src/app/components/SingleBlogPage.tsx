@@ -33,25 +33,25 @@ export const SingleBlogPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#05060a] text-white font-['DM_Sans'] selection:bg-purple-500/30">
-      {/* Ã¢â€â‚¬Ã¢â€â‚¬ HEADER Ã¢â€â‚¬Ã¢â€â‚¬ */}
+      {/* ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ HEADER ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ */}
       <header className="relative z-50 flex items-center justify-between px-8 py-6 md:px-14 border-b border-white/5">
         <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/')}>
-          <img src="/logo.png" alt="Codeward Logo" className="h-10 w-auto object-contain" />
+          <img src="https://i.ibb.co/jkgWWhgZ/codewrdlogo-png.png" alt="Codeward Logo" className="h-10 w-auto object-contain" />
           <span className="text-xl font-bold tracking-tight text-white">
             Code<span className="text-purple-500">ward</span>
           </span>
         </div>
         <div className="flex items-center gap-6">
-          <button onClick={() => navigate('/blogs')} className="text-sm font-semibold text-white/60 hover:text-white transition-colors">Ã¢â€ Â All Blogs</button>
+          <button onClick={() => navigate('/blogs')} className="text-sm font-semibold text-white/60 hover:text-white transition-colors">ÃƒÂ¢Ã¢â‚¬Â Ã‚Â All Blogs</button>
           <button onClick={() => navigate('/signup')} className="rounded-full bg-white px-5 py-2 text-sm font-semibold text-black transition-all hover:bg-gray-200">Start Free</button>
         </div>
       </header>
 
       <main className="pb-32">
-        {/* Ã¢â€â‚¬Ã¢â€â‚¬ LAGO-STYLE TWO-COLUMN LAYOUT Ã¢â€â‚¬Ã¢â€â‚¬ */}
+        {/* ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ LAGO-STYLE TWO-COLUMN LAYOUT ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ */}
         <div className="max-w-[1100px] mx-auto px-6 pt-16 md:pt-24 flex flex-col lg:flex-row gap-16 items-start">
           
-          {/* Ã¢â€â‚¬Ã¢â€â‚¬ SIDEBAR (STICKY) Ã¢â€â‚¬Ã¢â€â‚¬ */}
+          {/* ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ SIDEBAR (STICKY) ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ */}
           <aside className="hidden lg:flex flex-col w-[220px] shrink-0 sticky top-32">
             <div className="mb-12">
               <h4 className="text-[11px] font-bold text-white/40 uppercase tracking-widest mb-5">Share on</h4>
@@ -77,9 +77,9 @@ export const SingleBlogPage: React.FC = () => {
             </div>
           </aside>
 
-          {/* Ã¢â€â‚¬Ã¢â€â‚¬ MAIN ARTICLE CONTENT Ã¢â€â‚¬Ã¢â€â‚¬ */}
+          {/* ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ MAIN ARTICLE CONTENT ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ */}
           <article className="flex-1 w-full max-w-[700px]">
-          {/* Ã¢â€â‚¬Ã¢â€â‚¬ ARTICLE HERO BACKGROUND Ã¢â€â‚¬Ã¢â€â‚¬ */}
+          {/* ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ ARTICLE HERO BACKGROUND ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ */}
           <div className={`relative h-[300px] md:h-[400px] w-full rounded-2xl overflow-hidden bg-gradient-to-br ${post.gradient || 'from-purple-900 to-indigo-900'} mb-12 shadow-2xl border border-white/10`}>
             <div className="absolute inset-0 bg-gradient-to-tr from-black/20 via-transparent to-white/20 mix-blend-overlay" />
             <div className="absolute inset-0 bg-black/10" />
@@ -93,7 +93,7 @@ export const SingleBlogPage: React.FC = () => {
           <div className="flex items-center gap-3 mb-8">
             <span className="text-[12px] font-bold text-purple-400 uppercase tracking-widest bg-purple-400/10 px-3 py-1 rounded-full">{post.category}</span>
             <span className="text-sm font-medium text-white/40">{post.date}</span>
-            <span className="text-white/20">Ã¢â‚¬Â¢</span>
+            <span className="text-white/20">ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢</span>
             <span className="text-sm font-medium text-white/40">{post.readTime}</span>
           </div>
 
@@ -122,12 +122,12 @@ export const SingleBlogPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Ã¢â€â‚¬Ã¢â€â‚¬ MEDIUM-STYLE CONTENT Ã¢â€â‚¬Ã¢â€â‚¬ */}
+          {/* ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ MEDIUM-STYLE CONTENT ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ */}
           {/* We use global styling to format the inner HTML beautifully */}
           <div className="prose prose-invert prose-lg md:prose-xl max-w-none prose-p:text-white/80 prose-p:leading-[1.8] prose-p:mb-8 prose-h2:text-3xl prose-h2:font-bold prose-h2:text-white prose-h2:mt-16 prose-h2:mb-6 prose-blockquote:border-l-4 prose-blockquote:border-purple-500 prose-blockquote:pl-6 prose-blockquote:text-white/60 prose-blockquote:font-medium prose-blockquote:italic prose-li:text-white/80 prose-li:leading-[1.8] marker:text-purple-500"
                dangerouslySetInnerHTML={{ __html: post.content }} />
 
-          {/* Ã¢â€â‚¬Ã¢â€â‚¬ IN-ARTICLE PRODUCT CTA Ã¢â€â‚¬Ã¢â€â‚¬ */}
+          {/* ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ IN-ARTICLE PRODUCT CTA ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ */}
           <div className="my-16 p-8 rounded-2xl bg-gradient-to-r from-purple-900/40 to-blue-900/40 border border-white/10 text-center">
             <h3 className="text-2xl font-bold text-white mb-4">Ship faster with zero technical debt</h3>
             <p className="text-lg text-white/70 mb-6">Codeward's AI agents review your PRs in seconds, catching bugs and vulnerabilities before they merge.</p>
@@ -136,7 +136,7 @@ export const SingleBlogPage: React.FC = () => {
             </button>
           </div>
 
-          {/* Ã¢â€â‚¬Ã¢â€â‚¬ BOTTOM COMMUNITY CTA (Matching AuthPage design exactly) Ã¢â€â‚¬Ã¢â€â‚¬ */}
+          {/* ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ BOTTOM COMMUNITY CTA (Matching AuthPage design exactly) ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ */}
           <div className="mt-20 flex flex-col items-center gap-5 bg-gradient-to-br from-[#303833] via-[#3a443b] to-[#2a302c] border border-white/10 rounded-[1.25rem] p-10 shadow-2xl">
             <div className="flex items-center gap-4 mb-2">
               <a href="#" className="w-16 h-16 rounded-full bg-[#25D366]/10 border border-[#25D366]/20 flex items-center justify-center hover:bg-[#25D366]/20 hover:scale-105 transition-all text-[#25D366]">
@@ -153,7 +153,7 @@ export const SingleBlogPage: React.FC = () => {
         </article>
       </div>
 
-        {/* Ã¢â€â‚¬Ã¢â€â‚¬ LAGO-STYLE 'MORE FROM THE BLOG' SECTION Ã¢â€â‚¬Ã¢â€â‚¬ */}
+        {/* ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ LAGO-STYLE 'MORE FROM THE BLOG' SECTION ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ */}
         <section className="max-w-[1200px] mx-auto px-6 mt-32">
           <div className="flex items-center justify-between border-b border-white/10 pb-6 mb-12">
             <h3 className="text-2xl font-bold text-white">More from the blog</h3>
@@ -192,12 +192,12 @@ export const SingleBlogPage: React.FC = () => {
           </div>
         </section>
 
-        {/* Ã¢â€â‚¬Ã¢â€â‚¬ LAGO-STYLE NEWSLETTER SUBSCRIPTION Ã¢â€â‚¬Ã¢â€â‚¬ */}
+        {/* ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ LAGO-STYLE NEWSLETTER SUBSCRIPTION ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ */}
         <section className="max-w-[1200px] mx-auto px-6 mt-32">
           <div className="bg-[#1A1A1A] border border-white/10 rounded-2xl p-10 md:p-16 flex flex-col md:flex-row items-start md:items-center justify-between gap-10">
             <div className="max-w-md">
               <h2 className="text-3xl font-bold text-white mb-4 tracking-tight">Code<span className="text-[#8B5CF6]">ward</span></h2>
-              <p className="text-white/60 text-lg font-medium">Get the latest engineering news and updates Ã¢â‚¬â€ no hidden spam.</p>
+              <p className="text-white/60 text-lg font-medium">Get the latest engineering news and updates ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â no hidden spam.</p>
             </div>
             <div className="w-full md:w-auto flex-1 max-w-md">
               <form className="flex flex-col sm:flex-row gap-3" onSubmit={(e) => e.preventDefault()}>
@@ -219,7 +219,7 @@ export const SingleBlogPage: React.FC = () => {
         </section>
       </main>
 
-      {/* Ã¢â€â‚¬Ã¢â€â‚¬ Footer Section Ã¢â€â‚¬Ã¢â€â‚¬ */}
+      {/* ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Footer Section ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ */}
       <div className="px-4 md:px-8 pb-4 md:pb-8 bg-[#05060a] mt-20">
         <footer className="relative bg-[#C3DBFF] rounded-[16px] pt-32 pb-8 px-8 md:px-14 overflow-hidden shadow-2xl">
           {/* Fabric Gradient Overlay */}
@@ -245,7 +245,7 @@ export const SingleBlogPage: React.FC = () => {
                 Automatically.
               </p>
               <a href="mailto:hello@codeward.ai" className="text-black hover:text-[#8B5CF6] transition-colors text-lg md:text-xl font-bold flex items-center gap-2 group">
-                <span className="group-hover:translate-x-1 transition-transform">Ã¢â€ â€™</span> hello@codeward.ai
+                <span className="group-hover:translate-x-1 transition-transform">ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢</span> hello@codeward.ai
               </a>
             </div>
 
@@ -300,7 +300,7 @@ export const SingleBlogPage: React.FC = () => {
               {["GitHub", "GitLab", "Bitbucket", "Jira", "Linear", "Slack", "Discord", "VS Code", "JetBrains", "Vercel", "AWS", "Google Cloud", "Azure", "Supabase", "Stripe", "Docker", "Kubernetes", "Datadog", "Sentry"].map((integration, i, arr) => (
                 <span key={integration} className="whitespace-nowrap">
                   <a href="#" className="hover:text-black transition-colors">{integration}</a>
-                  {i < arr.length - 1 && <span className="ml-3">Ã‚Â·</span>}
+                  {i < arr.length - 1 && <span className="ml-3">Ãƒâ€šÃ‚Â·</span>}
                 </span>
               ))}
             </div>
@@ -321,7 +321,7 @@ export const SingleBlogPage: React.FC = () => {
           {/* Bottom Bar */}
           <div className="flex flex-col md:flex-row justify-between items-center gap-6 pt-8 border-t border-black/10 text-black/50 text-sm font-semibold">
             <div className="flex flex-wrap items-center gap-6">
-              <span>Ã‚Â©2026, Codeward</span>
+              <span>Ãƒâ€šÃ‚Â©2026, Codeward</span>
               <a href="#" className="hover:text-black transition-colors">Privacy</a>
               <a href="#" className="hover:text-black transition-colors">Terms</a>
               <a href="#" className="hover:text-black transition-colors">Trust</a>
@@ -346,7 +346,7 @@ export const SingleBlogPage: React.FC = () => {
             </div>
 
             <div className="flex items-center gap-2">
-              Made on Codeward by <span className="text-black font-black text-lg leading-none">Ã¢Å“Â¦</span>
+              Made on Codeward by <span className="text-black font-black text-lg leading-none">ÃƒÂ¢Ã…â€œÃ‚Â¦</span>
             </div>
           </div>
         </div>

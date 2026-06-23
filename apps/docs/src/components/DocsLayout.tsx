@@ -32,8 +32,8 @@ export default function DocsLayout() {
       title: 'Core Concepts',
       icon: PuzzleIcon,
       items: [
-        { name: 'Mode 1 Ã¢â‚¬â€ On connect', path: '/guide/concepts/mode-1' },
-        { name: 'Mode 2 Ã¢â‚¬â€ On push', path: '/guide/concepts/mode-2' },
+        { name: 'Mode 1 ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â On connect', path: '/guide/concepts/mode-1' },
+        { name: 'Mode 2 ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â On push', path: '/guide/concepts/mode-2' },
         { name: 'Debt scoring model', path: '/guide/concepts/scoring' },
       ]
     },
@@ -109,7 +109,7 @@ export default function DocsLayout() {
       {/* Top Navbar */}
       <header className="h-20 border-b border-cw-bdr flex items-center px-6 justify-between shrink-0 z-50 bg-cw-bg transition-colors duration-250">
         <Link to="/" className="text-xl font-semibold flex items-center gap-3">
-          <img src="/logo.png" alt="Codeward Logo" className="h-16 w-16 object-contain" />
+          <img src="https://i.ibb.co/jkgWWhgZ/codewrdlogo-png.png" alt="Codeward Logo" className="h-16 w-16 object-contain" />
           <span>Codeward Docs</span>
         </Link>
         <div className="flex items-center gap-6">
