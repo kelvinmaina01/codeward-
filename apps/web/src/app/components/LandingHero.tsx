@@ -1020,7 +1020,7 @@ export default function CodewardHero() {
                   </svg>
                 </div>
               </div>
-              <span className="mr-2">Connect repo ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢</span>
+              <span className="mr-2">Connect repo &rarr;</span>
             </button>
           </div>
 
