@@ -1,4 +1,4 @@
-import { Link, Outlet, useLocation } from 'react-router';
+﻿import { Link, Outlet, useLocation } from 'react-router';
 import { Book01Icon, CodeIcon, CpuIcon, PuzzleIcon, Rocket01Icon, Search01Icon, File01Icon } from 'hugeicons-react';
 import clsx from 'clsx';
 import { useState, useEffect } from 'react';
@@ -109,7 +109,7 @@ export default function DocsLayout() {
       {/* Top Navbar */}
       <header className="h-20 border-b border-cw-bdr flex items-center px-6 justify-between shrink-0 z-50 bg-cw-bg transition-colors duration-250">
         <Link to="/" className="text-xl font-semibold flex items-center gap-3">
-          <img src="https://i.ibb.co/jkgWWhgZ/codewrdlogo-png.png" alt="Codeward Logo" className="h-16 w-16 object-contain" />
+          <img src="https://i.ibb.co/BJf3wnC/codewrdlogo-png.png" alt="Codeward Logo" className="h-16 w-16 object-contain" />
           <span>Codeward Docs</span>
         </Link>
         <div className="flex items-center gap-6">

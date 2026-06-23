@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+﻿import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { ArchitectureFlow } from './ArchitectureFlow';
 import { FAQSection } from './FAQSection';
@@ -648,7 +648,7 @@ function VideoPlayer() {
         <>
           <div className="absolute inset-0 bg-[#0a0a0f] flex flex-col items-center justify-center pointer-events-none">
              <div className="flex items-center gap-4 opacity-40">
-               <img src="https://i.ibb.co/jkgWWhgZ/codewrdlogo-png.png" alt="Codeward Logo" className="h-16 w-auto object-contain grayscale" />
+               <img src="https://i.ibb.co/BJf3wnC/codewrdlogo-png.png" alt="Codeward Logo" className="h-16 w-auto object-contain grayscale" />
                <span className="text-4xl font-bold tracking-tight text-white">
                  Code<span className="text-purple-600">ward</span>
                </span>
@@ -694,7 +694,7 @@ export default function CodewardHero() {
       {/* Top nav */}
       <header className="relative z-50 flex items-center justify-between px-8 py-6 md:px-14">
         <div className="flex items-center gap-3">
-          <img src="https://i.ibb.co/jkgWWhgZ/codewrdlogo-png.png" alt="Codeward Logo" className="h-16 w-auto object-contain" />
+          <img src="https://i.ibb.co/BJf3wnC/codewrdlogo-png.png" alt="Codeward Logo" className="h-16 w-auto object-contain" />
           <span className="text-2xl font-bold tracking-tight text-white">
             Code<span className="text-purple-500">ward</span>
           </span>
@@ -1369,7 +1369,7 @@ export default function CodewardHero() {
                     <div className="absolute inset-0 p-6 flex flex-col justify-between z-10">
                       <div className="flex justify-start">
                         <div className="flex items-center gap-2">
-                          <img src="https://i.ibb.co/jkgWWhgZ/codewrdlogo-png.png" alt="Codeward" className="h-5 w-5 object-contain drop-shadow-md" />
+                          <img src="https://i.ibb.co/BJf3wnC/codewrdlogo-png.png" alt="Codeward" className="h-5 w-5 object-contain drop-shadow-md" />
                           <span className="text-sm font-bold tracking-tight text-white drop-shadow-md">Code<span className="text-purple-400">ward</span></span>
                         </div>
                       </div>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { BotIcon, TaskDone01Icon, GitPullRequestIcon, CircleArrowReload01Icon, StarsIcon, Sun01Icon, Moon01Icon, CircleIcon } from 'hugeicons-react';
 import { signIn } from '../../lib/auth';
@@ -126,7 +126,7 @@ export function AuthPage({ onBack, theme: _theme, onCycleTheme, onNavigate: _onN
         {/* Right auth panel ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â tall, near-full height */}
         <div className="w-full md:w-1/2 bg-cw-bg border border-cw-bdr rounded-[2rem] flex flex-col items-center justify-center p-4 shadow-sm self-stretch">
           <div className="w-full max-w-[480px] flex flex-col items-center justify-center h-full">
-            <img src="https://i.ibb.co/jkgWWhgZ/codewrdlogo-png.png" alt="Codeward Logo" className="w-40 h-40 mb-6 object-contain" />
+            <img src="https://i.ibb.co/BJf3wnC/codewrdlogo-png.png" alt="Codeward Logo" className="w-40 h-40 mb-6 object-contain" />
             
             <h2 className="text-[28px] font-bold tracking-tight text-cw-txt mb-3 text-center">
               Welcome to Codeward

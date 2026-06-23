@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+﻿import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { blogs } from '../data/blogs';
 
@@ -45,7 +45,7 @@ export const BlogsPage: React.FC = () => {
       {/* ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ HEADER ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ */}
       <header className="relative z-50 flex items-center justify-between px-8 py-6 md:px-14">
         <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/')}>
-          <img src="https://i.ibb.co/jkgWWhgZ/codewrdlogo-png.png" alt="Codeward Logo" className="h-16 w-auto object-contain" />
+          <img src="https://i.ibb.co/BJf3wnC/codewrdlogo-png.png" alt="Codeward Logo" className="h-16 w-auto object-contain" />
           <span className="text-2xl font-bold tracking-tight text-white">
             Code<span className="text-purple-500">ward</span>
           </span>
@@ -123,7 +123,7 @@ export const BlogsPage: React.FC = () => {
                   <div className="absolute inset-0 p-6 flex flex-col justify-between z-10">
                     <div className="flex justify-start">
                       <div className="flex items-center gap-2">
-                        <img src="https://i.ibb.co/jkgWWhgZ/codewrdlogo-png.png" alt="Codeward" className="h-5 w-5 object-contain drop-shadow-md" />
+                        <img src="https://i.ibb.co/BJf3wnC/codewrdlogo-png.png" alt="Codeward" className="h-5 w-5 object-contain drop-shadow-md" />
                         <span className="text-sm font-bold tracking-tight text-white drop-shadow-md">Code<span className="text-purple-400">ward</span></span>
                       </div>
                     </div>

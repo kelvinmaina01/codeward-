@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+﻿import React, { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import { comparisons } from '../data/comparisons';
 
@@ -56,7 +56,7 @@ export const ComparePage: React.FC = () => {
       {/* ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ EXACT HEADER FROM LANDING PAGE ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ */}
       <header className="relative z-50 flex items-center justify-between px-8 py-6 md:px-14">
         <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/')}>
-          <img src="https://i.ibb.co/jkgWWhgZ/codewrdlogo-png.png" alt="Codeward Logo" className="h-16 w-auto object-contain" />
+          <img src="https://i.ibb.co/BJf3wnC/codewrdlogo-png.png" alt="Codeward Logo" className="h-16 w-auto object-contain" />
           <span className="text-2xl font-bold tracking-tight text-white">
             Code<span className="text-purple-500">ward</span>
           </span>
@@ -410,7 +410,7 @@ export const ComparePage: React.FC = () => {
                 <div className="bg-[#E8EAF6] rounded-3xl p-10 md:p-14 h-full flex flex-col justify-between relative overflow-hidden group shadow-2xl text-black border border-white/10">
                   <div className="relative z-10">
                     <div className="flex items-center gap-4 mb-6">
-                      <img src="https://i.ibb.co/jkgWWhgZ/codewrdlogo-png.png" alt="Codeward Logo" className="h-8 w-auto" />
+                      <img src="https://i.ibb.co/BJf3wnC/codewrdlogo-png.png" alt="Codeward Logo" className="h-8 w-auto" />
                       <h4 className="text-2xl font-bold">Codeward</h4>
                     </div>
                     <p className="text-[17px] font-medium leading-relaxed opacity-80">
