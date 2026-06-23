@@ -1,4 +1,4 @@
-﻿import React, { useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { blogs } from '../data/blogs';
 
@@ -42,10 +42,10 @@ export const BlogsPage: React.FC = () => {
 
   return (
     <div className="h-screen overflow-y-auto overflow-x-hidden bg-[#05060a] font-['DM_Sans']">
-      {/* ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ HEADER ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ */}
+      {/* Ã¢â€â‚¬Ã¢â€â‚¬ HEADER Ã¢â€â‚¬Ã¢â€â‚¬ */}
       <header className="relative z-50 flex items-center justify-between px-8 py-6 md:px-14">
         <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/')}>
-          <img src="https://i.ibb.co/BJf3wnC/codewrdlogo-png.png" alt="Codeward Logo" className="h-16 w-auto object-contain" />
+          <img src="https://i.ibb.co/0jxSNrnp/codewrdlogo-png-removebg-preview.png" alt="Codeward Logo" className="h-8 w-auto object-contain -mr-2" />
           <span className="text-2xl font-bold tracking-tight text-white">
             Code<span className="text-purple-500">ward</span>
           </span>
@@ -99,7 +99,7 @@ export const BlogsPage: React.FC = () => {
               <p className="text-lg text-white/60 mb-8 leading-relaxed line-clamp-3">
                 {featuredPost.seoDescription}
               </p>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center">
                 <div className="h-10 w-10 rounded-full bg-white/10 overflow-hidden">
                   <img src={`https://api.dicebear.com/7.x/initials/svg?seed=${featuredPost.authorAvatar}`} alt={featuredPost.author} className="h-full w-full object-cover" />
                 </div>
@@ -123,7 +123,7 @@ export const BlogsPage: React.FC = () => {
                   <div className="absolute inset-0 p-6 flex flex-col justify-between z-10">
                     <div className="flex justify-start">
                       <div className="flex items-center gap-2">
-                        <img src="https://i.ibb.co/BJf3wnC/codewrdlogo-png.png" alt="Codeward" className="h-5 w-5 object-contain drop-shadow-md" />
+                        <img src="https://i.ibb.co/0jxSNrnp/codewrdlogo-png-removebg-preview.png" alt="Codeward" className="h-4 w-4 object-contain drop-shadow-md" />
                         <span className="text-sm font-bold tracking-tight text-white drop-shadow-md">Code<span className="text-purple-400">ward</span></span>
                       </div>
                     </div>
@@ -150,7 +150,7 @@ export const BlogsPage: React.FC = () => {
                       <img src={`https://api.dicebear.com/7.x/initials/svg?seed=${post.authorAvatar}`} alt={post.author} className="h-full w-full object-cover" />
                     </div>
                     <span className="text-sm font-medium text-white/60">{post.author}</span>
-                    <span className="text-white/30">ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢</span>
+                    <span className="text-white/30">•</span>
                     <span className="text-sm text-white/40">{post.readTime}</span>
                   </div>
                 </div>
@@ -160,7 +160,7 @@ export const BlogsPage: React.FC = () => {
         </div>
       </main>
 
-      {/* ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Footer Section ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ */}
+      {/* Ã¢â€â‚¬Ã¢â€â‚¬ Footer Section Ã¢â€â‚¬Ã¢â€â‚¬ */}
       <div className="px-4 md:px-8 pb-4 md:pb-8 bg-[#05060a] mt-10">
         <footer className="relative bg-[#C3DBFF] rounded-[16px] pt-32 pb-8 px-8 md:px-14 overflow-hidden shadow-2xl">
           {/* Fabric Gradient Overlay */}
@@ -186,7 +186,7 @@ export const BlogsPage: React.FC = () => {
                 Automatically.
               </p>
               <a href="mailto:hello@codeward.ai" className="text-black hover:text-[#8B5CF6] transition-colors text-lg md:text-xl font-bold flex items-center gap-2 group">
-                <span className="group-hover:translate-x-1 transition-transform">ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢</span> hello@codeward.ai
+                <span className="group-hover:translate-x-1 transition-transform">→</span> hello@codeward.ai
               </a>
             </div>
 
@@ -241,7 +241,7 @@ export const BlogsPage: React.FC = () => {
               {["GitHub", "GitLab", "Bitbucket", "Jira", "Linear", "Slack", "Discord", "VS Code", "JetBrains", "Vercel", "AWS", "Google Cloud", "Azure", "Supabase", "Stripe", "Docker", "Kubernetes", "Datadog", "Sentry"].map((integration, i, arr) => (
                 <span key={integration} className="whitespace-nowrap">
                   <a href="#" className="hover:text-black transition-colors">{integration}</a>
-                  {i < arr.length - 1 && <span className="ml-3">Ãƒâ€šÃ‚Â·</span>}
+                  {i < arr.length - 1 && <span className="ml-3">Ã‚Â·</span>}
                 </span>
               ))}
             </div>
@@ -262,7 +262,7 @@ export const BlogsPage: React.FC = () => {
           {/* Bottom Bar */}
           <div className="flex flex-col md:flex-row justify-between items-center gap-6 pt-8 border-t border-black/10 text-black/50 text-sm font-semibold">
             <div className="flex flex-wrap items-center gap-6">
-              <span>Ãƒâ€šÃ‚Â©2026, Codeward</span>
+              <span>Ã‚Â©2026, Codeward</span>
               <a href="#" className="hover:text-black transition-colors">Privacy</a>
               <a href="#" className="hover:text-black transition-colors">Terms</a>
               <a href="#" className="hover:text-black transition-colors">Trust</a>
@@ -287,7 +287,7 @@ export const BlogsPage: React.FC = () => {
             </div>
 
             <div className="flex items-center gap-2">
-              Made on Codeward by <span className="text-black font-black text-lg leading-none">ÃƒÂ¢Ã…â€œÃ‚Â¦</span>
+              Made on Codeward by <span className="text-black font-black text-lg leading-none">✦</span>
             </div>
           </div>
         </div>
@@ -296,3 +296,4 @@ export const BlogsPage: React.FC = () => {
     </div>
   );
 };
+

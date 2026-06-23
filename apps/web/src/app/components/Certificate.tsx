@@ -235,7 +235,7 @@ export function Certificate() {
                     { title: 'Compliance report', desc: 'EU AI Act / GDPR format, includes audit trail', active: false },
                     { title: 'CSV export', desc: 'all findings for spreadsheet / Jira import', active: false },
                   ].map((opt, i) => (
-                    <div key={i} className="flex items-center gap-3">
+                    <div key={i} className="flex items-center">
                       <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${opt.active ? 'border-cw-blue' : 'border-cw-txt3'}`}>
                         {opt.active && <div className="w-2 h-2 rounded-full bg-cw-blue" />}
                       </div>

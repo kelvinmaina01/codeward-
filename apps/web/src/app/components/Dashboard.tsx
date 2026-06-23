@@ -169,7 +169,7 @@ export function Dashboard({ onRunClick }: Props) {
                 <div className="w-1.5 h-1.5 rounded-full bg-cw-amber" />
                 <span className="text-[13px] font-medium text-cw-txt">my-api</span>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center">
                 <span className="text-[11px] text-cw-txt2">commit 3fa2c1 - 2m 14s</span>
                 <span className="px-2 py-0.5 rounded bg-cw-amber/10 text-cw-amber border border-cw-amber/20 text-[10px] font-bold">Running</span>
               </div>
@@ -180,7 +180,7 @@ export function Dashboard({ onRunClick }: Props) {
                 <div className="w-1.5 h-1.5 rounded-full bg-cw-green" />
                 <span className="text-[13px] font-medium text-cw-txt">frontend</span>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center">
                 <span className="text-[11px] text-cw-txt2">4m ago</span>
                 <span className="px-2 py-0.5 rounded bg-cw-green/10 text-cw-green border border-cw-green/20 text-[10px] font-bold">94/100</span>
               </div>
@@ -191,7 +191,7 @@ export function Dashboard({ onRunClick }: Props) {
                 <div className="w-1.5 h-1.5 rounded-full bg-cw-green" />
                 <span className="text-[13px] font-medium text-cw-txt">auth-service</span>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center">
                 <span className="text-[11px] text-cw-txt2">1h ago</span>
                 <span className="px-2 py-0.5 rounded bg-cw-green/10 text-cw-green border border-cw-green/20 text-[10px] font-bold">91/100</span>
               </div>
@@ -202,7 +202,7 @@ export function Dashboard({ onRunClick }: Props) {
                 <div className="w-1.5 h-1.5 rounded-full bg-cw-red" />
                 <span className="text-[13px] font-medium text-cw-txt">payments-api</span>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center">
                 <span className="text-[11px] text-cw-txt2">3h ago</span>
                 <span className="px-2 py-0.5 rounded bg-cw-red/10 text-cw-red border border-cw-red/20 text-[10px] font-bold">Blocked</span>
               </div>
@@ -221,7 +221,7 @@ export function Dashboard({ onRunClick }: Props) {
               { label: 'N+1 queries fixed', pct: 60, color: 'bg-cw-teal', val: '-6', valColor: 'text-cw-teal' },
               { label: 'AI-era issues', pct: 35, color: 'bg-cw-purple', val: '-2', valColor: 'text-cw-purple' },
             ].map(r => (
-              <div key={r.label} className="flex items-center gap-3">
+              <div key={r.label} className="flex items-center">
                 <span className="text-[12px] text-cw-txt min-w-[140px]">{r.label}</span>
                 <div className="flex-1 h-1.5 bg-cw-bg3 rounded-full overflow-hidden">
                   <div className={`h-full rounded-full ${r.color}`} style={{ width: `${r.pct}%` }} />

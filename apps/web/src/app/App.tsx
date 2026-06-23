@@ -31,6 +31,30 @@ import CodewardHero from './components/LandingHero';
 import { ComparePage } from './components/ComparePage';
 import { BlogsPage } from './components/BlogsPage';
 import { SingleBlogPage } from './components/SingleBlogPage';
+import { AdminLayout } from './components/admin/AdminLayout';
+import { AdminOverview } from './components/admin/AdminOverview';
+import { AdminFeed } from './components/admin/AdminFeed';
+import { AdminRuns } from './components/admin/AdminRuns';
+import { AdminRepos } from './components/admin/AdminRepos';
+import { AdminSecurity } from './components/admin/AdminSecurity';
+import { AdminBloat } from './components/admin/AdminBloat';
+import { AdminBroken } from './components/admin/AdminBroken';
+import { AdminArchitecture } from './components/admin/AdminArchitecture';
+import { AdminCompliance } from './components/admin/AdminCompliance';
+import { AdminAgents } from './components/admin/AdminAgents';
+import { AdminRevenue } from './components/admin/AdminRevenue';
+import { AdminCustomers } from './components/admin/AdminCustomers';
+
+function AdminPlaceholder({ title }: { title: string }) {
+  return (
+    <div className="flex h-full items-center justify-center">
+      <div className="text-center">
+        <h2 className="text-2xl font-bold mb-2 text-cw-txt">{title}</h2>
+        <p className="text-cw-txt2">I am actively building out this page right now!</p>
+      </div>
+    </div>
+  );
+}
 
 const themeOrder: Theme[] = ['dark', 'cream', 'white'];
 
@@ -406,6 +430,26 @@ export default function App() {
           <DashboardLayout />
         </RequireAuth>
       } />
+      <Route path="/admin" element={<AdminLayout />}>
+        <Route index element={<AdminOverview />} />
+        <Route path="feed" element={<AdminFeed />} />
+        <Route path="runs" element={<AdminRuns />} />
+        <Route path="repos" element={<AdminRepos />} />
+        <Route path="security" element={<AdminSecurity />} />
+        <Route path="bloat" element={<AdminBloat />} />
+        <Route path="broken" element={<AdminBroken />} />
+        <Route path="architecture" element={<AdminArchitecture />} />
+        <Route path="agents" element={<AdminAgents />} />
+        <Route path="revenue" element={<AdminRevenue />} />
+        <Route path="customers" element={<AdminCustomers />} />
+        <Route path="growth" element={<AdminPlaceholder title="Growth" />} />
+        <Route path="billing" element={<AdminPlaceholder title="Billing" />} />
+        <Route path="sandbox" element={<AdminPlaceholder title="Sandbox Cluster" />} />
+        <Route path="github" element={<AdminPlaceholder title="GitHub App" />} />
+        <Route path="alerts" element={<AdminPlaceholder title="Alerts" />} />
+        <Route path="settings" element={<AdminPlaceholder title="Settings" />} />
+        <Route path="*" element={<AdminOverview />} />
+      </Route>
       <Route path="/compare/:competitorId" element={<ComparePage />} />
       <Route path="/blogs" element={<BlogsPage />} />
       <Route path="/blogs/:slug" element={<SingleBlogPage />} />

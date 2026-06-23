@@ -1,11 +1,10 @@
-﻿import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { ArchitectureFlow } from './ArchitectureFlow';
-import { FAQSection } from './FAQSection';
 import { blogs } from '../data/blogs';
 
 // ============================================================
-// Codeward Hero Section ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Self-contained single-file component
+// Codeward Hero Section — Self-contained single-file component
 // Requires: React, Tailwind CSS
 // ============================================================
 
@@ -75,7 +74,7 @@ function FAQSection() {
   const initialFaqs = [
     {
       question: "Is this just another CodeRabbit?",
-      answer: "No. While tools like CodeRabbit focus heavily on PR summaries and superficial code review comments, Codeward is an active participant in your codebase. We don't just leave commentsÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Âour autonomous agents actively write the code, generate the fixes, and manage your technical debt directly."
+      answer: "No. While tools like CodeRabbit focus heavily on PR summaries and superficial code review comments, Codeward is an active participant in your codebase. We don't just leave commentsÃ¢â‚¬â€our autonomous agents actively write the code, generate the fixes, and manage your technical debt directly."
     },
     {
       question: "How does Codeward integrate with my existing CI/CD?",
@@ -102,7 +101,7 @@ function FAQSection() {
   const advancedFaqs = [
     {
       question: "How do the Codeward AI Agents work?",
-      answer: "Codeward deploys specialized sub-agentsÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Âlike an Architecture Agent, a Testing Agent, and a Security AgentÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Âthat collaborate. They review the codebase simultaneously, discuss optimal solutions in the background, and then execute complex, multi-file refactors that a single model couldn't handle."
+      answer: "Codeward deploys specialized sub-agentsÃ¢â‚¬â€like an Architecture Agent, a Testing Agent, and a Security AgentÃ¢â‚¬â€that collaborate. They review the codebase simultaneously, discuss optimal solutions in the background, and then execute complex, multi-file refactors that a single model couldn't handle."
     },
     {
       question: "What happens during the first run on my repository?",
@@ -140,7 +139,7 @@ function FAQSection() {
                 className="text-white/60 hover:text-[#8B5CF6] border-b border-white/30 hover:border-[#8B5CF6] transition-all text-lg font-medium pb-1 flex items-center gap-2"
               >
                 {showMore ? "Show fewer questions" : "Learn more about Agents & Advanced features"}
-                <span className={`transition-transform duration-300 ${showMore ? 'rotate-180' : ''}`}>ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬Å“</span>
+                <span className={`transition-transform duration-300 ${showMore ? 'rotate-180' : ''}`}>↓</span>
               </button>
             </div>
           </div>
@@ -211,7 +210,7 @@ function SecuritySection() {
             </div>
           </div>
 
-          {/* Learn more button ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â right aligned */}
+          {/* Learn more button Ã¢â‚¬â€ right aligned */}
           <div className="mt-12 flex justify-end relative z-10">
             <button className="inline-flex w-fit items-center gap-2 px-8 py-3.5 rounded-full bg-white text-black text-sm font-bold transition-all duration-300 hover:bg-[#8B5CF6] hover:text-white hover:scale-105 hover:shadow-[0_0_30px_rgba(139,92,246,0.4)] active:scale-95">
               Learn more &rarr;
@@ -219,7 +218,7 @@ function SecuritySection() {
           </div>
         </div>
 
-        {/* Dot pattern ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â absolute to the section, completely independent of content flow */}
+        {/* Dot pattern Ã¢â‚¬â€ absolute to the section, completely independent of content flow */}
         <div className="absolute bottom-0 left-0 w-full h-20 z-0 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(255,255,255,0.35) 2px, transparent 0)', backgroundSize: '24px 24px' }}></div>
       </FadeInSection>
     </section>
@@ -437,7 +436,7 @@ function TestimonialsSection() {
       icon: "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Symbols/Check%20Mark%20Button.png",
       text: (
         <>
-          It's not just another chatbot that you have to micromanage. Codeward acts like a true senior engineerÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â<span className="bg-yellow-300 text-black px-1 rounded-sm">autonomously refactoring</span> legacy code and writing comprehensive test suites without needing my constant supervision.
+          It's not just another chatbot that you have to micromanage. Codeward acts like a true senior engineerÃ¢â‚¬â€<span className="bg-yellow-300 text-black px-1 rounded-sm">autonomously refactoring</span> legacy code and writing comprehensive test suites without needing my constant supervision.
         </>
       ),
       author: "John Smith",
@@ -463,7 +462,7 @@ function TestimonialsSection() {
       icon: "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Objects/Light%20Bulb.png",
       text: (
         <>
-          The Review Agent is a total game-changer. It doesn't just leave vague comments on PRsÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Âit <span className="bg-yellow-300 text-black px-1 rounded-sm">spins up sandboxes</span>, runs the failing tests, and commits self-healing patches instantly. Our velocity has literally doubled.
+          The Review Agent is a total game-changer. It doesn't just leave vague comments on PRsÃ¢â‚¬â€it <span className="bg-yellow-300 text-black px-1 rounded-sm">spins up sandboxes</span>, runs the failing tests, and commits self-healing patches instantly. Our velocity has literally doubled.
         </>
       ),
       author: "David Lee",
@@ -647,8 +646,8 @@ function VideoPlayer() {
       ) : (
         <>
           <div className="absolute inset-0 bg-[#0a0a0f] flex flex-col items-center justify-center pointer-events-none">
-             <div className="flex items-center gap-4 opacity-40">
-               <img src="https://i.ibb.co/BJf3wnC/codewrdlogo-png.png" alt="Codeward Logo" className="h-16 w-auto object-contain grayscale" />
+             <div className="flex items-center opacity-40">
+               <img src="https://i.ibb.co/0jxSNrnp/codewrdlogo-png-removebg-preview.png" alt="Codeward Logo" className="h-10 w-auto object-contain -mr-3 grayscale" />
                <span className="text-4xl font-bold tracking-tight text-white">
                  Code<span className="text-purple-600">ward</span>
                </span>
@@ -693,8 +692,8 @@ export default function CodewardHero() {
 
       {/* Top nav */}
       <header className="relative z-50 flex items-center justify-between px-8 py-6 md:px-14">
-        <div className="flex items-center gap-3">
-          <img src="https://i.ibb.co/BJf3wnC/codewrdlogo-png.png" alt="Codeward Logo" className="h-16 w-auto object-contain" />
+        <div className="flex items-center">
+          <img src="https://i.ibb.co/0jxSNrnp/codewrdlogo-png-removebg-preview.png" alt="Codeward Logo" className="h-8 w-auto object-contain -mr-2" />
           <span className="text-2xl font-bold tracking-tight text-white">
             Code<span className="text-purple-500">ward</span>
           </span>
@@ -967,7 +966,7 @@ export default function CodewardHero() {
                         </h5>
                         <div className="mt-auto pt-2 text-[13px] font-bold text-gray-500 flex items-center gap-2">
                           <span>{post.readTime}</span>
-                          <span>Ãƒâ€šÃ‚Â·</span>
+                          <span>Ã‚Â·</span>
                           <span>{post.date}</span>
                         </div>
                       </div>
@@ -1025,20 +1024,20 @@ export default function CodewardHero() {
           </div>
 
           <div className="mt-10 flex flex-wrap items-center gap-8 text-sm font-medium text-white/80">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center">
               <svg className="h-6 w-6 text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.5)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
               </svg>
               <span>No credit card</span>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center">
               <svg className="h-6 w-6 text-green-500 drop-shadow-[0_0_8px_rgba(34,197,94,0.5)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               <span>Free 50 runs/month</span>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center">
               <svg className="h-6 w-6 text-purple-500 drop-shadow-[0_0_8px_rgba(168,85,247,0.5)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
               </svg>
@@ -1069,7 +1068,7 @@ export default function CodewardHero() {
         </div>
       </section>
 
-      {/* ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Social Proof / Trusted By Section ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ */}
+      {/* Ã¢â€â‚¬Ã¢â€â‚¬ Social Proof / Trusted By Section Ã¢â€â‚¬Ã¢â€â‚¬ */}
       <section className="bg-[#05060a] pt-12 pb-24 px-8 md:px-14">
         <div className="mx-auto max-w-[95%] xl:max-w-[1500px]">
           <h2 className="text-center text-2xl md:text-3xl font-bold text-white mb-16 leading-tight">
@@ -1194,7 +1193,7 @@ export default function CodewardHero() {
         </div>
       </section>
 
-      {/* ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Mission Statement Section ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ */}
+      {/* Ã¢â€â‚¬Ã¢â€â‚¬ Mission Statement Section Ã¢â€â‚¬Ã¢â€â‚¬ */}
       <section 
         className="relative py-20 md:py-24 px-8 md:px-20 bg-cover bg-center bg-no-repeat"
         style={{ backgroundImage: "url('https://i.ibb.co/WvSNQbHd/enterprise-bg.avif')" }}
@@ -1228,7 +1227,7 @@ export default function CodewardHero() {
       </section>
 
 
-      {/* ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Specialized AI Agents Section ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ */}
+      {/* Ã¢â€â‚¬Ã¢â€â‚¬ Specialized AI Agents Section Ã¢â€â‚¬Ã¢â€â‚¬ */}
       <section className="bg-[#05060a] py-20 md:py-24 px-8 md:px-20 border-t border-white/5">
         <div className="mx-auto max-w-7xl flex flex-col space-y-40">
           
@@ -1240,7 +1239,7 @@ export default function CodewardHero() {
                 Shields your codebase from vulnerabilities and hardcoded secrets. It runs deep static analysis and provisions isolated ephemeral sandboxes to verify patches before any code reaches production.
               </p>
               <button onClick={() => navigate('/signup')} className="inline-flex w-fit items-center gap-2 px-6 py-3 rounded-full bg-white text-black text-sm font-semibold transition-all duration-300 hover:bg-[#8B5CF6] hover:text-white hover:scale-105 hover:shadow-[0_0_25px_rgba(139,92,246,0.5)] active:bg-green-500 active:text-white active:scale-95">
-                Secure your repo ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢
+                Secure your repo →
               </button>
             </FadeInSection>
             <FadeInSection direction="up" className="flex-1 w-full flex justify-end">
@@ -1260,7 +1259,7 @@ export default function CodewardHero() {
                 Identifies, tracks, and autonomously eliminates technical debt. It highlights overly complex, legacy modules and writes modern, optimized refactors without breaking the underlying architecture.
               </p>
               <button onClick={() => navigate('/signup')} className="inline-flex w-fit items-center gap-2 px-6 py-3 rounded-full bg-white text-black text-sm font-semibold transition-all duration-300 hover:bg-[#8B5CF6] hover:text-white hover:scale-105 hover:shadow-[0_0_25px_rgba(139,92,246,0.5)] active:bg-green-500 active:text-white active:scale-95">
-                Eliminate tech debt ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢
+                Eliminate tech debt →
               </button>
             </FadeInSection>
             <FadeInSection direction="up" className="flex-1 w-full flex justify-end">
@@ -1280,7 +1279,7 @@ export default function CodewardHero() {
                 Never merge broken code again. For every PR, the Test Agent spins up an ephemeral environment, executes your entire test suite, and ensures the code handles real-world scenarios flawlessly.
               </p>
               <button onClick={() => navigate('/signup')} className="inline-flex w-fit items-center gap-2 px-6 py-3 rounded-full bg-white text-black text-sm font-semibold transition-all duration-300 hover:bg-[#8B5CF6] hover:text-white hover:scale-105 hover:shadow-[0_0_25px_rgba(139,92,246,0.5)] active:bg-green-500 active:text-white active:scale-95">
-                Explore testing sandboxes ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢
+                Explore testing sandboxes →
               </button>
             </FadeInSection>
             <FadeInSection direction="up" className="flex-1 w-full flex justify-end">
@@ -1300,7 +1299,7 @@ export default function CodewardHero() {
                 Restructures entire directories without losing business logic. The AI deeply understands your context, applies new design patterns, and checks its own work through sandboxed test runs.
               </p>
               <button onClick={() => navigate('/signup')} className="inline-flex w-fit items-center gap-2 px-6 py-3 rounded-full bg-white text-black text-sm font-semibold transition-all duration-300 hover:bg-[#8B5CF6] hover:text-white hover:scale-105 hover:shadow-[0_0_25px_rgba(139,92,246,0.5)] active:bg-green-500 active:text-white active:scale-95">
-                Start refactoring safely ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢
+                Start refactoring safely →
               </button>
             </FadeInSection>
             <FadeInSection direction="up" className="flex-1 w-full flex justify-end">
@@ -1320,7 +1319,7 @@ export default function CodewardHero() {
                 Completes PR reviews in seconds instead of days. It leaves actionable, inline comments for developers and can automatically generate self-healing patches to resolve issues immediately.
               </p>
               <button onClick={() => navigate('/signup')} className="inline-flex w-fit items-center gap-2 px-6 py-3 rounded-full bg-white text-black text-sm font-semibold transition-all duration-300 hover:bg-[#8B5CF6] hover:text-white hover:scale-105 hover:shadow-[0_0_25px_rgba(139,92,246,0.5)] active:bg-green-500 active:text-white active:scale-95">
-                Automate code reviews ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢
+                Automate code reviews →
               </button>
             </FadeInSection>
             <FadeInSection direction="up" className="flex-1 w-full flex justify-end">
@@ -1335,17 +1334,17 @@ export default function CodewardHero() {
         </div>
       </section>
 
-      {/* ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Flow / Architecture Section ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ */}
+      {/* Ã¢â€â‚¬Ã¢â€â‚¬ Flow / Architecture Section Ã¢â€â‚¬Ã¢â€â‚¬ */}
       <section className="w-full bg-[#000000] relative py-12 px-6 md:px-12 select-none">
         <div className="max-w-[1500px] mx-auto rounded-[15px] overflow-hidden shadow-2xl">
           <ArchitectureFlow />
         </div>
       </section>
 
-      {/* ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Testimonials Section ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ */}
+      {/* Ã¢â€â‚¬Ã¢â€â‚¬ Testimonials Section Ã¢â€â‚¬Ã¢â€â‚¬ */}
       <TestimonialsSection />
 
-      {/* ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Latest Insights / Blogs Section ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ */}
+      {/* Ã¢â€â‚¬Ã¢â€â‚¬ Latest Insights / Blogs Section Ã¢â€â‚¬Ã¢â€â‚¬ */}
       <InteractiveParticleGrid className="bg-[#05060a] py-20 md:py-24 px-8 md:px-20 border-t border-white/5">
         <FadeInSection>
           <div className="mx-auto max-w-[1500px]">
@@ -1369,7 +1368,7 @@ export default function CodewardHero() {
                     <div className="absolute inset-0 p-6 flex flex-col justify-between z-10">
                       <div className="flex justify-start">
                         <div className="flex items-center gap-2">
-                          <img src="https://i.ibb.co/BJf3wnC/codewrdlogo-png.png" alt="Codeward" className="h-5 w-5 object-contain drop-shadow-md" />
+                          <img src="https://i.ibb.co/0jxSNrnp/codewrdlogo-png-removebg-preview.png" alt="Codeward" className="h-4 w-4 object-contain drop-shadow-md" />
                           <span className="text-sm font-bold tracking-tight text-white drop-shadow-md">Code<span className="text-purple-400">ward</span></span>
                         </div>
                       </div>
@@ -1399,7 +1398,7 @@ export default function CodewardHero() {
                         <img src={`https://api.dicebear.com/7.x/initials/svg?seed=${post.authorAvatar}`} alt={post.author} className="h-full w-full object-cover" />
                       </div>
                       <span className="text-sm font-medium text-white/60">{post.author}</span>
-                      <span className="text-white/30">ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢</span>
+                      <span className="text-white/30">•</span>
                       <span className="text-sm text-white/40">{post.readTime}</span>
                     </div>
                   </div>
@@ -1410,11 +1409,11 @@ export default function CodewardHero() {
         </FadeInSection>
       </InteractiveParticleGrid>
 
-      {/* ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ FAQ Section ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ */}
+      {/* Ã¢â€â‚¬Ã¢â€â‚¬ FAQ Section Ã¢â€â‚¬Ã¢â€â‚¬ */}
       <SecuritySection />
       <FAQSection />
 
-      {/* ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ CTA Section ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ */}
+      {/* Ã¢â€â‚¬Ã¢â€â‚¬ CTA Section Ã¢â€â‚¬Ã¢â€â‚¬ */}
       <section className="bg-[#05060a] py-20 md:py-24 px-8 md:px-20 relative overflow-hidden flex flex-col items-center justify-center text-center">
         {/* Abstract Background Elements */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] md:w-[800px] md:h-[800px] max-w-[100vw] bg-[radial-gradient(circle_at_center,_rgba(139,92,246,0.12)_0%,_transparent_60%)] pointer-events-none" />
@@ -1437,7 +1436,7 @@ export default function CodewardHero() {
         </FadeInSection>
       </section>
 
-      {/* ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Footer Section ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ */}
+      {/* Ã¢â€â‚¬Ã¢â€â‚¬ Footer Section Ã¢â€â‚¬Ã¢â€â‚¬ */}
       <div className="px-4 md:px-8 pb-4 md:pb-8 bg-[#05060a]">
         <footer className="relative bg-[#C3DBFF] rounded-[16px] pt-20 md:pt-24 pb-8 px-8 md:px-14 overflow-hidden shadow-2xl">
           {/* Fabric Gradient Overlay */}
@@ -1463,7 +1462,7 @@ export default function CodewardHero() {
                 Automatically.
               </p>
               <a href="mailto:hello@codeward.ai" className="text-black hover:text-[#8B5CF6] transition-colors text-base md:text-lg font-bold flex items-center gap-2 group">
-                <span className="group-hover:translate-x-1 transition-transform">ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢</span> hello@codeward.ai
+                <span className="group-hover:translate-x-1 transition-transform">→</span> hello@codeward.ai
               </a>
             </div>
 
@@ -1518,7 +1517,7 @@ export default function CodewardHero() {
               {["GitHub", "GitLab", "Bitbucket", "Jira", "Linear", "Slack", "Discord", "VS Code", "JetBrains", "Vercel", "AWS", "Google Cloud", "Azure", "Supabase", "Stripe", "Docker", "Kubernetes", "Datadog", "Sentry"].map((integration, i, arr) => (
                 <span key={integration} className="whitespace-nowrap">
                   <a href="#" className="hover:text-black transition-colors">{integration}</a>
-                  {i < arr.length - 1 && <span className="ml-3">Ãƒâ€šÃ‚Â·</span>}
+                  {i < arr.length - 1 && <span className="ml-3">Ã‚Â·</span>}
                 </span>
               ))}
             </div>
@@ -1539,7 +1538,7 @@ export default function CodewardHero() {
           {/* Bottom Bar */}
           <div className="flex flex-col md:flex-row justify-between items-center gap-6 pt-8 border-t border-black/10 text-black/50 text-sm font-semibold">
             <div className="flex flex-wrap items-center gap-6">
-              <span>Ãƒâ€šÃ‚Â©2026, Codeward</span>
+              <span>Ã‚Â©2026, Codeward</span>
               <a href="#" className="hover:text-black transition-colors">Privacy</a>
               <a href="#" className="hover:text-black transition-colors">Terms</a>
               <a href="#" className="hover:text-black transition-colors">Trust</a>
@@ -1564,7 +1563,7 @@ export default function CodewardHero() {
             </div>
 
             <div className="flex items-center gap-2">
-              Made on Codeward by <span className="text-black font-black text-lg leading-none">ÃƒÂ¢Ã…â€œÃ‚Â¦</span>
+              Made on Codeward by <span className="text-black font-black text-lg leading-none">✦</span>
             </div>
           </div>
         </div>
@@ -1666,3 +1665,4 @@ function InteractiveParticleGrid({ children, className = '' }: { children: React
     </section>
   );
 }
+

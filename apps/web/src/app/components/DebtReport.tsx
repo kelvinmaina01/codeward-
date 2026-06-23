@@ -86,7 +86,7 @@ export function DebtReport() {
                   className="border border-cw-bdr rounded-xl overflow-hidden bg-cw-bg2 cursor-pointer hover:border-cw-txt3 transition-colors group"
                 >
                   <div className="w-full flex items-center justify-between px-4 py-4 bg-cw-bg3/50">
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center">
                       <c.icon size={18} className={c.color} />
                       <span className="text-[14px] font-semibold text-cw-txt">{c.label}</span>
                       <span className="text-[11px] text-cw-txt3 ml-2">{c.desc}</span>

@@ -145,7 +145,7 @@ export function RunDetail({ sha, onBack }: Props) {
     <div className="flex-1 flex flex-col bg-cw-bg2 overflow-hidden relative border-l border-cw-bdr">
       {/* Header */}
       <div className="bg-cw-bg border-b border-cw-bdr px-5 py-4 shrink-0 flex items-center justify-between">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center">
           <div className="w-8 h-8 rounded-md bg-cw-bg3 border border-cw-bdr flex items-center justify-center">
             <RefreshCw size={14} className={`${running ? 'text-cw-blue animate-spin' : 'text-cw-green'}`} />
           </div>
@@ -173,7 +173,7 @@ export function RunDetail({ sha, onBack }: Props) {
         ) : prData ? (
           <div className="bg-cw-bg border border-cw-bdr rounded-xl p-4 flex flex-col gap-3 shadow-sm">
             <div className="flex justify-between items-start">
-              <div className="flex items-center gap-3">
+              <div className="flex items-center">
                 <img src={prData.authorAvatar} alt={prData.author} className="w-10 h-10 rounded-full border border-cw-bdr" />
                 <div>
                   <h3 className="text-[15px] font-bold text-cw-txt leading-tight m-0">{prData.title}</h3>

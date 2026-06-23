@@ -203,7 +203,7 @@ export function Integrations() {
                     
                     {/* Icon & Title Row */}
                     <div className={`flex items-center justify-between ${viewMode === 'grid' ? 'mb-3' : ''}`}>
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center">
                         <div className="w-12 h-12 rounded-lg flex items-center justify-center shrink-0 border border-cw-bdr bg-cw-bg p-2 shadow-sm">
                           <img src={intg.logoUrl} alt={intg.name} className="w-full h-full object-contain" />
                         </div>

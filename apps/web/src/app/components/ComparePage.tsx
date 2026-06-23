@@ -1,4 +1,4 @@
-﻿import React, { useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import { comparisons } from '../data/comparisons';
 
@@ -53,10 +53,10 @@ export const ComparePage: React.FC = () => {
 
   return (
     <div className="h-screen overflow-y-auto overflow-x-hidden bg-[#05060a] font-['DM_Sans']">
-      {/* ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ EXACT HEADER FROM LANDING PAGE ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ */}
+      {/* Ã¢â€â‚¬Ã¢â€â‚¬ EXACT HEADER FROM LANDING PAGE Ã¢â€â‚¬Ã¢â€â‚¬ */}
       <header className="relative z-50 flex items-center justify-between px-8 py-6 md:px-14">
         <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/')}>
-          <img src="https://i.ibb.co/BJf3wnC/codewrdlogo-png.png" alt="Codeward Logo" className="h-16 w-auto object-contain" />
+          <img src="https://i.ibb.co/0jxSNrnp/codewrdlogo-png-removebg-preview.png" alt="Codeward Logo" className="h-8 w-auto object-contain -mr-2" />
           <span className="text-2xl font-bold tracking-tight text-white">
             Code<span className="text-purple-500">ward</span>
           </span>
@@ -329,7 +329,7 @@ export const ComparePage: React.FC = () => {
                         </h5>
                         <div className="mt-auto pt-2 text-[13px] font-bold text-gray-500 flex items-center gap-2">
                           <span>{post.readTime}</span>
-                          <span>Ãƒâ€šÃ‚Â·</span>
+                          <span>Ã‚Â·</span>
                           <span>{post.date}</span>
                         </div>
                       </div>
@@ -348,7 +348,7 @@ export const ComparePage: React.FC = () => {
       </header>
 
       <main className="pb-32">
-        {/* ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ HERO SECTION ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ */}
+        {/* Ã¢â€â‚¬Ã¢â€â‚¬ HERO SECTION Ã¢â€â‚¬Ã¢â€â‚¬ */}
         <section className="relative pt-24 pb-20 px-8 md:px-14 flex flex-col items-center text-center">
           <FadeInSection>
             <div className="inline-block px-4 py-1.5 rounded-full border border-white/10 bg-white/5 text-sm font-semibold text-white/70 mb-8 uppercase tracking-widest">
@@ -366,12 +366,12 @@ export const ComparePage: React.FC = () => {
               Start engineering, it's free
             </button>
             <div className="mt-6 text-sm font-semibold text-white/40 cursor-pointer hover:text-white transition-colors" onClick={() => document.getElementById('table')?.scrollIntoView({ behavior: 'smooth' })}>
-              Jump to the table ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬Å“
+              Jump to the table ↓
             </div>
           </FadeInSection>
         </section>
 
-        {/* ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ THE SHORT VERSION ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ */}
+        {/* Ã¢â€â‚¬Ã¢â€â‚¬ THE SHORT VERSION Ã¢â€â‚¬Ã¢â€â‚¬ */}
         <section className="py-20 px-8 md:px-14 max-w-5xl mx-auto">
           <FadeInSection direction="up">
             <h2 className="text-[11px] font-semibold tracking-[0.2em] uppercase text-white/40 mb-6">The Short Version</h2>
@@ -381,7 +381,7 @@ export const ComparePage: React.FC = () => {
           </FadeInSection>
         </section>
 
-        {/* ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ NUMBERS VS MOVES (Feature Blocks) ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ */}
+        {/* Ã¢â€â‚¬Ã¢â€â‚¬ NUMBERS VS MOVES (Feature Blocks) Ã¢â€â‚¬Ã¢â€â‚¬ */}
         <section className="py-24 px-8 md:px-14">
           <div className="max-w-6xl mx-auto">
             <FadeInSection>
@@ -410,7 +410,7 @@ export const ComparePage: React.FC = () => {
                 <div className="bg-[#E8EAF6] rounded-3xl p-10 md:p-14 h-full flex flex-col justify-between relative overflow-hidden group shadow-2xl text-black border border-white/10">
                   <div className="relative z-10">
                     <div className="flex items-center gap-4 mb-6">
-                      <img src="https://i.ibb.co/BJf3wnC/codewrdlogo-png.png" alt="Codeward Logo" className="h-8 w-auto" />
+                      <img src="https://i.ibb.co/0jxSNrnp/codewrdlogo-png-removebg-preview.png" alt="Codeward Logo" className="h-5 w-auto object-contain -mr-1" />
                       <h4 className="text-2xl font-bold">Codeward</h4>
                     </div>
                     <p className="text-[17px] font-medium leading-relaxed opacity-80">
@@ -424,7 +424,7 @@ export const ComparePage: React.FC = () => {
           </div>
         </section>
 
-        {/* ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ SIDE BY SIDE TABLE ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ */}
+        {/* Ã¢â€â‚¬Ã¢â€â‚¬ SIDE BY SIDE TABLE Ã¢â€â‚¬Ã¢â€â‚¬ */}
         <section id="table" className="py-24 px-8 md:px-14">
           <div className="max-w-5xl mx-auto">
             <FadeInSection>
@@ -438,8 +438,8 @@ export const ComparePage: React.FC = () => {
                 {data.table.map((row, i) => (
                   <div key={i} className={`grid grid-cols-3 p-6 md:p-8 ${i !== data.table.length - 1 ? 'border-b border-white/5' : ''} ${i === 0 ? 'bg-white/5 font-semibold text-white' : 'text-white/80 font-medium'}`}>
                     <div className="col-span-1 text-sm md:text-base pr-4">{row.feature}</div>
-                    <div className={`col-span-1 text-sm md:text-base text-center ${row.codeward === 'ÃƒÂ¢Ã…â€œÃ¢â‚¬Â' ? 'text-purple-400 font-bold' : 'text-white'}`}>{row.codeward}</div>
-                    <div className={`col-span-1 text-sm md:text-base text-center ${row.competitor === 'ÃƒÂ¢Ã…â€œÃ¢â‚¬Â' ? 'text-white/60' : 'text-white/30'}`}>{row.competitor}</div>
+                    <div className={`col-span-1 text-sm md:text-base text-center ${row.codeward === 'Ã¢Å“â€' ? 'text-purple-400 font-bold' : 'text-white'}`}>{row.codeward}</div>
+                    <div className={`col-span-1 text-sm md:text-base text-center ${row.competitor === 'Ã¢Å“â€' ? 'text-white/60' : 'text-white/30'}`}>{row.competitor}</div>
                   </div>
                 ))}
               </div>
@@ -447,7 +447,7 @@ export const ComparePage: React.FC = () => {
           </div>
         </section>
 
-        {/* ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ THE HONEST VERDICT ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ */}
+        {/* Ã¢â€â‚¬Ã¢â€â‚¬ THE HONEST VERDICT Ã¢â€â‚¬Ã¢â€â‚¬ */}
         <section className="py-24 px-8 md:px-14 bg-gradient-to-b from-transparent to-[#111218]">
           <div className="max-w-4xl mx-auto">
             <FadeInSection>
@@ -461,7 +461,7 @@ export const ComparePage: React.FC = () => {
           </div>
         </section>
 
-        {/* ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ QUICK QUESTIONS (FAQ) ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ */}
+        {/* Ã¢â€â‚¬Ã¢â€â‚¬ QUICK QUESTIONS (FAQ) Ã¢â€â‚¬Ã¢â€â‚¬ */}
         <section className="py-24 px-8 md:px-14">
           <div className="max-w-4xl mx-auto">
             <FadeInSection>
@@ -478,7 +478,7 @@ export const ComparePage: React.FC = () => {
           </div>
         </section>
 
-        {/* ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ BOTTOM CTA ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ */}
+        {/* Ã¢â€â‚¬Ã¢â€â‚¬ BOTTOM CTA Ã¢â€â‚¬Ã¢â€â‚¬ */}
         <section className="py-24 px-8 md:px-14 text-center">
           <FadeInSection>
             <h3 className="text-4xl md:text-5xl font-semibold text-white mb-8 tracking-tight">See what your rivals are missing.</h3>
@@ -492,7 +492,7 @@ export const ComparePage: React.FC = () => {
         </section>
       </main>
 
-      {/* ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Footer Section ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ */}
+      {/* Ã¢â€â‚¬Ã¢â€â‚¬ Footer Section Ã¢â€â‚¬Ã¢â€â‚¬ */}
       <div className="px-4 md:px-8 pb-4 md:pb-8 bg-[#05060a]">
         <footer className="relative bg-[#C3DBFF] rounded-[16px] pt-32 pb-8 px-8 md:px-14 overflow-hidden shadow-2xl">
           {/* Fabric Gradient Overlay */}
@@ -518,7 +518,7 @@ export const ComparePage: React.FC = () => {
                 Automatically.
               </p>
               <a href="mailto:hello@codeward.ai" className="text-black hover:text-[#8B5CF6] transition-colors text-lg md:text-xl font-bold flex items-center gap-2 group">
-                <span className="group-hover:translate-x-1 transition-transform">ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢</span> hello@codeward.ai
+                <span className="group-hover:translate-x-1 transition-transform">→</span> hello@codeward.ai
               </a>
             </div>
 
@@ -573,7 +573,7 @@ export const ComparePage: React.FC = () => {
                 {["GitHub", "GitLab", "Bitbucket", "Jira", "Linear", "Slack", "Discord", "VS Code", "JetBrains", "Vercel", "AWS", "Google Cloud", "Azure", "Supabase", "Stripe", "Docker", "Kubernetes", "Datadog", "Sentry"].map((integration, i, arr) => (
                   <span key={integration} className="whitespace-nowrap">
                     <a href="#" className="hover:text-black transition-colors">{integration}</a>
-                    {i < arr.length - 1 && <span className="ml-3">Ãƒâ€šÃ‚Â·</span>}
+                    {i < arr.length - 1 && <span className="ml-3">Ã‚Â·</span>}
                   </span>
                 ))}
               </div>
@@ -594,7 +594,7 @@ export const ComparePage: React.FC = () => {
             {/* Bottom Bar */}
             <div className="flex flex-col md:flex-row justify-between items-center gap-6 pt-8 border-t border-black/10 text-black/50 text-sm font-semibold">
               <div className="flex flex-wrap items-center gap-6">
-                <span>Ãƒâ€šÃ‚Â©2026, Codeward</span>
+                <span>Ã‚Â©2026, Codeward</span>
                 <a href="#" className="hover:text-black transition-colors">Privacy</a>
                 <a href="#" className="hover:text-black transition-colors">Terms</a>
                 <a href="#" className="hover:text-black transition-colors">Trust</a>
@@ -619,7 +619,7 @@ export const ComparePage: React.FC = () => {
               </div>
 
               <div className="flex items-center gap-2">
-                Made on Codeward by <span className="text-black font-black text-lg leading-none">ÃƒÂ¢Ã…â€œÃ‚Â¦</span>
+                Made on Codeward by <span className="text-black font-black text-lg leading-none">✦</span>
               </div>
             </div>
           </div>
@@ -628,3 +628,4 @@ export const ComparePage: React.FC = () => {
     </div>
   );
 };
+

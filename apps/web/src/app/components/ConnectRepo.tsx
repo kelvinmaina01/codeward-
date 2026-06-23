@@ -541,7 +541,7 @@ export function ConnectRepo({ user, onConnect, onSkip, activeOrg, setActiveOrg, 
                               onClick={() => { setActiveOrg?.(orgName); setShowOrgDropdown(false); }}
                               className={`w-full flex items-center justify-between px-3 py-2.5 hover:bg-cw-bg3 transition-colors text-left`}
                             >
-                              <div className="flex items-center gap-3">
+                              <div className="flex items-center">
                                 <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold uppercase shrink-0 ${isSel ? 'bg-cw-purple/20 text-cw-purple' : 'bg-cw-green/20 text-cw-green'}`}>
                                   {orgName.charAt(0)}
                                 </div>
@@ -693,7 +693,7 @@ export function ConnectRepo({ user, onConnect, onSkip, activeOrg, setActiveOrg, 
             </div>
             <div className="text-[12px] text-cw-txt3 mt-0.5">Free tier: up to 2 repositories</div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center">
             <button onClick={() => setSelected([])} className="px-5 py-2.5 border border-cw-bdr bg-cw-bg hover:bg-cw-bg3 text-cw-txt3 hover:text-cw-txt text-[13px] font-semibold rounded-lg transition-colors">
               Skip for now
             </button>
