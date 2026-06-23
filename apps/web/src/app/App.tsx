@@ -44,6 +44,12 @@ import { AdminCompliance } from './components/admin/AdminCompliance';
 import { AdminAgents } from './components/admin/AdminAgents';
 import { AdminRevenue } from './components/admin/AdminRevenue';
 import { AdminCustomers } from './components/admin/AdminCustomers';
+import { AdminGrowth } from './components/admin/AdminGrowth';
+import { AdminBilling } from './components/admin/AdminBilling';
+import { AdminSandbox } from './components/admin/AdminSandbox';
+import { AdminGitHubApp } from './components/admin/AdminGitHubApp';
+import { AdminAlerts } from './components/admin/AdminAlerts';
+import { AdminSettings } from './components/admin/AdminSettings';
 
 function AdminPlaceholder({ title }: { title: string }) {
   return (
@@ -442,12 +448,12 @@ export default function App() {
         <Route path="agents" element={<AdminAgents />} />
         <Route path="revenue" element={<AdminRevenue />} />
         <Route path="customers" element={<AdminCustomers />} />
-        <Route path="growth" element={<AdminPlaceholder title="Growth" />} />
-        <Route path="billing" element={<AdminPlaceholder title="Billing" />} />
-        <Route path="sandbox" element={<AdminPlaceholder title="Sandbox Cluster" />} />
-        <Route path="github" element={<AdminPlaceholder title="GitHub App" />} />
-        <Route path="alerts" element={<AdminPlaceholder title="Alerts" />} />
-        <Route path="settings" element={<AdminPlaceholder title="Settings" />} />
+        <Route path="growth" element={<AdminGrowth />} />
+        <Route path="billing" element={<AdminBilling />} />
+        <Route path="sandbox" element={<AdminSandbox />} />
+        <Route path="github" element={<AdminGitHubApp />} />
+        <Route path="alerts" element={<AdminAlerts />} />
+        <Route path="settings" element={<AdminSettings />} />
         <Route path="*" element={<AdminOverview />} />
       </Route>
       <Route path="/compare/:competitorId" element={<ComparePage />} />
