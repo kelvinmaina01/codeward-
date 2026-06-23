@@ -107,7 +107,7 @@ export function AuthPage({ onBack, theme: _theme, onCycleTheme, onNavigate: _onN
             </div>
 
             {/* Dev Community Card */}
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-6 bg-purple-600 border border-white/20 rounded-full py-3 px-6 shadow-2xl hover:scale-105 transition-transform w-max">
+            <div className="mt-16 flex items-center gap-6 bg-purple-600 border border-white/20 rounded-full py-3 px-6 shadow-2xl hover:scale-105 transition-transform w-max">
               <div className="text-[15px] font-bold text-white">
                 Join our developer community
               </div>
