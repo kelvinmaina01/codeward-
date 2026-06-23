@@ -28,11 +28,13 @@ const corsConfig = {
   maxAge: 600,
 };
 
-// CORS for Better Auth routes (must be registered BEFORE the auth handler)
-app.use('/api/auth/*', cors(corsConfig));
-
-// General CORS for other API routes
-app.use('*', cors(corsConfig));
+// General CORS for other API routes (but NOT for auth, better-auth handles its own CORS)
+app.use('*', async (c, next) => {
+  if (c.req.path.startsWith('/api/auth')) {
+    return next();
+  }
+  return cors(corsConfig)(c, next);
+});
 
 app.get('/health', (c) => {
   return c.json({ status: 'ok', service: 'codeward-api' });
@@ -41,7 +43,7 @@ app.get('/health', (c) => {
 app.get('/', (c) => c.text('Codeward API Running!'));
 
 // Better Auth handler — use app.on() with explicit methods per docs
-app.on(['POST', 'GET'], '/api/auth/*', (c) => {
+app.on(['POST', 'GET', 'OPTIONS'], '/api/auth/*', (c) => {
   return auth.handler(c.req.raw);
 });
 
