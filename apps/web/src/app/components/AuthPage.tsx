@@ -82,16 +82,16 @@ export function AuthPage({ onBack, theme: _theme, onCycleTheme, onNavigate: _onN
       </div>
 
       <div className="w-full h-full max-w-[1600px] flex gap-6 md:gap-8 flex-col md:flex-row items-stretch justify-center relative z-10" style={{ minHeight: 'calc(100vh - 24px)' }}>
-        {/* Left brand panel â€” centered, feature list above typing text */}
+        {/* Left brand panel Ã¢â‚¬â€ centered, feature list above typing text */}
         <div className="w-full md:w-1/2 flex flex-col items-center justify-center px-4 md:px-12 py-12 relative text-white font-['DM_Sans']">
           <div className="relative z-10 flex flex-col items-center text-center w-full max-w-xl">
 
-            {/* Typing text â€” above feature list, centered */}
+            {/* Typing text Ã¢â‚¬â€ above feature list, centered */}
             <p className="text-2xl md:text-3xl text-white/60 leading-[1.35] max-w-xl font-normal whitespace-pre-line mb-32">
               {typedText}<span className={`inline-block w-[2px] h-[1.1em] ml-[1px] bg-[#5b8cff] align-middle translate-y-[-1px] transition-opacity duration-100 ${showCursor ? 'opacity-100' : 'opacity-0'}`} />
             </p>
 
-            {/* Feature list â€” centered, below typing text */}
+            {/* Feature list Ã¢â‚¬â€ centered, below typing text */}
             <div className="flex flex-col gap-4 w-full items-center">
               {[
               { text: '100+ debt checks on every push', Icon: TaskDone01Icon, color: 'text-red-500' },
@@ -123,10 +123,10 @@ export function AuthPage({ onBack, theme: _theme, onCycleTheme, onNavigate: _onN
           </div>
         </div>
 
-        {/* Right auth panel â€” tall, near-full height */}
+        {/* Right auth panel Ã¢â‚¬â€ tall, near-full height */}
         <div className="w-full md:w-1/2 bg-cw-bg border border-cw-bdr rounded-[2rem] flex flex-col items-center justify-center p-4 shadow-sm self-stretch">
           <div className="w-full max-w-[480px] flex flex-col items-center justify-center h-full">
-            <img src="https://i.ibb.co/jkgWWhgZ/codewrdlogo-png.png" alt="Codeward Logo" className="w-40 h-40 mb-6 object-contain" />
+            <img src="/logo.png" alt="Codeward Logo" className="w-40 h-40 mb-6 object-contain" />
             
             <h2 className="text-[28px] font-bold tracking-tight text-cw-txt mb-3 text-center">
               Welcome to Codeward
