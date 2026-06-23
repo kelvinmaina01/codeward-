@@ -72,20 +72,7 @@ webhookRouter.post('/github', async (c) => {
         // Check if exists first to avoid unique constraint violation
         const existing = await db.select().from(repositories).where(eq(repositories.fullName, repo.full_name));
         
-        if (existing.length === 0) {
-          // Note: In reality we would link this to the correct user/org.
-          // For now, we will create a placeholder or update if needed.
-          await db.insert(repositories).values({
-            fullName: repo.full_name,
-            owner: repo.full_name.split('/')[0],
-            name: repo.name || repo.full_name.split('/')[1],
-            userId: 'placeholder', // Ideally we'd map this correctly
-            status: 'pending_audit',
-            auditTriggeredAt: new Date(),
-            githubRepoId: repo.id,
-            installationId: installationId
-          });
-        } else {
+        if (existing.length > 0) {
           // Update existing
           await db.update(repositories).set({
             status: 'pending_audit',
@@ -93,6 +80,9 @@ webhookRouter.post('/github', async (c) => {
             githubRepoId: repo.id,
             installationId: installationId
           }).where(eq(repositories.fullName, repo.full_name));
+        } else {
+          console.log(`[Webhook] Skipping insert for ${repo.full_name} because it has not been connected by a user yet.`);
+          // The repository will be inserted with the correct userId when the user clicks 'Connect' in the UI.
         }
 
         await auditQueue.add('full-repo-audit', {

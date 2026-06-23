@@ -13,9 +13,13 @@ export const auth = betterAuth({
       verification: schema.verification
     }
   }),
-  baseURL: "http://localhost:3001",
+  baseURL: process.env.API_URL || "http://localhost:3001",
   secret: process.env.BETTER_AUTH_SECRET || "development-secret-key-change-in-prod",
-  trustedOrigins: ["http://localhost:5173"],
+  trustedOrigins: [
+    "http://localhost:5173", 
+    "https://codeward-frontend-production.up.railway.app",
+    process.env.FRONTEND_URL || ""
+  ].filter(Boolean),
   socialProviders: {
     github: {
       clientId: process.env.GITHUB_CLIENT_ID || "",

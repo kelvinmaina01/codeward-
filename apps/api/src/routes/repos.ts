@@ -127,10 +127,31 @@ reposRouter.get('/', async (c) => {
 
     const installationsData = installationsResponse.ok ? (await installationsResponse.json() as any) : { installations: [] };
     const installedAccountLogins = new Set<string>();
+    const grantedRepoIds = new Set<number>();
     
     for (const inst of installationsData.installations || []) {
       if (inst.account && inst.account.login) {
         installedAccountLogins.add(inst.account.login);
+        
+        // Fetch repositories granted to this installation
+        try {
+          const instReposRes = await fetch(`https://api.github.com/user/installations/${inst.id}/repositories?per_page=100`, {
+            headers: {
+              'Authorization': `Bearer ${githubAccount.accessToken}`,
+              'Accept': 'application/vnd.github+json',
+              'X-GitHub-Api-Version': '2022-11-28',
+              'User-Agent': 'Codeward-App',
+            },
+          });
+          if (instReposRes.ok) {
+            const instReposData = await instReposRes.json() as any;
+            for (const repo of instReposData.repositories || []) {
+              grantedRepoIds.add(repo.id);
+            }
+          }
+        } catch (e) {
+          console.error(`Failed to fetch repos for installation ${inst.id}`, e);
+        }
       }
     }
 
@@ -196,6 +217,7 @@ reposRouter.get('/', async (c) => {
       owner: r.owner.login,
       connected: connectedReposMap.has(r.full_name),
       auditStatus: connectedReposMap.get(r.full_name) || 'unconnected',
+      grantedToApp: grantedRepoIds.has(r.id), // True if the GitHub App has explicit access
     }));
 
     return c.json({ repos, orgs, orgRoles });
@@ -223,6 +245,7 @@ reposRouter.post('/connect', async (c) => {
       desc: string; 
       lang: string; 
       isPrivate: boolean;
+      defaultBranch?: string;
       config?: any;
     }> 
   };
@@ -260,6 +283,23 @@ reposRouter.post('/connect', async (c) => {
   });
   const ghUser = userResponse.ok ? await userResponse.json() as any : null;
   const personalLogin = ghUser?.login || 'personal';
+
+  // 1.5 Fetch installations so we can get the installationId for each repo
+  const instResponse = await fetch('https://api.github.com/user/installations', {
+    headers: {
+      'Authorization': `Bearer ${githubAccount.accessToken}`,
+      'Accept': 'application/vnd.github+json',
+      'X-GitHub-Api-Version': '2022-11-28',
+      'User-Agent': 'Codeward-App',
+    },
+  });
+  const instData = instResponse.ok ? await instResponse.json() as any : { installations: [] };
+  const ownerToInstallationId: Record<string, number> = {};
+  for (const inst of instData.installations || []) {
+    if (inst.account && inst.account.login) {
+      ownerToInstallationId[inst.account.login] = inst.id;
+    }
+  }
 
   const connected: string[] = [];
 
@@ -318,6 +358,8 @@ reposRouter.post('/connect', async (c) => {
       }
 
       // 5. Connect the repo
+      const repoInstallationId = ownerToInstallationId[repo.owner] || 0;
+
       await db.insert(schema.repositories).values({
         userId: session.user.id,
         orgId: finalOrgId,
@@ -327,6 +369,7 @@ reposRouter.post('/connect', async (c) => {
         description: repo.desc || null,
         language: repo.lang || null,
         isPrivate: repo.isPrivate,
+        installationId: repoInstallationId,
         config: repo.config || {
           agents: {
             security: true,
@@ -347,11 +390,11 @@ reposRouter.post('/connect', async (c) => {
         await agentQueue.add('baseline-audit', {
           owner: repo.owner,
           repo: repo.name,
-          installationId: 0, // We would pull this from the DB in a real app
+          installationId: repoInstallationId,
           pull_number: 0,
           sha: 'baseline',
           patch: '',
-          branch: 'main',
+          branch: repo.defaultBranch || 'main',
           diffs: []
         });
       } catch (queueErr) {

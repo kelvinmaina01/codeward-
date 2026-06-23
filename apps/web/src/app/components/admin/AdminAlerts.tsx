@@ -83,7 +83,7 @@ export function AdminAlerts() {
                 <span className="text-[12px] font-bold text-cw-txt">High CPU (Sandbox)</span>
                 <span className="text-[10px] bg-cw-green/10 text-cw-green px-1.5 py-0.5 rounded font-bold">Active</span>
               </div>
-              <p className="text-[11px] text-cw-txt3">Ignore CPU > 90% if uptime < 5m (Provisioning spike)</p>
+              <p className="text-[11px] text-cw-txt3">Ignore CPU &gt; 90% if uptime &lt; 5m (Provisioning spike)</p>
             </div>
             <div className="p-3 bg-cw-bg border border-cw-bdr rounded flex flex-col gap-2">
               <div className="flex justify-between items-center">

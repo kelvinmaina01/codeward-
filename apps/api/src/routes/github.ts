@@ -22,9 +22,13 @@ githubRouter.get('/install', async (c) => {
   console.log(`[GitHub App] Installed/Updated with ID: ${installationId}, action: ${setupAction}`);
   
   // Here, the GitHub App has been installed.
-  // In a full implementation, we could fetch the repos and sync them to DB right now,
-  // or we can wait until the user connects them in the UI (since our /api/repos fetches them live).
-  // The ConnectRepo UI already does the synchronization.
+  // The ConnectRepo UI synchronizes installations dynamically,
+  // so we just redirect them back. The actual repos are connected
+  // when the user selects them via POST /api/repos/connect.
+  
+  // Note: we could fetch auth.api.getSession(c) here and explicitly 
+  // track the installation_id if needed. For now, the UI fetches it 
+  // securely via the user/installations GitHub endpoint.
   
   // Redirect back to the frontend dashboard or connect page
   return c.redirect('http://localhost:5173/dashboard?installation=success');

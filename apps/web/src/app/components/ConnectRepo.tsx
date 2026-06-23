@@ -43,8 +43,8 @@ interface Repo {
   private: boolean;
   pushed: string;
   owner: string;
-  connected: boolean;
   auditStatus?: 'pending_audit' | 'active' | 'unconnected';
+  grantedToApp?: boolean;
 }
 
 const langColors: Record<string, string> = {
@@ -178,6 +178,11 @@ export function ConnectRepo({ user, onConnect, onSkip, activeOrg, setActiveOrg, 
 
   // Actions
   const toggleRepoSelection = (full: string) => {
+    const repo = repos.find(r => r.full === full);
+    if (repo && repo.grantedToApp === false) {
+      toast.error('You must grant the GitHub App access to this repository first.');
+      return;
+    }
     setSelected(s => s.includes(full) ? s.filter(x => x !== full) : [...s, full]);
   };
 
@@ -206,6 +211,7 @@ export function ConnectRepo({ user, onConnect, onSkip, activeOrg, setActiveOrg, 
         desc: r.desc,
         lang: r.lang,
         isPrivate: r.private,
+        defaultBranch: r.defaultBranch,
         config: configs[r.full] || { agents: { security: true, bloat: true, broken_code: true, architecture: true, ai_era: true, compliance: true, data_dx: true } }
       }));
 
@@ -277,7 +283,10 @@ export function ConnectRepo({ user, onConnect, onSkip, activeOrg, setActiveOrg, 
           }
         >
           {/* Checkbox (Always visible if needed, but here mainly for compact or left side of table) */}
-          <div className="hidden md:flex w-8 shrink-0 items-center justify-center">
+          <div 
+            className="hidden md:flex w-8 shrink-0 items-center justify-center cursor-pointer"
+            onClick={(e) => { e.stopPropagation(); if (!repo.connected) toggleRepoSelection(repo.full); }}
+          >
             <div className={`w-[18px] h-[18px] rounded-[5px] border-[1.5px] flex items-center justify-center transition-all duration-150 ${sel || repo.connected ? 'border-cw-purple bg-cw-purple' : 'border-cw-bdr bg-cw-bg2'}`}>
               {(sel || repo.connected) && <Check size={11} color="#fff" />}
             </div>
@@ -285,7 +294,10 @@ export function ConnectRepo({ user, onConnect, onSkip, activeOrg, setActiveOrg, 
           
           {/* Mobile Checkbox for compact */}
           {compact && (
-            <div className={`md:hidden w-[18px] h-[18px] mt-0.5 rounded-[5px] border-[1.5px] flex items-center justify-center shrink-0 transition-all duration-150 ${sel || repo.connected ? 'border-cw-purple bg-cw-purple' : 'border-cw-bdr bg-transparent'}`}>
+            <div 
+              className={`md:hidden w-[18px] h-[18px] mt-0.5 rounded-[5px] border-[1.5px] flex items-center justify-center shrink-0 cursor-pointer transition-all duration-150 ${sel || repo.connected ? 'border-cw-purple bg-cw-purple' : 'border-cw-bdr bg-transparent'}`}
+              onClick={(e) => { e.stopPropagation(); if (!repo.connected) toggleRepoSelection(repo.full); }}
+            >
               {(sel || repo.connected) && <Check size={11} color="#fff" />}
             </div>
           )}
@@ -352,14 +364,25 @@ export function ConnectRepo({ user, onConnect, onSkip, activeOrg, setActiveOrg, 
                     <ChevronDown size={14} className={`transform transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                   </button>
                 )}
-                <button 
-                  onClick={(e) => { e.stopPropagation(); handleInlineConnect(repo); }}
-                  disabled={connecting}
-                  className={`h-[30px] bg-cw-purple hover:brightness-110 text-white font-semibold rounded-lg transition-colors flex items-center justify-center gap-2 whitespace-nowrap disabled:opacity-50 ${compact ? 'px-3 text-[11px]' : 'px-4 text-[12px]'}`}
-                >
-                  {connecting ? <Loader size={14} className="animate-spin" /> : <GitBranch size={14} />}
-                  <span className={compact ? 'hidden sm:inline' : ''}>Connect</span>
-                </button>
+                {repo.grantedToApp === false ? (
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); window.open(`https://github.com/apps/${import.meta.env.VITE_GITHUB_APP_NAME || 'codeward'}/installations/new`, '_blank'); }}
+                    className={`h-[30px] bg-cw-bg3 border border-cw-bdr hover:bg-cw-bg text-cw-txt font-semibold rounded-lg transition-colors flex items-center justify-center gap-2 whitespace-nowrap ${compact ? 'px-3 text-[11px]' : 'px-4 text-[12px]'}`}
+                    title="This repository has not been granted to the GitHub App. Click to configure access."
+                  >
+                    <ShieldAlert size={14} className="text-cw-amber" />
+                    <span className={compact ? 'hidden sm:inline' : ''}>Grant Access</span>
+                  </button>
+                ) : (
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); handleInlineConnect(repo); }}
+                    disabled={connecting}
+                    className={`h-[30px] bg-cw-purple hover:brightness-110 text-white font-semibold rounded-lg transition-colors flex items-center justify-center gap-2 whitespace-nowrap disabled:opacity-50 ${compact ? 'px-3 text-[11px]' : 'px-4 text-[12px]'}`}
+                  >
+                    {connecting ? <Loader size={14} className="animate-spin" /> : <GitBranch size={14} />}
+                    <span className={compact ? 'hidden sm:inline' : ''}>Connect</span>
+                  </button>
+                )}
               </>
             )}
 
@@ -407,14 +430,24 @@ export function ConnectRepo({ user, onConnect, onSkip, activeOrg, setActiveOrg, 
             </div>
             
             <div className="flex justify-end">
-              <button
-                onClick={(e) => { e.stopPropagation(); handleInlineConnect(repo); }}
-                disabled={connecting}
-                className="px-5 py-2 bg-cw-purple hover:brightness-110 text-white text-[13px] font-semibold rounded-lg flex items-center gap-2 transition-colors shadow-sm disabled:opacity-50"
-              >
-                {connecting ? <Loader size={14} className="animate-spin" /> : <GitBranch size={14} />}
-                Confirm Connection
-              </button>
+              {repo.grantedToApp === false ? (
+                <button
+                  onClick={(e) => { e.stopPropagation(); window.open(`https://github.com/apps/${import.meta.env.VITE_GITHUB_APP_NAME || 'codeward'}/installations/new`, '_blank'); }}
+                  className="px-5 py-2 bg-cw-bg3 hover:bg-cw-bg border border-cw-bdr text-cw-txt text-[13px] font-semibold rounded-lg flex items-center gap-2 transition-colors shadow-sm"
+                >
+                  <ShieldAlert size={14} className="text-cw-amber" />
+                  Grant Access via GitHub
+                </button>
+              ) : (
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleInlineConnect(repo); }}
+                  disabled={connecting}
+                  className="px-5 py-2 bg-cw-purple hover:brightness-110 text-white text-[13px] font-semibold rounded-lg flex items-center gap-2 transition-colors shadow-sm disabled:opacity-50"
+                >
+                  {connecting ? <Loader size={14} className="animate-spin" /> : <GitBranch size={14} />}
+                  Confirm Connection
+                </button>
+              )}
             </div>
           </div>
         )}
