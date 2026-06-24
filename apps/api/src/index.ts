@@ -28,9 +28,10 @@ const corsConfig = {
   maxAge: 600,
 };
 
-// General CORS for other API routes (but NOT for auth, better-auth handles its own CORS)
+// General CORS for other API routes. For /api/auth, let Hono handle OPTIONS (preflight)
+// to fix CORS issues, but skip for GET/POST to avoid duplicate headers from better-auth.
 app.use('*', async (c, next) => {
-  if (c.req.path.startsWith('/api/auth')) {
+  if (c.req.path.startsWith('/api/auth') && c.req.method !== 'OPTIONS') {
     return next();
   }
   return cors(corsConfig)(c, next);
