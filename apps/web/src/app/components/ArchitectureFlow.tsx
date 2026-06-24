@@ -137,7 +137,7 @@ export function ArchitectureFlow() {
         {/* Column 2: Middle Grid */}
         <div className={styles.col2}>
           
-          <div className={`${styles.card} ${styles.gridCard}`} id="flow-grid-1" style={{ alignItems: 'flex-start', textAlign: 'left' }}>
+          <div className={`${styles.card} ${styles.gridCard}`} id="flow-grid-1" style={{ alignItems: 'flex-start', textAlign: 'left', backgroundColor: '#FEF2F2', borderColor: '#FECACA' }}>
             <div className={styles.iconCircle} style={{ color: '#EF4444', backgroundColor: '#FEE2E2', marginBottom: '12px' }}>
                <Settings01Icon size={24} />
             </div>
@@ -167,7 +167,7 @@ export function ArchitectureFlow() {
             </p>
           </div>
 
-          <div className={`${styles.card} ${styles.gridCard}`} id="flow-grid-4" style={{ alignItems: 'flex-start', textAlign: 'left' }}>
+          <div className={`${styles.card} ${styles.gridCard}`} id="flow-grid-4" style={{ alignItems: 'flex-start', textAlign: 'left', backgroundColor: '#ECFDF5', borderColor: '#A7F3D0' }}>
             <div className={styles.iconCircle} style={{ color: '#10B981', backgroundColor: '#D1FAE5', marginBottom: '12px' }}>
                <SourceCodeIcon size={24} />
             </div>
@@ -186,7 +186,7 @@ export function ArchitectureFlow() {
             <div className={styles.resultTitle}>Actionable Code Reviews</div>
             <div className={styles.resultDesc}>Codeward leaves inline comments and blocks bad code before merging.</div>
           </div>
-          <div className={`${styles.card} ${styles.resultCard}`} id="flow-res-2">
+          <div className={`${styles.card} ${styles.resultCard}`} id="flow-res-2" style={{ backgroundColor: '#F5F3FF', borderColor: '#DDD6FE' }}>
             <div className={styles.resultIcon}><Grid02Icon size={20} color="#8B5CF6" /></div>
             <div className={styles.resultTitle}>Codeward Self-healing</div>
             <div className={styles.resultDesc}>Codeward autonomously commits perfect fixes for the issues it finds.</div>
