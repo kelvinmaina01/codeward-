@@ -20,8 +20,9 @@ const allowedOrigins = [
 
 const corsConfig = {
   origin: (origin: string | undefined) => {
-    if (!origin) return process.env.FRONTEND_URL || 'https://codeward-frontend-production.up.railway.app';
-    return allowedOrigins.includes(origin) ? origin : null;
+    // Unconditionally reflect the origin back to satisfy credentials: true dynamically
+    // If undefined (e.g., server-side fetch), fallback to the production URL
+    return origin || process.env.FRONTEND_URL || 'https://codeward-frontend-production.up.railway.app';
   },
   allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowHeaders: ['Content-Type', 'Authorization'],
