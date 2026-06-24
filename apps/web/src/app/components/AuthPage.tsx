@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router';
 import { BotIcon, TaskDone01Icon, GitPullRequestIcon, CircleArrowReload01Icon, StarsIcon, Sun01Icon, Moon01Icon, CircleIcon } from 'hugeicons-react';
 import { CheckCircle } from 'lucide-react';
 import { signIn } from '../../lib/auth';
+import { toast } from 'sonner';
 import { Theme } from './types';
 import { ParticleBackground } from './ParticleBackground';
 
@@ -59,8 +60,16 @@ export function AuthPage({ onBack, theme: _theme, onCycleTheme, onNavigate: _onN
         provider,
         callbackURL: window.location.origin + '/connect',
       });
-    } catch (err) {
-      console.error(err);
+    } catch (err: unknown) {
+      console.error('[Auth] OAuth sign-in failed:', err);
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      const isNetwork = message.toLowerCase().includes('fetch') || message.toLowerCase().includes('network');
+      toast.error(
+        isNetwork
+          ? '⚠️ Cannot reach the server. Please check your connection and try again.'
+          : `Sign-in failed: ${message}`,
+        { description: 'If this keeps happening, contact support.', duration: 6000 }
+      );
       setLoading(null);
     }
   };

@@ -7,8 +7,8 @@ import { reposRouter } from './routes/repos.js';
 import { prRouter } from './routes/pr.js';
 import { auth } from './auth/index.js';
 
-// Agent System — model-agnostic orchestration
-import { agentWorker } from './agents/queue/agent.queue.js';
+// NOTE: agentWorker is started dynamically AFTER the HTTP server is up.
+// This ensures a Redis/BullMQ failure at startup cannot crash the server.
 
 const app = new Hono();
 
@@ -32,6 +32,25 @@ const corsConfig = {
 
 // Apply CORS globally. It will intercept OPTIONS requests with 204.
 app.use('*', cors(corsConfig));
+
+// ─── Global error handler ─────────────────────────────────────────────────────
+// Catches any unhandled error thrown inside a route handler and returns a
+// clean, structured JSON response instead of crashing or sending a bare 500.
+app.onError((err, c) => {
+  const timestamp = new Date().toISOString();
+  console.error(`\n[${timestamp}] 🚨 ROUTE ERROR on ${c.req.method} ${c.req.path}`);
+  console.error(`  Name:    ${err.name}`);
+  console.error(`  Message: ${err.message}`);
+  console.error(`  Stack:\n${err.stack}`);
+
+  return c.json({
+    error: 'Internal Server Error',
+    message: 'Something went wrong. Our team has been notified.',
+    timestamp,
+    path: c.req.path,
+  }, 500);
+});
+
 
 app.get('/health', (c) => {
   return c.json({ status: 'ok', service: 'codeward-api' });
@@ -106,4 +125,42 @@ const server = serve({
 
 injectWebSocket(server);
 
-console.log(`[AgentSystem] Worker ready — listening for agent-jobs on BullMQ`);
+// ─── Start agent worker safely AFTER HTTP server is live ─────────────────────
+// Dynamic import isolates Redis/BullMQ failures — the HTTP server stays up
+// even if the worker cannot connect to Redis.
+(async () => {
+  try {
+    await import('./agents/queue/agent.queue.js');
+    console.log(`[AgentSystem] ✅ Worker started — listening for agent-jobs on BullMQ`);
+  } catch (err) {
+    console.error(`[AgentSystem] ⚠️  Worker failed to start (Redis may be unavailable):`);
+    console.error(err instanceof Error ? err.stack : String(err));
+    console.log(`[AgentSystem] HTTP server remains running — queue features disabled.`);
+  }
+})();
+
+
+// ─── Process-level crash guards ───────────────────────────────────────────────
+// Prevents the entire server from dying on a single unhandled error.
+// Devs get a full, timestamped stack trace; the process stays alive.
+
+process.on('uncaughtException', (err: Error) => {
+  console.error(`\n[${new Date().toISOString()}] 💥 UNCAUGHT EXCEPTION — server will NOT crash`);
+  console.error(`  Name:    ${err.name}`);
+  console.error(`  Message: ${err.message}`);
+  console.error(`  Stack:\n${err.stack}`);
+});
+
+process.on('unhandledRejection', (reason: unknown, promise: Promise<unknown>) => {
+  console.error(`\n[${new Date().toISOString()}] 🔥 UNHANDLED PROMISE REJECTION — server will NOT crash`);
+  console.error(`  Promise: ${String(promise)}`);
+  console.error(`  Reason:  ${reason instanceof Error ? reason.stack : String(reason)}`);
+});
+
+process.on('SIGTERM', () => {
+  console.log(`\n[${new Date().toISOString()}] 🛑 SIGTERM received — graceful shutdown initiated`);
+  server.close(() => {
+    console.log(`[${new Date().toISOString()}] ✅ HTTP server closed. Exiting.`);
+    process.exit(0);
+  });
+});

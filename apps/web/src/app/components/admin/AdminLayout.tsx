@@ -200,7 +200,7 @@ export function AdminLayout() {
           <Outlet />
         </div>
       </div>
-      <Toaster position="bottom-right" theme={theme as any} richColors />
+      <Toaster position="top-right" theme={theme as any} richColors />
     </div>
   );
 }
