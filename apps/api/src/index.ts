@@ -39,16 +39,41 @@ app.get('/health', (c) => {
 
 app.get('/', (c) => c.text('Codeward API Running!'));
 
-// Better Auth handler
+// Better Auth handler — must manually inject CORS headers because
+// constructing a new Response() discards what Hono's cors middleware wrote.
 app.on(['POST', 'GET', 'OPTIONS'], '/api/auth/*', async (c) => {
+  const origin = c.req.header('Origin') || '';
+
+  // Respond to OPTIONS preflight immediately with CORS headers — don't even
+  // bother calling better-auth for a preflight; it doesn't need to.
+  if (c.req.method === 'OPTIONS') {
+    return new Response(null, {
+      status: 204,
+      headers: {
+        'Access-Control-Allow-Origin': origin || 'https://codeward-frontend-production.up.railway.app',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        'Access-Control-Allow-Credentials': 'true',
+        'Access-Control-Max-Age': '600',
+      }
+    });
+  }
+
   const res = await auth.handler(c.req.raw);
-  // Reconstruct the response to make headers mutable so Hono's cors middleware can append to them
+
+  // Rebuild the response with mutable headers and always inject CORS headers.
+  const headers = new Headers(res.headers);
+  headers.set('Access-Control-Allow-Origin', origin || 'https://codeward-frontend-production.up.railway.app');
+  headers.set('Access-Control-Allow-Credentials', 'true');
+  headers.set('Vary', 'Origin');
+
   return new Response(res.body, {
     status: res.status,
     statusText: res.statusText,
-    headers: new Headers(res.headers)
+    headers,
   });
 });
+
 
 import { statsRouter } from './routes/stats.js';
 import { wsRouter, setupWs } from './routes/ws.js';
