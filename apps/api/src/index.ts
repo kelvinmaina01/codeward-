@@ -20,10 +20,11 @@ const allowedOrigins = [
 
 const corsConfig = {
   origin: (origin: string | undefined) => {
-    return origin || 'http://localhost:5173';
+    if (!origin) return process.env.FRONTEND_URL || 'https://codeward-frontend-production.up.railway.app';
+    return allowedOrigins.includes(origin) ? origin : null;
   },
-  // Omit allowHeaders to let Hono dynamically reflect the client's requested headers
-  allowMethods: ['POST', 'GET', 'OPTIONS', 'PUT', 'DELETE', 'PATCH'],
+  allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
   maxAge: 600,
 };
