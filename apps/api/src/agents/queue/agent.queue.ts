@@ -18,8 +18,8 @@
  */
 
 import { Queue, Worker, Job } from 'bullmq';
-import { Redis } from 'ioredis';
 import dotenv from 'dotenv';
+import { createRedisConnection } from '../../lib/redis.js';
 import { db } from '../../db/index.js';
 import { agentTasks } from '../../db/schema.js';
 import { eq } from 'drizzle-orm';
@@ -33,9 +33,7 @@ dotenv.config();
 // Connection (reuses the same Redis as the webhook queue)
 // ---------------------------------------------------------------------------
 
-const connection = new Redis(process.env.UPSTASH_REDIS_URL || 'redis://localhost:6379', {
-  maxRetriesPerRequest: null,
-});
+const connection = createRedisConnection();
 
 // ---------------------------------------------------------------------------
 // Queue

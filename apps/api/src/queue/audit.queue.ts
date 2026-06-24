@@ -6,12 +6,11 @@ import { repositories, runs, runResults } from '../db/schema.js';
 import { eq } from 'drizzle-orm';
 import { runSandbox } from '../sandbox/runner.js';
 import { NotificationService } from '../notifications/NotificationService.js';
+import { createRedisConnection } from '../lib/redis.js';
 
 dotenv.config();
 
-const connection = new Redis(process.env.UPSTASH_REDIS_URL || 'redis://localhost:6379', {
-  maxRetriesPerRequest: null,
-});
+const connection = createRedisConnection();
 
 export const auditQueue = new Queue('full-audits', { connection: connection as any });
 

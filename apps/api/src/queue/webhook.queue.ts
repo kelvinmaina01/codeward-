@@ -4,12 +4,11 @@ import dotenv from 'dotenv';
 import { db } from '../db/index.js';
 import { repositories } from '../db/schema.js';
 import { eq } from 'drizzle-orm';
+import { createRedisConnection } from '../lib/redis.js';
 
 dotenv.config();
 
-const connection = new Redis(process.env.UPSTASH_REDIS_URL || 'redis://localhost:6379', {
-  maxRetriesPerRequest: null,
-});
+const connection = createRedisConnection();
 
 export const pushQueue = new Queue('webhook-jobs', { connection: connection as any });
 
