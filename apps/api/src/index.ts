@@ -22,20 +22,14 @@ const corsConfig = {
   origin: (origin: string | undefined) => {
     return origin || 'http://localhost:5173';
   },
-  allowHeaders: ['Content-Type', 'Authorization', 'Accept', 'x-client-name', 'x-client-version'],
+  // Omit allowHeaders to let Hono dynamically reflect the client's requested headers
   allowMethods: ['POST', 'GET', 'OPTIONS', 'PUT', 'DELETE', 'PATCH'],
   credentials: true,
   maxAge: 600,
 };
 
-// General CORS for other API routes. For /api/auth, let Hono handle OPTIONS (preflight)
-// to fix CORS issues, but skip for GET/POST to avoid duplicate headers from better-auth.
-app.use('*', async (c, next) => {
-  if (c.req.path.startsWith('/api/auth') && c.req.method !== 'OPTIONS') {
-    return next();
-  }
-  return cors(corsConfig)(c, next);
-});
+// Apply CORS globally. It will intercept OPTIONS requests with 204.
+app.use('*', cors(corsConfig));
 
 app.get('/health', (c) => {
   return c.json({ status: 'ok', service: 'codeward-api' });
@@ -43,9 +37,15 @@ app.get('/health', (c) => {
 
 app.get('/', (c) => c.text('Codeward API Running!'));
 
-// Better Auth handler — use app.on() with explicit methods per docs
-app.on(['POST', 'GET', 'OPTIONS'], '/api/auth/*', (c) => {
-  return auth.handler(c.req.raw);
+// Better Auth handler
+app.on(['POST', 'GET', 'OPTIONS'], '/api/auth/*', async (c) => {
+  const res = await auth.handler(c.req.raw);
+  // Reconstruct the response to make headers mutable so Hono's cors middleware can append to them
+  return new Response(res.body, {
+    status: res.status,
+    statusText: res.statusText,
+    headers: new Headers(res.headers)
+  });
 });
 
 import { statsRouter } from './routes/stats.js';
