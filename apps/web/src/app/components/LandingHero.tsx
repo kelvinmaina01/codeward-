@@ -1227,9 +1227,13 @@ export default function CodewardHero() {
       </section>
 
 
-      {/* Ã¢â€â‚¬Ã¢â€â‚¬ Specialized AI Agents Section Ã¢â€â‚¬Ã¢â€â‚¬ */}
-      <section className="bg-[#05060a] py-20 md:py-24 px-8 md:px-20 border-t border-white/5">
-        <div className="mx-auto max-w-7xl flex flex-col space-y-40">
+      {/* Ã¢â€ â‚¬Ã¢â€ â‚¬ Specialized AI Agents Section Ã¢â€ â‚¬Ã¢â€ â‚¬ */}
+      <section 
+        className="relative bg-[#05060a] py-20 md:py-24 px-8 md:px-20 border-t border-white/5 bg-cover bg-center bg-no-repeat"
+        style={{ backgroundImage: "url('https://i.ibb.co/xP4yRWx/codewarrrrd-section.png')" }}
+      >
+        <div className="absolute inset-0 bg-[#05060a]/60" /> {/* Dark overlay to ensure text readability */}
+        <div className="relative z-10 mx-auto max-w-7xl flex flex-col space-y-40">
           
           {/* Agent 1: Security Shield */}
           <div className="flex flex-col md:flex-row items-center gap-16">
