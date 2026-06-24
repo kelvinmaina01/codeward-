@@ -147,7 +147,7 @@ export function ArchitectureFlow() {
             </p>
           </div>
 
-          <div className={`${styles.card} ${styles.gridCard}`} id="flow-grid-2" style={{ alignItems: 'flex-start', textAlign: 'left' }}>
+          <div className={`${styles.card} ${styles.gridCard}`} id="flow-grid-2" style={{ alignItems: 'flex-start', textAlign: 'left', backgroundColor: '#F0F9FF', borderColor: '#BAE6FD' }}>
             <div className={styles.iconCircle} style={{ color: '#10B981', backgroundColor: '#D1FAE5', marginBottom: '12px' }}>
                <Database01Icon size={24} />
             </div>
@@ -157,7 +157,7 @@ export function ArchitectureFlow() {
             </p>
           </div>
 
-          <div className={`${styles.card} ${styles.gridCard}`} id="flow-grid-3" style={{ alignItems: 'flex-start', textAlign: 'left' }}>
+          <div className={`${styles.card} ${styles.gridCard}`} id="flow-grid-3" style={{ alignItems: 'flex-start', textAlign: 'left', backgroundColor: '#FFFBEB', borderColor: '#FDE68A' }}>
             <div className={styles.iconCircle} style={{ color: '#8B5CF6', backgroundColor: '#EDE9FE', marginBottom: '12px' }}>
                <ServerStack01Icon size={24} />
             </div>
