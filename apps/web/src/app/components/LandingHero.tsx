@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
+import Confetti from 'react-confetti';
 import { ArchitectureFlow } from './ArchitectureFlow';
 import { blogs } from '../data/blogs';
 
@@ -675,6 +676,30 @@ function VideoPlayer() {
 
 export default function CodewardHero() {
   const navigate = useNavigate();
+  const [showConfetti, setShowConfetti] = useState(false);
+  const footerRef = useRef<HTMLElement>(null);
+  const [windowSize, setWindowSize] = useState({ width: 0, height: 0 });
+
+  useEffect(() => {
+    setWindowSize({ width: window.innerWidth, height: window.innerHeight });
+    const handleResize = () => setWindowSize({ width: window.innerWidth, height: window.innerHeight });
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting) {
+        setShowConfetti(true);
+      }
+    }, { threshold: 0.1 });
+    
+    if (footerRef.current) observer.observe(footerRef.current);
+    return () => {
+      if (footerRef.current) observer.unobserve(footerRef.current);
+    };
+  }, []);
+
   return (
     <div className="h-screen overflow-y-auto overflow-x-hidden bg-[#05060a]">
       <section className="relative min-h-screen overflow-hidden bg-[#05060a] text-white">
@@ -1440,9 +1465,14 @@ export default function CodewardHero() {
         </FadeInSection>
       </section>
 
-      {/* Ã¢â€â‚¬Ã¢â€â‚¬ Footer Section Ã¢â€â‚¬Ã¢â€â‚¬ */}
+      {/* ─── Footer Section ─── */}
       <div className="px-4 md:px-8 pb-4 md:pb-8 bg-[#05060a]">
-        <footer className="relative bg-[#C3DBFF] rounded-[16px] pt-20 md:pt-24 pb-8 px-8 md:px-14 overflow-hidden shadow-2xl">
+        <footer ref={footerRef} className="relative bg-[#C3DBFF] rounded-[16px] pt-20 md:pt-24 pb-8 px-8 md:px-14 overflow-hidden shadow-2xl">
+          {showConfetti && (
+            <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 50 }}>
+              <Confetti width={windowSize.width} height={windowSize.height} recycle={false} numberOfPieces={400} />
+            </div>
+          )}
           {/* Fabric Gradient Overlay */}
           <div className="absolute inset-0 bg-gradient-to-tr from-white/40 via-transparent to-black/5 mix-blend-overlay pointer-events-none" />
           
@@ -1566,8 +1596,8 @@ export default function CodewardHero() {
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
-              Made on Codeward by <span className="text-black font-black text-lg leading-none">✦</span>
+            <div className="flex items-center gap-2 relative z-50">
+              Codeward meets <span className="text-black font-black text-lg leading-none">✦</span>
             </div>
           </div>
         </div>
