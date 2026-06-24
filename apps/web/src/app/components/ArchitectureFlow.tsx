@@ -84,10 +84,10 @@ export function ArchitectureFlow() {
     <div className={styles.container}>
       <div className={styles.header}>
         <h2 className={styles.title}>
-          Deploy <span className={styles.highlight}>autonomous agents</span> to eliminate your technical debt
+          <span className={styles.highlight}>Codeward</span> is your autonomous engineering team
         </h2>
         <p className={styles.subtitle}>
-          Automate code reviews, crush legacy technical debt, and run live sandboxed tests with specialized AI agents securely integrated into your pipeline.
+          Codeward acts as a fully autonomous developer in your CI/CD pipeline—reviewing code, running sandboxed tests, and committing production-ready fixes without human intervention.
         </p>
       </div>
 
@@ -112,19 +112,19 @@ export function ArchitectureFlow() {
             <div className={styles.agentAvatar} style={{ background: '#8B5CF6' }}>
               <SourceCodeSquareIcon size={32} color="#ffffff" />
             </div>
-            <div className={styles.agentId}>Trigger ID 00113</div>
-            <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#111', marginBottom: '8px' }}>Code Push & Trigger</h3>
+            <div className={styles.agentId}>Codeward Brain</div>
+            <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#111', marginBottom: '8px' }}>Pipeline Intercept</h3>
             <p style={{ fontSize: '13px', color: '#555', marginBottom: '16px', lineHeight: 1.5 }}>
-              The pipeline triggers when code is pushed or a PR is opened. Codeward intercepts:
+              Codeward automatically intercepts every PR and commit, gathering deep context on:
             </p>
-            <ul style={{ fontSize: '12px', color: '#8B5CF6', fontWeight: 600, paddingLeft: '16px', marginBottom: '16px', listStyleType: 'disc', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <ul style={{ fontSize: '12px', color: '#8B5CF6', fontWeight: 600, paddingLeft: '16px', marginBottom: '16px', listStyleType: 'disc', display: 'flex', flexDirection: 'column', gap: '4px', textAlign: 'left' }}>
               <li>Source code changes</li>
-              <li>PR comments & context</li>
-              <li>Branch policies</li>
-              <li>Affected dependencies</li>
+              <li>Architecture impact</li>
+              <li>Test coverage gaps</li>
+              <li>Dependency trees</li>
             </ul>
             <div style={{ fontSize: '11px', fontWeight: 600, color: '#10B981', background: '#D1FAE5', padding: '6px 10px', borderRadius: '4px' }}>
-              Status: Analyzing
+              Status: Analyzing Context
             </div>
           </div>
         </div>
@@ -143,7 +143,7 @@ export function ArchitectureFlow() {
             </div>
             <div className={styles.gridCardTitle} style={{ marginBottom: '6px' }}>Security Agent</div>
             <p style={{ fontSize: '12px', color: '#666', lineHeight: 1.5 }}>
-              Scans for zero-day vulnerabilities, hardcoded secrets, and compliance violations before execution.
+              Codeward acts as a DevSecOps engineer, proactively finding and patching zero-day vulnerabilities.
             </p>
           </div>
 
@@ -153,7 +153,7 @@ export function ArchitectureFlow() {
             </div>
             <div className={styles.gridCardTitle} style={{ marginBottom: '6px' }}>Debt Agent</div>
             <p style={{ fontSize: '12px', color: '#666', lineHeight: 1.5 }}>
-              Identifies legacy patterns and flags overly complex modules for modern refactoring.
+              Codeward acts as a Staff Engineer, identifying messy legacy code and planning architecture upgrades.
             </p>
           </div>
 
@@ -163,7 +163,7 @@ export function ArchitectureFlow() {
             </div>
             <div className={styles.gridCardTitle} style={{ marginBottom: '6px' }}>Test Agent</div>
             <p style={{ fontSize: '12px', color: '#666', lineHeight: 1.5 }}>
-              Spins up ephemeral live sandboxes to execute the entire test suite against the new changes.
+              Codeward provisions real microVM sandboxes in milliseconds to run your test suite and verify changes.
             </p>
           </div>
 
@@ -173,7 +173,7 @@ export function ArchitectureFlow() {
             </div>
             <div className={styles.gridCardTitle} style={{ marginBottom: '6px' }}>Refactor Agent</div>
             <p style={{ fontSize: '12px', color: '#666', lineHeight: 1.5 }}>
-              Restructures directories and writes optimized logic without breaking the underlying architecture.
+              Codeward writes the actual code to resolve tech debt, creating perfect pull requests on your behalf.
             </p>
           </div>
 
@@ -183,18 +183,18 @@ export function ArchitectureFlow() {
         <div className={styles.col3}>
           <div className={`${styles.card} ${styles.resultCard}`} id="flow-res-1">
             <div className={styles.resultIcon}><CheckmarkBadge01Icon size={20} color="#EF4444" /></div>
-            <div className={styles.resultTitle}>Automated PR Reviews</div>
-            <div className={styles.resultDesc}>Actionable, inline comments left directly on your pull requests in seconds.</div>
+            <div className={styles.resultTitle}>Actionable Code Reviews</div>
+            <div className={styles.resultDesc}>Codeward leaves inline comments and blocks bad code before merging.</div>
           </div>
           <div className={`${styles.card} ${styles.resultCard}`} id="flow-res-2">
             <div className={styles.resultIcon}><Grid02Icon size={20} color="#8B5CF6" /></div>
-            <div className={styles.resultTitle}>Self-healing Patches</div>
-            <div className={styles.resultDesc}>Autonomous code commits that instantly fix vulnerabilities or failing tests.</div>
+            <div className={styles.resultTitle}>Codeward Self-healing</div>
+            <div className={styles.resultDesc}>Codeward autonomously commits perfect fixes for the issues it finds.</div>
           </div>
           <div className={`${styles.card} ${styles.resultCard}`} id="flow-res-3">
             <div className={styles.resultIcon}><ArrowDataTransferVerticalIcon size={20} color="#10B981" /></div>
-            <div className={styles.resultTitle}>Zero-Debt Production</div>
-            <div className={styles.resultDesc}>A pristine, secure, and fully optimized architecture deployed flawlessly.</div>
+            <div className={styles.resultTitle}>Pristine Codebase</div>
+            <div className={styles.resultDesc}>Codeward continuously upgrades your codebase while you sleep.</div>
           </div>
         </div>
 

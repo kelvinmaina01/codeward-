@@ -118,7 +118,7 @@ function FAQSection() {
   ];
 
   return (
-    <section className="bg-[#05060a] py-20 md:py-24 px-8 md:px-20 border-t border-white/5">
+    <section className="bg-[#05060a] py-12 md:py-16 px-8 md:px-20 border-t border-white/5">
       <FadeInSection>
         <div className="mx-auto max-w-[900px]">
           <h2 className="text-2xl md:text-3xl font-bold text-white tracking-tight mb-16 text-center">Frequently Asked Questions</h2>
@@ -151,7 +151,7 @@ function FAQSection() {
 
 function SecuritySection() {
   return (
-    <section className="bg-[#05060a] pt-20 md:pt-24 pb-20 md:pb-24 px-8 md:px-20 font-['DM_Sans'] relative overflow-hidden">
+    <section className="bg-[#05060a] pt-12 md:pt-16 pb-12 md:pb-16 px-8 md:px-20 font-['DM_Sans'] relative overflow-hidden">
       <FadeInSection>
         <div className="mx-auto max-w-[1200px] relative z-10">
           <div className="mb-12 text-center md:text-left">
@@ -159,7 +159,7 @@ function SecuritySection() {
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 border-y border-white/10 relative">
-            <div className="p-10 md:p-12 border-b md:border-b-0 md:border-r border-black/10 relative bg-[#E0F7FA] z-10 transition-colors rounded-t-3xl md:rounded-tr-none md:rounded-l-3xl">
+            <div className="p-8 md:p-10 border-b md:border-b-0 md:border-r border-black/10 relative bg-[#E0F7FA] z-10 transition-colors rounded-t-3xl md:rounded-tr-none md:rounded-l-3xl">
               <div className="h-10 mb-8 flex items-center opacity-70">
                 <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-black">
                   <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
@@ -175,7 +175,7 @@ function SecuritySection() {
               </p>
             </div>
             
-            <div className="p-10 md:p-12 border-b md:border-b-0 md:border-r border-black/10 relative bg-[#E8EAF6] z-10 transition-colors">
+            <div className="p-8 md:p-10 border-b md:border-b-0 md:border-r border-black/10 relative bg-[#E8EAF6] z-10 transition-colors">
               <div className="h-10 mb-8 flex items-center opacity-70">
                 <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-black">
                   <rect x="2" y="2" width="20" height="8" rx="2" ry="2" />
@@ -192,7 +192,7 @@ function SecuritySection() {
               </p>
             </div>
             
-            <div className="p-10 md:p-12 relative bg-[#FCE4EC] z-10 transition-colors rounded-b-3xl md:rounded-bl-none md:rounded-r-3xl">
+            <div className="p-8 md:p-10 relative bg-[#FCE4EC] z-10 transition-colors rounded-b-3xl md:rounded-bl-none md:rounded-r-3xl">
               <div className="h-10 mb-8 flex items-center opacity-70">
                 <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-black">
                   <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
@@ -519,7 +519,7 @@ function TestimonialsSection() {
   }, []);
 
   return (
-    <section className="bg-[#05060a] py-24 pl-8 md:pl-20 border-t border-white/5">
+    <section className="bg-[#05060a] py-16 pl-8 md:pl-20 border-t border-white/5">
       <div className="w-full">
         <div className="max-w-[1500px] mr-auto">
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 md:mb-12 gap-6 md:gap-0 pr-8 md:pr-20">
@@ -542,10 +542,10 @@ function TestimonialsSection() {
             {testimonials.map((t) => (
               <div 
                 key={t.id} 
-                className={`${t.bgColor} shrink-0 w-[85vw] md:w-[650px] h-[550px] rounded-2xl p-12 flex flex-col justify-end relative shadow-2xl snap-start`}
+                className={`${t.bgColor} shrink-0 w-[85vw] md:w-[500px] h-[400px] rounded-2xl p-8 flex flex-col justify-end relative shadow-2xl snap-start`}
               >
                 <div>
-                  <p className="text-2xl md:text-3xl text-black font-medium leading-[1.3] mb-12 tracking-tight">
+                  <p className="text-xl md:text-2xl text-black font-medium leading-[1.3] mb-8 tracking-tight">
                     {t.text}
                   </p>
                   <div className="flex items-center gap-4">
