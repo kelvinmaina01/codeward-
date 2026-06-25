@@ -1284,6 +1284,8 @@ export default function CodewardHero() {
                   <img
                     src="https://i.ibb.co/Y4Tr8tJG/security-dashboard.png"
                     alt="Security Dashboard"
+                    loading="lazy"
+                    decoding="async"
                     className="w-full h-auto block"
                   />
                   {/* bottom fade */}
@@ -1314,6 +1316,8 @@ export default function CodewardHero() {
                   <img
                     src="https://i.ibb.co/svMtrRNV/debt-tracker.png"
                     alt="Debt Tracker"
+                    loading="lazy"
+                    decoding="async"
                     className="w-full h-auto block"
                   />
                   <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-[#0d1117] to-transparent pointer-events-none z-10" />
@@ -1343,6 +1347,8 @@ export default function CodewardHero() {
                   <img
                     src="https://i.ibb.co/v4b84tTn/sandbox-live.png"
                     alt="Live Sandbox"
+                    loading="lazy"
+                    decoding="async"
                     className="w-full h-auto block"
                   />
                   <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-[#0d1117] to-transparent pointer-events-none z-10" />
@@ -1372,6 +1378,8 @@ export default function CodewardHero() {
                   <img
                     src="https://i.ibb.co/G4HcKRKx/refactor-diff.png"
                     alt="Refactor Diff"
+                    loading="lazy"
+                    decoding="async"
                     className="w-full h-auto block"
                   />
                   <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-[#0d1117] to-transparent pointer-events-none z-10" />
@@ -1392,9 +1400,20 @@ export default function CodewardHero() {
               </button>
             </FadeInSection>
             <FadeInSection direction="up" className="flex-1 w-full flex justify-end">
-              <div className="relative aspect-[4/3] w-full max-w-[700px] rounded-2xl bg-[#F5F5EF] overflow-hidden flex flex-col justify-center shadow-[0_0_50px_rgba(249,115,22,0.15)]">
-                <div className="absolute inset-0 flex flex-col items-center justify-center z-0 p-8 text-center">
-                   <span className="text-black/20 font-bold text-2xl tracking-widest uppercase">PR Review<br/>Summary</span>
+              {/* GitHub-style gradient-border card — PR Review */}
+              <div className="relative w-full max-w-[680px] rounded-3xl p-[1.5px] shadow-[0_0_100px_rgba(249,115,22,0.28),0_30px_70px_rgba(0,0,0,0.65),0_0_0_1px_rgba(249,115,22,0.15)]" style={{ background: 'linear-gradient(135deg, rgba(249,115,22,0.7) 0%, rgba(234,179,8,0.4) 45%, rgba(255,255,255,0.08) 100%)' }}>
+                <div className="relative rounded-3xl bg-[#0d1117] overflow-hidden">
+                  <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-orange-400/60 to-transparent z-10 pointer-events-none" />
+                  <div className="absolute top-0 left-0 right-0 h-52 bg-gradient-to-b from-white/[0.05] to-transparent z-10 pointer-events-none" />
+                  <div className="absolute top-0 bottom-0 left-0 w-28 bg-gradient-to-r from-white/[0.03] to-transparent z-10 pointer-events-none" />
+                  <img
+                    src="https://i.ibb.co/F4Tkfvh8/Screenshot-2026-06-25-223842.png"
+                    alt="PR Review Summary"
+                    loading="lazy"
+                    decoding="async"
+                    className="w-full h-auto block"
+                  />
+                  <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-[#0d1117] to-transparent pointer-events-none z-10" />
                 </div>
               </div>
             </FadeInSection>
