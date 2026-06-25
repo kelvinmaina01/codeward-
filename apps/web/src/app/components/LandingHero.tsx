@@ -1272,10 +1272,13 @@ export default function CodewardHero() {
               </button>
             </FadeInSection>
             <FadeInSection direction="up" className="flex-1 w-full flex justify-end">
-              <div className="relative aspect-[4/3] w-full max-w-[700px] rounded-2xl bg-[#F5F5EF] overflow-hidden flex flex-col justify-center shadow-[0_0_50px_rgba(239,68,68,0.15)]">
-                <div className="absolute inset-0 flex flex-col items-center justify-center z-0 p-8 text-center">
-                   <span className="text-black/20 font-bold text-2xl tracking-widest uppercase">Security<br/>Dashboard</span>
-                </div>
+              <div className="relative aspect-[4/3] w-full max-w-[700px] rounded-2xl bg-[#0d0e14] overflow-hidden shadow-[0_0_60px_rgba(239,68,68,0.2)] ring-1 ring-white/10">
+                <img
+                  src="https://i.ibb.co/Y4Tr8tJG/security-dashboard.png"
+                  alt="Security Dashboard"
+                  className="absolute inset-0 w-full h-full object-cover object-top"
+                />
+                <div className="absolute inset-0 rounded-2xl ring-inset ring-1 ring-white/5 pointer-events-none" />
               </div>
             </FadeInSection>
           </div>
@@ -1292,10 +1295,13 @@ export default function CodewardHero() {
               </button>
             </FadeInSection>
             <FadeInSection direction="up" className="flex-1 w-full flex justify-end">
-              <div className="relative aspect-[4/3] w-full max-w-[700px] rounded-2xl bg-[#F5F5EF] overflow-hidden flex flex-col justify-center shadow-[0_0_50px_rgba(168,85,247,0.15)]">
-                <div className="absolute inset-0 flex flex-col items-center justify-center z-0 p-8 text-center">
-                   <span className="text-black/20 font-bold text-2xl tracking-widest uppercase">Debt<br/>Tracker</span>
-                </div>
+              <div className="relative aspect-[4/3] w-full max-w-[700px] rounded-2xl bg-[#0d0e14] overflow-hidden shadow-[0_0_60px_rgba(168,85,247,0.2)] ring-1 ring-white/10">
+                <img
+                  src="https://i.ibb.co/svMtrRNV/debt-tracker.png"
+                  alt="Debt Tracker"
+                  className="absolute inset-0 w-full h-full object-cover object-top"
+                />
+                <div className="absolute inset-0 rounded-2xl ring-inset ring-1 ring-white/5 pointer-events-none" />
               </div>
             </FadeInSection>
           </div>
@@ -1312,10 +1318,13 @@ export default function CodewardHero() {
               </button>
             </FadeInSection>
             <FadeInSection direction="up" className="flex-1 w-full flex justify-end">
-              <div className="relative aspect-[4/3] w-full max-w-[700px] rounded-2xl bg-[#F5F5EF] overflow-hidden flex flex-col justify-center shadow-[0_0_50px_rgba(34,197,94,0.15)]">
-                <div className="absolute inset-0 flex flex-col items-center justify-center z-0 p-8 text-center">
-                   <span className="text-black/20 font-bold text-2xl tracking-widest uppercase">Live<br/>Sandbox</span>
-                </div>
+              <div className="relative aspect-[4/3] w-full max-w-[700px] rounded-2xl bg-[#0d0e14] overflow-hidden shadow-[0_0_60px_rgba(34,197,94,0.2)] ring-1 ring-white/10">
+                <img
+                  src="https://i.ibb.co/v4b84tTn/sandbox-live.png"
+                  alt="Live Sandbox"
+                  className="absolute inset-0 w-full h-full object-cover object-top"
+                />
+                <div className="absolute inset-0 rounded-2xl ring-inset ring-1 ring-white/5 pointer-events-none" />
               </div>
             </FadeInSection>
           </div>
@@ -1332,10 +1341,13 @@ export default function CodewardHero() {
               </button>
             </FadeInSection>
             <FadeInSection direction="up" className="flex-1 w-full flex justify-end">
-              <div className="relative aspect-[4/3] w-full max-w-[700px] rounded-2xl bg-[#F5F5EF] overflow-hidden flex flex-col justify-center shadow-[0_0_50px_rgba(59,130,246,0.15)]">
-                <div className="absolute inset-0 flex flex-col items-center justify-center z-0 p-8 text-center">
-                   <span className="text-black/20 font-bold text-2xl tracking-widest uppercase">Refactor<br/>Diff</span>
-                </div>
+              <div className="relative aspect-[4/3] w-full max-w-[700px] rounded-2xl bg-[#0d0e14] overflow-hidden shadow-[0_0_60px_rgba(59,130,246,0.2)] ring-1 ring-white/10">
+                <img
+                  src="https://i.ibb.co/G4HcKRKx/refactor-diff.png"
+                  alt="Refactor Diff"
+                  className="absolute inset-0 w-full h-full object-cover object-top"
+                />
+                <div className="absolute inset-0 rounded-2xl ring-inset ring-1 ring-white/5 pointer-events-none" />
               </div>
             </FadeInSection>
           </div>
