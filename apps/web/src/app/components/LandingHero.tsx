@@ -1272,13 +1272,23 @@ export default function CodewardHero() {
               </button>
             </FadeInSection>
             <FadeInSection direction="up" className="flex-1 w-full flex justify-end">
-              <div className="relative aspect-[4/3] w-full max-w-[700px] rounded-2xl bg-[#0d0e14] overflow-hidden shadow-[0_0_60px_rgba(239,68,68,0.2)] ring-1 ring-white/10">
-                <img
-                  src="https://i.ibb.co/Y4Tr8tJG/security-dashboard.png"
-                  alt="Security Dashboard"
-                  className="absolute inset-0 w-full h-full object-cover object-top"
-                />
-                <div className="absolute inset-0 rounded-2xl ring-inset ring-1 ring-white/5 pointer-events-none" />
+              {/* GitHub-style gradient-border card — Security */}
+              <div className="relative w-full max-w-[680px] rounded-3xl p-[1.5px] shadow-[0_0_100px_rgba(239,68,68,0.28),0_30px_70px_rgba(0,0,0,0.65),0_0_0_1px_rgba(239,68,68,0.15)]" style={{ background: 'linear-gradient(135deg, rgba(239,68,68,0.7) 0%, rgba(168,85,247,0.4) 45%, rgba(255,255,255,0.08) 100%)' }}>
+                <div className="relative rounded-3xl bg-[#0d1117] overflow-hidden">
+                  {/* top shimmer line */}
+                  <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-red-400/60 to-transparent z-10 pointer-events-none" />
+                  {/* overhead top-light catch */}
+                  <div className="absolute top-0 left-0 right-0 h-52 bg-gradient-to-b from-white/[0.05] to-transparent z-10 pointer-events-none" />
+                  {/* left edge rim light */}
+                  <div className="absolute top-0 bottom-0 left-0 w-28 bg-gradient-to-r from-white/[0.03] to-transparent z-10 pointer-events-none" />
+                  <img
+                    src="https://i.ibb.co/Y4Tr8tJG/security-dashboard.png"
+                    alt="Security Dashboard"
+                    className="w-full h-auto block"
+                  />
+                  {/* bottom fade */}
+                  <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-[#0d1117] to-transparent pointer-events-none z-10" />
+                </div>
               </div>
             </FadeInSection>
           </div>
@@ -1295,13 +1305,19 @@ export default function CodewardHero() {
               </button>
             </FadeInSection>
             <FadeInSection direction="up" className="flex-1 w-full flex justify-end">
-              <div className="relative aspect-[4/3] w-full max-w-[700px] rounded-2xl bg-[#0d0e14] overflow-hidden shadow-[0_0_60px_rgba(168,85,247,0.2)] ring-1 ring-white/10">
-                <img
-                  src="https://i.ibb.co/svMtrRNV/debt-tracker.png"
-                  alt="Debt Tracker"
-                  className="absolute inset-0 w-full h-full object-cover object-top"
-                />
-                <div className="absolute inset-0 rounded-2xl ring-inset ring-1 ring-white/5 pointer-events-none" />
+              {/* GitHub-style gradient-border card — Debt Tracker */}
+              <div className="relative w-full max-w-[680px] rounded-3xl p-[1.5px] shadow-[0_0_100px_rgba(168,85,247,0.28),0_30px_70px_rgba(0,0,0,0.65),0_0_0_1px_rgba(168,85,247,0.15)]" style={{ background: 'linear-gradient(135deg, rgba(168,85,247,0.7) 0%, rgba(99,102,241,0.4) 45%, rgba(255,255,255,0.08) 100%)' }}>
+                <div className="relative rounded-3xl bg-[#0d1117] overflow-hidden">
+                  <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-purple-400/60 to-transparent z-10 pointer-events-none" />
+                  <div className="absolute top-0 left-0 right-0 h-52 bg-gradient-to-b from-white/[0.05] to-transparent z-10 pointer-events-none" />
+                  <div className="absolute top-0 bottom-0 left-0 w-28 bg-gradient-to-r from-white/[0.03] to-transparent z-10 pointer-events-none" />
+                  <img
+                    src="https://i.ibb.co/svMtrRNV/debt-tracker.png"
+                    alt="Debt Tracker"
+                    className="w-full h-auto block"
+                  />
+                  <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-[#0d1117] to-transparent pointer-events-none z-10" />
+                </div>
               </div>
             </FadeInSection>
           </div>
@@ -1318,13 +1334,19 @@ export default function CodewardHero() {
               </button>
             </FadeInSection>
             <FadeInSection direction="up" className="flex-1 w-full flex justify-end">
-              <div className="relative aspect-[4/3] w-full max-w-[700px] rounded-2xl bg-[#0d0e14] overflow-hidden shadow-[0_0_60px_rgba(34,197,94,0.2)] ring-1 ring-white/10">
-                <img
-                  src="https://i.ibb.co/v4b84tTn/sandbox-live.png"
-                  alt="Live Sandbox"
-                  className="absolute inset-0 w-full h-full object-cover object-top"
-                />
-                <div className="absolute inset-0 rounded-2xl ring-inset ring-1 ring-white/5 pointer-events-none" />
+              {/* GitHub-style gradient-border card — Live Sandbox */}
+              <div className="relative w-full max-w-[680px] rounded-3xl p-[1.5px] shadow-[0_0_100px_rgba(34,197,94,0.28),0_30px_70px_rgba(0,0,0,0.65),0_0_0_1px_rgba(34,197,94,0.15)]" style={{ background: 'linear-gradient(135deg, rgba(34,197,94,0.7) 0%, rgba(6,182,212,0.4) 45%, rgba(255,255,255,0.08) 100%)' }}>
+                <div className="relative rounded-3xl bg-[#0d1117] overflow-hidden">
+                  <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-green-400/60 to-transparent z-10 pointer-events-none" />
+                  <div className="absolute top-0 left-0 right-0 h-52 bg-gradient-to-b from-white/[0.05] to-transparent z-10 pointer-events-none" />
+                  <div className="absolute top-0 bottom-0 left-0 w-28 bg-gradient-to-r from-white/[0.03] to-transparent z-10 pointer-events-none" />
+                  <img
+                    src="https://i.ibb.co/v4b84tTn/sandbox-live.png"
+                    alt="Live Sandbox"
+                    className="w-full h-auto block"
+                  />
+                  <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-[#0d1117] to-transparent pointer-events-none z-10" />
+                </div>
               </div>
             </FadeInSection>
           </div>
@@ -1341,13 +1363,19 @@ export default function CodewardHero() {
               </button>
             </FadeInSection>
             <FadeInSection direction="up" className="flex-1 w-full flex justify-end">
-              <div className="relative aspect-[4/3] w-full max-w-[700px] rounded-2xl bg-[#0d0e14] overflow-hidden shadow-[0_0_60px_rgba(59,130,246,0.2)] ring-1 ring-white/10">
-                <img
-                  src="https://i.ibb.co/G4HcKRKx/refactor-diff.png"
-                  alt="Refactor Diff"
-                  className="absolute inset-0 w-full h-full object-cover object-top"
-                />
-                <div className="absolute inset-0 rounded-2xl ring-inset ring-1 ring-white/5 pointer-events-none" />
+              {/* GitHub-style gradient-border card — Refactor Diff */}
+              <div className="relative w-full max-w-[680px] rounded-3xl p-[1.5px] shadow-[0_0_100px_rgba(59,130,246,0.28),0_30px_70px_rgba(0,0,0,0.65),0_0_0_1px_rgba(59,130,246,0.15)]" style={{ background: 'linear-gradient(135deg, rgba(59,130,246,0.7) 0%, rgba(139,92,246,0.4) 45%, rgba(255,255,255,0.08) 100%)' }}>
+                <div className="relative rounded-3xl bg-[#0d1117] overflow-hidden">
+                  <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-blue-400/60 to-transparent z-10 pointer-events-none" />
+                  <div className="absolute top-0 left-0 right-0 h-52 bg-gradient-to-b from-white/[0.05] to-transparent z-10 pointer-events-none" />
+                  <div className="absolute top-0 bottom-0 left-0 w-28 bg-gradient-to-r from-white/[0.03] to-transparent z-10 pointer-events-none" />
+                  <img
+                    src="https://i.ibb.co/G4HcKRKx/refactor-diff.png"
+                    alt="Refactor Diff"
+                    className="w-full h-auto block"
+                  />
+                  <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-[#0d1117] to-transparent pointer-events-none z-10" />
+                </div>
               </div>
             </FadeInSection>
           </div>
