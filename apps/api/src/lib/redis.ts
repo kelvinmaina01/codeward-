@@ -13,8 +13,14 @@ export function createRedisConnection(): Redis {
   const url = process.env.UPSTASH_REDIS_URL || 'redis://localhost:6379';
   const isTLS = url.startsWith('rediss://');
 
-  return new Redis(url, {
+  const redis = new Redis(url, {
     maxRetriesPerRequest: null,
     ...(isTLS ? { tls: {} } : {}),
   });
+
+  redis.on('error', (err) => {
+    console.error(`[Redis] Connection error:`, err.message);
+  });
+
+  return redis;
 }
