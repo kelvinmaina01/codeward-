@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Radio, GitCompare, ShieldAlert, BarChart3,
   Bot, Monitor, Clock, GitFork, Award, Settings as SettingsIcon,
   Sun, Moon, Circle, Menu, LogOut, LucideIcon, ChevronDown, Plus, Blocks, Bell, Globe, X,
-  LayoutGrid, TerminalSquare
+  LayoutGrid, TerminalSquare, Sparkles, FileText, BadgeCheck
 } from 'lucide-react';
 import { Theme, Screen } from './components/types';
 import { AuthPage } from './components/AuthPage';
@@ -337,6 +337,20 @@ function DashboardLayout() {
               <button onClick={() => setIsGlobalFeedOpen(true)} className="px-4 py-2 rounded-md border border-cw-bdr bg-cw-bg2 text-cw-txt text-[13px] font-medium hover:bg-cw-bg3 transition-colors flex items-center gap-2">
                 <Globe size={14} /> Global feed
               </button>
+              
+              <div className="flex items-center ml-2 border border-cw-bdr rounded-md bg-cw-bg2 overflow-hidden">
+                <button className="px-3 py-1.5 text-cw-txt text-[13px] font-medium hover:bg-cw-bg3 transition-colors flex items-center gap-2 border-r border-cw-bdr">
+                  <Sparkles size={14} /> Skills
+                </button>
+                <button className="px-3 py-1.5 text-cw-txt text-[13px] font-medium hover:bg-cw-bg3 transition-colors flex items-center gap-2">
+                  <FileText size={14} /> Docs
+                </button>
+              </div>
+
+              <div className="flex items-center gap-1.5 px-3 py-1.5 ml-2 rounded-md border border-cw-bdr bg-cw-bg text-[13px] font-medium text-cw-txt">
+                <BadgeCheck size={14} className="text-cw-txt3" /> Free Tier
+              </div>
+
               <button
                 onClick={cycleTheme}
                 className="w-9 h-9 rounded-full border border-cw-bdr bg-cw-bg2 text-cw-txt2 flex items-center justify-center hover:bg-cw-bg3 transition-colors ml-2"

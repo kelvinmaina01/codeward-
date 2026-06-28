@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, Star, Lock, Globe, Check, Loader, GitBranch, AlertCircle, RefreshCw, X, ChevronDown, Shield, FileWarning, Zap, Server, ShieldAlert, Cpu, LogOut, Clock, Sun, Moon, Circle, ArrowRight } from 'lucide-react';
+import { Search, Star, Lock, Globe, Check, Loader, GitBranch, AlertCircle, RefreshCw, X, ChevronDown, Shield, FileWarning, Zap, Server, ShieldAlert, Cpu, LogOut, Clock, Sun, Moon, Circle, ArrowRight, BarChart2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { signOut } from '../../lib/auth';
 import { api } from '../../lib/api';
@@ -25,7 +25,18 @@ interface RepoConfig {
     compliance: boolean;
     data_dx: boolean;
   };
+  alerts: {
+    slack: boolean;
+    email: boolean;
+    whatsapp: boolean;
+    calendar: boolean;
+  };
 }
+
+const DEFAULT_CONFIG: RepoConfig = {
+  agents: { security: true, bloat: true, broken_code: true, architecture: true, ai_era: true, compliance: true, data_dx: true },
+  alerts: { slack: true, email: true, whatsapp: false, calendar: false }
+};
 
 interface Repo {
   name: string;
@@ -61,13 +72,24 @@ const langColors: Record<string, string> = {
 };
 
 const AGENTS = [
-  { id: 'security', name: 'Security Agent', desc: 'Secrets, CVEs, OWASP, SQL injection', icon: Shield, locked: true }, // Always on
-  { id: 'bloat', name: 'Bloat Agent', desc: 'Dead code, duplicates, unused deps', icon: FileWarning },
-  { id: 'broken_code', name: 'Broken Code Agent', desc: 'Tests, flaky detection', icon: Zap },
-  { id: 'architecture', name: 'Architecture Agent', desc: 'N+1 queries, missing indexes', icon: Server },
-  { id: 'ai_era', name: 'AI-Era Agent', desc: 'Prompt injection, RAG drift', icon: Cpu },
-  { id: 'compliance', name: 'Compliance Agent', desc: 'GDPR, EU AI Act, WCAG', icon: ShieldAlert },
+  { id: 'security', name: 'Security Agent', desc: 'Secrets, CVEs, OWASP, SQL injection', icon: Shield, bg: 'bg-cw-red/10', border: 'border-cw-red/20', text: 'text-cw-red' },
+  { id: 'bloat', name: 'Bloat Agent', desc: 'Dead code, duplicates, unused deps', icon: FileWarning, bg: 'bg-cw-blue/10', border: 'border-cw-blue/20', text: 'text-cw-blue' },
+  { id: 'broken_code', name: 'Broken Code Agent', desc: 'Tests, flaky detection', icon: Zap, bg: 'bg-cw-amber/10', border: 'border-cw-amber/20', text: 'text-cw-amber' },
+  { id: 'architecture', name: 'Architecture Agent', desc: 'N+1 queries, missing indexes', icon: Server, bg: 'bg-cw-purple/10', border: 'border-cw-purple/20', text: 'text-cw-purple' },
+  { id: 'ai_era', name: 'AI-Era Agent', desc: 'Prompt injection, RAG drift', icon: Cpu, bg: 'bg-cw-purple/10', border: 'border-cw-purple/20', text: 'text-cw-purple' },
+  { id: 'compliance', name: 'Compliance Agent', desc: 'GDPR, EU AI Act, WCAG', icon: ShieldAlert, bg: 'bg-cw-amber/10', border: 'border-cw-amber/20', text: 'text-cw-amber' },
+  { id: 'data_dx', name: 'Data & DX Agent', desc: 'Health score, tech debt tracking', icon: BarChart2, bg: 'bg-cw-green/10', border: 'border-cw-green/20', text: 'text-cw-green' },
 ];
+
+const renderChannelIcon = (name: string) => {
+  switch(name) {
+    case 'slack': return <img src="https://upload.wikimedia.org/wikipedia/commons/d/d5/Slack_icon_2019.svg" alt="Slack" className="w-3.5 h-3.5 object-contain" />;
+    case 'email': return <img src="https://cdn.simpleicons.org/gmail" alt="Email" className="w-3.5 h-3.5 object-contain" />;
+    case 'whatsapp': return <img src="https://cdn.simpleicons.org/whatsapp" alt="WhatsApp" className="w-3.5 h-3.5 object-contain" />;
+    case 'calendar': return <img src="https://cdn.simpleicons.org/googlecalendar" alt="Calendar" className="w-3.5 h-3.5 object-contain" />;
+    default: return null;
+  }
+};
 
 function timeAgoColor(dateStr: string) {
   const diffMs = Date.now() - new Date(dateStr).getTime();
@@ -186,16 +208,10 @@ export function ConnectRepo({ user, onConnect, onSkip, activeOrg, setActiveOrg, 
     setSelected(s => s.includes(full) ? s.filter(x => x !== full) : [...s, full]);
   };
 
-  const toggleAgent = (repoFull: string, agentId: keyof RepoConfig['agents']) => {
-    if (agentId === 'security') return; // Always on
+  const toggleAlert = (repoFull: string, channel: keyof RepoConfig['alerts']) => {
     setConfigs(prev => {
-      const current = prev[repoFull] || { agents: { security: true, bloat: true, broken_code: true, architecture: true, ai_era: true, compliance: true, data_dx: true } };
-      return {
-        ...prev,
-        [repoFull]: {
-          agents: { ...current.agents, [agentId]: !current.agents[agentId] }
-        }
-      };
+      const current = prev[repoFull] || DEFAULT_CONFIG;
+      return { ...prev, [repoFull]: { ...current, alerts: { ...current.alerts, [channel]: !current.alerts[channel] } } };
     });
   };
 
@@ -212,7 +228,7 @@ export function ConnectRepo({ user, onConnect, onSkip, activeOrg, setActiveOrg, 
         lang: r.lang,
         isPrivate: r.private,
         defaultBranch: r.defaultBranch,
-        config: configs[r.full] || { agents: { security: true, bloat: true, broken_code: true, architecture: true, ai_era: true, compliance: true, data_dx: true } }
+        config: configs[r.full] || DEFAULT_CONFIG
       }));
 
       const res = await api.api.repos.connect.$post({ json: { repos: payload } });
@@ -254,7 +270,7 @@ export function ConnectRepo({ user, onConnect, onSkip, activeOrg, setActiveOrg, 
   const RepoCard = ({ repo, compact = false }: { repo: Repo, compact?: boolean }) => {
     const sel = selected.includes(repo.full);
     const isExpanded = expandedRepo === repo.full;
-    const config = configs[repo.full] || { agents: { security: true, bloat: true, broken_code: true, architecture: true, ai_era: true, compliance: true, data_dx: true } };
+    const config = configs[repo.full] || DEFAULT_CONFIG;
 
     return (
       <div className={`relative flex flex-col bg-cw-bg transition-colors duration-200 ${
@@ -401,34 +417,56 @@ export function ConnectRepo({ user, onConnect, onSkip, activeOrg, setActiveOrg, 
         {/* Scope Selector Drawer (Expands below the row) */}
         {!compact && isExpanded && !repo.connected && (
           <div className="border-t border-cw-bdr bg-cw-bg2/50 p-5 md:pl-[4.5rem] animate-in slide-in-from-top-2 duration-200">
-            <h4 className="text-[13px] font-semibold text-cw-txt mb-1">Which agents should guard {repo.name}?</h4>
-            <p className="text-[11px] text-cw-txt2 mb-4">Toggle the automated checks you want to run on every pull request.</p>
+            <div className="bg-cw-purple/10 border border-cw-purple/20 rounded-xl p-4 mb-6 flex gap-3">
+              <Cpu className="text-cw-purple shrink-0 mt-0.5" size={20} />
+              <div>
+                <h4 className="text-[13px] font-bold text-cw-purple mb-1">Codeward dispatches a swarm of agents</h4>
+                <p className="text-[12px] text-cw-purple/80 leading-relaxed max-w-[600px]">
+                  These specialized agents will guard <strong>{repo.name}</strong> on every pull request. They clone your code into ephemeral sandboxes to run live tests, detect vulnerabilities, and submit automated PRs. Important findings will be sent to your configured alert channels.
+                </p>
+              </div>
+            </div>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-5">
               {AGENTS.map(agent => {
-                const isActive = config.agents[agent.id as keyof RepoConfig['agents']];
                 return (
                   <div 
                     key={agent.id}
-                    onClick={() => toggleAgent(repo.full, agent.id as keyof RepoConfig['agents'])}
-                    className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-all ${isActive ? 'bg-cw-purple/10 border-cw-purple/40' : 'bg-cw-bg border-cw-bdr hover:border-cw-txt3'} ${agent.locked ? 'cursor-not-allowed opacity-90' : ''}`}
+                    className={`flex items-start gap-3 p-3 rounded-lg border ${agent.bg} ${agent.border} transition-all`}
                   >
-                    <div className={`mt-0.5 w-[16px] h-[16px] rounded-[4px] border-[1.5px] flex items-center justify-center shrink-0 ${isActive ? 'border-cw-purple bg-cw-purple' : 'border-cw-txt3 bg-transparent'}`}>
-                      {isActive && <Check size={10} color="#fff" />}
+                    <div className={`mt-0.5 w-[28px] h-[28px] rounded-lg flex items-center justify-center shrink-0 ${agent.bg} ${agent.text} shadow-sm`}>
+                      <agent.icon size={15} />
                     </div>
                     <div>
-                      <div className="text-[12px] font-semibold text-cw-txt flex items-center gap-1.5 line-clamp-1">
-                        <agent.icon size={13} className={isActive ? 'text-cw-purple' : 'text-cw-txt3 shrink-0'} />
+                      <div className={`text-[12px] font-bold ${agent.text} flex items-center gap-1.5 line-clamp-1`}>
                         {agent.name}
-                        {agent.locked && <span className="text-[9px] px-1 bg-cw-bg2 text-cw-txt3 border border-cw-bdr rounded shrink-0">Always on</span>}
                       </div>
-                      <div className="text-[11px] text-cw-txt3 mt-0.5 leading-tight line-clamp-2">{agent.desc}</div>
+                      <div className="text-[11px] text-cw-txt2 mt-0.5 leading-tight line-clamp-2">{agent.desc}</div>
                     </div>
                   </div>
                 );
               })}
             </div>
             
+            <div className="pt-4 border-t border-cw-bdr mb-6">
+              <h5 className="text-[12px] font-bold text-cw-txt mb-3">Alert Channels</h5>
+              <div className="flex flex-wrap gap-4">
+                {['slack', 'email', 'whatsapp', 'calendar'].map((channel) => (
+                  <label key={channel} className={`flex items-center gap-2 cursor-pointer text-[12px] text-cw-txt font-medium bg-cw-bg px-3 py-2 border rounded-lg transition-colors ${config.alerts[channel as keyof RepoConfig['alerts']] ? 'border-cw-purple shadow-sm bg-cw-purple/5' : 'border-cw-bdr hover:border-cw-txt3'}`}>
+                    <input 
+                      type="checkbox" 
+                      checked={config.alerts[channel as keyof RepoConfig['alerts']]} 
+                      onChange={() => toggleAlert(repo.full, channel as keyof RepoConfig['alerts'])} 
+                      className="accent-cw-purple hidden" 
+                    />
+                    {renderChannelIcon(channel)}
+                    <span className="capitalize">{channel}</span>
+                  </label>
+                ))}
+              </div>
+              <div className="text-[10px] text-cw-txt3 mt-2">Settings can be overridden globally in Alerts page.</div>
+            </div>
+
             <div className="flex justify-end">
               {repo.grantedToApp === false ? (
                 <button

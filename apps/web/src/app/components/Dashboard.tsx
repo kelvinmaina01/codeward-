@@ -9,6 +9,14 @@ import { mockHealthData, mockDebtData, mockActivityRows } from '../../lib/mockAg
 import { api } from '../../lib/api';
 import { useEffect, useState } from 'react';
 
+export interface ActivityEvent {
+  id: string;
+  text: string;
+  time: string;
+  icon: any;
+  color: string;
+}
+
 export function Dashboard({ onRunClick }: Props) {
   const [stats, setStats] = useState({
     repositoriesProtected: 0,
@@ -16,6 +24,12 @@ export function Dashboard({ onRunClick }: Props) {
     debtRemoved: 0,
     interventions: 0
   });
+
+  const [activityFeed, setActivityFeed] = useState<ActivityEvent[]>([
+    { id: '1', text: 'Deploy Manager auto-approved commit 3fa2c1', time: '14m ago', icon: Monitor, color: 'text-cw-green' },
+    { id: '2', text: 'Security Agent rotated Stripe key in payments-api', time: '1h ago', icon: ShieldAlert, color: 'text-cw-red' },
+    { id: '3', text: 'Chat Agent suggested fix for N+1 queries across 3 repos', time: 'Yesterday', icon: Bot, color: 'text-cw-purple' }
+  ]);
 
   useEffect(() => {
     api.api.stats.dashboard.$get()
@@ -31,6 +45,55 @@ export function Dashboard({ onRunClick }: Props) {
         }
       })
       .catch(console.error);
+
+    // WebSocket connection for real-time activity feed
+    const wsUrl = import.meta.env.VITE_WS_URL || 'ws://localhost:3001/ws/feed';
+    const ws = new WebSocket(wsUrl);
+
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === 'agent_active' || data.type === 'agent_completed' || data.type === 'agent_failed') {
+          const { repo, sha, agent, score, error } = data.payload;
+          
+          let text = '';
+          let icon = Bot;
+          let color = 'text-cw-purple';
+
+          // Format agent name nicely
+          const agentName = agent.split('_').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') + ' Agent';
+          const shortSha = sha ? sha.substring(0, 6) : '';
+
+          if (data.type === 'agent_active') {
+            text = `${agentName} started scanning ${repo} on commit ${shortSha}`;
+            color = 'text-cw-blue';
+          } else if (data.type === 'agent_completed') {
+            text = `${agentName} finished scanning ${repo}. ${score !== undefined ? `Score: ${score}/100` : ''}`;
+            color = 'text-cw-green';
+          } else if (data.type === 'agent_failed') {
+            text = `${agentName} failed on ${repo}: ${error}`;
+            color = 'text-cw-red';
+            icon = ShieldAlert;
+          }
+
+          const newEvent: ActivityEvent = {
+            id: Date.now().toString() + Math.random().toString(),
+            text,
+            time: 'Just now',
+            icon,
+            color
+          };
+
+          setActivityFeed((prev) => [newEvent, ...prev].slice(0, 6)); // Keep last 6
+        }
+      } catch (e) {
+        console.error('Error parsing WS message', e);
+      }
+    };
+
+    return () => {
+      ws.close();
+    };
   }, []);
 
   return (
@@ -263,12 +326,8 @@ export function Dashboard({ onRunClick }: Props) {
             <div className="text-[11px] font-semibold tracking-wider text-cw-txt3">AGENT ACTIVITY STREAM</div>
           </div>
           <div className="flex flex-col gap-3 relative before:absolute before:left-[15px] before:top-2 before:bottom-2 before:w-[2px] before:bg-cw-bdr">
-            {[
-              { text: 'Deploy Manager auto-approved commit 3fa2c1', time: '14m ago', icon: Monitor, color: 'text-cw-green' },
-              { text: 'Security Agent rotated Stripe key in payments-api', time: '1h ago', icon: ShieldAlert, color: 'text-cw-red' },
-              { text: 'Chat Agent suggested fix for N+1 queries across 3 repos', time: 'Yesterday', icon: Bot, color: 'text-cw-purple' }
-            ].map((ev, i) => (
-              <div key={i} className="flex gap-4 items-start relative z-10">
+            {activityFeed.map((ev) => (
+              <div key={ev.id} className="flex gap-4 items-start relative z-10 animate-in slide-in-from-top-1 fade-in duration-300">
                 <div className="w-8 h-8 rounded-full bg-cw-bg border border-cw-bdr flex items-center justify-center shrink-0">
                   <ev.icon size={14} className={ev.color} />
                 </div>

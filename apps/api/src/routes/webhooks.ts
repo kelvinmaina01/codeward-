@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import crypto from 'crypto';
 import { auditQueue, pushQueue } from '../queue/index.js';
+import { agentQueue } from '../agents/queue/agent.queue.js';
 import { db } from '../db/index.js';
 import { runs, repositories } from '../db/schema.js';
 import { eq } from 'drizzle-orm';
@@ -97,6 +98,28 @@ webhookRouter.post('/github', async (c) => {
       }
       
       return c.json({ status: 'queued', type: 'deep-scan', auditsQueued: repos.length });
+    } else if (event === 'pull_request' && (data.action === 'opened' || data.action === 'synchronize')) {
+      const prNumber = data.pull_request.number;
+      const repoName = data.repository?.full_name;
+      const commitSHA = data.pull_request.head?.sha;
+      
+      console.log(`[Webhook] Received PR ${data.action} for ${repoName} #${prNumber} at ${commitSHA}`);
+
+      // Add a record in the database
+      const [runRecord] = await db.insert(runs).values({
+        commitSha: commitSHA,
+        status: 'queued',
+      }).returning();
+      
+      // Enqueue Phase 1 of the Orchestrator
+      await agentQueue.add('orchestrator-phase1', {
+        agentId: 'orchestrator_phase1',
+        commitSHA,
+        repoFullName: repoName,
+        runId: runRecord.id
+      });
+      
+      return c.json({ status: 'queued', type: 'orchestrator', commitSHA, runId: runRecord.id });
     }
 
     return c.json({ status: 'ignored', event });

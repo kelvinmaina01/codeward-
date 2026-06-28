@@ -26,6 +26,7 @@ import { eq } from 'drizzle-orm';
 import { getProvider } from '../core/registry.js';
 import type { AgentDefinition, SandboxHandle, AgentRunConfig } from '../core/provider.js';
 import { LocalExecSandbox } from '../../sandbox/local-exec.js';
+import { orchestratorPhase1Agent, orchestratorPhase2Agent, orchestratorPhase3Agent } from '../definitions/orchestrator.agent.js';
 
 dotenv.config();
 
@@ -68,6 +69,11 @@ export function registerAgent(definition: AgentDefinition) {
   agentDefinitions[definition.id] = definition;
   console.log(`[AgentQueue] Registered agent: ${definition.id} (${definition.displayName})`);
 }
+
+// Auto-register orchestrator agents
+registerAgent(orchestratorPhase1Agent);
+registerAgent(orchestratorPhase2Agent);
+registerAgent(orchestratorPhase3Agent);
 
 // ---------------------------------------------------------------------------
 // Worker
@@ -193,7 +199,7 @@ agentWorker.on('active', (job) => {
   });
 });
 
-agentWorker.on('completed', (job) => {
+agentWorker.on('completed', async (job) => {
   console.log(`[AgentQueue] Job ${job.id} completed (${job.data.agentId})`);
   broadcast('agent_completed', {
     repo: job.data.repoFullName,
@@ -202,6 +208,21 @@ agentWorker.on('completed', (job) => {
     status: 'Completed',
     score: job.returnvalue?.score
   });
+
+  // Orchestrator State Transitions
+  if (job.data.agentId === 'orchestrator_phase1') {
+    console.log(`[Orchestrator] Phase 1 complete. Triggering Phase 2 (Dispatch).`);
+    // Enqueue Phase 2, passing the Phase 1 findings in payload if needed
+    await agentQueue.add('orchestrator-phase2', {
+      agentId: 'orchestrator_phase2',
+      commitSHA: job.data.commitSHA,
+      repoFullName: job.data.repoFullName,
+      runId: job.data.runId
+    });
+  } else if (job.data.agentId === 'orchestrator_phase2') {
+    console.log(`[Orchestrator] Phase 2 complete. Waiting for sub-agents to finish.`);
+    // The await_agent_results tool or a separate coordinator will trigger Phase 3
+  }
 });
 
 agentWorker.on('failed', (job, err) => {

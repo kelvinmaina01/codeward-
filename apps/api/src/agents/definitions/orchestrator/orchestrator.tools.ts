@@ -9,48 +9,95 @@ export const createOrchestratorTools = (sandbox: SandboxHandle) => ({
       repoId: z.string()
     }),
     execute: async (args: any) => {
-      return {
-        config: {
-          tier: "pro",
-          strictMode: true,
-          highStakesDomains: ["payments", "auth"],
-          excludedPaths: [],
-          customThresholds: {
-            securityMinScore: 80,
-            bloatMaxFindings: 20,
-            architectureMinScore: 70
-          },
-          agentOverrides: {},
-          notifyChannels: [{ type: "slack", config: {} }]
-        }
+      // 1. Try to read .codeward.json directly from the cloned repo
+      const res = await sandbox.exec('cat .codeward.json');
+      let config = {
+        tier: "free",
+        strictMode: false,
+        highStakesDomains: ["payments", "auth"],
+        excludedPaths: [],
+        customThresholds: {
+          securityMinScore: 80,
+          bloatMaxFindings: 20,
+          architectureMinScore: 70
+        },
+        agentOverrides: {},
+        notifyChannels: []
       };
+
+      if (res.exitCode === 0 && res.stdout) {
+        try {
+          const parsed = JSON.parse(res.stdout);
+          config = { ...config, ...parsed };
+          console.log(`[Orchestrator] Parsed .codeward.json for repo.`);
+        } catch (e) {
+          console.warn(`[Orchestrator] Invalid JSON in .codeward.json, using defaults.`);
+        }
+      } else {
+        console.log(`[Orchestrator] No .codeward.json found, using defaults.`);
+      }
+
+      return { config };
     }
   },
 
   analyse_commit_diff: {
     description: 'Parse the git diff and produce a structured risk assessment of what changed.',
     parameters: z.object({
-      diff: z.string(),
-      changedFiles: z.array(z.string()),
-      repoConfig: z.object({}).passthrough()
+      diff: z.string().optional(),
+      changedFiles: z.array(z.string()).optional(),
+      repoConfig: z.object({}).passthrough().optional()
     }),
     execute: async (args: any) => {
+      // 1. Get the diff and changed files from the sandbox
+      const diffRes = await sandbox.exec('git show --format= HEAD');
+      const filesRes = await sandbox.exec('git show --format= --name-only HEAD');
+      
+      const rawDiff = diffRes.stdout || '';
+      const changedFiles = (filesRes.stdout || '').split('\n').filter(Boolean);
+
+      // 2. Perform a heuristic or string-based risk assessment
+      const linesAddedMatch = rawDiff.match(/^\+ /gm);
+      const linesRemovedMatch = rawDiff.match(/^\- /gm);
+      
+      const linesAdded = linesAddedMatch ? linesAddedMatch.length : 0;
+      const linesRemoved = linesRemovedMatch ? linesRemovedMatch.length : 0;
+      
+      const touchedDomains = [];
+      const hasSecuritySensitivePatterns = /password|secret|token|auth|key/i.test(rawDiff);
+      const hasMigrations = changedFiles.some(f => f.includes('migration') || f.includes('schema.ts'));
+      const hasEnvChanges = changedFiles.some(f => f.includes('.env'));
+      const hasNewDependencies = changedFiles.some(f => f.includes('package.json') || f.includes('pnpm-lock.yaml'));
+      const isVibeRewrite = linesRemoved > 100 && linesAdded > 100 && linesAdded > linesRemoved * 2;
+
+      let overallRisk = 'LOW';
+      if (hasSecuritySensitivePatterns || hasMigrations || hasEnvChanges) {
+        overallRisk = 'HIGH';
+      } else if (linesAdded > 100) {
+        overallRisk = 'MEDIUM';
+      }
+
+      // Map risk profile to agent parallelization
+      const recommendedAgents = ["security", "broken_code"];
+      if (hasMigrations || linesAdded > 50) recommendedAgents.push("architecture");
+      if (linesAdded > 20 || linesRemoved > 20) recommendedAgents.push("bloat");
+
       return {
         riskProfile: {
-          overallRisk: "HIGH",
-          touchedDomains: ["auth"],
-          linesAdded: 50,
-          linesRemoved: 10,
-          isVibeRewrite: false,
-          hasNewDependencies: false,
-          hasMigrations: false,
-          hasEnvChanges: false,
-          hasSecuritySensitivePatterns: true,
-          changedFilesSummary: []
+          overallRisk,
+          touchedDomains,
+          linesAdded,
+          linesRemoved,
+          isVibeRewrite,
+          hasNewDependencies,
+          hasMigrations,
+          hasEnvChanges,
+          hasSecuritySensitivePatterns,
+          changedFilesSummary: changedFiles.slice(0, 5) // max 5 files in summary
         },
-        recommendedAgents: ["security", "broken_code", "architecture"],
+        recommendedAgents,
         parallelizationPlan: [
-          { phase: 1, agents: ["security", "broken_code", "architecture"], reason: "Parallel execution" }
+          { phase: 1, agents: recommendedAgents, reason: "Dynamic parallel execution based on diff heuristics" }
         ]
       };
     }
@@ -68,11 +115,19 @@ export const createOrchestratorTools = (sandbox: SandboxHandle) => ({
       payload: z.record(z.unknown())
     }),
     execute: async (args: any) => {
+      // Dynamic import to avoid top-level circular dependencies
+      const { agentQueue } = await import('../../queue/agent.queue.js');
+      const job = await agentQueue.add(`agent-${args.agentType}`, {
+        agentId: args.agentType,
+        commitSHA: args.commitSha,
+        repoFullName: args.repoPath,
+        runId: Number(args.runId)
+      });
+      console.log(`[Orchestrator] Spawned agent ${args.agentType} with job ID ${job.id}`);
       return {
-        jobId: `job_${args.agentType}_123`,
+        jobId: job.id,
         agentType: args.agentType,
-        estimatedDurationSeconds: 120,
-        queuePosition: 1
+        status: "queued"
       };
     }
   },
@@ -99,22 +154,49 @@ export const createOrchestratorTools = (sandbox: SandboxHandle) => ({
   aggregate_results: {
     description: 'Combine all sub-agent results into a single weighted debt score.',
     parameters: z.object({
-      agentResults: z.array(z.object({
-        agentType: z.string(),
-        score: z.number(),
-        weight: z.number(),
-        gateDecision: z.enum(["PASS", "BLOCK", "WARN"]),
-        criticalCount: z.number(),
-        highCount: z.number(),
-        findings: z.array(z.object({}).passthrough())
-      }))
+      runId: z.string(),
+      agentResults: z.array(z.object({}).passthrough()).optional()
     }),
     execute: async (args: any) => {
+      const { db } = await import('../../../db/index.js');
+      const { agentTasks } = await import('../../../db/schema.js');
+      const { eq } = await import('drizzle-orm');
+
+      const tasks = await db.select().from(agentTasks).where(eq(agentTasks.runId, Number(args.runId)));
+      
+      let totalScore = 0;
+      let count = 0;
+      const criticalFindings: any[] = [];
+      const agentScoreSummary: any[] = [];
+      
+      for (const task of tasks) {
+        if (task.agentId.startsWith('orchestrator')) continue;
+        
+        if (task.score !== null && task.score !== undefined) {
+          totalScore += task.score;
+          count++;
+          
+          agentScoreSummary.push({
+            agentType: task.agentId,
+            score: task.score,
+            status: task.status,
+            findingsCount: task.findingsCount
+          });
+        }
+        
+        if (task.findings && Array.isArray(task.findings)) {
+          const criticals = task.findings.filter((f: any) => f.severity === 'critical' || f.severity === 'CRITICAL');
+          criticalFindings.push(...criticals.map(c => ({ ...c, agentType: task.agentId })));
+        }
+      }
+      
+      const weightedScore = count > 0 ? Math.round(totalScore / count) : 100;
+      
       return {
-        weightedScore: 85,
-        criticalFindings: [],
-        allBlockReasons: [],
-        agentScoreSummary: [],
+        weightedScore,
+        criticalFindings,
+        allBlockReasons: criticalFindings.map(c => `[${c.agentType}] ${c.title}`),
+        agentScoreSummary,
         conflictingSignals: []
       };
     }
@@ -152,7 +234,39 @@ export const createOrchestratorTools = (sandbox: SandboxHandle) => ({
       updateExisting: z.boolean()
     }),
     execute: async (args: any) => {
-      return { commentId: 2001, htmlUrl: "https://github.com/comment" };
+      const { db } = await import('../../../db/index.js');
+      const { repositories } = await import('../../../db/schema.js');
+      const { eq } = await import('drizzle-orm');
+      const { getInstallationOctokit } = await import('../../../lib/github.js');
+
+      // Fetch repo to get owner, name, and installationId
+      const repo = await db.query.repositories.findFirst({
+        where: eq(repositories.id, Number(args.repoId))
+      });
+      
+      if (!repo || !repo.installationId) {
+         console.warn(`[Orchestrator] Missing installation ID for repo ${args.repoId}. Skipping PR comment.`);
+         return { error: "No installationId found" };
+      }
+
+      try {
+        const octokit = await getInstallationOctokit(repo.installationId);
+        
+        const response = await octokit.request('POST /repos/{owner}/{repo}/issues/{issue_number}/comments', {
+          owner: repo.owner,
+          repo: repo.name,
+          issue_number: args.pullRequestNumber,
+          body: args.body,
+          headers: {
+            'X-GitHub-Api-Version': '2022-11-28'
+          }
+        });
+        
+        return { commentId: response.data.id, htmlUrl: response.data.html_url };
+      } catch (e: any) {
+        console.error(`[Orchestrator] Failed to post PR comment: ${e.message}`);
+        return { error: e.message };
+      }
     }
   },
 
@@ -214,10 +328,21 @@ export const createOrchestratorTools = (sandbox: SandboxHandle) => ({
   store_orchestrator_result: {
     description: 'Persist the final OrchestratorResult to Postgres.',
     parameters: z.object({
+      runId: z.string(),
       result: z.object({}).passthrough()
     }),
     execute: async (args: any) => {
-      return { stored: true, runId: "run_123" };
+      const { db } = await import('../../../db/index.js');
+      const { runs } = await import('../../../db/schema.js');
+      const { eq } = await import('drizzle-orm');
+      
+      const overallScore = args.result.overallWeightedScore || 0;
+      await db.update(runs).set({
+        status: 'completed',
+        score: overallScore,
+      }).where(eq(runs.id, Number(args.runId)));
+      
+      return { stored: true, runId: args.runId };
     }
   },
 
@@ -324,7 +449,9 @@ export const createOrchestratorTools = (sandbox: SandboxHandle) => ({
       }))
     }),
     execute: async (args: any) => {
-      return { success: true, message: "Decision submitted successfully." };
+      console.log(`[Orchestrator] Final Decision for Run ${args.runId}: ${args.gateDecision}`);
+      console.log(`[Orchestrator] Rationale: ${args.rationale}`);
+      return { success: true, message: "Decision submitted successfully.", gateDecision: args.gateDecision };
     }
   }
 });

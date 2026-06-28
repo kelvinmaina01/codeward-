@@ -371,15 +371,8 @@ reposRouter.post('/connect', async (c) => {
         isPrivate: repo.isPrivate,
         installationId: repoInstallationId,
         config: repo.config || {
-          agents: {
-            security: true,
-            bloat: true,
-            broken_code: true,
-            architecture: true,
-            ai_era: true,
-            compliance: true,
-            data_dx: true
-          }
+          agents: { security: true, bloat: true, broken_code: true, architecture: true, ai_era: true, compliance: true, data_dx: true },
+          alerts: { slack: true, email: true, whatsapp: false, calendar: false }
         }
       }).onConflictDoNothing();
       connected.push(repo.full);
