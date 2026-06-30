@@ -31,6 +31,7 @@ import CodewardHero from './components/LandingHero';
 import { ComparePage } from './components/ComparePage';
 import { BlogsPage } from './components/BlogsPage';
 import { SingleBlogPage } from './components/SingleBlogPage';
+import { BookDemo } from './components/BookDemo';
 import { AdminLayout } from './components/admin/AdminLayout';
 import { AdminOverview } from './components/admin/AdminOverview';
 import { AdminFeed } from './components/admin/AdminFeed';
@@ -473,6 +474,7 @@ export default function App() {
       <Route path="/compare/:competitorId" element={<ComparePage />} />
       <Route path="/blogs" element={<BlogsPage />} />
       <Route path="/blogs/:slug" element={<SingleBlogPage />} />
+      <Route path="/book-demo" element={<BookDemo />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

@@ -224,7 +224,7 @@ export const BlogsPage: React.FC = () => {
             </div>
             <div className="flex flex-col gap-4">
               <h4 className="text-black font-bold mb-2">Company</h4>
-              <a href="#" className="text-black/70 hover:text-black transition-colors text-sm font-semibold">Get a demo</a>
+              <a href="/book-demo" className="text-black/70 hover:text-black transition-colors text-sm font-semibold">Get a demo</a>
               <a href="#" className="text-black/70 hover:text-black transition-colors text-sm font-semibold">Blog</a>
               <a href="#" className="text-black/70 hover:text-black transition-colors text-sm font-semibold">Documentation</a>
               <a href="#" className="text-black/70 hover:text-black transition-colors text-sm font-semibold">FAQ</a>
