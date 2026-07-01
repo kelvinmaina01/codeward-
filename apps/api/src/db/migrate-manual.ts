@@ -24,6 +24,16 @@ async function run() {
       );
 
       ALTER TABLE "runs" ADD COLUMN IF NOT EXISTS "visibility" varchar(20) DEFAULT 'private' NOT NULL;
+
+      CREATE TABLE IF NOT EXISTS "demo_leads" (
+        "id" serial PRIMARY KEY NOT NULL,
+        "name" varchar(255) NOT NULL,
+        "email" varchar(255) NOT NULL,
+        "company_name" varchar(255) NOT NULL,
+        "team_size" varchar(50) NOT NULL,
+        "git_provider" varchar(50) NOT NULL,
+        "created_at" timestamp DEFAULT now()
+      );
     `);
     console.log('Migration successful!');
   } catch (error) {

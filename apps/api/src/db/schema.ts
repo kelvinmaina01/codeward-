@@ -172,3 +172,13 @@ export const agentReports = pgTable("agent_reports", {
   completedAt: timestamp("completed_at"),
   createdAt:   timestamp("created_at").defaultNow(),
 });
+
+export const demoLeads = pgTable("demo_leads", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  email: varchar("email", { length: 255 }).notNull(),
+  companyName: varchar("company_name", { length: 255 }).notNull(),
+  teamSize: varchar("team_size", { length: 50 }).notNull(),
+  gitProvider: varchar("git_provider", { length: 50 }).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});

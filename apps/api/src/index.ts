@@ -6,6 +6,7 @@ import { webhookRouter } from './routes/webhooks.js';
 import { reposRouter } from './routes/repos.js';
 import { prRouter } from './routes/pr.js';
 import { auth } from './auth/index.js';
+import { leadsRouter } from './routes/leads.js';
 
 // NOTE: agentWorker is started dynamically AFTER the HTTP server is up.
 // This ensures a Redis/BullMQ failure at startup cannot crash the server.
@@ -57,6 +58,8 @@ app.get('/health', (c) => {
 });
 
 app.get('/', (c) => c.text('Codeward API Running!'));
+
+app.route('/api/leads', leadsRouter);
 
 // Better Auth handler — must manually inject CORS headers because
 // constructing a new Response() discards what Hono's cors middleware wrote.

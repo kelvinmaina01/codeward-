@@ -1,5 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { InlineWidget } from 'react-calendly';
+import { Loader2, AlertCircle, ArrowRight } from 'lucide-react';
+
+const gitProviders = [
+  { id: 'github', name: 'GitHub', icon: 'https://cdn.simpleicons.org/github/white' },
+  { id: 'gitlab', name: 'GitLab', icon: 'https://cdn.simpleicons.org/gitlab/white' },
+  { id: 'bitbucket', name: 'Bitbucket', icon: 'https://cdn.simpleicons.org/bitbucket/white' },
+  { id: 'other', name: 'Other', icon: 'https://cdn.simpleicons.org/git/white' }
+];
 
 const testimonials = [
   {
@@ -33,6 +41,17 @@ const startupLogos = [
 
 export function BookDemo() {
   const [currentTestimonial, setCurrentTestimonial] = useState(0);
+  
+  // Form State
+  const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    companyName: '',
+    teamSize: '',
+    gitProvider: ''
+  });
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -41,33 +60,204 @@ export function BookDemo() {
     return () => clearInterval(timer);
   }, []);
 
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+    // Clear error when typing
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: '' }));
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Basic Validation
+    const newErrors: Record<string, string> = {};
+    if (!formData.name.trim()) newErrors.name = "Full name is required";
+    if (!formData.email.trim() || !/^\S+@\S+\.\S+$/.test(formData.email)) newErrors.email = "Valid email is required";
+    if (!formData.companyName.trim()) newErrors.companyName = "Company name is required";
+    if (!formData.teamSize) newErrors.teamSize = "Please select a team size";
+    if (!formData.gitProvider) newErrors.gitProvider = "Please select a git provider";
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      // Try to focus the first error
+      const firstErrorKey = Object.keys(newErrors)[0];
+      const el = document.getElementsByName(firstErrorKey)[0];
+      if (el) el.focus();
+      return;
+    }
+
+    setStatus('submitting');
+
+    try {
+      // Relative path works if frontend and API are hosted under same domain, or we use full URL.
+      // Assuming frontend calls an API route or we use the backend directly.
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+      const response = await fetch(`${apiUrl}/api/leads`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      });
+
+      if (!response.ok) throw new Error('Failed to save lead');
+      
+      setStatus('success');
+    } catch (error) {
+      console.error(error);
+      setStatus('error');
+    }
+  };
+
   return (
-    <div className="flex flex-col lg:flex-row min-h-screen bg-[#05060a] text-white font-sans">
-      {/* Left Column - Calendly */}
-      <div className="w-full lg:w-1/2 flex flex-col p-6 lg:p-12 xl:p-20 bg-white">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-black mb-2">Pick a time with the Codeward team.</h1>
-          <p className="text-gray-600">Select an available time to schedule your demo.</p>
-        </div>
+    <div className="flex flex-col lg:flex-row h-screen bg-[#05060a] text-white font-sans overflow-hidden">
+      {/* Left Column - Form & Calendly */}
+      <div className="w-full lg:w-1/2 flex flex-col p-6 lg:p-12 xl:p-20 bg-[#0a0c10] border-r border-gray-800/50 overflow-y-auto">
         
-        <div className="flex-1 w-full bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden relative" style={{ minHeight: '700px' }}>
-          <InlineWidget 
-            url="https://calendly.com/codeward" 
-            styles={{ height: '100%', minHeight: '700px' }}
-            pageSettings={{
-              backgroundColor: 'ffffff',
-              hideEventTypeDetails: false,
-              hideLandingPageDetails: false,
-              hideGdprBanner: true,
-              primaryColor: '2563eb', // matching standard blue
-              textColor: '111827'
-            }}
-          />
-        </div>
+        {status !== 'success' ? (
+          <div className="w-full max-w-md mx-auto my-auto text-white pb-12">
+            <h1 className="text-3xl font-bold mb-2">Book a demo</h1>
+            <p className="text-gray-400 mb-8">Tell us a bit about your engineering team so we can tailor the demo to your needs.</p>
+            
+            {status === 'error' && (
+              <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-lg mb-6 flex flex-col gap-3">
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="w-5 h-5 mt-0.5 flex-shrink-0" />
+                  <p className="text-sm">Something went wrong saving your details. You can still book a time, or reach out to support.</p>
+                </div>
+                <div className="flex items-center gap-3 ml-7">
+                  <a href="mailto:support@codeward.io" className="text-sm font-medium text-red-400 hover:underline">Contact Support</a>
+                  <button onClick={() => setStatus('success')} className="text-sm font-medium bg-[#05060a] px-3 py-1.5 rounded border border-red-500/20 hover:bg-red-500/10">Book Anyway</button>
+                </div>
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1.5">Full Name</label>
+                <input 
+                  type="text" 
+                  name="name" 
+                  value={formData.name} 
+                  onChange={handleInputChange}
+                  className={`w-full px-4 py-2.5 bg-[#05060a] border rounded-lg focus:outline-none transition-all placeholder-gray-600 ${errors.name ? 'border-red-500/50 focus:border-red-500' : 'border-gray-800 focus:border-blue-500'}`}
+                  placeholder="Jane Doe"
+                />
+                {errors.name && <p className="text-red-400 text-xs mt-1.5">{errors.name}</p>}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1.5">Work email (Recommended)</label>
+                <input 
+                  type="email" 
+                  name="email" 
+                  value={formData.email} 
+                  onChange={handleInputChange}
+                  className={`w-full px-4 py-2.5 bg-[#05060a] border rounded-lg focus:outline-none transition-all placeholder-gray-600 ${errors.email ? 'border-red-500/50 focus:border-red-500' : 'border-gray-800 focus:border-blue-500'}`}
+                  placeholder="jane@company.com"
+                />
+                {errors.email && <p className="text-red-400 text-xs mt-1.5">{errors.email}</p>}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1.5">Company Name</label>
+                <input 
+                  type="text" 
+                  name="companyName" 
+                  value={formData.companyName} 
+                  onChange={handleInputChange}
+                  className={`w-full px-4 py-2.5 bg-[#05060a] border rounded-lg focus:outline-none transition-all placeholder-gray-600 ${errors.companyName ? 'border-red-500/50 focus:border-red-500' : 'border-gray-800 focus:border-blue-500'}`}
+                  placeholder="Acme Corp"
+                />
+                {errors.companyName && <p className="text-red-400 text-xs mt-1.5">{errors.companyName}</p>}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1.5">Engineering Team Size</label>
+                <select 
+                  name="teamSize" 
+                  value={formData.teamSize} 
+                  onChange={handleInputChange}
+                  className={`w-full px-4 py-2.5 bg-[#05060a] border rounded-lg focus:outline-none transition-all text-white ${errors.teamSize ? 'border-red-500/50 focus:border-red-500' : 'border-gray-800 focus:border-blue-500'}`}
+                >
+                  <option value="" disabled className="text-gray-600">Select size</option>
+                  <option value="1-10">1 - 10 engineers</option>
+                  <option value="11-50">11 - 50 engineers</option>
+                  <option value="51-200">51 - 200 engineers</option>
+                  <option value="200+">200+ engineers</option>
+                </select>
+                {errors.teamSize && <p className="text-red-400 text-xs mt-1.5">{errors.teamSize}</p>}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Primary Git Provider</label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {gitProviders.map(p => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => {
+                        setFormData(prev => ({ ...prev, gitProvider: p.id }));
+                        if (errors.gitProvider) setErrors(prev => ({ ...prev, gitProvider: '' }));
+                      }}
+                      className={`flex flex-col items-center justify-center p-3 rounded-xl border transition-all ${
+                        formData.gitProvider === p.id 
+                          ? 'border-blue-500 bg-blue-500/10 shadow-[0_0_15px_rgba(59,130,246,0.15)]' 
+                          : 'border-gray-800 bg-[#05060a] hover:border-gray-700 hover:bg-[#0a0c10]'
+                      }`}
+                    >
+                      <img src={p.icon} alt={p.name} className={`h-6 w-6 mb-2 transition-opacity ${formData.gitProvider === p.id ? 'opacity-100' : 'opacity-60'}`} />
+                      <span className={`text-xs font-medium ${formData.gitProvider === p.id ? 'text-blue-400' : 'text-gray-400'}`}>{p.name}</span>
+                    </button>
+                  ))}
+                </div>
+                {errors.gitProvider && <p className="text-red-400 text-xs mt-2">{errors.gitProvider}</p>}
+              </div>
+
+              <button 
+                type="submit" 
+                disabled={status === 'submitting'}
+                className="w-full bg-white hover:bg-gray-100 text-black font-semibold py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2 mt-8 disabled:opacity-70 shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_25px_rgba(255,255,255,0.2)]"
+              >
+                {status === 'submitting' ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <span>Processing...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Continue to Calendar</span>
+                    <ArrowRight className="w-5 h-5 ml-1" />
+                  </>
+                )}
+              </button>
+            </form>
+          </div>
+        ) : (
+          <div className="animate-in fade-in zoom-in duration-500 flex-1 w-full bg-[#05060a] rounded-xl overflow-hidden relative" style={{ minHeight: '700px' }}>
+            <InlineWidget 
+              url="https://calendly.com/codeward" 
+              styles={{ height: '100%', minHeight: '700px' }}
+              prefill={{
+                name: formData.name,
+                email: formData.email,
+              }}
+              pageSettings={{
+                backgroundColor: '05060a',
+                hideEventTypeDetails: false,
+                hideLandingPageDetails: false,
+                hideGdprBanner: true,
+                primaryColor: 'ffffff',
+                textColor: 'ffffff'
+              }}
+            />
+          </div>
+        )}
       </div>
 
       {/* Right Column - Brand/Inspiration */}
-      <div className="w-full lg:w-1/2 relative flex flex-col justify-center items-center p-12 text-center overflow-hidden">
+      <div className="w-full lg:w-1/2 relative flex flex-col justify-center items-center p-12 text-center overflow-y-auto">
         {/* Background Image */}
         <div className="absolute inset-0 z-0 bg-[#05060a]">
           <img 
