@@ -2,6 +2,19 @@ import { z } from 'zod';
 import type { SandboxHandle } from '../../core/provider.js';
 import { createSandboxTools } from '../../tools/sandbox.tools.js';
 
+async function withPg<T>(databaseUrl: string, fn: (sql: any) => Promise<T>): Promise<T> {
+  const postgres = (await import('postgres')).default;
+  const isLocal = databaseUrl.includes('localhost') || databaseUrl.includes('127.0.0.1');
+  const sql = postgres(databaseUrl, { prepare: false, ssl: isLocal ? false : 'require', connect_timeout: 10 });
+  try { return await fn(sql); } finally { await sql.end({ timeout: 5 }); }
+}
+function grepLines(stdout: string) {
+  return stdout.split('\n').filter(Boolean).map(line => {
+    const [file, lineNo, ...rest] = line.split(':');
+    return { file, line: Number(lineNo) || null, snippet: rest.join(':').trim().slice(0, 200) };
+  });
+}
+
 export const createDataDXTools = (sandbox: SandboxHandle) => {
   const baseTools = createSandboxTools(sandbox);
 
@@ -9,414 +22,215 @@ export const createDataDXTools = (sandbox: SandboxHandle) => {
     ...baseTools,
 
     analyse_data_pipelines: {
-      description: 'Find "spaghetti" pipelines where schema changes break downstream consumers.',
-      parameters: z.object({
-        repoPath: z.string(),
-        pipelineGlob: z.string(),
-        languages: z.array(z.string())
-      }),
-      execute: async (args: any) => {
-        return {
-          findings: [
-            {
-              pipeline: 'user-events-etl',
-              file: 'src/pipelines/events.py',
-              line: 42,
-              issue: 'hardcoded_schema',
-              downstreamConsumers: ['marketing_dashboard', 'billing_sync'],
-              severity: 'HIGH'
-            }
-          ]
-        };
+      description: 'Real grep for hardcoded schema/column-name literals inside files that look like ETL/pipeline code.',
+      parameters: z.object({}),
+      execute: async () => {
+        const pipelineFiles = await sandbox.exec(`grep -rln --include="*.py" --include="*.ts" --include="*.js" -iE "etl|pipeline" --exclude-dir=node_modules --exclude-dir=.git . 2>/dev/null | head -20`);
+        const files = pipelineFiles.stdout.split('\n').filter(Boolean);
+        return { pipelineFilesFound: files, note: 'File-presence signal only — downstream consumer mapping requires a real service dependency graph this pipeline does not have.' };
       }
     },
 
     check_data_contracts: {
-      description: 'Verify that data producers and consumers have formal schema agreements.',
-      parameters: z.object({
-        repoPath: z.string(),
-        contractFormats: z.array(z.string())
-      }),
-      execute: async (args: any) => {
-        return {
-          producerConsumerPairs: [
-            {
-              producer: 'checkout-service',
-              consumer: 'revenue-reporting',
-              hasContract: false,
-              contractFormat: null,
-              isValidated: false,
-              riskOfBreaking: 'HIGH'
-            }
-          ]
-        };
+      description: 'Real grep for schema/contract definition files (.proto, .avsc, openapi.yaml, jsonschema) near pipeline code — a presence check, not a producer/consumer validation.',
+      parameters: z.object({}),
+      execute: async () => {
+        const res = await sandbox.exec(`find . \\( -name "*.proto" -o -name "*.avsc" -o -name "*schema*.json" -o -name "openapi.y*ml" \\) -not -path "*/node_modules/*" 2>/dev/null | head -30`);
+        return { contractFilesFound: res.stdout.split('\n').filter(Boolean) };
       }
     },
 
     check_vector_embedding_drift: {
-      description: 'Check if vector embeddings in RAG systems are built with a mismatched model.',
-      parameters: z.object({
-        repoPath: z.string(),
-        vectorDbConfig: z.string()
-      }),
+      description: 'Real check only for pgvector (via direct Postgres connection). Other vector DBs (Pinecone/Weaviate/Qdrant/Chroma) need their own live SDK connection this pipeline does not have.',
+      parameters: z.object({ vectorDb: z.enum(['pgvector', 'pinecone', 'weaviate', 'qdrant', 'chroma']).optional(), databaseUrl: z.string().optional(), sourceTableName: z.string().optional(), embeddingTableName: z.string().optional() }),
       execute: async (args: any) => {
-        return {
-          findings: [
-            {
-              indexName: 'docs_index_v1',
-              embeddingModel: 'text-embedding-ada-002',
-              queryModel: 'text-embedding-3-small',
-              modelMismatch: true,
-              embeddingAge: '45 days',
-              severity: 'HIGH'
-            }
-          ]
-        };
+        if (args.vectorDb !== 'pgvector' || !args.databaseUrl || !args.sourceTableName || !args.embeddingTableName) {
+          return { applicable: false, reason: 'Only pgvector is checkable here, and needs databaseUrl + both table names.' };
+        }
+        return withPg(args.databaseUrl, async (sql) => {
+          const [source] = await sql`SELECT COUNT(*) as count FROM ${sql(args.sourceTableName)}`;
+          const [embed] = await sql`SELECT COUNT(*) as count FROM ${sql(args.embeddingTableName)}`;
+          return { totalSourceRecords: Number(source.count), totalEmbeddings: Number(embed.count), missingEmbeddings: Math.max(0, Number(source.count) - Number(embed.count)) };
+        });
       }
     },
 
     audit_dark_data: {
-      description: 'Find data that is collected and stored but never accessed by any code path.',
-      parameters: z.object({
-        databaseUrl: z.string(),
-        repoPath: z.string(),
-        daysSinceLastAccess: z.number().default(90)
-      }),
-      execute: async (args: any) => {
-        return {
-          darkDataFindings: [
-            {
-              tableName: 'user_activity_logs_2024',
-              columnName: 'raw_payload',
-              rowCount: 4500000,
-              lastAccessedDays: 120,
-              storageSizeMb: 12500,
-              isPii: false,
-              recommendation: 'archive'
-            }
-          ],
-          estimatedWastedStorageMb: 12500
-        };
+      description: 'Real Postgres check using pg_stat_user_tables sequential/index scan counts as a proxy for "is this table ever queried". Needs databaseUrl.',
+      parameters: z.object({ databaseUrl: z.string().optional() }),
+      execute: async (args: { databaseUrl?: string }) => {
+        if (!args.databaseUrl) return { applicable: false, reason: 'No databaseUrl supplied.' };
+        return withPg(args.databaseUrl, async (sql) => {
+          const rows = await sql`SELECT relname, seq_scan, idx_scan, n_live_tup, pg_total_relation_size(relid)/1024/1024 as size_mb FROM pg_stat_user_tables WHERE seq_scan = 0 AND idx_scan = 0 AND n_live_tup > 0`;
+          return { darkDataFindings: rows.map((r: any) => ({ tableName: r.relname, rowCount: Number(r.n_live_tup), storageSizeMb: Number(r.size_mb), note: 'Never scanned since last stats reset — real signal, not proof of zero access historically.' })) };
+        });
       }
     },
 
     check_data_lineage: {
-      description: 'Verify that key business metrics can be traced back to their raw source.',
-      parameters: z.object({
-        repoPath: z.string(),
-        keyMetrics: z.array(z.string())
-      }),
-      execute: async (args: any) => {
-        return {
-          findings: [
-            {
-              metric: 'mau',
-              hasLineage: true,
-              lineageDepth: 3,
-              canBeTracedToRawSource: true,
-              lineageGaps: []
-            }
-          ]
-        };
-      }
+      description: 'Requires a real cross-service data-lineage graph this pipeline does not build. Not available here.',
+      parameters: z.object({ keyMetrics: z.array(z.string()).optional() }),
+      execute: async () => ({ applicable: false, reason: 'No lineage graph available — would require mapping every service\'s data flow, out of scope for a single-repo clone-and-analyze pass.' })
     },
 
     check_event_schema_registry: {
-      description: 'Verify a centralized schema registry exists for analytics events.',
-      parameters: z.object({
-        repoPath: z.string(),
-        analyticsProvider: z.string(),
-        expectedEvents: z.array(z.string())
-      }),
-      execute: async (args: any) => {
-        return {
-          findings: [
-            {
-              eventName: 'User_Signed_Up_V2',
-              hasRegisteredSchema: false,
-              file: 'src/components/Signup.tsx',
-              line: 88,
-              severity: 'MEDIUM'
-            }
-          ],
-          unregisteredEventCount: 14
-        };
+      description: 'Real grep for analytics tracking calls (track(), analytics.*) and whether a matching schema registry file exists.',
+      parameters: z.object({}),
+      execute: async () => {
+        const tracking = await sandbox.exec(`grep -rn --include="*.ts" --include="*.tsx" --include="*.js" -E "\\.track\\(|analytics\\.(track|identify)" --exclude-dir=node_modules --exclude-dir=.git . 2>/dev/null | head -50`);
+        const registry = await sandbox.exec(`find . -not -path "*/node_modules/*" -not -path "*/.git/*" \\( -iname "*event*schema*" -o -iname "*tracking*plan*" \\) 2>/dev/null | head -10`);
+        return { trackingCallSites: grepLines(tracking.stdout), hasEventSchemaRegistryFile: registry.stdout.trim().length > 0 };
       }
     },
 
     check_data_quality: {
-      description: 'Run statistical checks on key tables to detect data corruption.',
-      parameters: z.object({
-        databaseUrl: z.string(),
-        tables: z.array(z.object({
-          tableName: z.string(),
-          columns: z.array(z.object({ name: z.string(), expectedType: z.string(), nullableOk: z.boolean() }))
-        }))
-      }),
-      execute: async (args: any) => {
-        return {
-          findings: [
-            {
-              tableName: 'subscriptions',
-              columnName: 'stripe_customer_id',
-              issueType: 'high_null_rate',
-              affectedRowPercent: 4.5,
-              severity: 'HIGH'
-            }
-          ]
-        };
+      description: 'Real Postgres null-rate check for supplied table/columns. Needs databaseUrl.',
+      parameters: z.object({ databaseUrl: z.string().optional(), tableName: z.string().optional(), columnNames: z.array(z.string()).optional() }),
+      execute: async (args: { databaseUrl?: string; tableName?: string; columnNames?: string[] }) => {
+        if (!args.databaseUrl || !args.tableName || !args.columnNames?.length) return { applicable: false, reason: 'No databaseUrl/tableName/columnNames supplied.' };
+        return withPg(args.databaseUrl, async (sql) => {
+          const findings = [];
+          for (const col of args.columnNames!) {
+            const [row] = await sql`SELECT COUNT(*) FILTER (WHERE ${sql(col)} IS NULL) as nulls, COUNT(*) as total FROM ${sql(args.tableName!)}`;
+            const pct = Number(row.total) > 0 ? (Number(row.nulls) / Number(row.total)) * 100 : 0;
+            if (pct > 1) findings.push({ tableName: args.tableName, columnName: col, affectedRowPercent: Math.round(pct * 10) / 10 });
+          }
+          return { findings };
+        });
       }
     },
 
     measure_ci_reliability: {
-      description: 'Analyse CI/CD pipeline run history for the past week.',
-      parameters: z.object({
-        repoPath: z.string(),
-        ciPlatform: z.enum(["github_actions", "gitlab_ci", "jenkins", "circleci"]),
-        lookbackDays: z.number().default(7)
-      }),
-      execute: async (args: any) => {
-        return {
-          totalRuns: 145,
-          passRate: 88.5,
-          flakyFailureRate: 4.2,
-          meanTimeToGreenMinutes: 14,
-          longestBuildMinutes: 45,
-          mostCommonFailureStep: 'e2e-tests-playwright',
-          weekOverWeekTrend: 'worsening'
-        };
+      description: 'Real GitHub Actions run-history query via the installation Octokit client. Needs repoId with a real GitHub App installation.',
+      parameters: z.object({ repoId: z.string().optional(), lookbackDays: z.number().optional().default(7) }),
+      execute: async (args: { repoId?: string; lookbackDays?: number }) => {
+        if (!args.repoId) return { applicable: false, reason: 'No repoId supplied.' };
+        const { db } = await import('../../../db/index.js');
+        const { repositories } = await import('../../../db/schema.js');
+        const { eq } = await import('drizzle-orm');
+        const { getInstallationOctokit } = await import('../../../lib/github.js');
+        const repo = await db.query.repositories.findFirst({ where: eq(repositories.id, Number(args.repoId)) });
+        if (!repo?.installationId) return { applicable: false, reason: 'No GitHub App installation for this repo.' };
+        const octokit = await getInstallationOctokit(repo.installationId);
+        const since = new Date(Date.now() - (args.lookbackDays ?? 7) * 86400000).toISOString();
+        const res: any = await octokit.request('GET /repos/{owner}/{repo}/actions/runs', { owner: repo.owner, repo: repo.name, created: `>=${since}`, per_page: 100 });
+        const runs = res.data.workflow_runs;
+        const completed = runs.filter((r: any) => r.status === 'completed');
+        const passed = completed.filter((r: any) => r.conclusion === 'success');
+        return { totalRuns: runs.length, passRate: completed.length ? Math.round((passed.length / completed.length) * 1000) / 10 : null };
       }
     },
 
     check_local_env_parity: {
-      description: 'Compare local dev configuration with production configuration.',
-      parameters: z.object({
-        repoPath: z.string()
-      }),
-      execute: async (args: any) => {
-        return {
-          findings: [
-            {
-              type: 'version_mismatch',
-              description: 'Local Redis is v6, Prod is v7',
-              productionValue: '7.2',
-              localValue: '6.0',
-              severity: 'MEDIUM'
-            }
-          ],
-          hasDevContainerOrDockerCompose: true,
-          hasMakefile: true
-        };
+      description: 'Real grep for version pins across .nvmrc/package.json engines/docker-compose.yml to flag mismatches.',
+      parameters: z.object({}),
+      execute: async () => {
+        const [nvmrc, pkgEngines, compose] = await Promise.all([
+          sandbox.exec('cat .nvmrc 2>/dev/null'),
+          sandbox.exec(`grep -A2 '"engines"' package.json 2>/dev/null`),
+          sandbox.exec('cat docker-compose.yml 2>/dev/null | grep -iE "image:|node|postgres|redis"')
+        ]);
+        return { nvmrc: nvmrc.stdout.trim() || null, packageEngines: pkgEngines.stdout.trim() || null, dockerComposeVersions: compose.stdout.trim() || null };
       }
     },
 
     measure_onboarding_time: {
-      description: 'Estimate how long it takes a new developer to get to "first successful local run".',
-      parameters: z.object({
-        repoPath: z.string()
-      }),
-      execute: async (args: any) => {
-        return {
-          estimatedOnboardingHours: 4.5,
-          setupStepCount: 12,
-          manualStepsCount: 8,
-          automatedStepsCount: 4,
-          blockers: [
-            {
-              type: 'undocumented_step',
-              description: 'Missing step to provision AWS SSO credentials',
-              file: 'README.md',
-              estimatedTimeHours: 1.5
-            }
-          ]
-        };
-      }
+      description: 'Requires an actual new-developer trial run. Not statically measurable — this pipeline does not fabricate an estimate.',
+      parameters: z.object({}),
+      execute: async () => ({ applicable: false, reason: 'Onboarding time cannot be measured statically; would require a real timed trial.' })
     },
 
     check_build_test_latency: {
-      description: 'Measure local test suite and build time. Flag if > 5 minutes.',
-      parameters: z.object({
-        repoPath: z.string(),
-        buildCommand: z.string(),
-        testCommand: z.string()
-      }),
-      execute: async (args: any) => {
-        return {
-          buildTimeSeconds: 45,
-          testTimeSeconds: 420,
-          exceedsFlowThreshold: true,
-          slowestTestFiles: [
-            { file: 'src/services/billing.test.ts', durationSeconds: 140 }
-          ],
-          slowestBuildSteps: ['tsc typechecking'],
-          recommendations: ['Split billing tests', 'Use swc instead of tsc']
-        };
+      description: 'Real timed execution of the actual build and test commands in the sandbox.',
+      parameters: z.object({ buildCommand: z.string().optional().default('npm run build'), testCommand: z.string().optional().default('npm test') }),
+      execute: async (args: { buildCommand?: string; testCommand?: string }) => {
+        await sandbox.exec('npm install --no-audit --no-fund 2>&1 | tail -20');
+        const tBuild = Date.now();
+        const buildRes = await sandbox.exec(args.buildCommand ?? 'npm run build');
+        const buildTimeSeconds = (Date.now() - tBuild) / 1000;
+        const tTest = Date.now();
+        const testRes = await sandbox.exec(args.testCommand ?? 'npm test');
+        const testTimeSeconds = (Date.now() - tTest) / 1000;
+        return { buildTimeSeconds, buildExitCode: buildRes.exitCode, testTimeSeconds, testExitCode: testRes.exitCode, exceedsFiveMinuteThreshold: (buildTimeSeconds + testTimeSeconds) > 300 };
       }
     },
 
     audit_tooling_fragmentation: {
-      description: 'Find redundant tools doing the same job.',
-      parameters: z.object({
-        repoPath: z.string()
-      }),
-      execute: async (args: any) => {
-        return {
-          redundantTools: [
-            {
-              category: 'task runner',
-              tools: ['npm scripts', 'Makefile', 'justfile'],
-              recommendation: 'Standardize on justfile'
-            }
-          ],
-          totalTools: 24,
-          redundancyScore: 45
-        };
+      description: 'Real check for multiple competing task-runner configs in the repo root (Makefile, justfile, Taskfile, package.json scripts).',
+      parameters: z.object({}),
+      execute: async () => {
+        const res = await sandbox.exec('find . -maxdepth 2 \\( -iname "Makefile" -o -iname "justfile" -o -iname "Taskfile*" \\) -not -path "*/node_modules/*" 2>/dev/null');
+        const found = res.stdout.split('\n').filter(Boolean);
+        const hasPackageScripts = await sandbox.exec('grep -q scripts package.json 2>/dev/null && echo yes');
+        const runners = [...found, ...(hasPackageScripts.stdout.trim() ? ['package.json scripts'] : [])];
+        return { taskRunnersFound: runners, isFragmented: runners.length > 1 };
       }
     },
 
     check_alert_fatigue: {
-      description: 'Analyse monitoring alert configurations for high-volume noise.',
-      parameters: z.object({
-        repoPath: z.string(),
-        monitoringProvider: z.enum(["datadog", "pagerduty", "grafana", "cloudwatch", "custom"])
-      }),
-      execute: async (args: any) => {
-        return {
-          alertStats: {
-            totalAlertsPerWeek: 1450,
-            actionableAlertPercent: 12,
-            noiseAlertPercent: 88,
-            meanTimeToAcknowledge: 45
-          },
-          noisyAlerts: [
-            {
-              alertName: 'High CPU on worker node',
-              firesPerWeek: 450,
-              actionTakenPercent: 2,
-              recommendation: 'tune'
-            }
-          ]
-        };
-      }
+      description: 'Requires a live monitoring provider API connection (Datadog/PagerDuty/etc). Not available in this pipeline.',
+      parameters: z.object({}),
+      execute: async () => ({ applicable: false, reason: 'No monitoring provider credentials/connection available.' })
     },
 
     check_golden_paths: {
-      description: 'Check if the repo has standardized service templates.',
-      parameters: z.object({
-        repoPath: z.string()
-      }),
-      execute: async (args: any) => {
-        return {
-          hasServiceTemplates: true,
-          templateDirectories: ['packages/create-service'],
-          serviceCount: 14,
-          inconsistentServices: [
-            {
-              serviceName: 'legacy-auth',
-              deviatesFrom: 'node-express-template',
-              deviations: ['Using CommonJS', 'Missing Datadog tracing']
-            }
-          ]
-        };
+      description: 'Real check for a service-template directory convention.',
+      parameters: z.object({}),
+      execute: async () => {
+        const res = await sandbox.exec('find . -maxdepth 3 -type d -iname "*template*" -not -path "*/node_modules/*" 2>/dev/null');
+        const dirs = res.stdout.split('\n').filter(Boolean);
+        return { hasServiceTemplates: dirs.length > 0, templateDirectories: dirs };
       }
     },
 
     check_analytics_coverage: {
-      description: 'Verify that key business metrics are tracked with code-level events.',
-      parameters: z.object({
-        repoPath: z.string(),
-        requiredMetrics: z.array(z.string())
-      }),
-      execute: async (args: any) => {
-        return {
-          findings: [
-            {
-              metric: 'churn',
-              hasTrackingCode: false,
-              trackingFiles: [],
-              severity: 'MEDIUM'
-            }
-          ]
-        };
+      description: 'Real grep checking whether each caller-supplied required metric name appears in a tracking call.',
+      parameters: z.object({ requiredMetrics: z.array(z.string()) }),
+      execute: async (args: { requiredMetrics: string[] }) => {
+        const findings = [];
+        for (const metric of args.requiredMetrics) {
+          const res = await sandbox.exec(`grep -rl --include="*.ts" --include="*.tsx" --include="*.js" "${metric}" --exclude-dir=node_modules --exclude-dir=.git . 2>/dev/null | head -1`);
+          if (!res.stdout.trim()) findings.push({ metric, hasTrackingCode: false });
+        }
+        return { findings };
       }
     },
 
     compare_with_prior_week: {
-      description: 'Load last week\'s Data & DX report and compute week-over-week deltas.',
-      parameters: z.object({
-        repoId: z.string(),
-        currentMetrics: z.object({}).passthrough()
-      }),
-      execute: async (args: any) => {
-        return {
-          improvements: ['CI pass rate improved by 5%'],
-          regressions: ['Build latency increased by 45s'],
-          newIssues: ['Vector embedding drift detected'],
-          resolvedIssues: ['Redundant task runner removed'],
-          trendSummary: 'Stable with slight CI improvements but worsening build times.'
-        };
+      description: 'Real check: query the most recent completed data_dx run for this repo from Postgres and diff against currentMetrics.',
+      parameters: z.object({ repoId: z.string(), currentMetrics: z.object({}).passthrough() }),
+      execute: async (args: { repoId: string; currentMetrics: any }) => {
+        const { db } = await import('../../../db/index.js');
+        const { runs, agentTasks } = await import('../../../db/schema.js');
+        const { eq, desc } = await import('drizzle-orm');
+        const runRows = await db.select({ id: runs.id }).from(runs).where(eq(runs.repoId, Number(args.repoId))).orderBy(desc(runs.createdAt)).limit(10);
+        for (const r of runRows) {
+          const [task] = await db.select().from(agentTasks).where(eq(agentTasks.runId, r.id));
+          if (task?.agentId === 'data_dx' && task.status === 'completed') {
+            return { priorRunFound: true, priorScore: task.score, currentVsPrior: 'compare using the returned priorScore against your computed current score' };
+          }
+        }
+        return { priorRunFound: false, reason: 'No prior data_dx run found for this repo.' };
       }
     },
 
     submit_data_dx_report: {
       description: 'Submit the final DataDXAgentResult JSON to end the run.',
       parameters: z.object({
-        agentType: z.literal("data_dx"),
-        runId: z.string(),
-        repoId: z.string(),
-        weekStartDate: z.string(),
-        executedAt: z.string().datetime(),
-        
-        overallTeamHealthScore: z.number().min(0).max(100),
-        ciReliabilityScore: z.number().min(0).max(100),
-        dataQualityScore: z.number().min(0).max(100),
-        dxScore: z.number().min(0).max(100),
-        
+        agentType: z.literal("data_dx"), runId: z.string(), repoId: z.string(), weekStartDate: z.string(), executedAt: z.string().datetime(),
+        overallTeamHealthScore: z.number().min(0).max(100), ciReliabilityScore: z.number().min(0).max(100), dataQualityScore: z.number().min(0).max(100), dxScore: z.number().min(0).max(100),
         weekOverWeekTrend: z.enum(["significantly_improving", "improving", "stable", "worsening", "significantly_worsening"]),
-        
-        highlights: z.array(z.string()),
-        concerns: z.array(z.string()),
-        
+        highlights: z.array(z.string()), concerns: z.array(z.string()),
         findings: z.array(z.object({
-          id: z.string(),
-          severity: z.enum(["HIGH", "MEDIUM", "LOW", "INFO"]),
-          category: z.enum([
-            "PIPELINE_ENTANGLEMENT", "MISSING_DATA_CONTRACT", "EMBEDDING_DRIFT",
-            "DARK_DATA", "DATA_LINEAGE", "SCHEMA_REGISTRY", "DATA_QUALITY",
-            "FLAKY_CI", "ENV_PARITY", "ONBOARDING_LATENCY", "BUILD_LATENCY",
-            "TOOLING_FRAGMENTATION", "ALERT_FATIGUE", "MISSING_GOLDEN_PATH",
-            "ANALYTICS_DEBT", "DATA_ACCESS_CONTROL", "RETENTION_VIOLATION"
-          ]),
-          title: z.string(),
-          description: z.string(),
-          file: z.string().nullable(),
-          line: z.number().nullable(),
-          toolName: z.string(),
-          rawEvidence: z.string(),
-          isNewThisWeek: z.boolean(),
-          weekOverWeekChange: z.enum(["new", "worsened", "unchanged", "improved"]),
-          recommendation: z.string()
+          id: z.string(), severity: z.enum(["HIGH", "MEDIUM", "LOW", "INFO"]),
+          category: z.enum(["PIPELINE_ENTANGLEMENT", "MISSING_DATA_CONTRACT", "EMBEDDING_DRIFT", "DARK_DATA", "DATA_LINEAGE", "SCHEMA_REGISTRY", "DATA_QUALITY", "FLAKY_CI", "ENV_PARITY", "ONBOARDING_LATENCY", "BUILD_LATENCY", "TOOLING_FRAGMENTATION", "ALERT_FATIGUE", "MISSING_GOLDEN_PATH", "ANALYTICS_DEBT", "DATA_ACCESS_CONTROL", "RETENTION_VIOLATION"]),
+          title: z.string(), description: z.string(), file: z.string().nullable(), line: z.number().nullable(), toolName: z.string(), rawEvidence: z.string(),
+          isNewThisWeek: z.boolean(), weekOverWeekChange: z.enum(["new", "worsened", "unchanged", "improved"]), recommendation: z.string()
         })),
-        
-        teamMetrics: z.object({
-          ciPassRatePercent: z.number(),
-          meanTimeToGreenMinutes: z.number(),
-          estimatedOnboardingHours: z.number(),
-          buildTimeSeconds: z.number(),
-          testTimeSeconds: z.number(),
-          alertNoisePercent: z.number().nullable()
-        }),
-        
-        toolsExecuted: z.array(z.object({
-          toolName: z.string(),
-          calledAt: z.string().datetime(),
-          durationMs: z.number(),
-          resultSummary: z.string()
-        }))
+        teamMetrics: z.object({ ciPassRatePercent: z.number(), meanTimeToGreenMinutes: z.number(), estimatedOnboardingHours: z.number(), buildTimeSeconds: z.number(), testTimeSeconds: z.number(), alertNoisePercent: z.number().nullable() }),
+        toolsExecuted: z.array(z.object({ toolName: z.string(), calledAt: z.string().datetime(), durationMs: z.number(), resultSummary: z.string() }))
       }),
-      execute: async (args: any) => {
-        return { success: true, message: "Data & DX report submitted." };
-      }
+      execute: async (args: any) => ({ success: true, message: "Data & DX report submitted." })
     }
   };
 };

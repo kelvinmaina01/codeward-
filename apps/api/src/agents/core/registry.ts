@@ -14,23 +14,27 @@
 
 import type { AgentProvider } from './provider.js';
 import { AnthropicProvider } from './providers/anthropic.provider.js';
+import { OpenAIProvider } from './providers/openai.provider.js';
 
 // ---------------------------------------------------------------------------
 // Provider Registry
 // ---------------------------------------------------------------------------
 
 const providers: Record<string, AgentProvider> = {
+  openai: new OpenAIProvider(),
+  // AnthropicProvider actually routes through OpenRouter (OPENROUTER_API_KEY), which is
+  // unset in this environment — every call to it fails at the provider layer. Kept
+  // registered (so an explicit override still resolves) but no longer the default.
   anthropic: new AnthropicProvider(),
   // -------------------------------------------------------------------------
   // Future providers — add here when ready:
-  // openai: new OpenAIProvider(),
   // ollama: new OllamaProvider(),
   // custom: new CustomProvider(),
   // -------------------------------------------------------------------------
 };
 
 /** The default provider used when no override is specified */
-const DEFAULT_PROVIDER = 'anthropic';
+const DEFAULT_PROVIDER = 'openai';
 
 /**
  * Get a provider by name. Falls back to the default provider.

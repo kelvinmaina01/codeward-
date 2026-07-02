@@ -48,7 +48,19 @@ export class LocalExecSandbox implements SandboxHandle {
     
     console.log(`[LocalSandbox] Executing: ${command}`);
     try {
-      const { stdout, stderr } = await execAsync(command, { cwd: this.workDir });
+      // Node's child_process.exec defaults maxBuffer to 1MB and silently truncates stdout
+      // beyond that (confirmed live: a real repo's `fallow dupes` output was cut off mid-JSON-
+      // string at byte 1,047,507). Real analysis tools on real repos routinely exceed 1MB.
+      //
+      // On Windows, child_process.exec defaults to cmd.exe, which cannot parse POSIX syntax
+      // (`2>/dev/null`, `\(...\)`, `-E` regex escapes) that every tool in this codebase is
+      // written against — confirmed live: `2>/dev/null` under cmd.exe fails with "The system
+      // cannot find the path specified", silently triggering `||` fallbacks and making tools
+      // report false "nothing found" results instead of actually running. The production
+      // sandbox is a real Linux container (real /bin/sh), so forcing bash here on Windows dev
+      // machines makes local behavior match production instead of adding a second bug.
+      const shellOverride = process.platform === 'win32' ? { shell: 'bash.exe' } : {};
+      const { stdout, stderr } = await execAsync(command, { cwd: this.workDir, maxBuffer: 1024 * 1024 * 100, ...shellOverride });
       return { exitCode: 0, stdout, stderr };
     } catch (err: any) {
       return { 

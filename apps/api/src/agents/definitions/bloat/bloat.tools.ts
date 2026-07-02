@@ -1,123 +1,137 @@
 import { z } from 'zod';
 import type { SandboxHandle } from '../../core/provider.js';
 
+/**
+ * Fallow (https://docs.fallow.tools) is a local CLI, not a REST API — dead-code/dupes/health
+ * are MIT-licensed static analysis with no auth. There is no api.fallow.dev; that endpoint
+ * never existed. FALLOW_API_KEY is reserved for the separate paid "Runtime Coverage" cloud
+ * feature (fallow coverage ... --cloud), which these tools do not use.
+ *
+ * Every tool below shells the real `fallow` CLI inside the sandbox (already checked out to
+ * the repo root) and parses its real JSON output. No fallback-to-fake-success: on failure we
+ * throw, so the agent loop reports a genuine tool error back to the model instead of a
+ * silently fabricated "all clear".
+ */
+// A real repo (this one included) can produce hundreds of findings in one fallow call —
+// full JSON for e.g. 782 dead-code issues or 127 clone groups with code fragments blew a
+// single agent turn past OpenAI's 200k TPM limit (508,915 tokens requested) during a live
+// test. `summary`/count fields are always kept intact; only large array payloads are capped,
+// and the true totals stay visible so the model knows it's seeing a slice, not the whole set.
+const MAX_ARRAY_ITEMS = 25;
+
+function truncateArrays(value: any): any {
+  if (Array.isArray(value)) {
+    const capped = value.slice(0, MAX_ARRAY_ITEMS).map(truncateArrays);
+    if (value.length > MAX_ARRAY_ITEMS) {
+      return { _truncated: true, totalCount: value.length, shown: MAX_ARRAY_ITEMS, items: capped };
+    }
+    return capped;
+  }
+  if (value && typeof value === 'object') {
+    const out: Record<string, any> = {};
+    for (const [k, v] of Object.entries(value)) out[k] = truncateArrays(v);
+    return out;
+  }
+  return value;
+}
+
+async function runFallowCli(sandbox: SandboxHandle, args: string[]) {
+  const command = `npx --yes fallow ${args.join(' ')}`;
+  const res = await sandbox.exec(command);
+
+  // Exit codes per `fallow help`: 0 = clean, 1 = issues found, 2 = fatal error, 8 = gated security failure.
+  // 0 and 1 are both successful runs (issues found is the expected common case).
+  if (res.exitCode === 2) {
+    throw new Error(`fallow CLI fatal error (exit 2): ${res.stderr || res.stdout}`.slice(0, 2000));
+  }
+
+  const jsonStart = res.stdout.indexOf('{');
+  if (jsonStart === -1) {
+    throw new Error(`fallow produced no JSON output. stdout: ${res.stdout.slice(0, 500)} stderr: ${res.stderr.slice(0, 500)}`);
+  }
+  try {
+    const parsed = JSON.parse(res.stdout.slice(jsonStart));
+    return truncateArrays(parsed);
+  } catch (e: any) {
+    throw new Error(`Failed to parse fallow JSON output: ${e.message}. Raw: ${res.stdout.slice(jsonStart, jsonStart + 500)}`);
+  }
+}
+
 export const createBloatTools = (sandbox: SandboxHandle) => ({
   run_fallow_dead_code: {
-    description: 'Find all unused exports, functions, variables, and imports across the entire repo using Fallow AST engine.',
+    description: 'Find unused files, exports, types, dependencies, and circular imports via the real Fallow CLI (`fallow dead-code`). Entry points are auto-detected from package.json/config — do not need to be supplied.',
     parameters: z.object({
-      repoPath: z.string().describe('Path to the repository'),
-      entryPoints: z.array(z.string()).describe('e.g. ["src/index.ts", "src/app.tsx"] — Fallow needs these'),
-      format: z.enum(['json']).describe('Output format'),
-      explain: z.boolean().describe('true = include why each item is dead')
+      only: z.array(z.enum([
+        'unused-files', 'unused-exports', 'unused-deps', 'unused-types',
+        'unused-enum-members', 'unused-class-members'
+      ])).optional().describe('Restrict to specific finding categories. Omit to get all categories.')
     }),
-    execute: async (args: { repoPath: string; entryPoints: string[]; format: 'json'; explain: boolean }) => {
-      try {
-        const res = await fetch('https://api.fallow.dev/v1/analyze', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${process.env.FALLOW_API_KEY || 'stub_key'}`
-          },
-          body: JSON.stringify({ type: 'dead_code', ...args })
-        });
-        if (res.ok) return await res.json();
-      } catch (err) {
-        console.warn('[Fallow] API error, falling back to stub', err);
-      }
-      return {
-        deadExports: [],
-        summary: { totalDead: 0, estimatedLinesRemovable: 0 }
-      };
+    execute: async (args: { only?: string[] }) => {
+      const flags = ['dead-code', '--format', 'json'];
+      for (const flag of args.only ?? []) flags.push(`--${flag}`);
+      return runFallowCli(sandbox, flags);
     }
   },
 
   run_fallow_duplicates: {
-    description: 'Find copy-paste code blocks and semantic clones using Fallow clone detection.',
+    description: 'Find copy-paste and structural code duplication via the real Fallow CLI (`fallow dupes`).',
     parameters: z.object({
-      repoPath: z.string(),
-      mode: z.enum(['strict', 'mild', 'semantic']).describe('strict=exact, mild=near-copy, semantic=same logic'),
-      minLines: z.number().default(5),
-      format: z.enum(['json'])
+      mode: z.enum(['strict', 'mild', 'weak', 'semantic']).optional().describe('Detection strictness. Defaults to "mild" if omitted.'),
+      minLines: z.number().optional().describe('Minimum line count for a clone (CLI default: 5)'),
+      minTokens: z.number().optional().describe('Minimum token count for a clone (CLI default: 50)'),
+      minOccurrences: z.number().optional().describe('Minimum occurrences before a clone group is reported (CLI default: 2)')
     }),
-    execute: async (args: any) => {
-      try {
-        const res = await fetch('https://api.fallow.dev/v1/analyze', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${process.env.FALLOW_API_KEY || 'stub_key'}`
-          },
-          body: JSON.stringify({ type: 'duplicates', ...args })
-        });
-        if (res.ok) return await res.json();
-      } catch (err) {}
-      return { cloneFamilies: [] };
+    execute: async (args: { mode?: string; minLines?: number; minTokens?: number; minOccurrences?: number }) => {
+      const flags = ['dupes', '--format', 'json'];
+      if (args.mode) flags.push('--mode', args.mode);
+      if (args.minLines != null) flags.push('--min-lines', String(args.minLines));
+      if (args.minTokens != null) flags.push('--min-tokens', String(args.minTokens));
+      if (args.minOccurrences != null) flags.push('--min-occurrences', String(args.minOccurrences));
+      return runFallowCli(sandbox, flags);
     }
   },
 
   run_fallow_complexity: {
-    description: 'Find functions with excessive cyclomatic or cognitive complexity.',
+    description: 'Find functions exceeding cyclomatic/cognitive complexity thresholds. Fallow has no standalone "complexity" command — this runs `fallow health --complexity`, the complexity-only slice of the health report.',
     parameters: z.object({
-      repoPath: z.string(),
-      cyclomaticThreshold: z.number().default(10),
-      cognitiveThreshold: z.number().default(15),
-      format: z.enum(['json'])
+      maxCyclomatic: z.number().optional().describe('Override the cyclomatic complexity threshold'),
+      maxCognitive: z.number().optional().describe('Override the cognitive complexity threshold'),
+      top: z.number().optional().describe('Only return the N most complex functions')
     }),
-    execute: async (args: any) => {
-      try {
-        const res = await fetch('https://api.fallow.dev/v1/analyze', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${process.env.FALLOW_API_KEY || 'stub_key'}`
-          },
-          body: JSON.stringify({ type: 'complexity', ...args })
-        });
-        if (res.ok) return await res.json();
-      } catch (err) {}
-      return { complexFunctions: [] };
+    execute: async (args: { maxCyclomatic?: number; maxCognitive?: number; top?: number }) => {
+      const flags = ['health', '--format', 'json', '--complexity'];
+      if (args.maxCyclomatic != null) flags.push('--max-cyclomatic', String(args.maxCyclomatic));
+      if (args.maxCognitive != null) flags.push('--max-cognitive', String(args.maxCognitive));
+      if (args.top != null) flags.push('--top', String(args.top));
+      return runFallowCli(sandbox, flags);
     }
   },
 
   run_fallow_health: {
-    description: 'Get the overall codebase health score (0–100) from Fallow.',
+    description: 'Get the overall codebase health score, complexity findings, file scores, hotspots, and refactor targets via the real Fallow CLI (`fallow health`).',
     parameters: z.object({
-      repoPath: z.string(),
-      format: z.enum(['json'])
+      top: z.number().optional().describe('Limit hotspots/targets sections to top N')
     }),
-    execute: async (args: any) => {
-      try {
-        const res = await fetch('https://api.fallow.dev/v1/analyze', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${process.env.FALLOW_API_KEY || 'stub_key'}`
-          },
-          body: JSON.stringify({ type: 'health', ...args })
-        });
-        if (res.ok) return await res.json();
-      } catch (err) {}
-      return {
-        score: 100,
-        grade: "A",
-        breakdown: { deadCodeScore: 100, duplicationScore: 100, complexityScore: 100 },
-        topIssues: []
-      };
+    execute: async (args: { top?: number }) => {
+      const flags = ['health', '--format', 'json'];
+      if (args.top != null) flags.push('--top', String(args.top));
+      return runFallowCli(sandbox, flags);
     }
   },
 
   run_fallow_boundaries: {
-    description: 'Check for architecture boundary violations (e.g. UI layer importing DB layer directly).',
-    parameters: z.object({
-      repoPath: z.string(),
-      boundaryConfig: z.array(z.object({
-        layer: z.string(),
-        allowedImports: z.array(z.string()),
-        forbiddenImports: z.array(z.string())
-      }))
-    }),
-    execute: async (args: any) => {
-      return { violations: [] };
+    description: 'Check for architecture boundary violations (e.g. UI layer importing DB layer directly). Fallow has no separate "boundaries" command — these counts are part of `fallow dead-code`\'s summary, so this runs that and extracts the boundary-related fields.',
+    parameters: z.object({}),
+    execute: async () => {
+      const result = await runFallowCli(sandbox, ['dead-code', '--format', 'json']);
+      return {
+        boundaryViolations: result.summary?.boundary_violations ?? 0,
+        boundaryCoverageViolations: result.summary?.boundary_coverage_violations ?? 0,
+        boundaryCallViolations: result.summary?.boundary_call_violations ?? 0,
+        // Fallow may or may not include a detailed per-violation array depending on version;
+        // pass it through if present rather than guessing its shape.
+        details: result.boundary_violations ?? []
+      };
     }
   },
 

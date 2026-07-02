@@ -27,6 +27,15 @@ import { getProvider } from '../core/registry.js';
 import type { AgentDefinition, SandboxHandle, AgentRunConfig } from '../core/provider.js';
 import { LocalExecSandbox } from '../../sandbox/local-exec.js';
 import { orchestratorPhase1Agent, orchestratorPhase2Agent, orchestratorPhase3Agent } from '../definitions/orchestrator.agent.js';
+import { bloatAgent } from '../definitions/bloat.agent.js';
+import { brokenCodeAgent } from '../definitions/broken_code.agent.js';
+import { architectureAgent } from '../definitions/architecture.agent.js';
+import { securityAgent } from '../definitions/security.agent.js';
+import { complianceAgent } from '../definitions/compliance.agent.js';
+import { dataDxAgent } from '../definitions/data_dx.agent.js';
+import { aiEraAgent } from '../definitions/ai_era.agent.js';
+import { guardianAgent } from '../definitions/guardian.agent.js';
+import { chatAgent } from '../definitions/chat.agent.js';
 
 dotenv.config();
 
@@ -51,7 +60,7 @@ export interface AgentJobData {
   commitSHA: string;
   repoFullName: string;
   runId: number;
-  provider?: string;       // Override provider (default: 'anthropic')
+  provider?: string;       // Override provider (default: 'openai' — see registry.ts)
   model?: string;          // Override model
 }
 
@@ -75,6 +84,19 @@ registerAgent(orchestratorPhase1Agent);
 registerAgent(orchestratorPhase2Agent);
 registerAgent(orchestratorPhase3Agent);
 
+// Auto-register every sub-agent. Previously only the 3 orchestrator phases were registered
+// here, so spawn_agent's real BullMQ enqueue for e.g. "security" would reach this worker and
+// throw "Unknown agent: security" — the tool wiring was real, the queue registration wasn't.
+registerAgent(bloatAgent);
+registerAgent(brokenCodeAgent);
+registerAgent(architectureAgent);
+registerAgent(securityAgent);
+registerAgent(complianceAgent);
+registerAgent(dataDxAgent);
+registerAgent(aiEraAgent);
+registerAgent(guardianAgent);
+registerAgent(chatAgent);
+
 // ---------------------------------------------------------------------------
 // Worker
 // ---------------------------------------------------------------------------
@@ -89,7 +111,7 @@ export const agentWorker = new Worker('agent-jobs', async (job: Job<AgentJobData
     runId,
     agentId,
     status: 'running',
-    provider: providerName || 'anthropic',
+    provider: providerName || 'openai',
     startedAt: new Date(),
   }).returning();
 

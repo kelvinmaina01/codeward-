@@ -41,7 +41,7 @@ export function createSandboxTools(sandbox: SandboxHandle) {
         path: z.string().describe('Relative path from repo root, e.g. "src/auth/session.ts"'),
       }),
       execute: async ({ path }: { path: string }) => {
-        const result = await sandbox.exec(`cat /repo/${path}`);
+        const result = await sandbox.exec(`cat "${path}"`);
         if (result.exitCode !== 0) {
           return { error: `File not found: ${path}`, stderr: result.stderr };
         }
@@ -56,9 +56,10 @@ export function createSandboxTools(sandbox: SandboxHandle) {
         recursive: z.boolean().optional().describe('If true, list recursively. Default: false.'),
       }),
       execute: async ({ path, recursive }: { path: string; recursive?: boolean }) => {
+        const target = path || '.';
         const cmd = recursive
-          ? `find /repo/${path} -type f | head -200`
-          : `ls -la /repo/${path}`;
+          ? `find "${target}" -type f | head -200`
+          : `ls -la "${target}"`;
         const result = await sandbox.exec(cmd);
         return { listing: result.stdout.substring(0, 6000) };
       },
@@ -72,9 +73,9 @@ export function createSandboxTools(sandbox: SandboxHandle) {
         flags: z.string().optional().describe('Additional grep flags. Default: "-rn"'),
       }),
       execute: async ({ pattern, path, flags }: { pattern: string; path?: string; flags?: string }) => {
-        const searchPath = path ? `/repo/${path}` : '/repo';
+        const searchPath = path || '.';
         const grepFlags = flags || '-rn';
-        const cmd = `grep ${grepFlags} "${pattern.replace(/"/g, '\\"')}" ${searchPath} --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" --include="*.py" --include="*.go" --include="*.rs" --include="*.java" --include="*.rb" --include="*.env*" --include="*.yml" --include="*.yaml" --include="*.json" | head -100`;
+        const cmd = `grep ${grepFlags} "${pattern.replace(/"/g, '\\"')}" "${searchPath}" --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" --include="*.py" --include="*.go" --include="*.rs" --include="*.java" --include="*.rb" --include="*.env*" --include="*.yml" --include="*.yaml" --include="*.json" | head -100`;
         const result = await sandbox.exec(cmd);
         return {
           matches: result.stdout.substring(0, 8000),
@@ -88,9 +89,9 @@ export function createSandboxTools(sandbox: SandboxHandle) {
       parameters: z.object({}),
       execute: async () => {
         const [pkgJson, fileCount, loc] = await Promise.all([
-          sandbox.exec('cat /repo/package.json 2>/dev/null || echo "No package.json"'),
-          sandbox.exec('find /repo -type f -not -path "*/node_modules/*" -not -path "*/.git/*" | wc -l'),
-          sandbox.exec('find /repo -type f -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.jsx" -o -name "*.py" -o -name "*.go" | xargs wc -l 2>/dev/null | tail -1'),
+          sandbox.exec('cat package.json 2>/dev/null || echo "No package.json"'),
+          sandbox.exec('find . -type f -not -path "*/node_modules/*" -not -path "*/.git/*" | wc -l'),
+          sandbox.exec('find . -type f \\( -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.jsx" -o -name "*.py" -o -name "*.go" \\) -not -path "*/node_modules/*" -not -path "*/.git/*" | xargs wc -l 2>/dev/null | tail -1'),
         ]);
         return {
           packageJson: pkgJson.stdout.substring(0, 4000),

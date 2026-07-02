@@ -1,6 +1,7 @@
 import type { AgentDefinition, SandboxHandle } from '../core/provider.js';
 import { z } from 'zod';
-import * as secTools from './security/security.tools.js';
+import { createSecurityTools } from '../tools/security.tools.js';
+import { createSandboxTools } from '../tools/sandbox.tools.js';
 
 const CONSTITUTION = `
 === CODEWARD AGENT CONSTITUTION ===
@@ -28,60 +29,44 @@ You follow the 6 Constitution Rules exactly.
 \${CONSTITUTION}
 
 === EXECUTION PLAYBOOK ===
-Step 1:  search_memory(repoId)                  → load any team dismissals
-Step 2:  run_trufflehog(repoPath, history=true)  → CRITICAL check first
-Step 3:  run_trivy(repoPath, "filesystem")       → CVE scan
-Step 4:  check_auth_on_routes(baseUrl, routes)   → unprotected endpoints
-Step 5:  check_rate_limiting(baseUrl, authPaths) → rate limit enforcement
-Step 6:  check_crypto_patterns(repoPath)         → deprecated crypto (static)
-Step 7:  scan_for_sqli_patterns(repoPath)        → SQL injection (static)
-Step 8:  scan_nhi_tokens(repoPath)               → long-lived tokens
-Step 9:  scan_ci_logs_for_leaks(repoPath)        → pipeline leaks
-Step 10: check_sbom_integrity(repoPath)          → supply chain
-Step 11: run_owasp_zap(baseUrl, "active")        → dynamic OWASP scan
-Step 12: check_rls_policies(databaseUrl)         → RLS enforcement
-Step 13: check_multitenant_isolation(repoPath)   → tenant isolation
-Step 14: probe_ssrf_endpoints(baseUrl)           → SSRF probe
-Step 15: test_error_information_leakage(baseUrl) → CWE-209 check
-Step 16: check_mfa_on_destructive_routes(baseUrl)→ step-up auth check
-Step 17: check_business_logic_bypass(baseUrl)    → flow bypass check
-Step 18: [grep_search / read_file as needed]     → verify before asserting
-Step 19: write_memory(repoId, summary)           → persist learnings
+Step 1:  run_trufflehog(scanType)                → CRITICAL check first (skips honestly if binary missing)
+Step 2:  run_trivy(severity)                     → CVE scan (skips honestly if binary missing)
+Step 3:  run_npm_audit()                         → dependency CVEs (real, always available for npm projects)
+Step 4:  scan_env_files()                        → committed .env files + hardcoded secrets (static)
+Step 5:  check_crypto_patterns()                 → deprecated crypto (static)
+Step 6:  scan_for_sqli_patterns()                → SQL injection (static)
+Step 7:  scan_nhi_tokens()                       → long-lived tokens (static)
+Step 8:  scan_ci_logs_for_leaks()                → pipeline leaks (static)
+Step 9:  check_sbom_integrity()                  → supply chain / GH Actions hygiene (static)
+Step 10: check_auth_patterns()                   → static auth/JWT/CORS code scan
+Step 11: check_rls_policies()                    → static RLS reference scan
+Step 12: check_rls_policies_live(databaseUrl)    → real RLS enforcement check, only if databaseUrl given
+Step 13: check_multitenant_isolation(sharedTables) → tenant isolation, only if sharedTables given
+Step 14–19: run_owasp_zap / check_auth_on_routes / check_rate_limiting / probe_ssrf_endpoints /
+            check_mfa_on_destructive_routes / test_error_information_leakage / check_business_logic_bypass
+            → these ALL require a live deployed instance. This pipeline clones and statically
+            analyzes only — it does not deploy the app. Calling these will honestly return
+            applicable:false. Treat that as NOT TESTED, never as PASS, and do not claim these
+            categories were verified in your report.
 Step 20: submit_security_report                  → MUST CALL THIS TOOL TO END
 
-If any Critical finding emerges in Steps 2–3, you MAY surface it immediately and continue scanning. Do NOT stop early.
+If any Critical finding emerges in Steps 1–2, you MAY surface it immediately and continue scanning. Do NOT stop early.
 
 FALSE POSITIVE HANDLING:
-Before finalizing ANY finding, ask:
-1. Does search_memory show this was dismissed before?
-2. Does read_file show this is in a test fixture / mock / example file?
-If YES to any → set dismissed: true, dismissalReason: "...", and downgrade severity to INFO.
+Before finalizing ANY finding, ask: does read_file show this is in a test fixture / mock / example file?
+If YES → set dismissed: true, dismissalReason: "...", and downgrade severity to INFO.
+
+There is no memory/dismissal-history system wired up yet — do not claim to have checked prior dismissals.
 
 CRITICAL INSTRUCTION: When you have completed your playbook or found a terminal condition, you MUST call the submit_security_report tool to provide your final SecurityAgentResult object.
   `,
   createTools: (sandbox: SandboxHandle) => {
+    const baseTools = createSandboxTools(sandbox);
+    const secTools = createSecurityTools(sandbox);
     return {
-      run_trufflehog: secTools.runTrufflehogTool,
-      run_trivy: secTools.runTrivyTool,
-      run_owasp_zap: secTools.runOwaspZapTool,
-      check_auth_on_routes: secTools.checkAuthOnRoutesTool,
-      check_rate_limiting: secTools.checkRateLimitingTool,
-      check_rls_policies: secTools.checkRlsPoliciesTool,
-      scan_for_sqli_patterns: secTools.scanForSqliPatternsTool,
-      check_sbom_integrity: secTools.checkSbomIntegrityTool,
-      probe_ssrf_endpoints: secTools.probeSsrfEndpointsTool,
-      check_multitenant_isolation: secTools.checkMultitenantIsolationTool,
-      scan_ci_logs_for_leaks: secTools.scanCiLogsForLeaksTool,
-      check_mfa_on_destructive_routes: secTools.checkMfaOnDestructiveRoutesTool,
-      check_crypto_patterns: secTools.checkCryptoPatternsTool,
-      test_error_information_leakage: secTools.testErrorInformationLeakageTool,
-      check_business_logic_bypass: secTools.checkBusinessLogicBypassTool,
-      scan_nhi_tokens: secTools.scanNhiTokensTool,
-      grep_search: secTools.grepSearchTool,
-      read_file: secTools.readFileTool,
-      search_memory: secTools.searchMemoryTool,
-      write_memory: secTools.writeMemoryTool,
-      
+      ...baseTools,
+      ...secTools,
+
       // The Final Tool Trick
       submit_security_report: {
         description: 'Submit the final security report. Calling this tool ends the run.',
