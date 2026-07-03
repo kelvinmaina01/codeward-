@@ -114,20 +114,27 @@ export class FlySandbox {
     if (!this.machineId) throw new Error("Machine is not running");
 
     console.log(`[FlySandbox Exec] ${command}`);
-    // Two real, empirically-tested findings here, in order:
+    // Three real, empirically-tested findings here, in order — the first two verified only by
+    // exit code/line count, which was itself the mistake the third one caught:
     // 1. cmd as an array fails outright — Fly's Go handler rejects it: "cannot unmarshal
     //    array into Go struct field machineExecRequestRaw.cmd of type string". cmd MUST be a
     //    plain string.
     // 2. As a hand-escaped string (`/bin/sh -c "${command.replace(/"/g,'\\"')}"`), real grep
     //    commands with nested quotes/backticks broke with "body is missing command: EOF found
-    //    when expecting closing quote" — that command works fine in a real local bash shell,
-    //    so Fly's server does its own tokenization of the cmd string BEFORE any real shell
-    //    sees it, and our nested-quote escaping doesn't survive that pass.
-    // Fix: base64-encode the actual command so the string Fly has to tokenize contains no
-    // quote characters at all — nothing for its parser to trip on, regardless of what our
-    // real commands contain.
+    //    when expecting closing quote" — Fly tokenizes the cmd string itself (quote-aware,
+    //    shlex-style) before executing, so nested-quote escaping doesn't survive that pass.
+    // 3. A bare `echo <b64> | base64 -d | /bin/sh` as cmd does NOT get real pipe behavior —
+    //    Fly's tokenizer splits it into argv (`echo`, the b64 string, `|`, `base64`, `-d`,
+    //    `|`, `/bin/sh`) and execve's `echo` directly with all of that as literal arguments,
+    //    no shell in between to interpret the pipes. echo dutifully echoed everything back —
+    //    caught only by actually reading stdout content instead of trusting a non-empty,
+    //    non-erroring response as success.
+    // Real fix: force a genuine shell invocation via explicit argv (`/bin/sh -c <script>`),
+    // with the whole pipeline as ONE single-quoted token so Fly's tokenizer treats it as one
+    // opaque string (single quotes are safe here — the base64 alphabet never contains one) —
+    // the real /bin/sh THAT single-quoted `-c` argument invokes is what interprets the pipes.
     const encoded = Buffer.from(command, 'utf8').toString('base64');
-    const wrapped = `echo ${encoded} | base64 -d | /bin/sh`;
+    const wrapped = `/bin/sh -c 'echo ${encoded} | base64 -d | /bin/sh'`;
     const res = await fetch(`${this.apiBase}/machines/${this.machineId}/exec`, {
       method: 'POST',
       headers: {
