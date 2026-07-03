@@ -63,7 +63,13 @@ export const createOrchestratorTools = (sandbox: SandboxHandle) => ({
       const linesAdded = linesAddedMatch ? linesAddedMatch.length : 0;
       const linesRemoved = linesRemovedMatch ? linesRemovedMatch.length : 0;
       
-      const touchedDomains = [];
+      // Was always an empty array (dead — nothing ever populated it, and the constitution's
+      // reasoning framework explicitly relies on high-stakes domains like auth/payments).
+      // Real signal: scan changed file paths for common domain keywords.
+      const DOMAIN_KEYWORDS = ['auth', 'payment', 'billing', 'admin', 'user', 'security'];
+      const touchedDomains: string[] = DOMAIN_KEYWORDS.filter(domain =>
+        changedFiles.some(f => f.toLowerCase().includes(domain))
+      );
       const hasSecuritySensitivePatterns = /password|secret|token|auth|key/i.test(rawDiff);
       const hasMigrations = changedFiles.some(f => f.includes('migration') || f.includes('schema.ts'));
       const hasEnvChanges = changedFiles.some(f => f.includes('.env'));
@@ -107,9 +113,9 @@ export const createOrchestratorTools = (sandbox: SandboxHandle) => ({
     description: 'Dispatch a sub-agent by writing a job to the BullMQ queue.',
     parameters: z.object({
       agentType: z.enum(["security", "bloat", "broken_code", "architecture", "ai_era", "compliance", "data_dx"]),
-      runId: z.string(),
+      runId: z.string().describe('The EXACT runId given to you in your task prompt. Never invent, guess, or reuse an example value — a real concurrent stress test caught the model fabricating runId:1001 and even the literal string "run-1" here, which crashed the DB insert.'),
       repoId: z.string(),
-      repoPath: z.string(),
+      repoFullName: z.string().describe('The EXACT "owner/repo" string given to you in your task prompt (e.g. "kelvinmaina01/codeward-"), reused verbatim. A real stress test caught the model silently dropping the owner prefix on some calls (passing just "codeward-"), which made the sub-agent\'s git clone fail with a 404 — never shorten, reformat, or reconstruct this value.'),
       commitSha: z.string(),
       priority: z.enum(["critical", "high", "normal", "low"]),
       payload: z.record(z.unknown())
@@ -117,10 +123,40 @@ export const createOrchestratorTools = (sandbox: SandboxHandle) => ({
     execute: async (args: any) => {
       // Dynamic import to avoid top-level circular dependencies
       const { agentQueue } = await import('../../queue/agent.queue.js');
+      const { db } = await import('../../../db/index.js');
+      const { agentTasks } = await import('../../../db/schema.js');
+      const { eq, and } = await import('drizzle-orm');
+
+      // Idempotency check: a real stress test showed Phase 2's own tool-calling loop call
+      // spawn_agent twice for the same agentType within one run (two separate BullMQ job IDs
+      // for "broken_code" in the same Phase 2 execution) — real wasted cost, a second real Fly
+      // Machine boot and a second full LLM run for a duplicate analysis the model apparently
+      // forgot it had already dispatched. If a task row already exists for this
+      // (runId, agentType), skip the duplicate entirely instead of enqueueing another job.
+      const [existing] = await db.select().from(agentTasks).where(
+        and(eq(agentTasks.runId, Number(args.runId)), eq(agentTasks.agentId, args.agentType))
+      );
+      if (existing) {
+        console.log(`[Orchestrator] Skipped duplicate spawn_agent(${args.agentType}) for run ${args.runId} — already dispatched (status: ${existing.status}).`);
+        return { jobId: `existing-${existing.id}`, agentType: args.agentType, status: existing.status, note: 'Already dispatched for this run — not spawned again.' };
+      }
+
+      // Insert the tracking row BEFORE enqueuing, not after the worker picks the job up.
+      // The 'completed' handler decides "are all sub-agents for this run done?" by counting
+      // non-terminal agentTasks rows — if the row only appeared once a worker slot freed up,
+      // a fast-finishing agent could see zero rows for a still-queued sibling and trigger
+      // Phase 3 early. Status 'queued' here; the worker flips it to 'running' when it starts.
+      await db.insert(agentTasks).values({
+        runId: Number(args.runId),
+        agentId: args.agentType,
+        status: 'queued',
+        provider: 'openai',
+      });
+
       const job = await agentQueue.add(`agent-${args.agentType}`, {
         agentId: args.agentType,
         commitSHA: args.commitSha,
-        repoFullName: args.repoPath,
+        repoFullName: args.repoFullName,
         runId: Number(args.runId)
       });
       console.log(`[Orchestrator] Spawned agent ${args.agentType} with job ID ${job.id}`);
@@ -133,20 +169,39 @@ export const createOrchestratorTools = (sandbox: SandboxHandle) => ({
   },
 
   await_agent_results: {
-    description: 'Poll for sub-agent results from Postgres. Waits until all dispatched agents complete or timeout.',
+    description: 'Real Postgres polling for sub-agent results. Waits until all dispatched agents for this run reach a terminal state or timeout. Not required for the pipeline to progress — Phase 3 is triggered automatically by the queue worker when the last sub-agent finishes — but callable if the LLM wants to check status directly.',
     parameters: z.object({
       runId: z.string(),
-      jobIds: z.array(z.string()),
-      timeoutSeconds: z.number().default(600),
-      pollIntervalMs: z.number().default(2000)
+      timeoutSeconds: z.number().optional().default(300),
+      pollIntervalMs: z.number().optional().default(2000)
     }),
-    execute: async (args: any) => {
+    execute: async (args: { runId: string; timeoutSeconds?: number; pollIntervalMs?: number }) => {
+      const { db } = await import('../../../db/index.js');
+      const { agentTasks } = await import('../../../db/schema.js');
+      const { eq, and, notLike } = await import('drizzle-orm');
+
+      const deadline = Date.now() + (args.timeoutSeconds ?? 300) * 1000;
+      while (Date.now() < deadline) {
+        const tasks = await db.select().from(agentTasks).where(
+          and(eq(agentTasks.runId, Number(args.runId)), notLike(agentTasks.agentId, 'orchestrator%'))
+        );
+        const pending = tasks.filter((t: any) => t.status === 'queued' || t.status === 'running');
+        if (pending.length === 0) {
+          return {
+            completedAgents: tasks.filter((t: any) => t.status === 'completed').map((t: any) => ({ agentType: t.agentId, status: t.status, score: t.score, durationMs: t.duration })),
+            failedAgents: tasks.filter((t: any) => t.status === 'failed').map((t: any) => ({ agentType: t.agentId, error: t.error })),
+            timedOutAgents: []
+          };
+        }
+        await new Promise(r => setTimeout(r, args.pollIntervalMs ?? 2000));
+      }
+      const tasks = await db.select().from(agentTasks).where(
+        and(eq(agentTasks.runId, Number(args.runId)), notLike(agentTasks.agentId, 'orchestrator%'))
+      );
       return {
-        completedAgents: [
-          { agentType: "security", jobId: args.jobIds[0] || "job_sec_123", status: "completed", result: { score: 90 }, durationMs: 5000 }
-        ],
-        timedOutAgents: [],
-        failedAgents: []
+        completedAgents: tasks.filter((t: any) => t.status === 'completed').map((t: any) => ({ agentType: t.agentId, status: t.status, score: t.score })),
+        failedAgents: tasks.filter((t: any) => t.status === 'failed').map((t: any) => ({ agentType: t.agentId, error: t.error })),
+        timedOutAgents: tasks.filter((t: any) => t.status === 'queued' || t.status === 'running').map((t: any) => t.agentId)
       };
     }
   },

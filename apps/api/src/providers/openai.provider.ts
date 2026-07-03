@@ -78,6 +78,21 @@ export class NativeOpenAIProvider implements AgentProvider {
 
       if (!response.ok) {
         const errorText = await response.text();
+        // A real concurrent multi-agent stress test hit this for real: p-retry's default
+        // exponential backoff (~1s/2s/4s) retried well before OpenAI's actual cooldown, so all
+        // 3 retries burned through in a few seconds and the run failed anyway. The 429 body
+        // told us exactly how long to wait ("Please try again in 17.513s") — read the
+        // Retry-After header first (standard), fall back to parsing that hint from the body,
+        // and actually wait that long before letting p-retry attempt again.
+        if (response.status === 429) {
+          const retryAfterHeader = response.headers.get('retry-after');
+          const parsedFromBody = errorText.match(/try again in ([\d.]+)s/i)?.[1];
+          const waitSeconds = retryAfterHeader ? Number(retryAfterHeader) : parsedFromBody ? Number(parsedFromBody) : null;
+          if (waitSeconds && waitSeconds > 0 && waitSeconds < 120) {
+            console.warn(`[NativeOpenAIProvider] Rate limited — waiting the real ${waitSeconds}s cooldown before retrying.`);
+            await new Promise(r => setTimeout(r, (waitSeconds + 1) * 1000));
+          }
+        }
         throw new Error(`OpenAI API error ${response.status}: ${errorText}`);
       }
 

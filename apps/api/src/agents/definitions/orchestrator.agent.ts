@@ -2,6 +2,21 @@ import type { AgentDefinition, SandboxHandle } from '../core/provider.js';
 import { z } from 'zod';
 import { createOrchestratorTools } from './orchestrator/orchestrator.tools.js';
 
+/**
+ * All 3 phases used to get the FULL tool set regardless of what their own playbook needed.
+ * A real stress test showed the concrete cost of that: Phase 3 spent 2 of its 5 steps
+ * re-running Phase 1's own exploration (cat .codeward.json, git show) and 2 more on now-guarded
+ * duplicate spawn_agent attempts, then hit "Max steps exhausted without terminal tool call" —
+ * submit_orchestrator_decision and store_orchestrator_result never ran, so the run's real gate
+ * decision never made it into the runs table even though the job itself reported "completed".
+ * Scoping each phase to only the tools its own playbook actually calls removes the temptation
+ * to wander into another phase's job.
+ */
+function pickTools(sandbox: SandboxHandle, names: string[]) {
+  const all = createOrchestratorTools(sandbox);
+  return Object.fromEntries(names.map(n => [n, (all as any)[n]]).filter(([, v]) => v));
+}
+
 const CONSTITUTION = `
 === CODEWARD ORCHESTRATOR CONSTITUTION (8 ABSOLUTE RULES) ===
 1. YOU ARE THE TIEBREAKER: If the Security Agent says BLOCK and the Architecture Agent says PASS, you do not average them. You reason about the conflict and make a judgment call — with a written rationale.
@@ -51,38 +66,38 @@ export const orchestratorPhase1Agent: AgentDefinition = {
   id: 'orchestrator_phase1',
   displayName: 'CEO Orchestrator - Phase 1 (Ingestion)',
   defaultModel: 'claude-3.5-haiku',
-  maxSteps: 5,
+  maxSteps: 6,
   systemPrompt: BASE_SYSTEM_PROMPT + `
 === PHASE 1 PLAYBOOK: INGESTION ===
 Step 1:  read_repo_config(repoPath, repoId)
 Step 2:  analyse_commit_diff(diff, changedFiles, config)
 Step 3:  post_github_check_run(status="in_progress")
 
-CRITICAL INSTRUCTION: You must strictly follow the tool-based workflow. When you have completed Phase 1, stop executing tools.
+CRITICAL INSTRUCTION: You must strictly follow the tool-based workflow. When you have completed Phase 1, stop executing tools. Do NOT call spawn_agent or aggregate_results — those are later phases' jobs, not yours.
   `,
-  createTools: (sandbox: SandboxHandle) => createOrchestratorTools(sandbox)
+  createTools: (sandbox: SandboxHandle) => pickTools(sandbox, ['read_repo_config', 'analyse_commit_diff', 'post_github_check_run', 'search_memory'])
 };
 
 export const orchestratorPhase2Agent: AgentDefinition = {
   id: 'orchestrator_phase2',
   displayName: 'CEO Orchestrator - Phase 2 (Dispatch)',
   defaultModel: 'claude-3.5-haiku',
-  maxSteps: 5,
+  maxSteps: 8,
   systemPrompt: BASE_SYSTEM_PROMPT + `
 === PHASE 2 PLAYBOOK: DISPATCH ===
-Step 1: Read the risk profile and parallelization plan provided in your task.
-Step 2: Call spawn_agent() for each recommended analyzer agent (e.g., security, bloat, broken_code, architecture).
+Step 1: Read the risk profile and parallelization plan provided in your task. If you need the diff/config again, you have analyse_commit_diff/read_repo_config available — but Phase 1 already computed this, so only re-derive it if genuinely necessary.
+Step 2: Call spawn_agent() for each recommended analyzer agent (e.g., security, bloat, broken_code, architecture). spawn_agent is idempotent per (runId, agentType) — a duplicate call for an agent you already spawned this run is silently skipped, not an error, but don't rely on that: track what you've already dispatched and don't call it twice.
 
-CRITICAL INSTRUCTION: You must strictly follow the tool-based workflow. When you have spawned all necessary agents, stop executing tools.
+CRITICAL INSTRUCTION: You must strictly follow the tool-based workflow. When you have spawned all necessary agents, stop executing tools. Do NOT call aggregate_results or submit_orchestrator_decision — those are Phase 3's job, not yours.
   `,
-  createTools: (sandbox: SandboxHandle) => createOrchestratorTools(sandbox)
+  createTools: (sandbox: SandboxHandle) => pickTools(sandbox, ['read_repo_config', 'analyse_commit_diff', 'spawn_agent', 'await_agent_results', 'search_memory'])
 };
 
 export const orchestratorPhase3Agent: AgentDefinition = {
   id: 'orchestrator_phase3',
   displayName: 'CEO Orchestrator - Phase 3 (Decision)',
   defaultModel: 'claude-3.5-haiku',
-  maxSteps: 5,
+  maxSteps: 8,
   systemPrompt: BASE_SYSTEM_PROMPT + `
 === PHASE 3 PLAYBOOK: DECISION ===
 Step 1:  aggregate_results(agentResults)
@@ -91,7 +106,7 @@ Step 3:  store_orchestrator_result(result)
 Step 4:  post_github_check_run(status="completed", conclusion)
 Step 5:  OUTPUT OrchestratorResult JSON via submit_orchestrator_decision
 
-CRITICAL INSTRUCTION: You must strictly follow the tool-based workflow. When you have completed Phase 3, you MUST call the submit_orchestrator_decision tool immediately. Your ONLY output must be tool calls.
+CRITICAL INSTRUCTION: All sub-agents have already finished — that is why you were triggered. Do NOT call read_repo_config, analyse_commit_diff, or spawn_agent; you don't have them and don't need them. Go straight to aggregate_results. You must strictly follow the tool-based workflow. When you have completed Phase 3, you MUST call the submit_orchestrator_decision tool immediately — this is the ONLY thing that persists the real gate decision. Your ONLY output must be tool calls.
   `,
-  createTools: (sandbox: SandboxHandle) => createOrchestratorTools(sandbox)
+  createTools: (sandbox: SandboxHandle) => pickTools(sandbox, ['aggregate_results', 'store_orchestrator_result', 'post_github_check_run', 'post_pr_comment', 'trigger_rollback', 'post_slack_notification', 'search_memory', 'write_memory', 'submit_orchestrator_decision'])
 };

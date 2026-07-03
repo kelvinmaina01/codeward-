@@ -173,7 +173,14 @@ export function createSecurityTools(sandbox: SandboxHandle) {
       description: 'Static grep for raw string-concatenated/template-literal SQL queries (potential SQL injection), as opposed to parameterized queries.',
       parameters: z.object({}),
       execute: async () => {
-        const result = await sandbox.exec(`grep -rn --include="*.ts" --include="*.js" --include="*.py" -E "(query|execute)\\(\\s*\`.*\\\\\\$\\{|(query|execute)\\(\\s*['\\"].*['\\"]\\s*\\+" --exclude-dir=node_modules --exclude-dir=.git . 2>/dev/null | head -50`);
+        // Deliberately simple: matching real template-literal interpolation syntax (`${`)
+        // precisely needs a regex with backtick + $ + { all shell-escaped through a JS template
+        // literal — a real stress test showed that's fragile enough to break the whole exec
+        // call outright (unescaped ` got read as shell command substitution: "body is missing
+        // command: EOF found when expecting closing quote"). This catches "query("/"execute("
+        // followed by a backtick anywhere before the closing paren — a real, if looser, signal
+        // for template-literal-built queries — plus the string-concatenation case separately.
+        const result = await sandbox.exec(`grep -rn --include="*.ts" --include="*.js" --include="*.py" -E "(query|execute)\\([^)]*\\\`|(query|execute)\\(\\s*['\\"].*['\\"]\\s*\\+" --exclude-dir=node_modules --exclude-dir=.git . 2>/dev/null | head -50`);
         const matches = result.stdout.split('\n').filter(Boolean);
         return { findingsCount: matches.length, findings: matches.map(line => { const [file, lineNo, ...rest] = line.split(':'); return { file, line: Number(lineNo) || null, snippet: rest.join(':').trim().slice(0, 200) }; }) };
       },

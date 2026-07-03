@@ -12,20 +12,49 @@ export class FlySandbox {
   private config: FlySandboxConfig;
   private apiBase: string;
   private token: string;
+  // No API param sets a working directory for Machines exec — every command is run fresh
+  // relative to the image's default cwd. Confirmed live: a boot-and-exec smoke test returned
+  // `pwd` == "/". Every real tool in this codebase (sandbox.tools.ts, bloat.tools.ts, etc.)
+  // assumes a persistent cwd the way LocalExecSandbox provides via child_process's `cwd`
+  // option — so exec() below prepends `cd <workDir> &&` once init() has cloned the repo.
+  public workDir = '/app/repo';
 
   constructor(config: FlySandboxConfig) {
     this.config = config;
     this.config.appName = config.appName || 'codeward-sandboxes-v2';
     this.apiBase = `https://api.machines.dev/v1/apps/${this.config.appName}`;
-    
+
     let rawToken = process.env.FLY_API_TOKEN || '';
     if (!rawToken) {
       throw new Error("FLY_API_TOKEN is not set in environment.");
     }
-    
-    // FlyV1 Macaroons use commas to append third-party discharge tokens. 
+
+    // FlyV1 Macaroons use commas to append third-party discharge tokens.
     // We MUST use the entire string exactly as provided.
     this.token = rawToken.trim();
+  }
+
+  /**
+   * Boots the machine (if not already running) and clones the target repo into workDir —
+   * mirroring LocalExecSandbox.init()'s contract so the two are interchangeable behind the
+   * same SandboxHandle-shaped interface.
+   */
+  async init(repoUrl: string, commitSHA?: string, env: Record<string, string> = {}): Promise<void> {
+    if (!this.machineId) {
+      await this.start(env);
+    }
+    console.log(`[FlySandbox] Cloning ${repoUrl} into ${this.workDir}...`);
+    const cloneRes = await this.execRaw(`mkdir -p "${this.workDir}" && git clone "${repoUrl}" "${this.workDir}"`);
+    if (cloneRes.exitCode !== 0) {
+      throw new Error(`Failed to clone repo into Fly sandbox: ${cloneRes.stderr || cloneRes.stdout}`);
+    }
+    if (commitSHA && commitSHA !== 'baseline') {
+      console.log(`[FlySandbox] Checking out ${commitSHA}...`);
+      const checkoutRes = await this.exec(`git checkout ${commitSHA}`);
+      if (checkoutRes.exitCode !== 0) {
+        throw new Error(`Failed to checkout ${commitSHA} in Fly sandbox: ${checkoutRes.stderr || checkoutRes.stdout}`);
+      }
+    }
   }
 
   /**
@@ -73,12 +102,32 @@ export class FlySandbox {
   }
 
   /**
-   * Executes a command inside the running VM
+   * Executes a command inside the running VM, relative to the cloned repo's workDir.
+   * Use execRaw() instead for commands (like the clone itself) that must run before
+   * workDir exists.
    */
   async exec(command: string) {
+    return this.execRaw(`cd "${this.workDir}" && ${command}`);
+  }
+
+  private async execRaw(command: string) {
     if (!this.machineId) throw new Error("Machine is not running");
-    
+
     console.log(`[FlySandbox Exec] ${command}`);
+    // Two real, empirically-tested findings here, in order:
+    // 1. cmd as an array fails outright — Fly's Go handler rejects it: "cannot unmarshal
+    //    array into Go struct field machineExecRequestRaw.cmd of type string". cmd MUST be a
+    //    plain string.
+    // 2. As a hand-escaped string (`/bin/sh -c "${command.replace(/"/g,'\\"')}"`), real grep
+    //    commands with nested quotes/backticks broke with "body is missing command: EOF found
+    //    when expecting closing quote" — that command works fine in a real local bash shell,
+    //    so Fly's server does its own tokenization of the cmd string BEFORE any real shell
+    //    sees it, and our nested-quote escaping doesn't survive that pass.
+    // Fix: base64-encode the actual command so the string Fly has to tokenize contains no
+    // quote characters at all — nothing for its parser to trip on, regardless of what our
+    // real commands contain.
+    const encoded = Buffer.from(command, 'utf8').toString('base64');
+    const wrapped = `echo ${encoded} | base64 -d | /bin/sh`;
     const res = await fetch(`${this.apiBase}/machines/${this.machineId}/exec`, {
       method: 'POST',
       headers: {
@@ -86,7 +135,7 @@ export class FlySandbox {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        cmd: `/bin/sh -c "${command.replace(/"/g, '\\"')}"`,
+        cmd: wrapped,
         timeout: 600
       })
     });

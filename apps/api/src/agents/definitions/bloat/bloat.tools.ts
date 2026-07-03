@@ -35,7 +35,30 @@ function truncateArrays(value: any): any {
   return value;
 }
 
+// Real, empirically-caught bug: concurrent first-time `npx --yes fallow` calls in a fresh
+// sandbox race on npm's shared install cache. A live stress test showed one call fail with an
+// ENOENT on a corrupted fallow-lsp symlink, after which every subsequent `npx fallow` call in
+// that SAME machine session failed with "fallow: not found" for the rest of the run — the
+// whole bloat agent lost its primary tool for one bad race at the start. Serializing a single
+// warm-up call (proven to work in isolation) before any concurrent tool call touches npx
+// closes the race: everything after it hits an already-populated cache.
+const fallowInstallLocks = new WeakMap<SandboxHandle, Promise<void>>();
+
+async function ensureFallowWarm(sandbox: SandboxHandle): Promise<void> {
+  let lock = fallowInstallLocks.get(sandbox);
+  if (!lock) {
+    lock = sandbox.exec('npx --yes fallow --version').then(res => {
+      if (res.exitCode !== 0) {
+        throw new Error(`Failed to warm the fallow install: ${(res.stdout || res.stderr).slice(0, 500)}`);
+      }
+    });
+    fallowInstallLocks.set(sandbox, lock);
+  }
+  return lock;
+}
+
 async function runFallowCli(sandbox: SandboxHandle, args: string[]) {
+  await ensureFallowWarm(sandbox);
   const command = `npx --yes fallow ${args.join(' ')}`;
   const res = await sandbox.exec(command);
 
