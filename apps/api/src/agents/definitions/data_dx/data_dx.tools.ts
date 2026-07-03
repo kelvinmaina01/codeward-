@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { SandboxHandle } from '../../core/provider.js';
 import { createSandboxTools } from '../../tools/sandbox.tools.js';
+import { createMemoryTools } from '../../tools/memory.tools.js';
 
 async function withPg<T>(databaseUrl: string, fn: (sql: any) => Promise<T>): Promise<T> {
   const postgres = (await import('postgres')).default;
@@ -231,6 +232,8 @@ export const createDataDXTools = (sandbox: SandboxHandle) => {
         toolsExecuted: z.array(z.object({ toolName: z.string(), calledAt: z.string().datetime(), durationMs: z.number(), resultSummary: z.string() }))
       }),
       execute: async (args: any) => ({ success: true, message: "Data & DX report submitted." })
-    }
+    },
+
+    ...createMemoryTools('data_dx')
   };
 };

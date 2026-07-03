@@ -148,7 +148,7 @@ function DashboardLayout() {
   const location = useLocation();
 
   const [themeIdx, setThemeIdx] = useState(0);
-  const [runDetailSha, setRunDetailSha] = useState<string | null>(null);
+  const [runDetailTarget, setRunDetailTarget] = useState<{ repoId: number; runId: number } | null>(null);
   const [isSidebarPinned, setIsSidebarPinned] = useState(false);
   const [globalOrgs, setGlobalOrgs] = useState<string[]>([]);
   const [activeOrg, setActiveOrg] = useState<string>('');
@@ -188,14 +188,14 @@ function DashboardLayout() {
 
   const renderScreen = () => {
     switch (screen) {
-      case 'dashboard':    return <Dashboard onRunClick={s => setRunDetailSha(s)} />;
+      case 'dashboard':    return <Dashboard onRunClick={(repoId, runId) => setRunDetailTarget({ repoId, runId })} />;
       case 'livefeed':     return <LiveFeed viewMode={liveFeedView} />;
       case 'diff':         return <DiffViewer />;
       case 'security':     return <Security />;
       case 'debt':         return <DebtReport />;
       case 'agent':        return <AIAgent />;
       case 'staging':      return <Staging />;
-      case 'history':      return <DeployHistory onRunClick={s => setRunDetailSha(s)} />;
+      case 'history':      return <DeployHistory onRunClick={(repoId, runId) => setRunDetailTarget({ repoId, runId })} />;
       case 'repos':        return <Repositories activeOrg={activeOrg} />;
       case 'cert':         return <Certificate />;
       case 'settings':     return <Settings />;
@@ -367,9 +367,9 @@ function DashboardLayout() {
         </div>
 
         {/* RIGHT DRAWER */}
-        {!!runDetailSha && (
-          <div className="w-[450px] shrink-0 border-l border-cw-bdr bg-cw-bg2 flex flex-col h-full overflow-hidden shadow-2xl z-10 transition-transform duration-300 animate-in slide-in-from-right">
-            <RunDetail sha={runDetailSha!} onBack={() => setRunDetailSha(null)} />
+        {!!runDetailTarget && (
+          <div className="w-[520px] shrink-0 border-l border-cw-bdr bg-cw-bg2 flex flex-col h-full overflow-hidden shadow-2xl z-10 transition-transform duration-300 animate-in slide-in-from-right">
+            <RunDetail repoId={runDetailTarget.repoId} runId={runDetailTarget.runId} onBack={() => setRunDetailTarget(null)} />
           </div>
         )}
 

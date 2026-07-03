@@ -89,6 +89,7 @@ export const agentTasks = pgTable('agent_tasks', {
   score: integer('score'),
   findingsCount: integer('findings_count').default(0),
   findings: jsonb('findings'),                                      // AgentFinding[]
+  reportMeta: jsonb('report_meta'),                                 // { gateDecision, toolsExecuted, summary } — the rest of submit_*_report beyond findings/score
   tokenUsage: jsonb('token_usage'),                                 // { input, output }
   duration: integer('duration'),                                    // Wall-clock ms
   error: text('error'),

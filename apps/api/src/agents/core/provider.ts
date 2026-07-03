@@ -77,6 +77,11 @@ export interface AgentResult {
     input: number;
     output: number;
   };
+  // The rest of the agent's submit_*_report call beyond findings/score — the LLM already
+  // generates this every run, it just wasn't being persisted anywhere until now.
+  gateDecision?: string;     // 'PASS' | 'WARN' | 'BLOCK' | 'HIGH' etc. — varies per agent's schema
+  toolsExecuted?: Array<{ toolName: string; calledAt: string; durationMs: number; resultSummary: string }>;
+  summary?: Record<string, unknown>;
 }
 
 // ---------------------------------------------------------------------------

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import type { SandboxHandle } from '../../core/provider.js';
+import { createMemoryTools } from '../../tools/memory.tools.js';
 
 /**
  * Every tool here is a real GitHub API call via the installation-scoped Octokit client
@@ -253,6 +254,8 @@ export const createGuardianTools = (sandbox: SandboxHandle) => {
         });
         return { issues: res.data.filter((i: any) => !i.pull_request).map((i: any) => ({ number: i.number, title: i.title, labels: i.labels })) };
       }
-    }
+    },
+
+    ...createMemoryTools('guardian')
   };
 };

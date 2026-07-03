@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import type { SandboxHandle } from '../../core/provider.js';
+import { createMemoryTools } from '../../tools/memory.tools.js';
 
 export const createOrchestratorTools = (sandbox: SandboxHandle) => ({
   read_repo_config: {
@@ -401,27 +402,7 @@ export const createOrchestratorTools = (sandbox: SandboxHandle) => ({
     }
   },
 
-  search_memory: {
-    description: 'Search the agent_memory vector database for prior learnings.',
-    parameters: z.object({
-      repoId: z.string(),
-      agentType: z.string()
-    }),
-    execute: async (args: any) => {
-      return { memories: [] };
-    }
-  },
-
-  write_memory: {
-    description: 'Write a new finding, pattern, or exception to the agent_memory.',
-    parameters: z.object({
-      repoId: z.string(),
-      summary: z.string()
-    }),
-    execute: async (args: any) => {
-      return { success: true };
-    }
-  },
+  ...createMemoryTools('orchestrator'),
 
   submit_orchestrator_decision: {
     description: 'Submit the final Orchestrator Result JSON. Calling this tool ends the run.',

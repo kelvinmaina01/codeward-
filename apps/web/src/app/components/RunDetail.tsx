@@ -1,263 +1,269 @@
-import { useEffect, useRef, useState } from 'react';
-import { X, RefreshCw, GitMerge, Clock, ExternalLink, GitBranch } from 'lucide-react';
-import { toast } from 'sonner';
+import { useEffect, useState } from 'react';
+import { X, RefreshCw, ChevronDown, ChevronRight, Wrench, ShieldCheck } from 'lucide-react';
 import { API_URL } from '../../lib/api';
 
 interface Props {
-  sha?: string;
+  repoId: number;
+  runId: number;
   onBack: () => void;
 }
 
-interface LogLine {
-  ts: string;
-  text: string;
-  color: 'plain' | 'ok' | 'warn' | 'info';
-}
-
-interface PRData {
+interface Finding {
+  id: string | null;
+  severity: string;
+  category: string | null;
   title: string;
-  author: string;
-  authorAvatar: string;
-  additions: number;
-  deletions: number;
-  state: string;
-  merged: boolean;
-  head: string;
-  base: string;
-  html_url: string;
+  description: string;
+  file: string | null;
+  line: number | null;
+  toolName: string | null;
+  rawEvidence: string | null;
+  fixStatus: 'suggested' | 'dismissed';
+  suggestedFix: string | null;
+  refactorSafe: boolean | null;
+  dismissed: boolean;
+  dismissalReason: string | null;
 }
 
-const allLogs: LogLine[] = [
-  { ts: '00:00', text: 'Fetching details from intercept...', color: 'info' },
-  { ts: '01:20', text: 'Spinning up Fly.io Sandbox (codeward-sandbox-node20)...', color: 'plain' },
-  { ts: '02:45', text: 'Injecting repository context & dummy environments...', color: 'plain' },
-  { ts: '04:10', text: 'Running pre-merge test suite...', color: 'info' },
-  { ts: '05:30', text: '142/142 tests passed.', color: 'ok' },
-  { ts: '06:05', text: 'Scanning for new vulnerabilities...', color: 'info' },
-  { ts: '07:22', text: 'No critical vulnerabilities found.', color: 'ok' },
-  { ts: '08:00', text: 'Analysis complete. PR is safe to merge.', color: 'ok' },
-];
+interface ToolExecuted {
+  toolName: string;
+  calledAt: string;
+  durationMs: number;
+  resultSummary: string;
+}
 
-const logColors: Record<string, string> = {
-  ok: 'text-green-400',
-  warn: 'text-amber-400',
-  info: 'text-blue-400',
-  plain: 'text-[#aaa]',
+interface AgentReport {
+  agentId: string;
+  displayName: string;
+  status: string;
+  score: number | null;
+  gateDecision: string | null;
+  durationMs: number | null;
+  findingsCount: number;
+  findings: Finding[];
+  toolsExecuted: ToolExecuted[];
+  summary: Record<string, unknown> | null;
+  error: string | null;
+}
+
+interface RunReport {
+  runId: number;
+  repoId: number;
+  commitSha: string;
+  status: string;
+  overallScore: number | null;
+  createdAt: string;
+  agentsRun: number;
+  totalFindings: number;
+  severityCounts: Record<string, number>;
+  agents: AgentReport[];
+}
+
+const SEVERITY_STYLE: Record<string, string> = {
+  CRITICAL: 'bg-cw-red text-white',
+  HIGH: 'bg-cw-red/80 text-white',
+  MEDIUM: 'bg-cw-amber text-cw-bg',
+  LOW: 'bg-cw-blue/70 text-white',
+  INFO: 'bg-cw-bg3 text-cw-txt2',
 };
 
-export function RunDetail({ sha, onBack }: Props) {
-  const [visibleLogs, setVisibleLogs] = useState<LogLine[]>([]);
-  const [prData, setPrData] = useState<PRData | null>(null);
-  const [loadingPr, setLoadingPr] = useState(true);
-  const [isMerging, setIsMerging] = useState(false);
-  const bottomRef = useRef<HTMLDivElement>(null);
-  
-  const displayId = sha || 'u1';
-  const running = visibleLogs.length < allLogs.length;
+const GATE_STYLE: Record<string, string> = {
+  PASS: 'bg-cw-green/10 text-cw-green border-cw-green/30',
+  WARN: 'bg-cw-amber/10 text-cw-amber border-cw-amber/30',
+  BLOCK: 'bg-cw-red/10 text-cw-red border-cw-red/30',
+  HIGH: 'bg-cw-red/10 text-cw-red border-cw-red/30',
+};
+
+function AgentSection({ agent }: { agent: AgentReport }) {
+  const [expanded, setExpanded] = useState(agent.findingsCount > 0);
+  const [showTools, setShowTools] = useState(false);
+
+  return (
+    <div className="bg-cw-bg border border-cw-bdr rounded-xl overflow-hidden">
+      <button
+        onClick={() => setExpanded((e) => !e)}
+        className="w-full flex items-center justify-between px-4 py-3 bg-transparent border-none cursor-pointer hover:bg-cw-bg3/40 transition-colors"
+      >
+        <div className="flex items-center gap-2.5">
+          {expanded ? <ChevronDown size={14} className="text-cw-txt3" /> : <ChevronRight size={14} className="text-cw-txt3" />}
+          <span className="text-[13px] font-bold text-cw-txt">{agent.displayName}</span>
+          {agent.gateDecision && (
+            <span className={`px-2 py-0.5 text-[9px] font-bold rounded border uppercase ${GATE_STYLE[agent.gateDecision] ?? 'bg-cw-bg3 text-cw-txt2 border-cw-bdr'}`}>
+              {agent.gateDecision}
+            </span>
+          )}
+          {agent.status === 'failed' && (
+            <span className="px-2 py-0.5 text-[9px] font-bold rounded bg-cw-red/10 text-cw-red border border-cw-red/30 uppercase">Agent Failed</span>
+          )}
+        </div>
+        <div className="flex items-center gap-3 text-[11px] text-cw-txt2">
+          {agent.score != null && <span>Score: <span className="font-semibold text-cw-txt">{agent.score}/100</span></span>}
+          <span>{agent.findingsCount} finding{agent.findingsCount === 1 ? '' : 's'}</span>
+        </div>
+      </button>
+
+      {expanded && (
+        <div className="border-t border-cw-bdr">
+          {agent.error && (
+            <div className="px-4 py-2.5 text-[11px] text-cw-red bg-cw-red/5 border-b border-cw-bdr">{agent.error}</div>
+          )}
+
+          {agent.findings.length === 0 ? (
+            <div className="px-4 py-3 text-[11px] text-cw-txt3">No findings from this agent.</div>
+          ) : (
+            <div className="divide-y divide-cw-bg3">
+              {agent.findings.map((f, i) => (
+                <div key={f.id ?? i} className="px-4 py-3 flex flex-col gap-1.5">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className={`px-1.5 py-0.5 text-[9px] font-bold rounded uppercase ${SEVERITY_STYLE[f.severity.toUpperCase()] ?? 'bg-cw-bg3 text-cw-txt2'}`}>
+                        {f.severity}
+                      </span>
+                      {f.category && <span className="text-[10px] text-cw-txt3 uppercase tracking-wide">{f.category}</span>}
+                      <span className="text-[13px] font-medium text-cw-txt">{f.title}</span>
+                    </div>
+                    <span className={`shrink-0 px-2 py-0.5 text-[9px] font-bold rounded uppercase ${f.dismissed ? 'bg-cw-bg3 text-cw-txt3' : 'bg-cw-blue/10 text-cw-blue border border-cw-blue/20'}`}>
+                      {f.dismissed ? 'Dismissed' : 'Suggested'}
+                    </span>
+                  </div>
+
+                  <div className="text-[12px] text-cw-txt2">{f.description}</div>
+
+                  {(f.file || f.toolName) && (
+                    <div className="flex items-center gap-2 text-[10px] text-cw-txt3 font-mono">
+                      {f.file && <span>{f.file}{f.line != null ? `:${f.line}` : ''}</span>}
+                      {f.toolName && <span className="px-1.5 py-0.5 bg-cw-bg3 rounded">{f.toolName}</span>}
+                    </div>
+                  )}
+
+                  {f.dismissed && f.dismissalReason && (
+                    <div className="text-[11px] text-cw-txt3 italic">Dismissed: {f.dismissalReason}</div>
+                  )}
+
+                  {f.suggestedFix && !f.dismissed && (
+                    <div className="mt-1 flex items-start gap-2 text-[11px] bg-cw-bg3/50 border border-cw-bdr rounded-md px-2.5 py-2">
+                      <Wrench size={12} className="text-cw-amber shrink-0 mt-0.5" />
+                      <div>
+                        <span className="text-cw-txt3">Suggested fix{f.refactorSafe === false ? ' (needs manual review — no test coverage confirmed)' : ''}: </span>
+                        <span className="text-cw-txt2">{f.suggestedFix}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {agent.toolsExecuted.length > 0 && (
+            <div className="border-t border-cw-bdr">
+              <button
+                onClick={() => setShowTools((s) => !s)}
+                className="w-full flex items-center gap-2 px-4 py-2 bg-transparent border-none cursor-pointer text-[10px] font-semibold text-cw-txt3 uppercase tracking-wide hover:text-cw-txt2"
+              >
+                <ShieldCheck size={12} />
+                {showTools ? 'Hide' : 'Show'} checks run ({agent.toolsExecuted.length})
+              </button>
+              {showTools && (
+                <div className="px-4 pb-3 flex flex-col gap-1">
+                  {agent.toolsExecuted.map((t, i) => (
+                    <div key={i} className="text-[10px] text-cw-txt3 font-mono flex gap-2">
+                      <span className="text-cw-txt2 shrink-0">{t.toolName}</span>
+                      <span className="text-cw-txt3">({t.durationMs}ms)</span>
+                      <span className="truncate">{t.resultSummary}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function RunDetail({ repoId, runId, onBack }: Props) {
+  const [report, setReport] = useState<RunReport | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    setVisibleLogs([]);
-    let i = 0;
-    const interval = setInterval(() => {
-      if (i < allLogs.length) {
-        setVisibleLogs(prev => [...prev, allLogs[i]]);
-        i++;
-      } else {
-        clearInterval(interval);
-      }
-    }, 400);
-
-    return () => clearInterval(interval);
-  }, [sha]);
-
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [visibleLogs]);
-
-  useEffect(() => {
-    // In reality, we'd use the real repo owner/name and PR number from props/context
-    // We fetch from our new API endpoint
-    const fetchPR = async () => {
-      setLoadingPr(true);
-      try {
-        // Hitting our backend octokit bridge
-        const res = await fetch(`${API_URL}/api/repos/acme-corp/my-api/pr/42`, { credentials: 'include' });
-        if (res.ok) {
-          const data = await res.json();
-          setPrData(data);
-        } else {
-          // Mocking the data if API isn't fully linked locally for the demo
-          setPrData({
-            title: 'Fix authentication bypass and update JWT signing',
-            author: 'johndoe',
-            authorAvatar: 'https://avatars.githubusercontent.com/u/9919?s=40&v=4',
-            additions: 124,
-            deletions: 42,
-            state: 'open',
-            merged: false,
-            head: 'fix-auth',
-            base: 'main',
-            html_url: 'https://github.com'
-          });
-        }
-      } catch (err) {
-        // Fallback mock
-        setPrData({
-          title: 'Fix authentication bypass and update JWT signing',
-          author: 'johndoe',
-          authorAvatar: 'https://avatars.githubusercontent.com/u/9919?s=40&v=4',
-          additions: 124,
-          deletions: 42,
-          state: 'open',
-          merged: false,
-          head: 'fix-auth',
-          base: 'main',
-          html_url: 'https://github.com'
-        });
-      }
-      setLoadingPr(false);
-    };
-
-    fetchPR();
-  }, [sha]);
-
-  const handleMerge = async () => {
-    setIsMerging(true);
-    try {
-      // Hit our backend merge endpoint
-      // const res = await fetch(`${API_URL}/api/repos/acme-corp/my-api/pr/42/merge`, { method: 'POST', credentials: 'include' });
-      await new Promise(r => setTimeout(r, 1200)); // Simulate API call
-      
-      setPrData(prev => prev ? { ...prev, merged: true, state: 'merged' } : null);
-      toast.success('Successfully merged to main!');
-    } catch (e) {
-      toast.error('Failed to merge PR.');
-    } finally {
-      setIsMerging(false);
-    }
-  };
-
-  const handleSchedule = () => {
-    toast.success('Merge scheduled for off-peak hours (2:00 AM).');
-  };
+    setLoading(true);
+    setError(null);
+    fetch(`${API_URL}/api/reports/${repoId}/runs/${runId}`, { credentials: 'include' })
+      .then(async (res) => {
+        const data = await res.json();
+        if (!res.ok) throw new Error(data?.error || `Request failed (${res.status})`);
+        setReport(data);
+      })
+      .catch((e) => setError(e.message))
+      .finally(() => setLoading(false));
+  }, [repoId, runId]);
 
   return (
     <div className="flex-1 flex flex-col bg-cw-bg2 overflow-hidden relative border-l border-cw-bdr">
       {/* Header */}
       <div className="bg-cw-bg border-b border-cw-bdr px-5 py-4 shrink-0 flex items-center justify-between">
-        <div className="flex items-center">
+        <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-md bg-cw-bg3 border border-cw-bdr flex items-center justify-center">
-            <RefreshCw size={14} className={`${running ? 'text-cw-blue animate-spin' : 'text-cw-green'}`} />
+            <RefreshCw size={14} className={`${loading ? 'text-cw-blue animate-spin' : 'text-cw-green'}`} />
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <span className="text-[15px] font-semibold text-cw-txt">PR Intercept Analysis</span>
-            </div>
-            <div className="text-[11px] text-cw-txt2 mt-0.5">Run ID: {displayId}</div>
+            <span className="text-[15px] font-semibold text-cw-txt">Run Report</span>
+            <div className="text-[11px] text-cw-txt2 mt-0.5">Run #{runId}{report ? ` · ${report.commitSha.slice(0, 7)}` : ''}</div>
           </div>
         </div>
-        <button 
-          onClick={onBack} 
+        <button
+          onClick={onBack}
           className="w-8 h-8 rounded-full hover:bg-cw-bg3 flex items-center justify-center text-cw-txt3 hover:text-cw-txt transition-colors border-none bg-transparent cursor-pointer"
         >
           <X size={16} />
         </button>
       </div>
 
-      {/* Content (Vertical Flow) */}
-      <div className="flex-1 overflow-y-auto px-5 py-6 flex flex-col gap-6">
-        
-        {/* NATIVE PR CONTEXT HEADER */}
-        {loadingPr ? (
-          <div className="h-24 bg-cw-bg3 animate-pulse rounded-xl" />
-        ) : prData ? (
-          <div className="bg-cw-bg border border-cw-bdr rounded-xl p-4 flex flex-col gap-3 shadow-sm">
-            <div className="flex justify-between items-start">
-              <div className="flex items-center">
-                <img src={prData.authorAvatar} alt={prData.author} className="w-10 h-10 rounded-full border border-cw-bdr" />
-                <div>
-                  <h3 className="text-[15px] font-bold text-cw-txt leading-tight m-0">{prData.title}</h3>
-                  <div className="flex items-center gap-2 text-[12px] text-cw-txt2 mt-1">
-                    <span className="font-medium">{prData.author}</span>
-                    <span>·</span>
-                    <span className="flex items-center gap-1"><GitBranch size={12} /> {prData.head} <span className="text-cw-txt3">→</span> {prData.base}</span>
-                  </div>
+      <div className="flex-1 overflow-y-auto px-5 py-5 flex flex-col gap-4">
+        {loading && <div className="text-[12px] text-cw-txt3 text-center py-8">Loading real report data...</div>}
+        {error && <div className="text-[12px] text-cw-red text-center py-8">{error}</div>}
+
+        {report && (
+          <>
+            {/* Summary strip */}
+            <div className="bg-cw-bg border border-cw-bdr rounded-xl p-4 grid grid-cols-4 gap-3">
+              <div>
+                <div className="text-[9px] font-bold text-cw-txt3 uppercase tracking-wide mb-1">Overall Score</div>
+                <div className="text-[20px] font-semibold text-cw-txt">{report.overallScore != null ? `${report.overallScore}/100` : '—'}</div>
+              </div>
+              <div>
+                <div className="text-[9px] font-bold text-cw-txt3 uppercase tracking-wide mb-1">Agents Run</div>
+                <div className="text-[20px] font-semibold text-cw-txt">{report.agentsRun}</div>
+              </div>
+              <div>
+                <div className="text-[9px] font-bold text-cw-txt3 uppercase tracking-wide mb-1">Total Findings</div>
+                <div className="text-[20px] font-semibold text-cw-txt">{report.totalFindings}</div>
+              </div>
+              <div>
+                <div className="text-[9px] font-bold text-cw-txt3 uppercase tracking-wide mb-1">By Severity</div>
+                <div className="flex gap-1.5 flex-wrap mt-1">
+                  {Object.entries(report.severityCounts).length === 0 ? (
+                    <span className="text-[11px] text-cw-txt3">None</span>
+                  ) : Object.entries(report.severityCounts).map(([sev, n]) => (
+                    <span key={sev} className={`px-1.5 py-0.5 text-[9px] font-bold rounded ${SEVERITY_STYLE[sev] ?? 'bg-cw-bg3 text-cw-txt2'}`}>
+                      {n} {sev}
+                    </span>
+                  ))}
                 </div>
               </div>
-              <div className={`px-2.5 py-1 text-[10px] font-bold rounded uppercase ${prData.merged ? 'bg-cw-purple/10 text-cw-purple border border-cw-purple/20' : 'bg-cw-green/10 text-cw-green border border-cw-green/20'}`}>
-                {prData.merged ? 'Merged' : 'Safe to Merge'}
-              </div>
             </div>
 
-            <div className="flex gap-4 text-[12px] text-cw-txt3 mt-1">
-              <span className="text-cw-green">+{prData.additions} additions</span>
-              <span className="text-cw-red">-{prData.deletions} deletions</span>
+            {/* Per-agent breakdown — the real, detailed report */}
+            <div className="flex flex-col gap-3">
+              {report.agents.length === 0 ? (
+                <div className="text-[12px] text-cw-txt3 text-center py-6">No agents have reported on this run yet.</div>
+              ) : report.agents.map((agent) => <AgentSection key={agent.agentId} agent={agent} />)}
             </div>
-          </div>
-        ) : null}
-
-        {/* MERGE CONTROL PANEL (ACTION ZONE) */}
-        {!running && prData && !prData.merged && (
-          <div className="bg-cw-bg border border-cw-bdr rounded-xl p-4 flex flex-col gap-3 shadow-sm">
-            <div className="text-[11px] font-bold text-cw-txt tracking-[0.06em] mb-1">MERGE CONTROLS</div>
-            <div className="flex gap-3">
-              <button 
-                onClick={handleMerge}
-                disabled={isMerging}
-                className="flex-1 bg-cw-green hover:brightness-110 text-white font-bold text-[13px] py-2.5 rounded-lg border-none cursor-pointer flex items-center justify-center gap-2 transition-all shadow-sm"
-              >
-                {isMerging ? <RefreshCw size={16} className="animate-spin" /> : <GitMerge size={16} />}
-                Merge Now
-              </button>
-              
-              <div className="relative flex-1">
-                <select 
-                  onChange={(e) => { if (e.target.value) handleSchedule(); e.target.value = ""; }}
-                  className="w-full bg-cw-bg3 hover:bg-cw-bdr border border-cw-bdr text-cw-txt text-[13px] font-medium py-2.5 px-3 rounded-lg cursor-pointer appearance-none outline-none transition-colors"
-                >
-                  <option value="" disabled selected>Schedule Merge...</option>
-                  <option value="smart">Let System Decide (Smart Queue)</option>
-                  <option value="tonight">Merge Tonight (2:00 AM)</option>
-                  <option value="weekend">Merge This Weekend</option>
-                </select>
-                <Clock size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-cw-txt3 pointer-events-none" />
-              </div>
-            </div>
-            <a 
-              href={prData.html_url} 
-              target="_blank" 
-              rel="noreferrer"
-              className="text-[11px] bg-cw-bg3 hover:bg-cw-bdr border border-cw-bdr text-cw-txt py-1.5 px-3 rounded-md flex items-center justify-center gap-1.5 mt-2 transition-colors no-underline w-full font-medium shadow-sm"
-            >
-              <ExternalLink size={12} /> View Full PR on GitHub
-            </a>
-          </div>
+          </>
         )}
-
-        {/* TERMINAL LOGS (STRICT DARK MODE) */}
-        <div className="bg-[#0f1117] rounded-xl overflow-hidden border border-[#2d3139] flex flex-col shadow-inner">
-          <div className="px-4 py-2.5 bg-[#161b27] border-b border-[#2d3139] flex justify-between items-center">
-            <span className="text-[10px] font-bold text-blue-400 tracking-[.06em]">SANDBOX TERMINAL LOGS</span>
-          </div>
-          <div className="p-4 font-mono text-[12px] leading-[1.8] min-h-[220px]">
-            {visibleLogs.filter(Boolean).map((l, i) => (
-              <div key={i} className="flex gap-3 mb-1">
-                <span className="text-[#555] shrink-0 w-10">{l.ts}</span>
-                <span className={logColors[l.color]}>{l.text}</span>
-              </div>
-            ))}
-            {running && (
-              <div className="flex gap-3">
-                <span className="text-[#555] w-10"> </span>
-                <span className="inline-block w-[7px] h-[12px] bg-[#e8e8e6] animate-pulse align-middle rounded-sm" />
-              </div>
-            )}
-            <div ref={bottomRef} />
-          </div>
-        </div>
-
       </div>
     </div>
   );
 }
-

@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react';
-import { mockLiveFeedLogs } from '../../lib/mockAgentData';
 import { WS_URL } from '../../lib/api';
 import { AgentCanvas } from './AgentCanvas';
 
@@ -24,7 +23,7 @@ interface LiveFeedProps {
 
 export function LiveFeed({ viewMode }: LiveFeedProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
-  const [logs, setLogs] = useState<LogEntry[]>(mockLiveFeedLogs);
+  const [logs, setLogs] = useState<LogEntry[]>([]);
 
   useEffect(() => {
     if (viewMode === 'stream') {

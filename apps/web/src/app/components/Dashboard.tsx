@@ -2,12 +2,30 @@ import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'rec
 import { ShieldAlert, Bot, Monitor, Blocks, Key } from 'lucide-react';
 
 interface Props {
-  onRunClick?: (sha: string) => void;
+  onRunClick?: (repoId: number, runId: number) => void;
 }
 
-import { mockHealthData, mockDebtData, mockActivityRows } from '../../lib/mockAgentData';
+import { mockHealthData, mockDebtData } from '../../lib/mockAgentData';
 import { api } from '../../lib/api';
 import { useEffect, useState } from 'react';
+
+interface RecentRun {
+  runId: number;
+  repoId: number;
+  repoFullName: string;
+  commitSha: string;
+  status: string;
+  overallScore: number | null;
+  createdAt: string;
+}
+
+const RUN_STATUS_STYLE: Record<string, string> = {
+  completed: 'bg-cw-green text-white',
+  running: 'bg-cw-blue text-white',
+  queued: 'bg-cw-bg3 text-cw-txt2',
+  failed: 'bg-cw-red text-white',
+  agent_failed: 'bg-cw-red text-white',
+};
 
 export interface ActivityEvent {
   id: string;
@@ -25,11 +43,19 @@ export function Dashboard({ onRunClick }: Props) {
     interventions: 0
   });
 
-  const [activityFeed, setActivityFeed] = useState<ActivityEvent[]>([
-    { id: '1', text: 'Deploy Manager auto-approved commit 3fa2c1', time: '14m ago', icon: Monitor, color: 'text-cw-green' },
-    { id: '2', text: 'Security Agent rotated Stripe key in payments-api', time: '1h ago', icon: ShieldAlert, color: 'text-cw-red' },
-    { id: '3', text: 'Chat Agent suggested fix for N+1 queries across 3 repos', time: 'Yesterday', icon: Bot, color: 'text-cw-purple' }
-  ]);
+  const [activityFeed, setActivityFeed] = useState<ActivityEvent[]>([]);
+  const [recentRuns, setRecentRuns] = useState<RecentRun[]>([]);
+  const [loadingRuns, setLoadingRuns] = useState(true);
+
+  useEffect(() => {
+    api.api.reports.recent.$get()
+      .then((res) => res.json())
+      .then((data) => {
+        if ('runs' in data) setRecentRuns(data.runs as RecentRun[]);
+      })
+      .catch(console.error)
+      .finally(() => setLoadingRuns(false));
+  }, []);
 
   useEffect(() => {
     api.api.stats.dashboard.$get()
@@ -198,20 +224,24 @@ export function Dashboard({ onRunClick }: Props) {
               </tr>
             </thead>
             <tbody className="text-[12px] text-cw-txt">
-              {mockActivityRows.map((run, i) => (
-                <tr key={i} onClick={() => onRunClick?.(run.sha)} className="hover:bg-cw-bg3 cursor-pointer transition-colors border-t border-cw-bdr group">
-                  <td className="px-5 py-3 font-mono text-cw-blue">{run.sha}</td>
-                  <td className="px-5 py-3 font-medium text-cw-txt">{run.repo}</td>
-                  <td className="px-5 py-3 text-cw-txt2 max-w-[400px] truncate">{run.msg}</td>
+              {loadingRuns ? (
+                <tr><td colSpan={6} className="px-5 py-6 text-center text-cw-txt3">Loading recent runs...</td></tr>
+              ) : recentRuns.length === 0 ? (
+                <tr><td colSpan={6} className="px-5 py-6 text-center text-cw-txt3">No runs yet — connect a repo to see activity here.</td></tr>
+              ) : recentRuns.map((run) => (
+                <tr key={run.runId} onClick={() => onRunClick?.(run.repoId, run.runId)} className="hover:bg-cw-bg3 cursor-pointer transition-colors border-t border-cw-bdr group">
+                  <td className="px-5 py-3 font-mono text-cw-blue">{run.commitSha.slice(0, 7)}</td>
+                  <td className="px-5 py-3 font-medium text-cw-txt">{run.repoFullName}</td>
+                  <td className="px-5 py-3 text-cw-txt2">{run.overallScore != null ? `Score: ${run.overallScore}/100` : '—'}</td>
                   <td className="px-5 py-3">
-                    <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold tracking-wider ${run.statusColor}`}>
+                    <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase ${RUN_STATUS_STYLE[run.status] ?? 'bg-cw-bg3 text-cw-txt2'}`}>
                       {run.status}
                     </span>
                   </td>
-                  <td className="px-5 py-3 text-cw-txt3">{run.time}</td>
+                  <td className="px-5 py-3 text-cw-txt3">{new Date(run.createdAt).toLocaleString()}</td>
                   <td className="px-5 py-3 text-right">
                     <button className="px-3 py-1 bg-cw-bg3 border border-cw-bdr text-cw-txt text-[10px] font-medium rounded hover:bg-cw-bdr transition-all">
-                      View PR
+                      View Report
                     </button>
                   </td>
                 </tr>

@@ -12,6 +12,7 @@
 
 import { z } from 'zod';
 import type { SandboxHandle } from '../core/provider.js';
+import { createMemoryTools } from './memory.tools.js';
 
 /**
  * Create security-specific tools for a given sandbox instance.
@@ -288,5 +289,7 @@ export function createSecurityTools(sandbox: SandboxHandle) {
       parameters: z.object({ baseUrl: z.string().optional() }),
       execute: async () => ({ applicable: false, reason: 'No running instance available to test against.' })
     },
+
+    ...createMemoryTools('security')
   };
 }

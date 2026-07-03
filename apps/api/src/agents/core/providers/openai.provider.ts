@@ -64,6 +64,9 @@ export class OpenAIProvider implements AgentProvider {
         duration: Date.now() - startTime,
         modelUsed: model,
         tokenUsage: { input: 0, output: 0 }, // runAgentLoop/NativeOpenAIProvider don't currently surface usage; real 0, not fabricated
+        gateDecision,
+        toolsExecuted: reportArgs?.toolsExecuted,
+        summary: reportArgs?.summary,
       };
     } catch (error) {
       const err = error as Error;

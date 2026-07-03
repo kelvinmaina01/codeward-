@@ -106,6 +106,7 @@ setupWs(upgradeWebSocket);
 
 import { githubRouter } from './routes/github.js';
 import { chatRouter } from './routes/chat.js';
+import { reportsRouter } from './routes/reports.js';
 
 const routes = app
   .route('/api/webhooks', webhookRouter)
@@ -114,6 +115,7 @@ const routes = app
   .route('/api/stats', statsRouter)
   .route('/api/github', githubRouter)
   .route('/api/chat', chatRouter)
+  .route('/api/reports', reportsRouter)
   .route('/ws', wsRouter);
 
 export type AppType = typeof routes;

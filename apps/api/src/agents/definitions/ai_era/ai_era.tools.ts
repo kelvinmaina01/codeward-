@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { SandboxHandle } from '../../core/provider.js';
 import { createSandboxTools } from '../../tools/sandbox.tools.js';
+import { createMemoryTools } from '../../tools/memory.tools.js';
 
 function grepLines(stdout: string) {
   return stdout.split('\n').filter(Boolean).map(line => {
@@ -180,6 +181,8 @@ export const createAIEraTools = (sandbox: SandboxHandle) => {
         toolsExecuted: z.array(z.object({ toolName: z.string(), calledAt: z.string().datetime(), durationMs: z.number(), resultSummary: z.string() }))
       }),
       execute: async (args: any) => ({ success: true, message: "AI-Era report submitted." })
-    }
+    },
+
+    ...createMemoryTools('ai_era')
   };
 };

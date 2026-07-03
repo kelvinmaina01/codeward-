@@ -52,7 +52,7 @@ export function AuthPage({ onBack, theme: _theme, onCycleTheme, onNavigate: _onN
     return () => clearInterval(blink);
   }, []);
 
-  const handleOAuth = async (provider: 'github' | 'gitlab') => {
+  const handleOAuth = async (provider: 'github' | 'gitlab' | 'google') => {
     if (provider === 'gitlab') return;
     setLoading(provider);
     try {
@@ -159,6 +159,15 @@ export function AuthPage({ onBack, theme: _theme, onCycleTheme, onNavigate: _onN
               >
                 {loading === 'github' ? <div className="animate-spin w-5 h-5 border-2 border-cw-txt border-t-transparent rounded-full" /> : <img src="https://upload.wikimedia.org/wikipedia/commons/9/91/Octicons-mark-github.svg" className="w-5 h-5" style={{ filter: theme === 'dark' ? 'invert(1)' : 'none' }} alt="GitHub" />}
                 <span className="text-[15px]">{loading === 'github' ? 'Connecting...' : 'Continue with GitHub'}</span>
+              </button>
+
+              <button
+                className={btnClass + " cursor-pointer mt-2"}
+                onClick={() => handleOAuth('google')}
+                disabled={!!loading}
+              >
+                {loading === 'google' ? <div className="animate-spin w-5 h-5 border-2 border-cw-txt border-t-transparent rounded-full" /> : <img src="https://www.svgrepo.com/show/475656/google-color.svg" className="w-5 h-5" alt="Google" />}
+                <span className="text-[15px]">{loading === 'google' ? 'Connecting...' : 'Continue with Google'}</span>
               </button>
 
               <div className="flex items-center gap-4 my-2">

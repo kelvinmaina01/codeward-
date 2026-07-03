@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { SandboxHandle } from '../../core/provider.js';
 import { createSandboxTools } from '../../tools/sandbox.tools.js';
+import { createMemoryTools } from '../../tools/memory.tools.js';
 
 /**
  * Design note: this agent runs against a cloned-but-not-deployed repo — there is no live
@@ -345,6 +346,8 @@ export const createBrokenCodeTools = (sandbox: SandboxHandle) => {
       execute: async (args: any) => {
         return { success: true, message: "Broken Code report submitted." };
       }
-    }
+    },
+
+    ...createMemoryTools('broken_code')
   };
 };

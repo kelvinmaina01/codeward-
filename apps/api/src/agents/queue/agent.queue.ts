@@ -214,6 +214,7 @@ Use these EXACT values for any tool parameter named runId/repoId — never inven
         score: result.score,
         findingsCount: result.findings.length,
         findings: result.findings,
+        reportMeta: { gateDecision: result.gateDecision ?? null, toolsExecuted: result.toolsExecuted ?? [], summary: result.summary ?? null },
         model: result.modelUsed,
         tokenUsage: result.tokenUsage,
         duration: result.duration,

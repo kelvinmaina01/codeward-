@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { SandboxHandle } from '../../core/provider.js';
 import { createSandboxTools } from '../../tools/sandbox.tools.js';
+import { createMemoryTools } from '../../tools/memory.tools.js';
 
 /**
  * Same design note as broken_code.tools.ts: this agent runs against a cloned-but-not-deployed
@@ -299,6 +300,8 @@ export const createArchitectureTools = (sandbox: SandboxHandle) => {
       execute: async (args: any) => {
         return { success: true, message: "Architecture report submitted." };
       }
-    }
+    },
+
+    ...createMemoryTools('architecture')
   };
 };

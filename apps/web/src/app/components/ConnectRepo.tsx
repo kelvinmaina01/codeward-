@@ -3,6 +3,7 @@ import { Search, Star, Lock, Globe, Check, Loader, GitBranch, AlertCircle, Refre
 import { toast } from 'sonner';
 import { signOut } from '../../lib/auth';
 import { api } from '../../lib/api';
+import { LinkProvider } from './LinkProvider';
 
 interface Props {
   user: { name: string; email?: string; image?: string };
@@ -668,6 +669,8 @@ export function ConnectRepo({ user, onConnect, onSkip, activeOrg, setActiveOrg, 
             <div className="w-full transition-all">
               {loading ? (
                 <div className="py-20 flex justify-center"><Loader size={24} className="animate-spin text-cw-purple" /></div>
+              ) : error === 'No GitHub account linked' ? (
+                <LinkProvider />
               ) : error ? (
                 <div className="py-10 text-cw-red flex items-center justify-center gap-2"><AlertCircle size={16} /> {error}</div>
               ) : filteredRepos.length === 0 ? (
