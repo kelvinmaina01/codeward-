@@ -44,7 +44,7 @@ export class FlySandbox {
       await this.start(env);
     }
     console.log(`[FlySandbox] Cloning ${repoUrl} into ${this.workDir}...`);
-    const cloneRes = await this.execRaw(`mkdir -p "${this.workDir}" && git clone "${repoUrl}" "${this.workDir}"`);
+    const cloneRes = await this.execRaw(`mkdir -p "${this.workDir}" && GIT_LFS_SKIP_SMUDGE=1 git clone "${repoUrl}" "${this.workDir}"`);
     if (cloneRes.exitCode !== 0) {
       throw new Error(`Failed to clone repo into Fly sandbox: ${cloneRes.stderr || cloneRes.stdout}`);
     }

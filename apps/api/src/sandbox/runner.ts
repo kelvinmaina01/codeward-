@@ -33,7 +33,7 @@ export async function runSandbox(options: RunOptions) {
     // 3. Clone Repository
     // Using a securely injected token URL for clone
     // Since we don't have real tokens in local testing often, we assume public clone or token injected via env
-    const cloneCmd = `git clone https://\${GITHUB_TOKEN}@${options.repoUrl.replace('https://', '')} /app/repo`;
+    const cloneCmd = `GIT_LFS_SKIP_SMUDGE=1 git clone https://\${GITHUB_TOKEN}@${options.repoUrl.replace('https://', '')} /app/repo`;
     const cloneRes = await sandbox.exec(cloneCmd);
     if (cloneRes.exitCode !== 0) throw new Error(`Clone failed: ${cloneRes.stderr}`);
     

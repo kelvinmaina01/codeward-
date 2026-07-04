@@ -29,7 +29,7 @@ export class LocalExecSandbox implements SandboxHandle {
     console.log(`[LocalSandbox] Cloning ${repoUrl}...`);
     try {
       // Use standard clone. If it requires auth, the URL should contain the token, or it's public.
-      await this.exec(`git clone ${repoUrl} .`);
+      await this.exec(`GIT_LFS_SKIP_SMUDGE=1 git clone ${repoUrl} .`);
       
       if (commitSHA && commitSHA !== 'baseline') {
         console.log(`[LocalSandbox] Checking out ${commitSHA}...`);
