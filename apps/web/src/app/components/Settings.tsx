@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Copy, RefreshCw, Link2 } from 'lucide-react';
+import { API_URL } from '../../lib/api';
 
 function Toggle({ on, onChange }: { on: boolean; onChange: () => void }) {
   return (
@@ -53,6 +54,113 @@ function InputRow({ label, value, masked, buttonLabel, buttonColor, onButton }: 
         </button>
       </div>
     </div>
+  );
+}
+
+/**
+ * Real per-repo auto-merge policy — backed by GET/PUT /api/approvals/settings/:repoId, which
+ * persists into repositories.config and drives the real BullMQ timeout-merge scheduling.
+ */
+function AutoMergePolicyCard() {
+  const [repos, setRepos] = useState<Array<{ id: number; fullName: string }>>([]);
+  const [selectedRepo, setSelectedRepo] = useState<number | null>(null);
+  const [mode, setMode] = useState<'manual' | 'auto'>('manual');
+  const [timeoutMinutes, setTimeoutMinutes] = useState(120);
+  const [saving, setSaving] = useState(false);
+  const [savedMsg, setSavedMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch(`${API_URL}/api/repos/connected`, { credentials: 'include' })
+      .then((res) => res.json())
+      .then((data) => {
+        const list = (Array.isArray(data) ? data : data?.repos ?? data?.connectedRepos ?? []).map((r: any) => ({ id: r.id, fullName: r.fullName }));
+        setRepos(list.filter((r: any) => r.id != null));
+        if (list.length > 0) setSelectedRepo(list[0].id);
+      })
+      .catch(console.error);
+  }, []);
+
+  useEffect(() => {
+    if (selectedRepo == null) return;
+    fetch(`${API_URL}/api/approvals/settings/${selectedRepo}`, { credentials: 'include' })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.settings) {
+          setMode(data.settings.mode);
+          setTimeoutMinutes(data.settings.timeoutMinutes);
+        }
+      })
+      .catch(console.error);
+  }, [selectedRepo]);
+
+  const save = async (nextMode: 'manual' | 'auto', nextTimeout: number) => {
+    if (selectedRepo == null) return;
+    setSaving(true);
+    setSavedMsg(null);
+    try {
+      const res = await fetch(`${API_URL}/api/approvals/settings/${selectedRepo}`, {
+        method: 'PUT', credentials: 'include', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode: nextMode, timeoutMinutes: nextTimeout }),
+      });
+      const data = await res.json();
+      if (res.ok && data?.settings) {
+        setMode(data.settings.mode);
+        setTimeoutMinutes(data.settings.timeoutMinutes);
+        setSavedMsg('Saved');
+        setTimeout(() => setSavedMsg(null), 2000);
+      } else {
+        setSavedMsg(data?.error ?? 'Save failed');
+      }
+    } catch (e) {
+      setSavedMsg('Save failed');
+      console.error(e);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <SectionCard title="🔀 Auto-Merge Policy (per repository)">
+      <div className="text-[11px] text-cw-txt3 mb-2.5 leading-[1.5]">
+        Controls what happens after Guardian approves a Codeward auto-fix PR. Manual: nothing merges without your click.
+        Auto: if you don't respond within the window, the PR merges on your standing authorization. High/critical-severity
+        fixes always require a manual click regardless of this setting.
+      </div>
+
+      {repos.length === 0 ? (
+        <div className="text-[11px] text-cw-txt3 py-2">No connected repositories yet.</div>
+      ) : (
+        <>
+          <SetRow label="Repository" control={
+            <select
+              value={selectedRepo ?? ''}
+              onChange={(e) => setSelectedRepo(Number(e.target.value))}
+              className="text-[11px] px-2 py-1 rounded-md border border-cw-bdr bg-cw-bg2 text-cw-txt outline-none max-w-[220px]"
+            >
+              {repos.map((r) => <option key={r.id} value={r.id}>{r.fullName}</option>)}
+            </select>
+          } />
+          <SetRow label="Merge mode" desc={mode === 'auto' ? `Unactioned approved PRs merge after ${timeoutMinutes >= 60 ? `${Math.round(timeoutMinutes / 60)}h` : `${timeoutMinutes}m`}.` : 'Every merge requires your explicit click.'} control={
+            <select
+              value={mode === 'manual' ? 'manual' : String(timeoutMinutes)}
+              onChange={(e) => {
+                const v = e.target.value;
+                if (v === 'manual') { save('manual', timeoutMinutes); }
+                else { save('auto', Number(v)); }
+              }}
+              disabled={saving}
+              className="text-[11px] px-2 py-1 rounded-md border border-cw-bdr bg-cw-bg2 text-cw-txt outline-none"
+            >
+              <option value="manual">Manual approval required</option>
+              <option value="120">Auto-merge after 2 hours</option>
+              <option value="720">Auto-merge after 12 hours</option>
+              <option value="1440">Auto-merge after 24 hours</option>
+            </select>
+          } />
+          {savedMsg && <div className={`text-[11px] mt-1.5 ${savedMsg === 'Saved' ? 'text-cw-green' : 'text-cw-red'}`}>{savedMsg}</div>}
+        </>
+      )}
+    </SectionCard>
   );
 }
 

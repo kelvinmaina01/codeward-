@@ -179,6 +179,18 @@ export const agentWorker = new Worker('agent-jobs', async (job: Job<AgentJobData
     // silently dispatched sub-agents against a run that didn't exist. Every one of Phase 1/2/3
     // needs the real identifiers stated explicitly, not left for the model to guess.
     const [runRow] = await db.select().from(runs).where(eq(runs.id, runId));
+
+    // Incremental push runs carry a real changed-file scope computed by pushWorker from the
+    // actual commit diff. Comprehensive (first-connect) runs have scope=null and get no
+    // scoping instruction — they analyze the whole repo as before.
+    const runScope = runRow?.scope as { incremental?: boolean; changedFiles?: string[] } | null;
+    const scopeInstruction = runScope?.incremental && Array.isArray(runScope.changedFiles) && runScope.changedFiles.length > 0
+      ? `\nINCREMENTAL RUN: this commit changed ONLY the following ${runScope.changedFiles.length} file(s):\n${runScope.changedFiles.map((f) => `  - ${f}`).join('\n')}\nScope your analysis to these files and their direct dependents. Do NOT run whole-repo scans when a tool lets you target specific files or directories — this run exists to check the new changes, not to re-audit the entire repository. Repo-wide facts you already know from memory (search_memory) do not need re-verification.`
+      : '';
+    if (scopeInstruction) {
+      console.log(`[AgentWorker] ${agentId} run #${runId} is INCREMENTAL — scoped to ${runScope!.changedFiles!.length} changed file(s).`);
+    }
+
     const config: AgentRunConfig = {
       agentId: definition.id,
       systemPrompt: definition.systemPrompt,
@@ -191,7 +203,7 @@ export const agentWorker = new Worker('agent-jobs', async (job: Job<AgentJobData
       taskPrompt: `Analyze commit ${commitSHA} on repository ${repoFullName}.
 runId: ${runId}
 repoId: ${runRow?.repoId ?? 'unknown — this run has no repoId on record; do not invent one, omit repoId-requiring tool arguments instead'}
-Use these EXACT values for any tool parameter named runId/repoId — never invent, guess, or reuse a value from an example. This pipeline clones the repo and analyzes it statically — there is NO running instance of the app and NO live databaseUrl/baseUrl available. Tools that need one will honestly report applicable:false if you omit that argument; treat that as "not tested", never as "passed", and do not invent a placeholder connection string or URL to pass in. Follow your instructions precisely and report all findings as a JSON array.`,
+Use these EXACT values for any tool parameter named runId/repoId — never invent, guess, or reuse a value from an example. This pipeline clones the repo and analyzes it statically — there is NO running instance of the app and NO live databaseUrl/baseUrl available. Tools that need one will honestly report applicable:false if you omit that argument; treat that as "not tested", never as "passed", and do not invent a placeholder connection string or URL to pass in. Follow your instructions precisely and report all findings as a JSON array.${scopeInstruction}`,
       tools,
       maxSteps: definition.maxSteps,
       model: model || definition.defaultModel,
@@ -212,7 +224,8 @@ Use these EXACT values for any tool parameter named runId/repoId — never inven
     // must never fail the agent's own already-successful analysis — it's a bonus action on top.
     // -----------------------------------------------------------------------
     let autoFixPR: any = null;
-    if (agentId === 'bloat' && result.status !== 'error' && result.findings.length > 0 && runRow?.repoId != null) {
+    const { AUTO_FIX_ELIGIBLE_AGENTS } = await import('../fixer/fixer.service.js');
+    if (AUTO_FIX_ELIGIBLE_AGENTS.has(agentId) && result.status !== 'error' && result.findings.length > 0 && runRow?.repoId != null) {
       try {
         const { openFixPR } = await import('../fixer/fixer.service.js');
         const outcome = await openFixPR({
@@ -246,6 +259,34 @@ Use these EXACT values for any tool parameter named runId/repoId — never inven
               console.log(`[AgentWorker] guardian reviewed PR #${outcome.pullRequestNumber}: ${review.event}`);
             } else {
               console.log(`[AgentWorker] guardian did not complete a review of PR #${outcome.pullRequestNumber}: ${review.reason}`);
+            }
+
+            // Phase 4: create the real merge-approval row for the dashboard, and schedule the
+            // real timeout auto-merge when the repo has opted into auto mode. Severity of the
+            // PR is the max severity across the findings it actually fixed.
+            try {
+              const { createApprovalAndMaybeSchedule } = await import('../merge/merge.queue.js');
+              const fixedFiles = new Set(outcome.appliedFixes.map((f) => f.filePath));
+              const severityRank: Record<string, number> = { CRITICAL: 4, HIGH: 3, MEDIUM: 2, LOW: 1, INFO: 0 };
+              const maxSeverity = (result.findings as any[])
+                .filter((f) => f.file && fixedFiles.has(f.file))
+                .reduce<string | null>((max, f) => {
+                  const sev = String(f.severity ?? '').toUpperCase();
+                  return (severityRank[sev] ?? -1) > (max ? severityRank[max] : -1) ? sev : max;
+                }, null);
+              const approval = await createApprovalAndMaybeSchedule({
+                repoId: runRow.repoId,
+                runId,
+                agentId,
+                pullRequestNumber: outcome.pullRequestNumber,
+                prUrl: outcome.htmlUrl,
+                prTitle: `[Codeward] Auto-fix: ${outcome.appliedFixes.length} ${agentId} finding${outcome.appliedFixes.length === 1 ? '' : 's'} on run #${runId}`,
+                guardianVerdict: review.reviewed ? review.event : null,
+                maxSeverity,
+              });
+              autoFixPR = { ...autoFixPR, approvalId: approval.id, approvalMode: approval.mode, approvalDeadline: approval.deadlineAt };
+            } catch (approvalError) {
+              console.error(`[AgentWorker] merge-approval creation threw (non-fatal, PR and review are unaffected):`, (approvalError as Error).message);
             }
           } catch (reviewError) {
             console.error(`[AgentWorker] guardian review step threw (non-fatal, PR is unaffected):`, (reviewError as Error).message);

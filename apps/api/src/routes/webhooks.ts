@@ -43,23 +43,33 @@ webhookRouter.post('/github', async (c) => {
 
     if (event === 'push') {
       const commitSHA = data.after;
+      const beforeSHA = data.before;
       const repoName = data.repository?.full_name;
-      
+
       console.log(`[Webhook] Received push for ${repoName} at ${commitSHA}`);
-      
-      // Add a record in the database
+
+      // A push for a repo nobody connected is noise, not work — and a run row without a
+      // repoId is an orphan that breaks memory, reports, and escalation downstream.
+      const [repo] = await db.select().from(repositories).where(eq(repositories.fullName, repoName));
+      if (!repo) {
+        console.log(`[Webhook] Ignoring push for ${repoName} — repo is not connected.`);
+        return c.json({ status: 'ignored', reason: 'repo not connected' });
+      }
+
       const [runRecord] = await db.insert(runs).values({
+        repoId: repo.id,
         commitSha: commitSHA,
         status: 'queued',
       }).returning();
-      
+
       // Enqueue job in BullMQ (Layer 2: Push Guard)
-      await pushQueue.add('process-push', { 
+      await pushQueue.add('process-push', {
         runId: runRecord.id,
-        commitSHA, 
-        repoFullName: repoName 
+        commitSHA,
+        beforeSHA,
+        repoFullName: repoName
       });
-      
+
       return c.json({ status: 'queued', type: 'incremental', commitSHA, runId: runRecord.id });
     } else if (event === 'installation' || event === 'installation_repositories') {
       // Layer 1: Full Audit (Mode 1)

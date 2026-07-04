@@ -107,6 +107,7 @@ setupWs(upgradeWebSocket);
 import { githubRouter } from './routes/github.js';
 import { chatRouter } from './routes/chat.js';
 import { reportsRouter } from './routes/reports.js';
+import { approvalsRouter } from './routes/approvals.js';
 
 const routes = app
   .route('/api/webhooks', webhookRouter)
@@ -116,6 +117,7 @@ const routes = app
   .route('/api/github', githubRouter)
   .route('/api/chat', chatRouter)
   .route('/api/reports', reportsRouter)
+  .route('/api/approvals', approvalsRouter)
   .route('/ws', wsRouter);
 
 export type AppType = typeof routes;
@@ -137,6 +139,11 @@ injectWebSocket(server);
   try {
     await import('./agents/queue/agent.queue.js');
     console.log(`[AgentSystem] ✅ Worker started — listening for agent-jobs on BullMQ`);
+    // The merge worker must be alive from boot, not lazily on first approval — a delayed
+    // auto-merge job scheduled before a restart would otherwise sit unprocessed until some
+    // unrelated approval happened to import the module.
+    await import('./agents/merge/merge.queue.js');
+    console.log(`[AgentSystem] ✅ Merge worker started — listening for delayed auto-merge jobs`);
   } catch (err) {
     console.error(`[AgentSystem] ⚠️  Worker failed to start (Redis may be unavailable):`);
     console.error(err instanceof Error ? err.stack : String(err));

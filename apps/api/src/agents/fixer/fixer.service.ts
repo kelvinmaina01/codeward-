@@ -17,11 +17,30 @@ export interface FixableFinding {
   dismissed?: boolean;
 }
 
-// Only these categories are eligible for auto-generation in this first pass — mechanically
-// simple, low-risk removals. Anything touching runtime behavior, architecture, or more than
-// one concern at a time (COMPLEXITY, GOD_FILE, BOUNDARY_VIOLATION, N+1 queries, ...) needs real
-// engineering judgment a single-file content-replacement can't safely automate yet.
-const SAFE_CATEGORIES = new Set(['DEAD_CODE', 'UNUSED_DEPENDENCY']);
+/**
+ * Per-agent auto-fix policies. Only categories where a single-file content replacement is
+ * provably low-risk are listed — anything touching control flow, architecture, or needing a
+ * test run to validate (RACE_CONDITION, MEMORY_LEAK, TYPE_SAFETY, COMPLEXITY, GOD_FILE, ...)
+ * stays human-only until a real post-fix verification step exists.
+ *
+ * requireRefactorSafe: bloat's schema carries an explicit refactorSafe flag (its constitution
+ * requires test coverage before setting it) — honor it. broken_code's schema has no such
+ * field, so its one allowed category (SWALLOWED_ERROR: add logging inside an empty catch,
+ * never alter flow) is gated purely by category + the instruction constraints below.
+ */
+const AGENT_FIX_POLICIES: Record<string, { categories: Set<string>; requireRefactorSafe: boolean; extraInstruction?: string }> = {
+  bloat: {
+    categories: new Set(['DEAD_CODE', 'UNUSED_DEPENDENCY', 'POLYFILL', 'DOCUMENTATION_DRIFT']),
+    requireRefactorSafe: true,
+  },
+  broken_code: {
+    categories: new Set(['SWALLOWED_ERROR']),
+    requireRefactorSafe: false,
+    extraInstruction: 'For SWALLOWED_ERROR: add minimal error logging (console.error or the file\'s existing logger) inside the empty catch block. NEVER rethrow, NEVER change control flow, NEVER alter what the catch block returns — logging visibility only.',
+  },
+};
+
+export const AUTO_FIX_ELIGIBLE_AGENTS = new Set(Object.keys(AGENT_FIX_POLICIES));
 
 // Keep the first real auto-fix PR small and easy to review by hand — not a hard technical
 // limit, a deliberate trust-building constraint for the first capability of this kind.
@@ -33,13 +52,41 @@ const MAX_FIXES_PER_PR = 3;
 // explicitly rather than relying on truthiness alone.
 const PLACEHOLDER_FILE_VALUES = new Set(['n/a', 'none', 'multiple', 'various', '']);
 
-export function isEligibleForAutoFix(finding: FixableFinding): finding is FixableFinding & { file: string; category: string } {
-  return finding.refactorSafe === true
-    && !finding.dismissed
+export function isEligibleForAutoFix(finding: FixableFinding, agentId: string): finding is FixableFinding & { file: string; category: string } {
+  const policy = AGENT_FIX_POLICIES[agentId];
+  if (!policy) return false;
+  if (policy.requireRefactorSafe && finding.refactorSafe !== true) return false;
+  return !finding.dismissed
     && !!finding.category
-    && SAFE_CATEGORIES.has(finding.category)
+    && policy.categories.has(finding.category)
     && !!finding.file
     && !PLACEHOLDER_FILE_VALUES.has(finding.file.trim().toLowerCase());
+}
+
+/**
+ * Real syntax gate on generated content — a fix that doesn't parse must never reach a commit.
+ * TypeScript's parser handles .ts/.tsx/.js/.jsx/.mjs/.cjs; JSON.parse covers .json. Other file
+ * types (markdown, yaml, ...) pass through — they can't break a build the way unparseable
+ * code can.
+ */
+export async function syntaxCheck(filePath: string, content: string): Promise<{ ok: true } | { ok: false; error: string }> {
+  const lower = filePath.toLowerCase();
+  if (lower.endsWith('.json')) {
+    try { JSON.parse(content); return { ok: true }; }
+    catch (e) { return { ok: false, error: `Generated JSON does not parse: ${(e as Error).message}` }; }
+  }
+  if (/\.(ts|tsx|js|jsx|mjs|cjs)$/.test(lower)) {
+    const ts = await import('typescript');
+    const source = ts.createSourceFile(filePath, content, ts.ScriptTarget.Latest, true,
+      /\.(tsx|jsx)$/.test(lower) ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
+    const parseErrors = (source as any).parseDiagnostics as { messageText: unknown }[] | undefined;
+    if (parseErrors && parseErrors.length > 0) {
+      const first = parseErrors[0];
+      const msg = typeof first.messageText === 'string' ? first.messageText : JSON.stringify(first.messageText);
+      return { ok: false, error: `Generated code has ${parseErrors.length} syntax error(s), first: ${msg}` };
+    }
+  }
+  return { ok: true };
 }
 
 export interface GeneratedFix {
@@ -61,13 +108,14 @@ export type FixResult = { ok: true; fix: GeneratedFix } | { ok: false; file: str
  * steps. Any failure mode here returns an error instead of throwing — one bad finding must not
  * abort fixes for the rest of the batch.
  */
-export async function generateFix(sandbox: SandboxHandle, finding: FixableFinding & { file: string }): Promise<FixResult> {
+export async function generateFix(sandbox: SandboxHandle, finding: FixableFinding & { file: string }, agentId: string): Promise<FixResult> {
   const fileRes = await sandbox.exec(`cat "${finding.file}"`);
   if (fileRes.exitCode !== 0 || !fileRes.stdout) {
     return { ok: false, file: finding.file, error: `Could not read ${finding.file} from the sandbox: ${fileRes.stderr || 'empty file'}` };
   }
   const originalContent = fileRes.stdout;
   const originalLineCount = originalContent.split('\n').length;
+  const extraInstruction = AGENT_FIX_POLICIES[agentId]?.extraInstruction ?? '';
 
   const provider = new NativeOpenAIProvider();
   let result;
@@ -75,7 +123,7 @@ export async function generateFix(sandbox: SandboxHandle, finding: FixableFindin
     result = await provider.execute({
       model: 'gpt-4o-mini',
       temperature: 0,
-      systemPrompt: `You are a precise, conservative code-fixing tool. You are given ONE confirmed, already-reviewed-safe finding about a single file, and the file's exact current content. Your ONLY job is to return the complete new file content with JUST that specific issue resolved. Remove exactly what the finding identifies as dead/unused — change NOTHING else: no reformatting, no renaming, no unrelated cleanup, no added comments explaining the change. If you cannot confidently make ONLY this change, set confidence to "low" and return the original content unchanged.`,
+      systemPrompt: `You are a precise, conservative code-fixing tool. You are given ONE confirmed, already-reviewed-safe finding about a single file, and the file's exact current content. Your ONLY job is to return the complete new file content with JUST that specific issue resolved. Change NOTHING else: no reformatting, no renaming, no unrelated cleanup, no added comments explaining the change. If you cannot confidently make ONLY this change, set confidence to "low" and return the original content unchanged.${extraInstruction ? `\n${extraInstruction}` : ''}`,
       messages: [{
         role: 'user',
         content: `File: ${finding.file}\nFinding category: ${finding.category}\nTitle: ${finding.title}\nDescription: ${finding.description}\nEvidence: ${finding.rawEvidence ?? 'none provided'}\n${finding.suggestedFix || finding.suggestedRefactor ? `Suggested approach: ${finding.suggestedFix ?? finding.suggestedRefactor}\n` : ''}\n--- CURRENT FILE CONTENT ---\n${originalContent}`
@@ -107,11 +155,14 @@ export async function generateFix(sandbox: SandboxHandle, finding: FixableFindin
 
   const newLineCount = newFileContent.split('\n').length;
   const shrinkRatio = 1 - newLineCount / originalLineCount;
-  // A confirmed dead-code/unused-dependency removal should be a small, bounded change — not a
-  // rewrite. Guard against a runaway generation that guts or balloons the file.
+  // A confirmed safe fix in these categories is a small, bounded change — not a rewrite.
+  // Guard against a runaway generation that guts or balloons the file.
   if (shrinkRatio > 0.5 || newLineCount > originalLineCount * 1.2) {
     return { ok: false, file: finding.file, error: `Generated content changed file size too drastically (${originalLineCount} -> ${newLineCount} lines) for a "${finding.category}" fix — refusing to apply.` };
   }
+
+  const syntax = await syntaxCheck(finding.file, newFileContent);
+  if (!syntax.ok) return { ok: false, file: finding.file, error: `${syntax.error} — refusing to commit unparseable content.` };
 
   return { ok: true, fix: { filePath: finding.file, newContent: newFileContent, rationale, confidence, originalLineCount, newLineCount } };
 }
@@ -137,16 +188,19 @@ export type OpenFixPRResult =
  * sequence is more auditable here than letting a model choose the steps).
  */
 export async function openFixPR(params: OpenFixPRParams): Promise<OpenFixPRResult> {
-  const eligible = params.findings.filter(isEligibleForAutoFix).slice(0, MAX_FIXES_PER_PR);
+  const policy = AGENT_FIX_POLICIES[params.agentId];
+  if (!policy) return { opened: false, reason: `Agent '${params.agentId}' has no auto-fix policy — only ${[...AUTO_FIX_ELIGIBLE_AGENTS].join('/')} may auto-fix.` };
+
+  const eligible = params.findings.filter((f) => isEligibleForAutoFix(f, params.agentId)).slice(0, MAX_FIXES_PER_PR);
   if (eligible.length === 0) {
-    return { opened: false, reason: 'No findings in this run are eligible for auto-fix (refactorSafe:true, category in DEAD_CODE/UNUSED_DEPENDENCY, not dismissed).' };
+    return { opened: false, reason: `No findings in this run are eligible for auto-fix (${params.agentId} policy: categories ${[...policy.categories].join('/')}${policy.requireRefactorSafe ? ', refactorSafe:true required' : ''}, not dismissed, real single-file path).` };
   }
 
   const guardianTools = createGuardianTools(params.sandbox);
 
   const generated: FixResult[] = [];
   for (const finding of eligible) {
-    generated.push(await generateFix(params.sandbox, finding as FixableFinding & { file: string }));
+    generated.push(await generateFix(params.sandbox, finding as FixableFinding & { file: string }, params.agentId));
   }
   const applied = generated.filter((r): r is { ok: true; fix: GeneratedFix } => r.ok);
   const skipped = generated.filter((r): r is { ok: false; file: string; error: string } => !r.ok);

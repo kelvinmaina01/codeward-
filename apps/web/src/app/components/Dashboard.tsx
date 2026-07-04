@@ -1,12 +1,12 @@
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
-import { ShieldAlert, Bot, Monitor, Blocks, Key } from 'lucide-react';
+import { ShieldAlert, Bot, Monitor, Blocks, Key, GitMerge, X as XIcon } from 'lucide-react';
 
 interface Props {
   onRunClick?: (repoId: number, runId: number) => void;
 }
 
 import { mockHealthData, mockDebtData } from '../../lib/mockAgentData';
-import { api } from '../../lib/api';
+import { api, API_URL } from '../../lib/api';
 import { useEffect, useState } from 'react';
 
 interface RecentRun {
@@ -17,6 +17,32 @@ interface RecentRun {
   status: string;
   overallScore: number | null;
   createdAt: string;
+}
+
+interface PendingApproval {
+  id: number;
+  repoId: number;
+  repoFullName: string;
+  runId: number | null;
+  agentId: string;
+  pullRequestNumber: number;
+  prUrl: string | null;
+  prTitle: string | null;
+  guardianVerdict: string | null;
+  maxSeverity: string | null;
+  mode: 'manual' | 'auto';
+  deadlineAt: string | null;
+  status: string;
+  createdAt: string;
+}
+
+function deadlineLabel(deadlineAt: string | null): string | null {
+  if (!deadlineAt) return null;
+  const ms = new Date(deadlineAt).getTime() - Date.now();
+  if (ms <= 0) return 'auto-merging now';
+  const h = Math.floor(ms / 3_600_000);
+  const m = Math.round((ms % 3_600_000) / 60_000);
+  return h > 0 ? `auto-merges in ${h}h ${m}m` : `auto-merges in ${m}m`;
 }
 
 const RUN_STATUS_STYLE: Record<string, string> = {
@@ -46,6 +72,31 @@ export function Dashboard({ onRunClick }: Props) {
   const [activityFeed, setActivityFeed] = useState<ActivityEvent[]>([]);
   const [recentRuns, setRecentRuns] = useState<RecentRun[]>([]);
   const [loadingRuns, setLoadingRuns] = useState(true);
+  const [approvals, setApprovals] = useState<PendingApproval[]>([]);
+  const [actingOn, setActingOn] = useState<number | null>(null);
+
+  const loadApprovals = () => {
+    fetch(`${API_URL}/api/approvals?status=pending`, { credentials: 'include' })
+      .then((res) => res.json())
+      .then((data) => { if (data?.approvals) setApprovals(data.approvals); })
+      .catch(console.error);
+  };
+
+  const decideApproval = async (id: number, action: 'approve' | 'reject') => {
+    setActingOn(id);
+    try {
+      const res = await fetch(`${API_URL}/api/approvals/${id}/${action}`, { method: 'POST', credentials: 'include' });
+      const data = await res.json();
+      if (!res.ok) {
+        console.error(`Failed to ${action} approval #${id}:`, data?.error);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setActingOn(null);
+      loadApprovals();
+    }
+  };
 
   useEffect(() => {
     api.api.reports.recent.$get()
@@ -55,6 +106,10 @@ export function Dashboard({ onRunClick }: Props) {
       })
       .catch(console.error)
       .finally(() => setLoadingRuns(false));
+
+    loadApprovals();
+    const approvalsPoll = setInterval(loadApprovals, 30_000);
+    return () => clearInterval(approvalsPoll);
   }, []);
 
   useEffect(() => {
@@ -370,26 +425,46 @@ export function Dashboard({ onRunClick }: Props) {
           </div>
         </div>
 
-        {/* Section 3: Pending Approvals */}
+        {/* Section 3: Pending Approvals — real merge_approvals rows, real merge/reject actions */}
         <div className="bg-cw-bg2 border border-cw-bdr rounded-lg p-5">
           <div className="flex items-center justify-between mb-4">
-            <div className="text-[11px] font-semibold tracking-wider text-cw-txt3">PENDING APPROVALS</div>
+            <div className="text-[11px] font-semibold tracking-wider text-cw-txt3">PENDING MERGE APPROVALS</div>
           </div>
           <div className="flex flex-col gap-3">
-            <div className="p-3 border border-cw-amber/30 bg-cw-amber/5 rounded-lg flex items-center justify-between">
-              <div>
-                <div className="text-[13px] font-bold text-cw-txt">Staging Deploy: my-api</div>
-                <div className="text-[12px] text-cw-txt2 mt-0.5">Commit 3fa2c1 passed all 5 agent gates.</div>
+            {approvals.length === 0 ? (
+              <div className="text-[12px] text-cw-txt3 text-center py-4">No auto-fix PRs awaiting a decision.</div>
+            ) : approvals.map((a) => (
+              <div key={a.id} className="p-3 border border-cw-amber/30 bg-cw-amber/5 rounded-lg flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <a href={a.prUrl ?? '#'} target="_blank" rel="noreferrer" className="text-[13px] font-bold text-cw-txt no-underline hover:underline">
+                    PR #{a.pullRequestNumber}: {a.repoFullName}
+                  </a>
+                  <div className="text-[12px] text-cw-txt2 mt-0.5 truncate">
+                    {a.prTitle ?? `${a.agentId} auto-fix`}
+                    {a.guardianVerdict && <span className={a.guardianVerdict === 'APPROVE' ? 'text-cw-green' : 'text-cw-amber'}> · Guardian: {a.guardianVerdict}</span>}
+                  </div>
+                  {a.mode === 'auto' && a.deadlineAt && (
+                    <div className="text-[11px] text-cw-amber mt-0.5">{deadlineLabel(a.deadlineAt)} unless you act</div>
+                  )}
+                </div>
+                <div className="flex gap-2 shrink-0">
+                  <button
+                    onClick={() => decideApproval(a.id, 'approve')}
+                    disabled={actingOn === a.id}
+                    className="px-3 py-1.5 bg-cw-green text-white hover:brightness-110 text-[11px] font-bold rounded shadow-sm flex items-center gap-1 disabled:opacity-50"
+                  >
+                    <GitMerge size={12} /> Merge now
+                  </button>
+                  <button
+                    onClick={() => decideApproval(a.id, 'reject')}
+                    disabled={actingOn === a.id}
+                    className="px-3 py-1.5 bg-cw-bg3 border border-cw-bdr text-cw-txt2 hover:text-cw-red text-[11px] font-medium rounded flex items-center gap-1 disabled:opacity-50"
+                  >
+                    <XIcon size={12} /> Reject
+                  </button>
+                </div>
               </div>
-              <button className="px-3 py-1.5 bg-cw-amber text-cw-bg hover:brightness-110 text-[11px] font-bold rounded shadow-sm">Approve</button>
-            </div>
-            <div className="p-3 border border-cw-bdr bg-cw-bg rounded-lg flex items-center justify-between opacity-60">
-              <div>
-                <div className="text-[13px] font-bold text-cw-txt">PR #214: auth-service</div>
-                <div className="text-[12px] text-cw-txt2 mt-0.5">Blocked by Guardian Agent (tests failing).</div>
-              </div>
-              <button className="px-3 py-1.5 bg-cw-bg3 text-cw-txt3 text-[11px] font-medium rounded cursor-not-allowed">Review</button>
-            </div>
+            ))}
           </div>
         </div>
 

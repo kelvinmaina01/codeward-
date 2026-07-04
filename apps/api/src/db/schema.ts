@@ -60,6 +60,10 @@ export const runs = pgTable('runs', {
   visibility: varchar('visibility', { length: 20 }).default('private').notNull(), // 'private' or 'public'
   score: integer('score'),
   rawLogs: text('raw_logs'), // Stores exact sandbox logs for Dashboard
+  // null = comprehensive full-repo run (first connect). For incremental push runs:
+  // { incremental: true, beforeSha, changedFiles: string[] } — every agent job for this run
+  // reads it and scopes analysis to the changed files instead of rescanning the whole repo.
+  scope: jsonb('scope'),
   createdAt: timestamp('created_at').defaultNow(),
 });
 
@@ -95,6 +99,34 @@ export const agentTasks = pgTable('agent_tasks', {
   error: text('error'),
   startedAt: timestamp('started_at'),
   completedAt: timestamp('completed_at'),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+/**
+ * Merge Approvals — one row per auto-fix PR awaiting a human/auto merge decision.
+ *
+ * Created when guardian finishes reviewing a bot-opened fix PR. The dashboard's Pending
+ * Approvals panel reads pending rows; approve/reject endpoints resolve them; the delayed
+ * merge worker resolves 'auto'-mode rows whose deadline passed unactioned. humanApproved
+ * for a timeout merge is the user's standing opt-in to auto mode — recorded per-row so the
+ * audit trail shows exactly which authorization path merged what.
+ */
+export const mergeApprovals = pgTable('merge_approvals', {
+  id: serial('id').primaryKey(),
+  repoId: integer('repo_id').notNull().references(() => repositories.id, { onDelete: 'cascade' }),
+  runId: integer('run_id').references(() => runs.id, { onDelete: 'set null' }),
+  agentId: varchar('agent_id', { length: 100 }).notNull(),          // which agent's fixes the PR contains
+  pullRequestNumber: integer('pull_request_number').notNull(),
+  prUrl: text('pr_url'),
+  prTitle: text('pr_title'),
+  guardianVerdict: varchar('guardian_verdict', { length: 30 }),     // APPROVE | REQUEST_CHANGES | COMMENT | null (review failed)
+  maxSeverity: varchar('max_severity', { length: 20 }),             // highest severity among the findings this PR fixes
+  mode: varchar('mode', { length: 20 }).notNull().default('manual'),// manual | auto (auto = merge at deadline if unactioned)
+  deadlineAt: timestamp('deadline_at'),                             // only set for mode='auto'
+  status: varchar('status', { length: 30 }).notNull().default('pending'), // pending | approved | rejected | auto_merged | merge_failed
+  decidedBy: text('decided_by'),                                    // user id, or 'timeout' for auto-merges
+  decisionNote: text('decision_note'),
+  decidedAt: timestamp('decided_at'),
   createdAt: timestamp('created_at').defaultNow(),
 });
 
