@@ -206,7 +206,107 @@ Use these EXACT values for any tool parameter named runId/repoId — never inven
     const result = await provider.execute(config);
 
     // -----------------------------------------------------------------------
-    // 6. Write results to the database
+    // 6. Real auto-fix: for agents/categories proven safe (bloat's dead-code/unused-dep
+    // findings only, for now), generate a real fix and open a real PR *before* persisting the
+    // task row, so the PR outcome can be recorded in the same reportMeta write. A failure here
+    // must never fail the agent's own already-successful analysis — it's a bonus action on top.
+    // -----------------------------------------------------------------------
+    let autoFixPR: any = null;
+    if (agentId === 'bloat' && result.status !== 'error' && result.findings.length > 0 && runRow?.repoId != null) {
+      try {
+        const { openFixPR } = await import('../fixer/fixer.service.js');
+        const outcome = await openFixPR({
+          sandbox: sandbox!,
+          repoId: String(runRow.repoId),
+          repoFullName,
+          runId,
+          agentId,
+          findings: result.findings as any[],
+        });
+        autoFixPR = outcome;
+        if (outcome.opened) {
+          console.log(`[AgentWorker] ${agentId} opened a real auto-fix PR: ${outcome.htmlUrl} (${outcome.appliedFixes.length} fixes)`);
+
+          // Phase 2: guardian reviews the PR it was just told about — same real agentic review
+          // it would give a human's PR. A failure here must not undo the already-real PR; it
+          // just means the PR sits unreviewed by the bot, same as it would if this step didn't
+          // exist yet.
+          try {
+            const { reviewFixPR } = await import('../guardian/review.service.js');
+            const review = await reviewFixPR({
+              sandbox: sandbox!,
+              repoId: String(runRow.repoId),
+              pullRequestNumber: outcome.pullRequestNumber,
+              runId,
+              agentId,
+              appliedFixes: outcome.appliedFixes.map((f) => ({ filePath: f.filePath, rationale: f.rationale })),
+            });
+            autoFixPR = { ...outcome, guardianReview: review };
+            if (review.reviewed) {
+              console.log(`[AgentWorker] guardian reviewed PR #${outcome.pullRequestNumber}: ${review.event}`);
+            } else {
+              console.log(`[AgentWorker] guardian did not complete a review of PR #${outcome.pullRequestNumber}: ${review.reason}`);
+            }
+          } catch (reviewError) {
+            console.error(`[AgentWorker] guardian review step threw (non-fatal, PR is unaffected):`, (reviewError as Error).message);
+            autoFixPR = { ...outcome, guardianReview: { reviewed: false, reason: `Review step crashed: ${(reviewError as Error).message}` } };
+          }
+        } else {
+          console.log(`[AgentWorker] ${agentId} did not open an auto-fix PR: ${outcome.reason}`);
+        }
+      } catch (fixError) {
+        console.error(`[AgentWorker] ${agentId} auto-fix step threw (non-fatal, analysis result is unaffected):`, (fixError as Error).message);
+        autoFixPR = { opened: false, reason: `Auto-fix step crashed: ${(fixError as Error).message}` };
+      }
+    }
+
+    // -----------------------------------------------------------------------
+    // 6b. Real escalation (Phase 6, partial): when the orchestrator's final decision for the
+    // whole run is BLOCK, open real GitHub issues for whatever CRITICAL/HIGH findings across
+    // every agent are still genuinely unresolved (not dismissed, not already auto-fixed), and
+    // send a real alert email to the repo's owner. This is the "agents that can't fix it
+    // escalate" path — orchestrator Phase 3 is the natural trigger since it's the one place
+    // that makes ONE decision for the whole run, after every agent has reported.
+    // -----------------------------------------------------------------------
+    let escalation: any = null;
+    if (agentId === 'orchestrator_phase3' && result.gateDecision === 'BLOCK' && runRow?.repoId != null) {
+      try {
+        const { escalateUnresolvedFindings } = await import('../escalation/escalation.service.js');
+        const outcome = await escalateUnresolvedFindings({ sandbox: sandbox!, repoId: String(runRow.repoId), runId });
+        escalation = outcome;
+        console.log(`[AgentWorker] escalation for run #${runId}: ${outcome.escalated.length} real issue(s) opened, ${outcome.skipped.length} skipped.`);
+
+        if (outcome.escalated.length > 0) {
+          try {
+            const { db: db2 } = await import('../../db/index.js');
+            const { repositories: repositories2, user: user2 } = await import('../../db/schema.js');
+            const { eq: eq2 } = await import('drizzle-orm');
+            const [repo] = await db2.select().from(repositories2).where(eq2(repositories2.id, runRow.repoId));
+            const [owner] = repo ? await db2.select().from(user2).where(eq2(user2.id, repo.userId)) : [];
+            if (owner?.email) {
+              const { NotificationService } = await import('../../notifications/NotificationService.js');
+              const first = outcome.escalated[0];
+              await NotificationService.sendEscalation(
+                owner.email, repoFullName, first.issueNumber, first.title,
+                `${outcome.escalated.length} unresolved finding(s) across ${new Set(outcome.escalated.map((e: any) => e.agentId)).size} agent(s)`,
+                String(runId)
+              );
+              console.log(`[AgentWorker] real escalation alert sent to ${owner.email}`);
+            } else {
+              console.warn(`[AgentWorker] escalation issues created but no real owner email found for repoId ${runRow.repoId} — alert not sent.`);
+            }
+          } catch (emailError) {
+            console.error(`[AgentWorker] escalation email failed (non-fatal, issues were still created):`, (emailError as Error).message);
+          }
+        }
+      } catch (escalationError) {
+        console.error(`[AgentWorker] escalation step threw (non-fatal, orchestrator decision is unaffected):`, (escalationError as Error).message);
+        escalation = { escalated: [], skipped: [], error: (escalationError as Error).message };
+      }
+    }
+
+    // -----------------------------------------------------------------------
+    // 7. Write results to the database
     // -----------------------------------------------------------------------
     await db.update(agentTasks)
       .set({
@@ -214,7 +314,7 @@ Use these EXACT values for any tool parameter named runId/repoId — never inven
         score: result.score,
         findingsCount: result.findings.length,
         findings: result.findings,
-        reportMeta: { gateDecision: result.gateDecision ?? null, toolsExecuted: result.toolsExecuted ?? [], summary: result.summary ?? null },
+        reportMeta: { gateDecision: result.gateDecision ?? null, toolsExecuted: result.toolsExecuted ?? [], summary: result.summary ?? null, autoFixPR, escalation },
         model: result.modelUsed,
         tokenUsage: result.tokenUsage,
         duration: result.duration,

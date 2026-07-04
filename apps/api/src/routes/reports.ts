@@ -44,6 +44,7 @@ async function buildRunReport(runId: number) {
         (a, b) => (SEVERITY_ORDER[a.severity] ?? 9) - (SEVERITY_ORDER[b.severity] ?? 9)
       );
       const meta = (t.reportMeta as any) ?? {};
+      const fixedFiles = new Set((meta.autoFixPR?.opened ? meta.autoFixPR.appliedFixes : [])?.map((f: any) => f.filePath) ?? []);
       return {
         agentId: t.agentId,
         displayName: AGENT_DISPLAY_NAMES[t.agentId] ?? t.agentId,
@@ -62,9 +63,10 @@ async function buildRunReport(runId: number) {
           line: f.line ?? null,
           toolName: f.toolName ?? null,
           rawEvidence: f.rawEvidence ?? null,
-          // Honest status label: nothing auto-applies fixes yet, so every non-dismissed finding
-          // is "Suggested" — real data, not a claim of work that hasn't been built.
-          fixStatus: f.dismissed ? 'dismissed' : 'suggested',
+          // Real status: only "pr_opened" when a real PR genuinely contains a real commit
+          // touching this exact file; everything else is honestly "suggested", not a claim of
+          // work that didn't happen.
+          fixStatus: f.dismissed ? 'dismissed' : f.file && fixedFiles.has(f.file) ? 'pr_opened' : 'suggested',
           suggestedFix: f.suggestedFix ?? f.suggestedRefactor ?? null,
           refactorSafe: f.refactorSafe ?? null,
           dismissed: !!f.dismissed,
@@ -72,6 +74,21 @@ async function buildRunReport(runId: number) {
         })),
         toolsExecuted: meta.toolsExecuted ?? [],
         summary: meta.summary ?? null,
+        autoFixPR: meta.autoFixPR?.opened
+          ? {
+              opened: true,
+              pullRequestNumber: meta.autoFixPR.pullRequestNumber,
+              htmlUrl: meta.autoFixPR.htmlUrl,
+              fixedCount: meta.autoFixPR.appliedFixes?.length ?? 0,
+              guardianReview: meta.autoFixPR.guardianReview?.reviewed
+                ? { reviewed: true, event: meta.autoFixPR.guardianReview.event }
+                : meta.autoFixPR.guardianReview
+                  ? { reviewed: false, reason: meta.autoFixPR.guardianReview.reason }
+                  : null,
+            }
+          : meta.autoFixPR
+            ? { opened: false, reason: meta.autoFixPR.reason }
+            : null,
         error: t.error ?? null,
       };
     });
@@ -83,6 +100,19 @@ async function buildRunReport(runId: number) {
     return acc;
   }, {});
 
+  // Escalation is a run-wide summary written by orchestrator Phase 3, not a per-agent finding —
+  // real GitHub issues opened for whatever CRITICAL/HIGH findings couldn't be auto-fixed.
+  const orchestratorTask = tasks.find((t) => t.agentId === 'orchestrator_phase3');
+  const orchestratorMeta = (orchestratorTask?.reportMeta as any) ?? {};
+  const escalation = orchestratorMeta.escalation
+    ? {
+        issues: (orchestratorMeta.escalation.escalated ?? []).map((e: any) => ({
+          agentId: e.agentId, title: e.title, file: e.file, issueNumber: e.issueNumber, htmlUrl: e.htmlUrl,
+        })),
+        skippedCount: orchestratorMeta.escalation.skipped?.length ?? 0,
+      }
+    : null;
+
   return {
     runId: run.id,
     repoId: run.repoId,
@@ -93,6 +123,7 @@ async function buildRunReport(runId: number) {
     agentsRun: agents.length,
     totalFindings: allFindings.length,
     severityCounts,
+    escalation,
     agents,
   };
 }

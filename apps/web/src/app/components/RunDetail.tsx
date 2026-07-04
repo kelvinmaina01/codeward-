@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { X, RefreshCw, ChevronDown, ChevronRight, Wrench, ShieldCheck } from 'lucide-react';
+import { X, RefreshCw, ChevronDown, ChevronRight, Wrench, ShieldCheck, GitPullRequest, ExternalLink, AlertTriangle } from 'lucide-react';
 import { API_URL } from '../../lib/api';
 
 interface Props {
@@ -18,11 +18,20 @@ interface Finding {
   line: number | null;
   toolName: string | null;
   rawEvidence: string | null;
-  fixStatus: 'suggested' | 'dismissed';
+  fixStatus: 'suggested' | 'dismissed' | 'pr_opened';
   suggestedFix: string | null;
   refactorSafe: boolean | null;
   dismissed: boolean;
   dismissalReason: string | null;
+}
+
+interface AutoFixPR {
+  opened: boolean;
+  pullRequestNumber?: number;
+  htmlUrl?: string;
+  fixedCount?: number;
+  reason?: string;
+  guardianReview?: { reviewed: boolean; event?: 'APPROVE' | 'REQUEST_CHANGES' | 'COMMENT'; reason?: string } | null;
 }
 
 interface ToolExecuted {
@@ -43,7 +52,16 @@ interface AgentReport {
   findings: Finding[];
   toolsExecuted: ToolExecuted[];
   summary: Record<string, unknown> | null;
+  autoFixPR: AutoFixPR | null;
   error: string | null;
+}
+
+interface EscalatedIssue {
+  agentId: string;
+  title: string;
+  file: string | null;
+  issueNumber: number;
+  htmlUrl: string;
 }
 
 interface RunReport {
@@ -56,6 +74,7 @@ interface RunReport {
   agentsRun: number;
   totalFindings: number;
   severityCounts: Record<string, number>;
+  escalation: { issues: EscalatedIssue[]; skippedCount: number } | null;
   agents: AgentReport[];
 }
 
@@ -108,6 +127,31 @@ function AgentSection({ agent }: { agent: AgentReport }) {
             <div className="px-4 py-2.5 text-[11px] text-cw-red bg-cw-red/5 border-b border-cw-bdr">{agent.error}</div>
           )}
 
+          {agent.autoFixPR?.opened && (() => {
+            const review = agent.autoFixPR!.guardianReview;
+            const reviewText = review?.reviewed
+              ? review.event === 'APPROVE' ? 'Approved by Guardian'
+                : review.event === 'REQUEST_CHANGES' ? 'Guardian requested changes'
+                : 'Guardian commented — needs a human look'
+              : review && !review.reviewed ? `Guardian review incomplete (${review.reason})`
+                : 'awaiting Guardian review';
+            const colorClass = review?.reviewed && review.event === 'APPROVE' ? 'bg-cw-green/5 text-cw-green hover:bg-cw-green/10'
+              : review?.reviewed && review.event === 'REQUEST_CHANGES' ? 'bg-cw-red/5 text-cw-red hover:bg-cw-red/10'
+              : 'bg-cw-amber/5 text-cw-amber hover:bg-cw-amber/10';
+            return (
+              <a
+                href={agent.autoFixPR!.htmlUrl}
+                target="_blank"
+                rel="noreferrer"
+                className={`flex items-center gap-2 px-4 py-2.5 border-b border-cw-bdr text-[11px] no-underline transition-colors ${colorClass}`}
+              >
+                <GitPullRequest size={13} />
+                <span className="font-medium">Auto-fix PR #{agent.autoFixPR!.pullRequestNumber} — {agent.autoFixPR!.fixedCount} fix{agent.autoFixPR!.fixedCount === 1 ? '' : 'es'} applied — {reviewText}</span>
+                <ExternalLink size={11} className="ml-auto shrink-0" />
+              </a>
+            );
+          })()}
+
           {agent.findings.length === 0 ? (
             <div className="px-4 py-3 text-[11px] text-cw-txt3">No findings from this agent.</div>
           ) : (
@@ -122,8 +166,12 @@ function AgentSection({ agent }: { agent: AgentReport }) {
                       {f.category && <span className="text-[10px] text-cw-txt3 uppercase tracking-wide">{f.category}</span>}
                       <span className="text-[13px] font-medium text-cw-txt">{f.title}</span>
                     </div>
-                    <span className={`shrink-0 px-2 py-0.5 text-[9px] font-bold rounded uppercase ${f.dismissed ? 'bg-cw-bg3 text-cw-txt3' : 'bg-cw-blue/10 text-cw-blue border border-cw-blue/20'}`}>
-                      {f.dismissed ? 'Dismissed' : 'Suggested'}
+                    <span className={`shrink-0 px-2 py-0.5 text-[9px] font-bold rounded uppercase ${
+                      f.fixStatus === 'dismissed' ? 'bg-cw-bg3 text-cw-txt3'
+                        : f.fixStatus === 'pr_opened' ? 'bg-cw-green/10 text-cw-green border border-cw-green/20'
+                        : 'bg-cw-blue/10 text-cw-blue border border-cw-blue/20'
+                    }`}>
+                      {f.fixStatus === 'dismissed' ? 'Dismissed' : f.fixStatus === 'pr_opened' ? 'PR Opened' : 'Suggested'}
                     </span>
                   </div>
 
@@ -140,7 +188,7 @@ function AgentSection({ agent }: { agent: AgentReport }) {
                     <div className="text-[11px] text-cw-txt3 italic">Dismissed: {f.dismissalReason}</div>
                   )}
 
-                  {f.suggestedFix && !f.dismissed && (
+                  {f.suggestedFix && f.fixStatus === 'suggested' && (
                     <div className="mt-1 flex items-start gap-2 text-[11px] bg-cw-bg3/50 border border-cw-bdr rounded-md px-2.5 py-2">
                       <Wrench size={12} className="text-cw-amber shrink-0 mt-0.5" />
                       <div>
@@ -254,6 +302,30 @@ export function RunDetail({ repoId, runId, onBack }: Props) {
                 </div>
               </div>
             </div>
+
+            {/* Real escalated issues — opened when agents couldn't auto-fix a CRITICAL/HIGH finding */}
+            {report.escalation && report.escalation.issues.length > 0 && (
+              <div className="bg-cw-red/5 border border-cw-red/20 rounded-xl p-4 flex flex-col gap-2">
+                <div className="flex items-center gap-2 text-[11px] font-bold text-cw-red uppercase tracking-wide">
+                  <AlertTriangle size={13} />
+                  Escalated to GitHub — could not be auto-fixed ({report.escalation.issues.length})
+                </div>
+                {report.escalation.issues.map((issue) => (
+                  <a
+                    key={issue.issueNumber}
+                    href={issue.htmlUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center gap-2 text-[12px] text-cw-txt2 no-underline hover:text-cw-txt"
+                  >
+                    <span className="font-mono text-cw-red">#{issue.issueNumber}</span>
+                    <span>{issue.title}</span>
+                    <span className="text-cw-txt3">({issue.agentId})</span>
+                    <ExternalLink size={11} className="ml-auto shrink-0" />
+                  </a>
+                ))}
+              </div>
+            )}
 
             {/* Per-agent breakdown — the real, detailed report */}
             <div className="flex flex-col gap-3">

@@ -15,7 +15,7 @@ import { createMemoryTools } from '../../tools/memory.tools.js';
  * humanApproved:true argument as a code-level gate, not just a prompt instruction, matching
  * the constitution's "human explicitly approves via dashboard" rule.
  */
-async function resolveOctokit(repoId: string) {
+export async function resolveOctokit(repoId: string) {
   const { db } = await import('../../../db/index.js');
   const { repositories } = await import('../../../db/schema.js');
   const { eq } = await import('drizzle-orm');
@@ -50,8 +50,8 @@ export const createGuardianTools = (sandbox: SandboxHandle) => {
       }
     },
 
-    create_pull_request_review: {
-      description: 'Submit a FORMAL GitHub PR review — Approved or Request Changes. Real GitHub API call.',
+    submit_pr_review: {
+      description: 'Submit a FORMAL GitHub PR review — Approved or Request Changes. Real GitHub API call. This is guardian\'s terminal action for a PR review — calling it ends the review run.',
       parameters: z.object({
         repoId: z.string(),
         pullRequestNumber: z.number(),
@@ -62,12 +62,28 @@ export const createGuardianTools = (sandbox: SandboxHandle) => {
       execute: async (args: any) => {
         const ctx = await resolveOctokit(args.repoId);
         if ('error' in ctx) return ctx;
-        const res = await ctx.octokit.request('POST /repos/{owner}/{repo}/pulls/{pull_number}/reviews', {
-          owner: ctx.owner, repo: ctx.repo, pull_number: args.pullRequestNumber,
-          event: args.event, body: args.body,
-          comments: args.comments?.map((c: any) => ({ path: c.path, line: c.line, body: c.body }))
-        });
-        return { success: true, reviewId: res.data.id, htmlUrl: res.data.html_url };
+        try {
+          const res = await ctx.octokit.request('POST /repos/{owner}/{repo}/pulls/{pull_number}/reviews', {
+            owner: ctx.owner, repo: ctx.repo, pull_number: args.pullRequestNumber,
+            event: args.event, body: args.body,
+            comments: args.comments?.map((c: any) => ({ path: c.path, line: c.line, body: c.body }))
+          });
+          return { success: true, viaFormalReview: true, event: args.event, reviewId: res.data.id, htmlUrl: res.data.html_url };
+        } catch (e: any) {
+          // Real, structural GitHub constraint discovered in testing: the same GitHub App
+          // identity that opened a bot-authored PR cannot formally review/approve it —
+          // "Can not approve your own pull request." This isn't specific to APPROVE only; the
+          // reviews API rejects self-authored review submissions generally under one identity.
+          // Fall back to a real, clearly-labeled issue comment instead of silently failing —
+          // still a real, visible GitHub action, just not a formal review state.
+          const message = e?.message ?? String(e);
+          if (!message.includes('own pull request')) throw e;
+          const commentRes = await ctx.octokit.request('POST /repos/{owner}/{repo}/issues/{issue_number}/comments', {
+            owner: ctx.owner, repo: ctx.repo, issue_number: args.pullRequestNumber,
+            body: `**Guardian assessment: ${args.event}**\n\n${args.body}\n\n_Posted as a comment, not a formal review — GitHub does not allow this bot identity to formally approve/request-changes on its own PR. A human reviewer's formal approval is still required to merge._`
+          });
+          return { success: true, viaFormalReview: false, event: args.event, reviewId: commentRes.data.id, htmlUrl: commentRes.data.html_url };
+        }
       }
     },
 
@@ -227,6 +243,24 @@ export const createGuardianTools = (sandbox: SandboxHandle) => {
       }
     },
 
+    get_pull_request_files: {
+      description: 'Get the real unified diff (patch) for every changed file in a PR — the actual line-level content to review, not just metadata. Real GitHub API call.',
+      parameters: z.object({ repoId: z.string(), pullRequestNumber: z.number() }),
+      execute: async (args: any) => {
+        const ctx = await resolveOctokit(args.repoId);
+        if ('error' in ctx) return ctx;
+        const res: any = await ctx.octokit.request('GET /repos/{owner}/{repo}/pulls/{pull_number}/files', {
+          owner: ctx.owner, repo: ctx.repo, pull_number: args.pullRequestNumber
+        });
+        return {
+          files: res.data.map((f: any) => ({
+            filename: f.filename, status: f.status, additions: f.additions, deletions: f.deletions,
+            patch: f.patch ?? '(no textual diff available — binary or too large)'
+          }))
+        };
+      }
+    },
+
     get_file_contents: {
       description: 'Read a specific file from the repo at a given ref. Real GitHub API call.',
       parameters: z.object({ repoId: z.string(), filePath: z.string(), ref: z.string().optional() }),
@@ -239,7 +273,22 @@ export const createGuardianTools = (sandbox: SandboxHandle) => {
         if (Array.isArray(res.data) || res.data.type !== 'file') {
           return { error: `${args.filePath} is not a file (directory or missing).` };
         }
-        return { content: Buffer.from(res.data.content, 'base64').toString('utf8'), size: res.data.size };
+        return { content: Buffer.from(res.data.content, 'base64').toString('utf8'), size: res.data.size, sha: res.data.sha };
+      }
+    },
+
+    get_repo_head: {
+      description: 'Get the repo\'s default branch name and its current head commit SHA — needed as the base to branch a fix off of. Real GitHub API call.',
+      parameters: z.object({ repoId: z.string() }),
+      execute: async (args: any) => {
+        const ctx = await resolveOctokit(args.repoId);
+        if ('error' in ctx) return ctx;
+        const repoRes = await ctx.octokit.request('GET /repos/{owner}/{repo}', { owner: ctx.owner, repo: ctx.repo });
+        const defaultBranch = repoRes.data.default_branch;
+        const refRes = await ctx.octokit.request('GET /repos/{owner}/{repo}/git/refs/heads/{branch}', {
+          owner: ctx.owner, repo: ctx.repo, branch: defaultBranch
+        });
+        return { defaultBranch, headSha: refRes.data.object.sha };
       }
     },
 

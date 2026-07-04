@@ -48,8 +48,8 @@ async function main() {
   const prData = await tools.get_pull_request.execute({ repoId: REPO_ID, pullRequestNumber: pr.pullRequestNumber });
   console.log(JSON.stringify(prData));
 
-  console.log('\n--- 5. create_pull_request_review (real, COMMENT event, non-blocking) ---');
-  const review = await tools.create_pull_request_review.execute({
+  console.log('\n--- 5. submit_pr_review (real, COMMENT event, non-blocking) ---');
+  const review = await tools.submit_pr_review.execute({
     repoId: REPO_ID, pullRequestNumber: pr.pullRequestNumber, event: 'COMMENT',
     body: 'Codeward validation: this review confirms real PR-review write access.', comments: []
   });
