@@ -1,6 +1,6 @@
 import { db } from '../../db/index.js';
 import { mergeApprovals, repositories } from '../../db/schema.js';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { resolveOctokit } from '../definitions/guardian/guardian.tools.js';
 
 export interface MergeSettings {
@@ -42,9 +42,19 @@ export type MergeOutcome =
  * merges; everything else is a real no-op with the reason reported, never a double-merge.
  */
 export async function executeMerge(approvalId: number, decidedBy: string): Promise<MergeOutcome> {
-  const [approval] = await db.select().from(mergeApprovals).where(eq(mergeApprovals.id, approvalId));
-  if (!approval) return { merged: false, reason: `No approval row #${approvalId} exists.` };
-  if (approval.status !== 'pending') return { merged: false, reason: `Approval #${approvalId} is already '${approval.status}' — refusing to act twice.` };
+  // Atomic compare-and-set claim: flip pending -> merging in ONE statement and only proceed if
+  // THIS call is the one that flipped it. Without this, two concurrent merges of the same
+  // approval (e.g. a user click racing the timeout job) could both read 'pending' and both hit
+  // the GitHub merge API. Verified under real concurrency (test-merge-concurrency-real).
+  const claimed = await db.update(mergeApprovals)
+    .set({ status: 'merging' })
+    .where(and(eq(mergeApprovals.id, approvalId), eq(mergeApprovals.status, 'pending')))
+    .returning();
+  if (claimed.length === 0) {
+    const [existing] = await db.select().from(mergeApprovals).where(eq(mergeApprovals.id, approvalId));
+    return { merged: false, reason: existing ? `Approval #${approvalId} is already '${existing.status}' — refusing to act twice.` : `No approval row #${approvalId} exists.` };
+  }
+  const approval = claimed[0];
 
   // Timeout merges re-check the gates at fire time, not just at scheduling time — settings may
   // have changed, or the row may have been created before a rule tightened.
@@ -60,23 +70,37 @@ export async function executeMerge(approvalId: number, decidedBy: string): Promi
   const ctx = await resolveOctokit(String(approval.repoId));
   if ('error' in ctx) return await markFailed(approvalId, `Could not resolve GitHub client: ${ctx.error}`);
 
-  try {
-    const res = await ctx.octokit.request('PUT /repos/{owner}/{repo}/pulls/{pull_number}/merge', {
-      owner: ctx.owner, repo: ctx.repo, pull_number: approval.pullRequestNumber,
-      commit_title: `${approval.prTitle ?? `Codeward auto-fix PR #${approval.pullRequestNumber}`} (#${approval.pullRequestNumber})`,
-      commit_message: decidedBy === 'timeout'
-        ? `Auto-merged by Codeward after the configured approval window elapsed with no response (standing auto-mode authorization).`
-        : `Merged via Codeward dashboard approval.`,
-      merge_method: 'squash',
-    });
-    await db.update(mergeApprovals).set({
-      status: decidedBy === 'timeout' ? 'auto_merged' : 'approved',
-      decidedBy, decidedAt: new Date(),
-    }).where(eq(mergeApprovals.id, approvalId));
-    return { merged: true, sha: res.data.sha };
-  } catch (e) {
-    return await markFailed(approvalId, `Real GitHub merge call failed: ${(e as Error).message}`);
+  // Retry on TRANSIENT merge failures. A real concurrency test surfaced "Base branch was
+  // modified" when several approved PRs merge to the same base near-simultaneously — the base
+  // advances between GitHub computing mergeability and the merge landing. GitHub recomputes
+  // against the new base, so a short backoff-and-retry succeeds. This is safe because the row
+  // is already atomically claimed ('merging') — no other caller can act on it during retries.
+  // A genuine merge CONFLICT is not transient and fails honestly on the first try.
+  const commitMessage = decidedBy === 'timeout'
+    ? `Auto-merged by Codeward after the configured approval window elapsed with no response (standing auto-mode authorization).`
+    : `Merged via Codeward dashboard approval.`;
+  const MAX_ATTEMPTS = 5;
+  let lastError = '';
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    try {
+      const res = await ctx.octokit.request('PUT /repos/{owner}/{repo}/pulls/{pull_number}/merge', {
+        owner: ctx.owner, repo: ctx.repo, pull_number: approval.pullRequestNumber,
+        commit_title: `${approval.prTitle ?? `Codeward auto-fix PR #${approval.pullRequestNumber}`} (#${approval.pullRequestNumber})`,
+        commit_message: commitMessage, merge_method: 'squash',
+      });
+      await db.update(mergeApprovals).set({
+        status: decidedBy === 'timeout' ? 'auto_merged' : 'approved', decidedBy, decidedAt: new Date(),
+      }).where(eq(mergeApprovals.id, approvalId));
+      return { merged: true, sha: res.data.sha };
+    } catch (e) {
+      lastError = (e as Error).message;
+      const transient = /base branch was modified|not mergeable|try (the merge )?again|mergeability/i.test(lastError) && !/conflict/i.test(lastError);
+      if (!transient || attempt === MAX_ATTEMPTS) break;
+      console.log(`[Merge] Approval #${approvalId} transient merge failure (attempt ${attempt}/${MAX_ATTEMPTS}): ${lastError.split(' - ')[0]} — retrying...`);
+      await new Promise((r) => setTimeout(r, 1500 * attempt));
+    }
   }
+  return await markFailed(approvalId, `Real GitHub merge call failed after retries: ${lastError}`);
 }
 
 async function markFailed(approvalId: number, reason: string): Promise<MergeOutcome> {

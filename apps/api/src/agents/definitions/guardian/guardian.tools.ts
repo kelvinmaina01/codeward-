@@ -88,17 +88,25 @@ export const createGuardianTools = (sandbox: SandboxHandle) => {
     },
 
     add_pull_request_review_comment: {
-      description: 'Post an inline comment on a SPECIFIC LINE of the diff. Real GitHub API call.',
+      description: 'Post an inline comment on a SPECIFIC LINE of the diff. Real GitHub API call. You do NOT need to know the commit SHA — leave commitId out and this resolves the PR head automatically.',
       parameters: z.object({
-        repoId: z.string(), pullRequestNumber: z.number(), commitId: z.string(),
+        repoId: z.string(), pullRequestNumber: z.number(), commitId: z.string().optional(),
         path: z.string(), line: z.number(), body: z.string()
       }),
       execute: async (args: any) => {
         const ctx = await resolveOctokit(args.repoId);
         if ('error' in ctx) return ctx;
+        // A real run showed the model passing a commit_id that isn't part of the PR ("commit_id
+        // is not part of the pull request"). The only valid commit for an inline comment is the
+        // PR's current head — resolve it ourselves rather than trusting a model-supplied SHA.
+        let commitId = args.commitId;
+        try {
+          const pr: any = await ctx.octokit.request('GET /repos/{owner}/{repo}/pulls/{pull_number}', { owner: ctx.owner, repo: ctx.repo, pull_number: args.pullRequestNumber });
+          commitId = pr.data.head.sha;
+        } catch { /* fall back to whatever was passed */ }
         const res = await ctx.octokit.request('POST /repos/{owner}/{repo}/pulls/{pull_number}/comments', {
           owner: ctx.owner, repo: ctx.repo, pull_number: args.pullRequestNumber,
-          commit_id: args.commitId, path: args.path, line: args.line, body: args.body
+          commit_id: commitId, path: args.path, line: args.line, body: args.body
         });
         return { success: true, commentId: res.data.id, htmlUrl: res.data.html_url };
       }
