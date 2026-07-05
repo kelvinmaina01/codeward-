@@ -71,6 +71,41 @@ approvalsRouter.get('/', async (c) => {
   });
 });
 
+/** GET /api/approvals/:id/diff — the REAL unified diff (per-file patches) for this approval's PR, straight from GitHub. */
+approvalsRouter.get('/:id/diff', async (c) => {
+  const session = await auth.api.getSession({ headers: c.req.raw.headers });
+  if (!session) return c.json({ error: 'Unauthorized' }, 401);
+
+  const approvalId = Number(c.req.param('id'));
+  if (!Number.isFinite(approvalId)) return c.json({ error: 'Invalid approval id' }, 400);
+
+  const [approval] = await db.select().from(schema.mergeApprovals).where(eq(schema.mergeApprovals.id, approvalId));
+  if (!approval) return c.json({ error: 'Approval not found' }, 404);
+  if (!(await userCanAccessRepo(session.user.id, approval.repoId))) return c.json({ error: 'Forbidden' }, 403);
+
+  const { resolveOctokit } = await import('../agents/definitions/guardian/guardian.tools.js');
+  const ctx = await resolveOctokit(String(approval.repoId));
+  if ('error' in ctx) return c.json({ error: ctx.error }, 502);
+
+  try {
+    const res: any = await ctx.octokit.request('GET /repos/{owner}/{repo}/pulls/{pull_number}/files', {
+      owner: ctx.owner, repo: ctx.repo, pull_number: approval.pullRequestNumber,
+    });
+    return c.json({
+      pullRequestNumber: approval.pullRequestNumber,
+      prUrl: approval.prUrl,
+      prTitle: approval.prTitle,
+      status: approval.status,
+      files: res.data.map((f: any) => ({
+        filename: f.filename, status: f.status, additions: f.additions, deletions: f.deletions,
+        patch: f.patch ?? null,
+      })),
+    });
+  } catch (e) {
+    return c.json({ error: `Real GitHub diff fetch failed: ${(e as Error).message}` }, 502);
+  }
+});
+
 /** POST /api/approvals/:id/approve — merge the PR right now, with this user's real authorization. */
 approvalsRouter.post('/:id/approve', async (c) => {
   const session = await auth.api.getSession({ headers: c.req.raw.headers });

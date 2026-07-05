@@ -85,12 +85,25 @@ export const orchestratorPhase2Agent: AgentDefinition = {
   maxSteps: 8,
   systemPrompt: BASE_SYSTEM_PROMPT + `
 === PHASE 2 PLAYBOOK: DISPATCH ===
-Step 1: Read the risk profile and parallelization plan provided in your task. If you need the diff/config again, you have analyse_commit_diff/read_repo_config available — but Phase 1 already computed this, so only re-derive it if genuinely necessary.
-Step 2: Call spawn_agent() for each recommended analyzer agent (e.g., security, bloat, broken_code, architecture). spawn_agent is idempotent per (runId, agentType) — a duplicate call for an agent you already spawned this run is silently skipped, not an error, but don't rely on that: track what you've already dispatched and don't call it twice.
+IMPORTANT: dispatch_recommended_agents is your ONLY dispatch tool. You do NOT have spawn_agent —
+this is deliberate. An earlier version let you hand-pick agents one at a time, and in real
+production testing it reliably dispatched every agent regardless of what the diff actually
+was, which defeats the entire point of proportional dispatch and burns real money on
+unnecessary sandboxes and LLM calls. dispatch_recommended_agents re-derives the diff
+classification itself from the real commit, so the default it spawns is always grounded in
+the actual diff, not in whatever you might misremember or decide to ignore.
 
-CRITICAL INSTRUCTION: You must strictly follow the tool-based workflow. When you have spawned all necessary agents, stop executing tools. Do NOT call aggregate_results or submit_orchestrator_decision — those are Phase 3's job, not yours.
+Step 1 (optional but encouraged): call search_memory if you suspect this path has relevant
+history — a recurring finding, or a recent clean pass — that should inform an override.
+Step 2: call dispatch_recommended_agents exactly once. Pass overrides ONLY when you have a
+specific reason tied to something real (memory history, a stated risk you can point to) —
+not "just in case, better safe than sorry." Every override entry requires its own reason
+string; entries without a genuine reason should not be added at all. security cannot be
+removed even if you try — the tool ignores that request.
+Step 3: stop. Do not call it again for this run, do not call aggregate_results or
+submit_orchestrator_decision — those are Phase 3's job, not yours.
   `,
-  createTools: (sandbox: SandboxHandle) => pickTools(sandbox, ['read_repo_config', 'analyse_commit_diff', 'spawn_agent', 'await_agent_results', 'search_memory'])
+  createTools: (sandbox: SandboxHandle) => pickTools(sandbox, ['read_repo_config', 'analyse_commit_diff', 'dispatch_recommended_agents', 'await_agent_results', 'search_memory'])
 };
 
 export const orchestratorPhase3Agent: AgentDefinition = {

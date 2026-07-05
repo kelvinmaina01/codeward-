@@ -421,9 +421,34 @@ agentWorker.on('active', (job) => {
  * for its remaining siblings — without this guard, that read "0 pending" and fired Phase 3
  * while agents Phase 2 hadn't dispatched yet were still to come.
  */
-async function checkAndTriggerPhase3(runId: number, repoFullName: string, commitSHA: string) {
+// Mandatory agents that must run on EVERY commit, enforced in code — not left to Phase 2's
+// discretion. Real evidence this backstop is needed: a live run dispatched every agent it
+// felt like on a 1-file docs change, so "the model will surely remember" isn't a safe
+// assumption for a non-negotiable rule. Keep this list in sync with analyse_commit_diff's
+// mandatory:true entries in orchestrator.tools.ts.
+const MANDATORY_AGENTS = ['security'];
+
+async function ensureMandatoryAgentsSpawned(runId: number, repoFullName: string, commitSHA: string): Promise<boolean> {
+  const existing = await db.select().from(agentTasks).where(eq(agentTasks.runId, runId));
+  const existingIds = new Set(existing.map((t: any) => t.agentId));
+  const missing = MANDATORY_AGENTS.filter((a) => !existingIds.has(a));
+  if (missing.length === 0) return false;
+
+  for (const agentId of missing) {
+    console.warn(`[Orchestrator] Phase 2 did not spawn mandatory agent '${agentId}' for run #${runId} — spawning it now as a code-level backstop (this should be rare; check Phase 2's reasoning if it happens often).`);
+    await agentQueue.add(`agent-${agentId}`, { agentId, commitSHA, repoFullName, runId }, { jobId: `mandatory-${agentId}-${runId}` });
+  }
+  return true;
+}
+
+// Exported (not just internal) so the mandatory-agent backstop can be exercised directly in a
+// real test without paying for a full LLM-driven Phase 2 run just to prove a pure DB-logic path.
+export async function checkAndTriggerPhase3(runId: number, repoFullName: string, commitSHA: string) {
   const [phase2] = await db.select().from(agentTasks).where(and(eq(agentTasks.runId, runId), eq(agentTasks.agentId, 'orchestrator_phase2')));
   if (!phase2 || phase2.status === 'queued' || phase2.status === 'running') return;
+
+  const spawnedMandatory = await ensureMandatoryAgentsSpawned(runId, repoFullName, commitSHA);
+  if (spawnedMandatory) return; // let the newly-spawned job's own completion event re-trigger this check
 
   const remaining = await db.select().from(agentTasks).where(
     and(eq(agentTasks.runId, runId), notLike(agentTasks.agentId, 'orchestrator%'))
