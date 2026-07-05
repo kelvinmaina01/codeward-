@@ -39,14 +39,26 @@ export class FlySandbox {
    * mirroring LocalExecSandbox.init()'s contract so the two are interchangeable behind the
    * same SandboxHandle-shaped interface.
    */
-  async init(repoUrl: string, commitSHA?: string, env: Record<string, string> = {}): Promise<void> {
+  async init(repoUrl: string, commitSHA?: string, env: Record<string, string> = {}, installationToken?: string): Promise<void> {
     if (!this.machineId) {
       await this.start(env);
     }
-    console.log(`[FlySandbox] Cloning ${repoUrl} into ${this.workDir}...`);
-    const cloneRes = await this.execRaw(`mkdir -p "${this.workDir}" && git clone "${repoUrl}" "${this.workDir}"`);
+    // A fresh Fly Machine has NO git credentials of its own. A real test caught this: a plain
+    // `git clone https://github.com/...` on a PRIVATE repo fails here with "could not read
+    // Username" — it only ever appeared to work in earlier local-sandbox testing because the
+    // local dev machine had its own cached credentials, which a real customer's clean sandbox
+    // never has. Embed the real GitHub App installation token when the caller has one (any
+    // repo the app is actually installed on, private or public); fall back to a bare clone for
+    // genuinely public/no-installation cases.
+    const authedUrl = installationToken
+      ? repoUrl.replace('https://', `https://x-access-token:${installationToken}@`)
+      : repoUrl;
+    console.log(`[FlySandbox] Cloning ${repoUrl} into ${this.workDir}${installationToken ? ' (authenticated)' : ''}...`);
+    const cloneRes = await this.execRaw(`mkdir -p "${this.workDir}" && git clone "${authedUrl}" "${this.workDir}"`);
     if (cloneRes.exitCode !== 0) {
-      throw new Error(`Failed to clone repo into Fly sandbox: ${cloneRes.stderr || cloneRes.stdout}`);
+      // Never let a real token leak into an error message/log.
+      const sanitized = (cloneRes.stderr || cloneRes.stdout).replace(new RegExp(installationToken ?? '(?!)', 'g'), '[REDACTED]');
+      throw new Error(`Failed to clone repo into Fly sandbox: ${sanitized}`);
     }
     if (commitSHA && commitSHA !== 'baseline') {
       console.log(`[FlySandbox] Checking out ${commitSHA}...`);
@@ -113,7 +125,8 @@ export class FlySandbox {
   private async execRaw(command: string) {
     if (!this.machineId) throw new Error("Machine is not running");
 
-    console.log(`[FlySandbox Exec] ${command}`);
+    // Never log a real installation token embedded in an authenticated clone URL.
+    console.log(`[FlySandbox Exec] ${command.replace(/x-access-token:[^@]+@/g, 'x-access-token:[REDACTED]@')}`);
     // Three real, empirically-tested findings here, in order — the first two verified only by
     // exit code/line count, which was itself the mistake the third one caught:
     // 1. cmd as an array fails outright — Fly's Go handler rejects it: "cannot unmarshal

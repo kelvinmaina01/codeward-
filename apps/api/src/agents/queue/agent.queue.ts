@@ -21,7 +21,7 @@ import { Queue, Worker, Job } from 'bullmq';
 import dotenv from 'dotenv';
 import { createRedisConnection } from '../../lib/redis.js';
 import { db } from '../../db/index.js';
-import { agentTasks, runs } from '../../db/schema.js';
+import { agentTasks, runs, repositories } from '../../db/schema.js';
 import { eq, and, notLike } from 'drizzle-orm';
 import { getProvider } from '../core/registry.js';
 import type { AgentDefinition, SandboxHandle, AgentRunConfig } from '../core/provider.js';
@@ -160,8 +160,23 @@ export const agentWorker = new Worker('agent-jobs', async (job: Job<AgentJobData
     // -----------------------------------------------------------------------
     // 2. Create a sandbox handle (real Fly Machine or local clone, per SANDBOX_PROVIDER)
     // -----------------------------------------------------------------------
+    // Real installation token for private repos — a real Fly.io test caught this: a clean
+    // sandbox has NO git credentials of its own, so cloning a private repo with a bare HTTPS
+    // URL fails outright ("could not read Username"). Every repo dispatched through here has a
+    // real GitHub App installation (that's how guardian/fixer already authenticate); reuse it.
+    let installationToken: string | undefined;
+    const [repoForClone] = await db.select().from(repositories).where(eq(repositories.fullName, repoFullName));
+    if (repoForClone?.installationId) {
+      try {
+        const { getInstallationToken } = await import('../../lib/github.js');
+        installationToken = await getInstallationToken(repoForClone.installationId);
+      } catch (tokenError) {
+        console.warn(`[AgentWorker] Could not obtain an installation token for ${repoFullName} (falling back to unauthenticated clone, which will fail for private repos):`, (tokenError as Error).message);
+      }
+    }
+
     sandbox = createSandbox();
-    await sandbox.init(`https://github.com/${repoFullName}.git`, commitSHA);
+    await sandbox.init(`https://github.com/${repoFullName}.git`, commitSHA, {}, installationToken);
 
     // -----------------------------------------------------------------------
     // 3. Build the tools

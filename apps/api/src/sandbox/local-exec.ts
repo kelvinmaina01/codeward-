@@ -21,23 +21,28 @@ export class LocalExecSandbox implements SandboxHandle {
     this.workDir = path.join(tmpBase, `codeward-sandbox-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`);
   }
 
-  async init(repoUrl: string, commitSHA?: string): Promise<void> {
+  async init(repoUrl: string, commitSHA?: string, _env?: Record<string, string>, installationToken?: string): Promise<void> {
     await fs.mkdir(this.workDir, { recursive: true });
     console.log(`[LocalSandbox] Created workdir at ${this.workDir}`);
 
-    // Clone the repo
-    console.log(`[LocalSandbox] Cloning ${repoUrl}...`);
+    // A real Fly.io test caught this: a bare `git clone` on a PRIVATE repo only ever "worked"
+    // in local testing because the dev machine had its own cached git credentials — a real
+    // customer's clean sandbox has none. Embed the real GitHub App installation token when
+    // provided, matching FlySandbox's behavior, so local test runs prove the same auth path a
+    // real deployment needs instead of silently riding on incidental local credentials.
+    const authedUrl = installationToken ? repoUrl.replace('https://', `https://x-access-token:${installationToken}@`) : repoUrl;
+    console.log(`[LocalSandbox] Cloning ${repoUrl}${installationToken ? ' (authenticated)' : ''}...`);
     try {
-      // Use standard clone. If it requires auth, the URL should contain the token, or it's public.
-      await this.exec(`git clone ${repoUrl} .`);
-      
+      await this.exec(`git clone "${authedUrl}" .`);
+
       if (commitSHA && commitSHA !== 'baseline') {
         console.log(`[LocalSandbox] Checking out ${commitSHA}...`);
         await this.exec(`git checkout ${commitSHA}`);
       }
     } catch (err: any) {
-      console.error(`[LocalSandbox] Failed to clone ${repoUrl}:`, err);
-      throw new Error(`Failed to clone repo: ${err.message}`);
+      const sanitized = String(err?.message ?? err).replace(new RegExp(installationToken ?? '(?!)', 'g'), '[REDACTED]');
+      console.error(`[LocalSandbox] Failed to clone ${repoUrl}:`, sanitized);
+      throw new Error(`Failed to clone repo: ${sanitized}`);
     }
   }
 
@@ -46,7 +51,7 @@ export class LocalExecSandbox implements SandboxHandle {
       throw new Error("Sandbox has been destroyed.");
     }
     
-    console.log(`[LocalSandbox] Executing: ${command}`);
+    console.log(`[LocalSandbox] Executing: ${command.replace(/x-access-token:[^@]+@/g, 'x-access-token:[REDACTED]@')}`);
     try {
       // Node's child_process.exec defaults maxBuffer to 1MB and silently truncates stdout
       // beyond that (confirmed live: a real repo's `fallow dupes` output was cut off mid-JSON-

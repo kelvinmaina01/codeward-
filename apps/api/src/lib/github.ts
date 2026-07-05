@@ -3,4 +3,4 @@
 // used correctly by github/client.ts), and skipped the \n-escape-to-newline PEM conversion
 // that RSA key parsing needs. Every caller of getInstallationOctokit was silently broken.
 // Delegating to the one working implementation instead of maintaining two.
-export { githubApp, getInstallationClient as getInstallationOctokit } from '../github/client.js';
+export { githubApp, getInstallationClient as getInstallationOctokit, getInstallationToken } from '../github/client.js';
