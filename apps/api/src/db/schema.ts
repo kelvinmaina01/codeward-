@@ -64,6 +64,9 @@ export const runs = pgTable('runs', {
   // { incremental: true, beforeSha, changedFiles: string[] } — every agent job for this run
   // reads it and scopes analysis to the changed files instead of rescanning the whole repo.
   scope: jsonb('scope'),
+  // Set when this run analyzes a specific pull request (human-opened). Drives guardian's
+  // real review of that PR after Phase 3. null for push/first-connect runs.
+  prNumber: integer('pr_number'),
   createdAt: timestamp('created_at').defaultNow(),
 });
 

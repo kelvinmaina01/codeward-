@@ -28,17 +28,55 @@ export interface FixableFinding {
  * field, so its one allowed category (SWALLOWED_ERROR: add logging inside an empty catch,
  * never alter flow) is gated purely by category + the instruction constraints below.
  */
-const AGENT_FIX_POLICIES: Record<string, { categories: Set<string>; requireRefactorSafe: boolean; extraInstruction?: string }> = {
+import type { VerificationLevel } from './fix-verification.js';
+
+interface AgentFixPolicy {
+  categories: Set<string>;
+  requireRefactorSafe: boolean;
+  // Per-category verification strength. A category is only auto-fixed if its listed level of
+  // verification passes in the sandbox. 'tests' categories require a real passing suite and are
+  // rejected outright when none exists — that is the safety line for behavior-changing fixes.
+  verificationByCategory: Record<string, VerificationLevel>;
+  extraInstruction?: string;
+}
+
+const AGENT_FIX_POLICIES: Record<string, AgentFixPolicy> = {
   bloat: {
-    categories: new Set(['DEAD_CODE', 'UNUSED_DEPENDENCY', 'POLYFILL', 'DOCUMENTATION_DRIFT']),
+    categories: new Set(['DEAD_CODE', 'UNUSED_DEPENDENCY', 'POLYFILL', 'DOCUMENTATION_DRIFT', 'DUPLICATION']),
     requireRefactorSafe: true,
+    verificationByCategory: {
+      // Bucket 1 — mechanically safe removals. Must not break compilation, but don't require
+      // tests to exist (removing genuinely-dead code can't change behavior).
+      DEAD_CODE: 'typecheck',
+      UNUSED_DEPENDENCY: 'typecheck',
+      POLYFILL: 'typecheck',
+      DOCUMENTATION_DRIFT: 'syntax', // docs/markdown — nothing to compile
+      // Bucket 2 — behavior-preserving refactor that CAN break things. Requires a passing test
+      // suite to prove equivalence; rejected if the repo has no tests.
+      DUPLICATION: 'tests',
+    },
   },
   broken_code: {
     categories: new Set(['SWALLOWED_ERROR']),
     requireRefactorSafe: false,
+    verificationByCategory: {
+      SWALLOWED_ERROR: 'typecheck', // logging-only change; must still compile
+    },
     extraInstruction: 'For SWALLOWED_ERROR: add minimal error logging (console.error or the file\'s existing logger) inside the empty catch block. NEVER rethrow, NEVER change control flow, NEVER alter what the catch block returns — logging visibility only.',
   },
+  security: {
+    categories: new Set(['SECRETS']),
+    requireRefactorSafe: false,
+    verificationByCategory: {
+      SECRETS: 'typecheck', // hardcoded secret -> env var reference; must still compile
+    },
+    extraInstruction: 'For SECRETS: replace the hardcoded secret literal with a reference to an environment variable (e.g. process.env.STRIPE_SECRET_KEY), matching the language/framework. Choose a clear, conventional env var name. Change NOTHING else. Never invent a different secret value; the point is to remove the literal entirely.',
+  },
 };
+
+export function verificationLevelFor(agentId: string, category: string): VerificationLevel {
+  return AGENT_FIX_POLICIES[agentId]?.verificationByCategory[category] ?? 'typecheck';
+}
 
 export const AUTO_FIX_ELIGIBLE_AGENTS = new Set(Object.keys(AGENT_FIX_POLICIES));
 
@@ -92,10 +130,13 @@ export async function syntaxCheck(filePath: string, content: string): Promise<{ 
 export interface GeneratedFix {
   filePath: string;
   newContent: string;
+  originalContent: string;   // kept so the sandbox verification step can restore the file after testing
+  category: string;
   rationale: string;
   confidence: 'high' | 'medium' | 'low';
   originalLineCount: number;
   newLineCount: number;
+  verificationMethod?: string; // filled in once the fix passes sandbox verification
 }
 
 export type FixResult = { ok: true; fix: GeneratedFix } | { ok: false; file: string; error: string };
@@ -164,7 +205,7 @@ export async function generateFix(sandbox: SandboxHandle, finding: FixableFindin
   const syntax = await syntaxCheck(finding.file, newFileContent);
   if (!syntax.ok) return { ok: false, file: finding.file, error: `${syntax.error} — refusing to commit unparseable content.` };
 
-  return { ok: true, fix: { filePath: finding.file, newContent: newFileContent, rationale, confidence, originalLineCount, newLineCount } };
+  return { ok: true, fix: { filePath: finding.file, newContent: newFileContent, originalContent, category: finding.category ?? 'UNKNOWN', rationale, confidence, originalLineCount, newLineCount } };
 }
 
 export interface OpenFixPRParams {
@@ -202,11 +243,34 @@ export async function openFixPR(params: OpenFixPRParams): Promise<OpenFixPRResul
   for (const finding of eligible) {
     generated.push(await generateFix(params.sandbox, finding as FixableFinding & { file: string }, params.agentId));
   }
-  const applied = generated.filter((r): r is { ok: true; fix: GeneratedFix } => r.ok);
+  const generatedOk = generated.filter((r): r is { ok: true; fix: GeneratedFix } => r.ok);
   const skipped = generated.filter((r): r is { ok: false; file: string; error: string } => !r.ok);
 
-  if (applied.length === 0) {
+  if (generatedOk.length === 0) {
     return { opened: false, reason: 'Every candidate fix failed generation or safety checks — see skipped[] for why.', skipped };
+  }
+
+  // KEYSTONE SAFETY GATE: prove each generated fix does not break the repo before committing it.
+  // The baseline (npm install + typecheck + tests on the untouched repo) is computed once and
+  // shared across the batch. A fix that adds compile errors, or that needs tests it can't get,
+  // is dropped here — never committed, never PR'd.
+  const { computeVerificationBaseline, verifyFixDoesNotRegress } = await import('./fix-verification.js');
+  const baseline = await computeVerificationBaseline(params.sandbox);
+  const applied: Array<{ ok: true; fix: GeneratedFix }> = [];
+  for (const g of generatedOk) {
+    const level = verificationLevelFor(params.agentId, g.fix.category);
+    const verdict = await verifyFixDoesNotRegress(params.sandbox, g.fix.filePath, g.fix.originalContent, g.fix.newContent, baseline, level);
+    if (verdict.verified) {
+      applied.push({ ok: true, fix: { ...g.fix, verificationMethod: verdict.method } });
+      console.log(`[Fixer] ${g.fix.filePath} (${g.fix.category}) VERIFIED via ${verdict.method}`);
+    } else {
+      skipped.push({ ok: false, file: g.fix.filePath, error: `Verification failed: ${verdict.reason}` });
+      console.log(`[Fixer] ${g.fix.filePath} (${g.fix.category}) REJECTED by verification: ${verdict.reason}`);
+    }
+  }
+
+  if (applied.length === 0) {
+    return { opened: false, reason: 'Every candidate fix was generated but none passed sandbox verification — see skipped[] for why. Nothing was committed.', skipped };
   }
 
   const head: any = await guardianTools.get_repo_head.execute({ repoId: params.repoId });
@@ -242,7 +306,7 @@ export async function openFixPR(params: OpenFixPRParams): Promise<OpenFixPRResul
     `Codeward auto-generated this fix from real findings on run #${params.runId} (${params.agentId} agent).`,
     '',
     '### Changes',
-    ...committed.map((f) => `- **${f.filePath}** — ${f.rationale} (${f.originalLineCount} -> ${f.newLineCount} lines)`),
+    ...committed.map((f) => `- **${f.filePath}** — ${f.rationale} (${f.originalLineCount} -> ${f.newLineCount} lines)\n  - _Verified: ${f.verificationMethod ?? 'syntax check'}_`),
     '',
     skipped.length > 0 ? `### Skipped (${skipped.length})\n${skipped.map((s) => `- ${s.file}: ${s.error}`).join('\n')}\n` : '',
     '_This PR was opened automatically. It still requires review before merging — nothing here auto-merges._',

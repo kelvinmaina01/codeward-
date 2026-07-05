@@ -347,6 +347,32 @@ Use these EXACT values for any tool parameter named runId/repoId — never inven
     }
 
     // -----------------------------------------------------------------------
+    // 6c. Guardian reviews the HUMAN-opened PR (Phase 2 of the moat, human side). When this run
+    // analyzed a real pull request (runRow.prNumber set by the webhook), guardian posts a real
+    // review on the developer's PR using every agent's aggregated findings — the same reasoning
+    // it applies to Codeward's own auto-fix PRs, now pointed at human work.
+    // -----------------------------------------------------------------------
+    let humanPrReview: any = null;
+    if (agentId === 'orchestrator_phase3' && runRow?.prNumber != null && runRow.repoId != null) {
+      try {
+        const allTasks = await db.select().from(agentTasks).where(and(eq(agentTasks.runId, runId), notLike(agentTasks.agentId, 'orchestrator%')));
+        const findings = allTasks.flatMap((t) => ((t.findings as any[]) ?? []).map((f) => ({
+          agentId: t.agentId, severity: String(f.severity ?? 'INFO'), title: f.title, file: f.file ?? null, line: f.line ?? null,
+        })));
+        const { reviewHumanPR } = await import('../guardian/review.service.js');
+        const review = await reviewHumanPR({
+          sandbox: sandbox!, repoId: String(runRow.repoId), pullRequestNumber: runRow.prNumber, runId,
+          findings, gateDecision: result.gateDecision ?? null,
+        });
+        humanPrReview = review;
+        console.log(`[AgentWorker] guardian human-PR review of #${runRow.prNumber}: ${review.reviewed ? review.event : `did not complete (${review.reason})`}`);
+      } catch (reviewError) {
+        console.error(`[AgentWorker] human-PR review step threw (non-fatal):`, (reviewError as Error).message);
+        humanPrReview = { reviewed: false, reason: `Review step crashed: ${(reviewError as Error).message}` };
+      }
+    }
+
+    // -----------------------------------------------------------------------
     // 7. Write results to the database
     // -----------------------------------------------------------------------
     await db.update(agentTasks)
@@ -355,7 +381,7 @@ Use these EXACT values for any tool parameter named runId/repoId — never inven
         score: result.score,
         findingsCount: result.findings.length,
         findings: result.findings,
-        reportMeta: { gateDecision: result.gateDecision ?? null, toolsExecuted: result.toolsExecuted ?? [], summary: result.summary ?? null, autoFixPR, escalation },
+        reportMeta: { gateDecision: result.gateDecision ?? null, toolsExecuted: result.toolsExecuted ?? [], summary: result.summary ?? null, autoFixPR, escalation, humanPrReview },
         model: result.modelUsed,
         tokenUsage: result.tokenUsage,
         duration: result.duration,

@@ -112,24 +112,44 @@ webhookRouter.post('/github', async (c) => {
       const prNumber = data.pull_request.number;
       const repoName = data.repository?.full_name;
       const commitSHA = data.pull_request.head?.sha;
-      
+      const headRef = data.pull_request.head?.ref ?? '';
+      const authorType = data.pull_request.user?.type ?? '';
+
       console.log(`[Webhook] Received PR ${data.action} for ${repoName} #${prNumber} at ${commitSHA}`);
 
-      // Add a record in the database
+      // Skip Codeward's OWN auto-fix PRs — they were already reviewed inside the fixer flow when
+      // opened. Re-analyzing them here would duplicate work and (since opening a fix PR fires
+      // this same webhook) create a needless second run per bot PR.
+      if (authorType === 'Bot' || headRef.startsWith('codeward/')) {
+        console.log(`[Webhook] Ignoring PR #${prNumber} — Codeward's own auto-fix PR (already reviewed in the fixer flow).`);
+        return c.json({ status: 'ignored', reason: 'own auto-fix PR' });
+      }
+
+      // Same orphan-run guard as the push path: a PR on an unconnected repo is noise, and a run
+      // without a repoId breaks memory/reports/escalation downstream.
+      const [repo] = await db.select().from(repositories).where(eq(repositories.fullName, repoName));
+      if (!repo) {
+        console.log(`[Webhook] Ignoring PR for ${repoName} — repo is not connected.`);
+        return c.json({ status: 'ignored', reason: 'repo not connected' });
+      }
+
       const [runRecord] = await db.insert(runs).values({
+        repoId: repo.id,
         commitSha: commitSHA,
         status: 'queued',
+        prNumber,
       }).returning();
-      
-      // Enqueue Phase 1 of the Orchestrator
+
+      // Enqueue Phase 1 of the Orchestrator. After Phase 3, because this run carries a prNumber,
+      // guardian will post a real review on the human's PR (wired in agent.queue.ts).
       await agentQueue.add('orchestrator-phase1', {
         agentId: 'orchestrator_phase1',
         commitSHA,
         repoFullName: repoName,
         runId: runRecord.id
       });
-      
-      return c.json({ status: 'queued', type: 'orchestrator', commitSHA, runId: runRecord.id });
+
+      return c.json({ status: 'queued', type: 'orchestrator', commitSHA, runId: runRecord.id, prNumber });
     }
 
     return c.json({ status: 'ignored', event });
