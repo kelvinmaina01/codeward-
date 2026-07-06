@@ -108,6 +108,7 @@ import { githubRouter } from './routes/github.js';
 import { chatRouter } from './routes/chat.js';
 import { reportsRouter } from './routes/reports.js';
 import { approvalsRouter } from './routes/approvals.js';
+import { alertsRouter } from './routes/alerts.js';
 
 const routes = app
   .route('/api/webhooks', webhookRouter)
@@ -118,6 +119,7 @@ const routes = app
   .route('/api/chat', chatRouter)
   .route('/api/reports', reportsRouter)
   .route('/api/approvals', approvalsRouter)
+  .route('/api/alerts', alertsRouter)
   .route('/ws', wsRouter);
 
 export type AppType = typeof routes;
