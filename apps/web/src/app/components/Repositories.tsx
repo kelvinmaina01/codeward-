@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
-import { Search, Loader, AlertCircle, Play, Pause, Settings as SettingsIcon, BarChart2, GitFork, Lock, Globe } from 'lucide-react';
+import { Search, Loader, AlertCircle, Play, Pause, Settings as SettingsIcon, BarChart2, GitFork, Lock, Globe, Wrench } from 'lucide-react';
 import { toast } from 'sonner';
 import { API_URL } from '../../lib/api';
 
@@ -21,6 +21,7 @@ interface ConnectedRepo {
   createdAt: string;
   status: string;
   paused: boolean;
+  autoFixEnabled: boolean;
   // Real fields attached by GET /api/repos/connected — the latest completed run's score, or
   // the real baselineScore from the first scan if nothing later exists yet.
   healthScore: number | null;
@@ -58,6 +59,7 @@ export function Repositories({ activeOrg }: { activeOrg?: string }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [pausingId, setPausingId] = useState<number | null>(null);
+  const [autoFixingId, setAutoFixingId] = useState<number | null>(null);
 
   // Filters
   const [search, setSearch] = useState('');
@@ -97,6 +99,27 @@ export function Repositories({ activeOrg }: { activeOrg?: string }) {
       toast.error(err.message || 'Failed to update pause state');
     } finally {
       setPausingId(null);
+    }
+  };
+
+  const toggleAutoFix = async (repo: ConnectedRepo) => {
+    setAutoFixingId(repo.id);
+    const next = !repo.autoFixEnabled;
+    try {
+      const res = await fetch(`${API_URL}/api/repos/${repo.id}/autofix`, {
+        method: 'PATCH', credentials: 'include', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ autoFixEnabled: next }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || 'Failed to update');
+      setRepos((prev) => prev.map((r) => r.id === repo.id ? { ...r, autoFixEnabled: data.autoFixEnabled } : r));
+      toast.success(data.autoFixEnabled
+        ? `Auto-fix ON for ${repo.fullName} — the fixer may open real PRs here.`
+        : `Auto-fix OFF for ${repo.fullName} — analysis still runs, but no auto-fix PRs will be opened.`);
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to update auto-fix setting');
+    } finally {
+      setAutoFixingId(null);
     }
   };
 
@@ -199,6 +222,17 @@ export function Repositories({ activeOrg }: { activeOrg?: string }) {
 
                   {/* Right: Actions */}
                   <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      onClick={() => toggleAutoFix(repo)}
+                      disabled={autoFixingId === repo.id}
+                      title={repo.autoFixEnabled
+                        ? 'Auto-fix is ON — Codeward may open real fix PRs for this repo. Click to turn off.'
+                        : 'Auto-fix is OFF — analysis still runs, but no auto-fix PRs will be opened. Click to turn on.'}
+                      className={`px-3 py-1.5 border text-[12px] font-medium rounded-lg transition-colors flex items-center gap-1.5 disabled:opacity-50 ${repo.autoFixEnabled ? 'bg-cw-green/10 border-cw-green/30 text-cw-green hover:bg-cw-green/15' : 'bg-cw-bg border-cw-bdr text-cw-txt3 hover:bg-cw-bg2'}`}
+                    >
+                      {autoFixingId === repo.id ? <Loader size={14} className="animate-spin" /> : <Wrench size={14} />}
+                      Auto-fix {repo.autoFixEnabled ? 'On' : 'Off'}
+                    </button>
                     <button
                       onClick={() => togglePause(repo)}
                       disabled={pausingId === repo.id}
