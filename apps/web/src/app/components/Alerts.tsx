@@ -48,6 +48,7 @@ export function Alerts() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'CRITICAL' | 'HIGH' | 'autofix'>('all');
+  const [sourceTab, setSourceTab] = useState<string>('All');
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -62,10 +63,13 @@ export function Alerts() {
       .finally(() => setLoading(false));
   }, []);
 
+  // Real category tabs, derived from the sources actually present in the data (no fake tabs).
+  const sourceTabs = ['All', ...Array.from(new Set(alerts.map((a) => a.source)))];
+
   const filtered = alerts.filter((a) => {
-    if (filter === 'all') return true;
-    if (filter === 'autofix') return a.kind === 'autofix';
-    return a.severity === filter;
+    const matchesSeverity = filter === 'all' ? true : filter === 'autofix' ? a.kind === 'autofix' : a.severity === filter;
+    const matchesSource = sourceTab === 'All' || a.source === sourceTab;
+    return matchesSeverity && matchesSource;
   });
   const selected = alerts.find((a) => a.id === selectedId) || null;
 
@@ -99,6 +103,21 @@ export function Alerts() {
               </div>
             ))}
           </div>
+
+          {/* Real category tabs — restored, driven by the agents actually present in the data */}
+          {!loading && !error && alerts.length > 0 && (
+            <div className="flex gap-1 mb-6 border-b border-cw-bdr overflow-x-auto">
+              {sourceTabs.map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setSourceTab(tab)}
+                  className={`px-4 py-2.5 text-[13px] font-medium border-b-2 whitespace-nowrap transition-colors ${sourceTab === tab ? 'border-cw-purple text-cw-txt' : 'border-transparent text-cw-txt3 hover:text-cw-txt2'}`}
+                >
+                  {tab}
+                </button>
+              ))}
+            </div>
+          )}
 
           {loading ? (
             <div className="py-20 flex justify-center"><Loader size={24} className="animate-spin text-cw-purple" /></div>
