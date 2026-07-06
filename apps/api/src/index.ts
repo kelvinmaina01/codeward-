@@ -109,6 +109,7 @@ import { chatRouter } from './routes/chat.js';
 import { reportsRouter } from './routes/reports.js';
 import { approvalsRouter } from './routes/approvals.js';
 import { alertsRouter } from './routes/alerts.js';
+import { issuesPrsRouter } from './routes/issues-prs.js';
 
 const routes = app
   .route('/api/webhooks', webhookRouter)
@@ -120,6 +121,7 @@ const routes = app
   .route('/api/reports', reportsRouter)
   .route('/api/approvals', approvalsRouter)
   .route('/api/alerts', alertsRouter)
+  .route('/api/issues-prs', issuesPrsRouter)
   .route('/ws', wsRouter);
 
 export type AppType = typeof routes;

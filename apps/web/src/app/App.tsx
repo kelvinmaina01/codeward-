@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Radio, GitCompare, ShieldAlert, BarChart3,
   Bot, Monitor, Clock, GitFork, Award, Settings as SettingsIcon,
   Sun, Moon, Circle, Menu, LogOut, LucideIcon, ChevronDown, Plus, Blocks, Bell, Globe, X,
-  LayoutGrid, TerminalSquare, Sparkles, FileText, BadgeCheck
+  LayoutGrid, TerminalSquare, Sparkles, FileText, BadgeCheck, GitPullRequest
 } from 'lucide-react';
 import { Theme, Screen } from './components/types';
 import { AuthPage } from './components/AuthPage';
@@ -22,6 +22,7 @@ import { Certificate } from './components/Certificate';
 import { Settings } from './components/Settings';
 import { Integrations } from './components/Integrations';
 import { Alerts } from './components/Alerts';
+import { IssuesAndPRs } from './components/IssuesAndPRs';
 import { RunDetail } from './components/RunDetail';
 import { LegalPage } from './components/legal/LegalPage';
 import { useSession, signOut } from '../lib/auth';
@@ -82,6 +83,7 @@ const nav: NavGroup[] = [
   ]},
   { group: 'Analysis', items: [
     { id: 'diff', label: 'Diff viewer', dot: 'b', icon: GitCompare, path: '/dashboard/diff' },
+    { id: 'issuesprs', label: 'Issues & PRs', dot: 'p', icon: GitPullRequest, path: '/dashboard/issues-prs' },
     { id: 'security', label: 'Security', dot: 'r', badge: 3, icon: ShieldAlert, path: '/dashboard/security' },
     { id: 'debt', label: 'Debt report', dot: 'a', icon: BarChart3, path: '/dashboard/debt' },
   ]},
@@ -114,6 +116,7 @@ const topbarConfig: Record<Screen, { title: string; sub: string }> = {
   settings:  { title: 'Settings', sub: 'acme-corp · my-api · trust & automation' },
   integrations: { title: 'Integrations', sub: 'Connect external tools and MCP servers' },
   alerts:    { title: 'Alerts center', sub: 'acme-corp · active incidents & notifications' },
+  issuesprs: { title: 'Issues & PRs', sub: 'Real escalated issues and pull requests across your repos' },
 };
 
 // Map URL paths to screen IDs
@@ -122,6 +125,7 @@ const pathToScreen: Record<string, Screen> = {
   '/dashboard/alerts': 'alerts',
   '/dashboard/livefeed': 'livefeed',
   '/dashboard/diff': 'diff',
+  '/dashboard/issues-prs': 'issuesprs',
   '/dashboard/security': 'security',
   '/dashboard/debt': 'debt',
   '/dashboard/agent': 'agent',
@@ -191,6 +195,7 @@ function DashboardLayout() {
       case 'dashboard':    return <Dashboard onRunClick={(repoId, runId) => setRunDetailTarget({ repoId, runId })} />;
       case 'livefeed':     return <LiveFeed viewMode={liveFeedView} />;
       case 'diff':         return <DiffViewer />;
+      case 'issuesprs':    return <IssuesAndPRs />;
       case 'security':     return <Security />;
       case 'debt':         return <DebtReport />;
       case 'agent':        return <AIAgent />;

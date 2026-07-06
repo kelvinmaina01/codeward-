@@ -13,4 +13,5 @@ export type Screen =
   | 'cert'
   | 'settings'
   | 'integrations'
-  | 'alerts';
+  | 'alerts'
+  | 'issuesprs';
