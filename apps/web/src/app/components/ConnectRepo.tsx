@@ -284,11 +284,11 @@ export function ConnectRepo({ user, onConnect, onSkip, activeOrg, setActiveOrg, 
           onClick={() => {
             if (repo.archived) return;
             if (compact) {
-              if (repo.connected) window.location.href = `/repositories/${repo.full}`;
+              if (repo.connected) window.location.href = `/dashboard/repos`;
               return;
             }
             if (repo.connected) {
-              window.location.href = `/repositories/${repo.full}`;
+              window.location.href = `/dashboard/repos`;
             } else {
               setExpandedRepo(expandedRepo === repo.full ? null : repo.full);
             }
@@ -405,7 +405,7 @@ export function ConnectRepo({ user, onConnect, onSkip, activeOrg, setActiveOrg, 
 
             {repo.connected && !repo.archived && (
               <button 
-                onClick={(e) => { e.stopPropagation(); window.location.href = `/repositories/${repo.full}`; }}
+                onClick={(e) => { e.stopPropagation(); window.location.href = `/dashboard/repos`; }}
                 className={`h-[30px] bg-[#2EA043] hover:bg-[#2c974b] text-white font-semibold rounded-lg transition-colors flex items-center justify-center gap-1 whitespace-nowrap ${compact ? 'px-2.5 text-[11px]' : 'px-4 text-[12px]'}`}
               >
                 Go <span className={compact ? 'hidden sm:inline' : ''}>to Repo</span>
@@ -740,7 +740,7 @@ export function ConnectRepo({ user, onConnect, onSkip, activeOrg, setActiveOrg, 
                     key={repo.full}
                     onClick={() => {
                       if (repo.connected) {
-                        window.location.href = `/repositories/${repo.full}`;
+                        window.location.href = `/dashboard/repos`;
                       } else if (!repo.archived) {
                         setShowAllPanel(false);
                         setExpandedRepo(repo.full);

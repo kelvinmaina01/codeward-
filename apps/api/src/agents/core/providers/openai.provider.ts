@@ -52,8 +52,14 @@ export class OpenAIProvider implements AgentProvider {
         messages: [{ role: 'user', content: config.taskPrompt }],
       }, provider);
 
-      const findings = reportArgs?.findings ?? [];
-      const score = reportArgs?.score ?? (findings.length === 0 ? 100 : null) ?? 0;
+      // Orchestrator's submit_orchestrator_decision schema uses overallWeightedScore/
+      // criticalFindings, not score/findings like every other agent — this generic extraction
+      // silently fell back to a hardcoded 100 for every orchestrator run regardless of its
+      // real computed score or even a BLOCK decision (found via a real discrepancy: the same
+      // run showed runs.score=0 via store_orchestrator_result but repositories.baselineScore=
+      // 100 via this exact fallback). Check the orchestrator-specific field name first.
+      const findings = reportArgs?.findings ?? reportArgs?.criticalFindings ?? [];
+      const score = reportArgs?.score ?? reportArgs?.overallWeightedScore ?? (findings.length === 0 ? 100 : null) ?? 0;
       const gateDecision = reportArgs?.gateDecision ?? reportArgs?.riskLevel;
 
       return {

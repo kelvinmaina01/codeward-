@@ -30,6 +30,11 @@ export const pushWorker = new Worker<PushJobData>('webhook-jobs', async (job: Jo
 
   const [repo] = await db.select().from(repositories).where(eq(repositories.fullName, repoFullName));
 
+  if (repo?.paused) {
+    console.log(`[PushWorker] Repo ${repoFullName} is paused — dropping this push, not re-queuing.`);
+    return { skipped: 'paused' };
+  }
+
   if (!repo || repo.status !== 'active') {
     console.log(`[PushWorker] Repo ${repoFullName} is not active (status: ${repo?.status}). Re-queuing push ${commitSHA}.`);
     // Still auditing — retry after the initial audit has had time to finish.

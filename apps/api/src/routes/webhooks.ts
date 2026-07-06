@@ -1,7 +1,8 @@
 import { Hono } from 'hono';
 import crypto from 'crypto';
-import { auditQueue, pushQueue } from '../queue/index.js';
+import { pushQueue } from '../queue/index.js';
 import { agentQueue } from '../agents/queue/agent.queue.js';
+import { triggerComprehensiveAudit } from '../agents/audit-trigger.js';
 import { db } from '../db/index.js';
 import { runs, repositories } from '../db/schema.js';
 import { eq } from 'drizzle-orm';
@@ -55,6 +56,10 @@ webhookRouter.post('/github', async (c) => {
         console.log(`[Webhook] Ignoring push for ${repoName} — repo is not connected.`);
         return c.json({ status: 'ignored', reason: 'repo not connected' });
       }
+      if (repo.paused) {
+        console.log(`[Webhook] Ignoring push for ${repoName} — repo is paused by the user.`);
+        return c.json({ status: 'ignored', reason: 'repo paused' });
+      }
 
       const [runRecord] = await db.insert(runs).values({
         repoId: repo.id,
@@ -72,42 +77,36 @@ webhookRouter.post('/github', async (c) => {
 
       return c.json({ status: 'queued', type: 'incremental', commitSHA, runId: runRecord.id });
     } else if (event === 'installation' || event === 'installation_repositories') {
-      // Layer 1: Full Audit (Mode 1)
+      // GitHub App (re-)installation. A full user-journey audit found this used to enqueue to a
+      // completely disconnected legacy queue (queue/audit.queue.ts) whose worker checked
+      // job.data.type, a field never set here -- a permanent no-op, on top of 100% mock logic
+      // underneath anyway. Real fix: only trigger the real audit for repos that ALREADY have a
+      // real repositories row (a genuine re-installation / re-authorization case) -- if the repo
+      // doesn't exist yet, the user hasn't connected it via the UI, and /api/repos/connect is
+      // the real trigger point for that (it needs the real userId, which this event doesn't have).
       const repos = data.repositories_added || data.repositories || [];
       const installationId = data.installation?.id;
-      
+      let auditsTriggered = 0;
+
       for (const repo of repos) {
-        console.log(`[Webhook] Received installation for ${repo.full_name}. Triggering Mode 1 Full Audit.`);
-        
-        // Save repo to DB with status pending_audit
-        // Check if exists first to avoid unique constraint violation
-        const existing = await db.select().from(repositories).where(eq(repositories.fullName, repo.full_name));
-        
-        if (existing.length > 0) {
-          // Update existing
+        const [existing] = await db.select().from(repositories).where(eq(repositories.fullName, repo.full_name));
+
+        if (existing) {
+          console.log(`[Webhook] Re-installation for already-connected repo ${repo.full_name} — triggering a real re-audit.`);
           await db.update(repositories).set({
             status: 'pending_audit',
             auditTriggeredAt: new Date(),
             githubRepoId: repo.id,
-            installationId: installationId
-          }).where(eq(repositories.fullName, repo.full_name));
+            installationId: installationId,
+          }).where(eq(repositories.id, existing.id));
+          await triggerComprehensiveAudit(existing.id, repo.full_name);
+          auditsTriggered++;
         } else {
-          console.log(`[Webhook] Skipping insert for ${repo.full_name} because it has not been connected by a user yet.`);
-          // The repository will be inserted with the correct userId when the user clicks 'Connect' in the UI.
+          console.log(`[Webhook] ${repo.full_name} installed but not yet connected by a user — no audit triggered here; /api/repos/connect will do it when they click Connect.`);
         }
-
-        await auditQueue.add('full-repo-audit', {
-          repoFullName: repo.full_name,
-          installationId: installationId,
-          defaultBranch: repo.default_branch || 'main'
-        }, {
-          jobId: `audit-${repo.id}`,
-          attempts: 2,
-          removeOnComplete: true,
-        });
       }
-      
-      return c.json({ status: 'queued', type: 'deep-scan', auditsQueued: repos.length });
+
+      return c.json({ status: 'ok', type: 'installation', reposSeen: repos.length, auditsTriggered });
     } else if (event === 'pull_request' && (data.action === 'opened' || data.action === 'synchronize')) {
       const prNumber = data.pull_request.number;
       const repoName = data.repository?.full_name;

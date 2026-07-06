@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Search, Loader, AlertCircle, Plus, Play, Pause, Settings as SettingsIcon, BarChart2, GitFork, Lock, Globe } from 'lucide-react';
+import { useNavigate } from 'react-router';
+import { Search, Loader, AlertCircle, Play, Pause, Settings as SettingsIcon, BarChart2, GitFork, Lock, Globe } from 'lucide-react';
 import { toast } from 'sonner';
 import { API_URL } from '../../lib/api';
 
@@ -18,11 +19,24 @@ interface ConnectedRepo {
   isPrivate: boolean;
   config: RepoConfig;
   createdAt: string;
-  // Mock data for UI since we don't have actual runs yet
-  healthScore?: number;
-  trend?: string;
-  isUp?: boolean;
-  lastScan?: string;
+  status: string;
+  paused: boolean;
+  // Real fields attached by GET /api/repos/connected — the latest completed run's score, or
+  // the real baselineScore from the first scan if nothing later exists yet.
+  healthScore: number | null;
+  lastScanAt: string | null;
+}
+
+function timeAgo(dateStr: string | null): string {
+  if (!dateStr) return 'never';
+  const diffMs = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
 }
 
 const langColors: Record<string, string> = {
@@ -38,56 +52,53 @@ const langColors: Record<string, string> = {
   Unknown: '#6B7280',
 };
 
-// Simple hash to generate deterministic fake stats for now
-function hashStringToNum(str: string) {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    hash = str.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return Math.abs(hash);
-}
-
 export function Repositories({ activeOrg }: { activeOrg?: string }) {
+  const navigate = useNavigate();
   const [repos, setRepos] = useState<ConnectedRepo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
+  const [pausingId, setPausingId] = useState<number | null>(null);
+
   // Filters
   const [search, setSearch] = useState('');
   const [filterLang, setFilterLang] = useState('All');
-  const [pausedRepos, setPausedRepos] = useState<Record<string, boolean>>({});
 
-  useEffect(() => {
-    const fetchConnectedRepos = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const res = await fetch(`${API_URL}/api/repos/connected`, { credentials: 'include' });
-        if (!res.ok) throw new Error((await res.json()).error || 'Failed to fetch connected repos');
-        const data = await res.json();
-        
-        // Enrich with fake health data for the dashboard demo
-        const enriched = (data.repos || []).map((r: ConnectedRepo) => {
-          const hash = hashStringToNum(r.fullName);
-          return {
-            ...r,
-            healthScore: 50 + (hash % 48), // 50 to 98
-            trend: (hash % 2 === 0 ? '+' : '-') + (hash % 12 + 1),
-            isUp: hash % 2 === 0,
-            lastScan: (hash % 60 + 1) + 'm ago'
-          };
-        });
-        
-        setRepos(enriched);
-      } catch (err: any) {
-        toast.error('Failed to load connected repositories');
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchConnectedRepos();
-  }, []);
+  const fetchConnectedRepos = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`${API_URL}/api/repos/connected`, { credentials: 'include' });
+      if (!res.ok) throw new Error((await res.json()).error || 'Failed to fetch connected repos');
+      const data = await res.json();
+      setRepos(data.repos || []);
+    } catch (err: any) {
+      toast.error('Failed to load connected repositories');
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { fetchConnectedRepos(); }, []);
+
+  const togglePause = async (repo: ConnectedRepo) => {
+    setPausingId(repo.id);
+    const nextPaused = !repo.paused;
+    try {
+      const res = await fetch(`${API_URL}/api/repos/${repo.id}/pause`, {
+        method: 'PATCH', credentials: 'include', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ paused: nextPaused }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || 'Failed to update');
+      setRepos((prev) => prev.map((r) => r.id === repo.id ? { ...r, paused: data.paused } : r));
+      toast.success(`${repo.fullName} ${data.paused ? 'paused' : 'resumed'} — real, persisted, and honored by the push pipeline.`);
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to update pause state');
+    } finally {
+      setPausingId(null);
+    }
+  };
 
   const languages = ['All', ...Array.from(new Set(repos.map(r => r.language))).filter(Boolean)];
 
@@ -97,14 +108,6 @@ export function Repositories({ activeOrg }: { activeOrg?: string }) {
     const matchesLang = filterLang === 'All' || r.language === filterLang;
     return matchesOrg && matchesSearch && matchesLang;
   });
-
-  const togglePause = (fullName: string) => {
-    setPausedRepos(prev => {
-      const isPaused = !prev[fullName];
-      toast.success(`${fullName} ${isPaused ? 'paused' : 'resumed'}`);
-      return { ...prev, [fullName]: isPaused };
-    });
-  };
 
   const getHealthColor = (score: number) => {
     if (score >= 80) return 'text-cw-green';
@@ -157,15 +160,16 @@ export function Repositories({ activeOrg }: { activeOrg?: string }) {
             <span className="text-[13px] font-semibold text-cw-txt">{filteredRepos.length} Repositories</span>
           </div>
           <div className="flex flex-col">
-            {filteredRepos.map((repo, i) => {
-              const isPaused = pausedRepos[repo.fullName];
-              const score = repo.healthScore || 0;
+            {filteredRepos.map((repo) => {
+              const isPaused = repo.paused;
+              const hasScore = repo.healthScore != null;
+              const score = repo.healthScore ?? 0;
               const langName = repo.language || 'Unknown';
               const numAgents = Object.values(repo.config?.agents || {}).filter(Boolean).length;
 
               return (
-                <div 
-                  key={repo.id} 
+                <div
+                  key={repo.id}
                   className={`flex flex-col md:flex-row md:items-center justify-between p-5 border-b border-cw-bdr last:border-0 hover:bg-cw-bg3 transition-colors ${isPaused ? 'opacity-60' : ''}`}
                 >
                   {/* Left: Info */}
@@ -174,17 +178,18 @@ export function Repositories({ activeOrg }: { activeOrg?: string }) {
                       {repo.isPrivate ? <Lock size={15} className="text-cw-txt3" /> : <Globe size={15} className="text-cw-txt3" />}
                       <h3 className="text-[16px] font-semibold text-cw-blue hover:underline cursor-pointer">{repo.name}</h3>
                       {isPaused && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded border border-cw-bdr bg-cw-bg text-cw-txt3 tracking-wide">PAUSED</span>}
+                      {!isPaused && repo.status === 'pending_audit' && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-cw-amber/10 text-cw-amber tracking-wide flex items-center gap-1"><Loader size={10} className="animate-spin" /> AUDITING</span>}
                     </div>
                     <p className="text-[13px] text-cw-txt2 truncate max-w-3xl">{repo.description || 'No description provided.'}</p>
-                    
+
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[12px] text-cw-txt3 mt-1">
                       <div className="flex items-center gap-1.5">
                         <div className="w-2.5 h-2.5 rounded-full shadow-sm" style={{ backgroundColor: langColors[langName] || langColors.Unknown }} />
                         {langName}
                       </div>
-                      <span>Updated {repo.lastScan}</span>
+                      <span>Last scan: {timeAgo(repo.lastScanAt)}</span>
                       <div className="flex items-center gap-1">
-                        Health: <span className={`font-semibold ${getHealthColor(score)}`}>{score}/100</span>
+                        Health: {hasScore ? <span className={`font-semibold ${getHealthColor(score)}`}>{score}/100</span> : <span className="text-cw-txt3">pending first scan</span>}
                       </div>
                       <div className="flex items-center gap-1 text-cw-txt2">
                         {numAgents} Agents
@@ -194,16 +199,23 @@ export function Repositories({ activeOrg }: { activeOrg?: string }) {
 
                   {/* Right: Actions */}
                   <div className="flex items-center gap-2 shrink-0">
-                    <button 
-                      onClick={() => togglePause(repo.fullName)}
-                      className="px-3 py-1.5 bg-cw-bg border border-cw-bdr hover:bg-cw-bg2 text-cw-txt text-[12px] font-medium rounded-lg transition-colors flex items-center gap-1.5"
+                    <button
+                      onClick={() => togglePause(repo)}
+                      disabled={pausingId === repo.id}
+                      className="px-3 py-1.5 bg-cw-bg border border-cw-bdr hover:bg-cw-bg2 text-cw-txt text-[12px] font-medium rounded-lg transition-colors flex items-center gap-1.5 disabled:opacity-50"
                     >
                       {isPaused ? <><Play size={14} /> Resume</> : <><Pause size={14} /> Pause</>}
                     </button>
-                    <button className="px-3 py-1.5 bg-cw-bg border border-cw-bdr hover:bg-cw-bg2 text-cw-txt text-[12px] font-medium rounded-lg transition-colors flex items-center gap-1.5">
+                    <button
+                      onClick={() => navigate('/dashboard/history')}
+                      className="px-3 py-1.5 bg-cw-bg border border-cw-bdr hover:bg-cw-bg2 text-cw-txt text-[12px] font-medium rounded-lg transition-colors flex items-center gap-1.5"
+                    >
                       <BarChart2 size={14} /> Runs
                     </button>
-                    <button className="w-8 h-[30px] flex items-center justify-center bg-cw-bg border border-cw-bdr hover:bg-cw-bg2 text-cw-txt rounded-lg transition-colors">
+                    <button
+                      onClick={() => navigate('/dashboard/settings')}
+                      className="w-8 h-[30px] flex items-center justify-center bg-cw-bg border border-cw-bdr hover:bg-cw-bg2 text-cw-txt rounded-lg transition-colors"
+                    >
                       <SettingsIcon size={14} />
                     </button>
                   </div>

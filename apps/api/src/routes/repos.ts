@@ -2,9 +2,32 @@ import { Hono } from 'hono';
 import { auth } from '../auth/index.js';
 import { db } from '../db/index.js';
 import * as schema from '../db/schema.js';
-import { eq, and, or, inArray } from 'drizzle-orm';
+import { eq, and, or, inArray, desc } from 'drizzle-orm';
+import { triggerComprehensiveAudit } from '../agents/audit-trigger.js';
 
 export const reposRouter = new Hono();
+
+/**
+ * Follows GitHub's real Link header across pages — a full user-journey audit found both
+ * repo-listing calls below capped at a single page (per_page=100, no follow-up), silently
+ * hiding any repos beyond the first 100 for an active user/org. Capped at 10 pages (1000
+ * repos) as a sane real ceiling, not an artificial one.
+ */
+async function fetchAllPages(url: string, headers: Record<string, string>): Promise<any[]> {
+  const results: any[] = [];
+  let nextUrl: string | null = url;
+  for (let pageNum = 0; pageNum < 10 && nextUrl !== null; pageNum++) {
+    const res: Response = await fetch(nextUrl, { headers });
+    if (!res.ok) break;
+    const page: any = await res.json();
+    const items: any[] = Array.isArray(page) ? page : (page.repositories ?? []);
+    results.push(...items);
+    const linkHeader: string = res.headers.get('link') ?? '';
+    const nextMatch: RegExpMatchArray | null = linkHeader.match(/<([^>]+)>;\s*rel="next"/);
+    nextUrl = nextMatch ? nextMatch[1] : null;
+  }
+  return results;
+}
 
 /**
  * GET /api/repos/connected
@@ -31,6 +54,22 @@ reposRouter.get('/connected', async (c) => {
       .from(schema.repositories)
       .where(or(...conditions));
 
+    // Real health data per repo — a full user-journey audit found Repositories.tsx was
+    // fabricating this with a hash of the repo name ("fake health data for the dashboard
+    // demo") even though real scores exist. Attach the real latest completed run's score, or
+    // fall back to the real baselineScore from the first scan if no later run exists yet.
+    const reposWithHealth = await Promise.all(connectedRepos.map(async (repo) => {
+      const [latestRun] = await db.select().from(schema.runs)
+        .where(and(eq(schema.runs.repoId, repo.id), eq(schema.runs.status, 'completed')))
+        .orderBy(desc(schema.runs.createdAt))
+        .limit(1);
+      return {
+        ...repo,
+        healthScore: latestRun?.score ?? repo.baselineScore ?? null,
+        lastScanAt: latestRun?.createdAt ?? repo.auditCompletedAt ?? null,
+      };
+    }));
+
     // Also return user's organizations so the global UI can populate the workspace switcher
     const accounts = await db.select().from(schema.account).where(and(eq(schema.account.userId, session.user.id), eq(schema.account.providerId, 'github')));
     let orgs: string[] = [];
@@ -46,11 +85,40 @@ reposRouter.get('/connected', async (c) => {
       } catch (e) { console.error('Failed to fetch orgs for connected repos', e); }
     }
 
-    return c.json({ repos: connectedRepos, orgs });
+    return c.json({ repos: reposWithHealth, orgs });
   } catch (err) {
     console.error('Error fetching connected repos:', err);
     return c.json({ error: 'Internal server error' }, 500);
   }
+});
+
+/**
+ * PATCH /api/repos/:id/pause
+ * Real pause/resume — persists to repositories.paused, which the push webhook and pushWorker
+ * both honor (real analysis is actually skipped while paused, not just a UI label).
+ */
+reposRouter.patch('/:id/pause', async (c) => {
+  const session = await auth.api.getSession({ headers: c.req.raw.headers });
+  if (!session) return c.json({ error: 'Unauthorized' }, 401);
+
+  const repoId = Number(c.req.param('id'));
+  if (!Number.isFinite(repoId)) return c.json({ error: 'Invalid repo id' }, 400);
+
+  const [repo] = await db.select().from(schema.repositories).where(eq(schema.repositories.id, repoId));
+  if (!repo) return c.json({ error: 'Repository not found' }, 404);
+  if (repo.userId !== session.user.id) {
+    if (!repo.orgId) return c.json({ error: 'Forbidden' }, 403);
+    const [membership] = await db.select().from(schema.organizationMember)
+      .where(and(eq(schema.organizationMember.userId, session.user.id), eq(schema.organizationMember.orgId, repo.orgId)));
+    if (!membership) return c.json({ error: 'Forbidden' }, 403);
+  }
+
+  let body: any;
+  try { body = await c.req.json(); } catch { return c.json({ error: 'Invalid JSON body' }, 400); }
+  const paused = !!body?.paused;
+
+  await db.update(schema.repositories).set({ paused }).where(eq(schema.repositories.id, repoId));
+  return c.json({ paused });
 });
 
 
@@ -135,19 +203,14 @@ reposRouter.get('/', async (c) => {
         
         // Fetch repositories granted to this installation
         try {
-          const instReposRes = await fetch(`https://api.github.com/user/installations/${inst.id}/repositories?per_page=100`, {
-            headers: {
-              'Authorization': `Bearer ${githubAccount.accessToken}`,
-              'Accept': 'application/vnd.github+json',
-              'X-GitHub-Api-Version': '2022-11-28',
-              'User-Agent': 'Codeward-App',
-            },
+          const instRepos = await fetchAllPages(`https://api.github.com/user/installations/${inst.id}/repositories?per_page=100`, {
+            'Authorization': `Bearer ${githubAccount.accessToken}`,
+            'Accept': 'application/vnd.github+json',
+            'X-GitHub-Api-Version': '2022-11-28',
+            'User-Agent': 'Codeward-App',
           });
-          if (instReposRes.ok) {
-            const instReposData = await instReposRes.json() as any;
-            for (const repo of instReposData.repositories || []) {
-              grantedRepoIds.add(repo.id);
-            }
+          for (const repo of instRepos) {
+            grantedRepoIds.add(repo.id);
           }
         } catch (e) {
           console.error(`Failed to fetch repos for installation ${inst.id}`, e);
@@ -163,22 +226,20 @@ reposRouter.get('/', async (c) => {
       isInstalled: installedAccountLogins.has(login)
     }));
 
-    // 3. Fetch repos
-    const ghResponse = await fetch('https://api.github.com/user/repos?sort=pushed&per_page=100&type=all', {
-      headers: {
-        'Authorization': `Bearer ${githubAccount.accessToken}`,
-        'Accept': 'application/vnd.github+json',
-        'X-GitHub-Api-Version': '2022-11-28',
-        'User-Agent': 'Codeward-App',
-      },
-    });
-
-    if (!ghResponse.ok) {
-      const errText = await ghResponse.text();
-      return c.json({ error: 'Failed to fetch repos from GitHub', details: errText }, ghResponse.status as any);
+    // 3. Fetch repos — real pagination follows GitHub's Link header rather than trusting the
+    // first 100 to be everything (a full user-journey audit found this was silently truncated).
+    const reposHeaders = {
+      'Authorization': `Bearer ${githubAccount.accessToken}`,
+      'Accept': 'application/vnd.github+json',
+      'X-GitHub-Api-Version': '2022-11-28',
+      'User-Agent': 'Codeward-App',
+    };
+    const firstPageCheck = await fetch('https://api.github.com/user/repos?sort=pushed&per_page=100&type=all', { headers: reposHeaders });
+    if (!firstPageCheck.ok) {
+      const errText = await firstPageCheck.text();
+      return c.json({ error: 'Failed to fetch repos from GitHub', details: errText }, firstPageCheck.status as any);
     }
-
-    const ghRepos = await ghResponse.json() as any[];
+    const ghRepos = await fetchAllPages('https://api.github.com/user/repos?sort=pushed&per_page=100&type=all', reposHeaders);
 
     // 4. Check connected repos
     // We check against all repos visible to the user across their orgs
@@ -360,7 +421,7 @@ reposRouter.post('/connect', async (c) => {
       // 5. Connect the repo
       const repoInstallationId = ownerToInstallationId[repo.owner] || 0;
 
-      await db.insert(schema.repositories).values({
+      const inserted = await db.insert(schema.repositories).values({
         userId: session.user.id,
         orgId: finalOrgId,
         fullName: repo.full,
@@ -370,28 +431,32 @@ reposRouter.post('/connect', async (c) => {
         language: repo.lang || null,
         isPrivate: repo.isPrivate,
         installationId: repoInstallationId,
+        status: 'pending_audit',
+        auditTriggeredAt: new Date(),
         config: repo.config || {
           agents: { security: true, bloat: true, broken_code: true, architecture: true, ai_era: true, compliance: true, data_dx: true },
           alerts: { slack: true, email: true, whatsapp: false, calendar: false }
         }
-      }).onConflictDoNothing();
+      }).onConflictDoNothing().returning();
       connected.push(repo.full);
 
-      // 6. Trigger Baseline Audit via BullMQ
-      try {
-        const { agentQueue } = await import('../agents/queue/agent.queue.js');
-        await agentQueue.add('baseline-audit', {
-          owner: repo.owner,
-          repo: repo.name,
-          installationId: repoInstallationId,
-          pull_number: 0,
-          sha: 'baseline',
-          patch: '',
-          branch: repo.defaultBranch || 'main',
-          diffs: []
-        });
-      } catch (queueErr) {
-        console.error(`Failed to trigger baseline audit for ${repo.full}:`, queueErr);
+      // 6. Trigger the REAL comprehensive audit — a full user-journey audit found the previous
+      // 'baseline-audit' job here was silently broken (wrong payload shape for the real
+      // worker), so no repo connected through this endpoint ever got a real first scan.
+      let repoRow = inserted[0];
+      if (!repoRow) {
+        // onConflictDoNothing means this repo already existed — look it up so we still have a
+        // real id to trigger against (e.g. reconnecting, or a race with the install webhook).
+        [repoRow] = await db.select().from(schema.repositories).where(eq(schema.repositories.fullName, repo.full));
+      }
+      if (repoRow) {
+        try {
+          await triggerComprehensiveAudit(repoRow.id, repo.full);
+        } catch (auditErr) {
+          console.error(`Failed to trigger comprehensive audit for ${repo.full}:`, auditErr);
+        }
+      } else {
+        console.error(`Could not resolve a real repositories row for ${repo.full} — audit not triggered.`);
       }
 
     } catch (err) {

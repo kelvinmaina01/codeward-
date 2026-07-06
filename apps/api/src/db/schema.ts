@@ -29,6 +29,10 @@ export const repositories = pgTable('repositories', {
   githubRepoId: integer('github_repo_id'),
   installationId: integer('installation_id'),
   status: varchar('status', { length: 50 }).default('pending_audit').notNull(),
+  // Real pause switch — Repositories.tsx's "Pause" button used to only flip local React state
+  // (a full user-journey audit caught this). When true, the push webhook and pushWorker both
+  // skip real analysis for this repo instead of silently queuing work nobody asked for.
+  paused: boolean('paused').default(false).notNull(),
   auditTriggeredAt: timestamp('audit_triggered_at'),
   auditCompletedAt: timestamp('audit_completed_at'),
   baselineScore: integer('baseline_score'),

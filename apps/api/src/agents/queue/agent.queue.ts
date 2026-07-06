@@ -388,6 +388,39 @@ Use these EXACT values for any tool parameter named runId/repoId — never inven
     }
 
     // -----------------------------------------------------------------------
+    // 6d. Mark the repo active once its real FIRST scan completes. A full user-journey audit
+    // found nothing ever did this: repositories.status stayed 'pending_audit' forever, which
+    // also silently stalled every later push (pushWorker re-queues with a delay whenever
+    // status !== 'active'). Guarded by the WHERE clause so this only ever fires once per repo
+    // — a harmless no-op on every subsequent run.
+    // -----------------------------------------------------------------------
+    if (agentId === 'orchestrator_phase3' && result.status !== 'error' && runRow?.repoId != null) {
+      try {
+        await db.update(repositories).set({
+          status: 'active', auditCompletedAt: new Date(), baselineScore: result.score ?? null,
+        }).where(and(eq(repositories.id, runRow.repoId), eq(repositories.status, 'pending_audit')));
+      } catch (activationError) {
+        console.error(`[AgentWorker] Could not activate repoId ${runRow.repoId} (non-fatal):`, (activationError as Error).message);
+      }
+    }
+
+    // -----------------------------------------------------------------------
+    // 6e. Reconcile runs.score with the SAME real result.score every agent's row uses. A real
+    // discrepancy was found live: store_orchestrator_result (a separate tool call, populated
+    // from a model-supplied nested `result` object) had set runs.score=0 for a run whose real
+    // computed score — now correctly extracted in openai.provider.ts — was 100. Two tools
+    // writing "the score" from two different sources will drift; this makes agent.queue.ts the
+    // one place that writes it, using the same result.score already trusted everywhere else.
+    // -----------------------------------------------------------------------
+    if (agentId === 'orchestrator_phase3' && result.status !== 'error') {
+      try {
+        await db.update(runs).set({ score: result.score ?? null }).where(eq(runs.id, runId));
+      } catch (scoreError) {
+        console.error(`[AgentWorker] Could not reconcile runs.score for run #${runId} (non-fatal):`, (scoreError as Error).message);
+      }
+    }
+
+    // -----------------------------------------------------------------------
     // 7. Write results to the database
     // -----------------------------------------------------------------------
     await db.update(agentTasks)
