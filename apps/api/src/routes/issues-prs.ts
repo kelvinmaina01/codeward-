@@ -190,3 +190,78 @@ issuesPrsRouter.get('/prs', async (c) => {
   prs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   return c.json({ prs: prs.slice(0, 100) });
 });
+
+/**
+ * GET /api/issues-prs/prs/:id/detail — the full PR description + what guardian actually said.
+ * Lazily loaded when a PR drawer opens (like issue comments) so the list stays fast. The PR body
+ * and guardian's review are fetched LIVE from GitHub — the real source of truth — so this works
+ * for old rows created before we captured the review body locally. :id is the same encoded id
+ * the list returns: "autofix-<approvalId>" or "human-<runId>".
+ */
+issuesPrsRouter.get('/prs/:id/detail', async (c) => {
+  const session = await auth.api.getSession({ headers: c.req.raw.headers });
+  if (!session) return c.json({ error: 'Unauthorized' }, 401);
+
+  const id = c.req.param('id');
+  const m = id.match(/^(autofix|human)-(\d+)$/);
+  if (!m) return c.json({ error: 'Invalid PR id' }, 400);
+  const [, kind, rawNum] = m;
+  const rowId = Number(rawNum);
+
+  // Resolve repoId + pullRequestNumber from the right table for this kind.
+  let repoId: number | null = null;
+  let pullNumber: number | null = null;
+  if (kind === 'autofix') {
+    const [a] = await db.select().from(schema.mergeApprovals).where(eq(schema.mergeApprovals.id, rowId));
+    if (a) { repoId = a.repoId; pullNumber = a.pullRequestNumber; }
+  } else {
+    const [run] = await db.select().from(schema.runs).where(eq(schema.runs.id, rowId));
+    if (run) { repoId = run.repoId; pullNumber = run.prNumber; }
+  }
+  if (repoId == null || pullNumber == null) return c.json({ error: 'PR not found' }, 404);
+
+  const repos = await accessibleRepos(session.user.id);
+  if (!repos.some((r) => r.id === repoId)) return c.json({ error: 'Forbidden' }, 403);
+
+  const ctx = await resolveOctokit(String(repoId));
+  if ('error' in ctx) return c.json({ error: ctx.error }, 502);
+
+  try {
+    const prRes: any = await ctx.octokit.request('GET /repos/{owner}/{repo}/pulls/{pull_number}', {
+      owner: ctx.owner, repo: ctx.repo, pull_number: pullNumber,
+    });
+    // Real reviews on the PR — guardian's formal review lives here when GitHub allowed it.
+    const reviewsRes: any = await ctx.octokit.request('GET /repos/{owner}/{repo}/pulls/{pull_number}/reviews', {
+      owner: ctx.owner, repo: ctx.repo, pull_number: pullNumber,
+    });
+    // Guardian may have fallen back to an issue comment ("can't review own PR") — include those
+    // that are clearly its assessment so the "what did guardian say" is never empty when it spoke.
+    const commentsRes: any = await ctx.octokit.request('GET /repos/{owner}/{repo}/issues/{issue_number}/comments', {
+      owner: ctx.owner, repo: ctx.repo, issue_number: pullNumber,
+    });
+    const guardianComments = (commentsRes.data ?? [])
+      .filter((cm: any) => /guardian assessment/i.test(cm.body ?? ''))
+      .map((cm: any) => ({ author: cm.user?.login, body: cm.body, event: 'COMMENT', createdAt: cm.created_at, htmlUrl: cm.html_url, viaComment: true }));
+
+    const reviews = (reviewsRes.data ?? [])
+      .filter((rv: any) => (rv.body && rv.body.trim()) || rv.state !== 'COMMENTED')
+      .map((rv: any) => ({ author: rv.user?.login, body: rv.body ?? '', event: rv.state, createdAt: rv.submitted_at, htmlUrl: rv.html_url, viaComment: false }));
+
+    const guardianReview = [...reviews, ...guardianComments]
+      .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+
+    return c.json({
+      body: prRes.data.body ?? '',
+      headBranch: prRes.data.head?.ref ?? null,
+      baseBranch: prRes.data.base?.ref ?? null,
+      additions: prRes.data.additions ?? null,
+      deletions: prRes.data.deletions ?? null,
+      changedFiles: prRes.data.changed_files ?? null,
+      author: prRes.data.user?.login ?? null,
+      guardianReview,
+    });
+  } catch (e: any) {
+    if (e?.status === 404) return c.json({ error: 'This pull request no longer exists on GitHub.' }, 404);
+    return c.json({ error: `Real GitHub PR detail fetch failed: ${e.message}` }, 502);
+  }
+});

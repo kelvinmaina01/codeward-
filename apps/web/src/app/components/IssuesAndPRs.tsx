@@ -64,6 +64,26 @@ interface IssueComment {
   htmlUrl: string;
 }
 
+interface GuardianReviewEntry {
+  author: string;
+  body: string;
+  event: string; // APPROVED | CHANGES_REQUESTED | COMMENTED | COMMENT
+  createdAt: string;
+  htmlUrl: string;
+  viaComment: boolean;
+}
+
+interface PrDetail {
+  body: string;
+  headBranch: string | null;
+  baseBranch: string | null;
+  additions: number | null;
+  deletions: number | null;
+  changedFiles: number | null;
+  author: string | null;
+  guardianReview: GuardianReviewEntry[];
+}
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
 function timeUntil(deadlineAt: string | null | undefined): string | null {
   if (!deadlineAt) return null;
@@ -123,6 +143,8 @@ export function IssuesAndPRs() {
   const [selectedPr, setSelectedPr] = useState<RealPR | null>(null);
   const [comments, setComments] = useState<IssueComment[] | null>(null);
   const [loadingComments, setLoadingComments] = useState(false);
+  const [prDetail, setPrDetail] = useState<PrDetail | null>(null);
+  const [loadingDetail, setLoadingDetail] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -151,6 +173,18 @@ export function IssuesAndPRs() {
       .catch(() => setComments([]))
       .finally(() => setLoadingComments(false));
   }, [selectedIssue]);
+
+  // Load the full PR body + guardian's real review words when a PR drawer opens.
+  useEffect(() => {
+    if (!selectedPr) { setPrDetail(null); return; }
+    setLoadingDetail(true);
+    setPrDetail(null);
+    fetch(`${API_URL}/api/issues-prs/prs/${selectedPr.id}/detail`, { credentials: 'include' })
+      .then((r) => r.json())
+      .then((d) => { if (!d?.error) setPrDetail(d); })
+      .catch(() => setPrDetail(null))
+      .finally(() => setLoadingDetail(false));
+  }, [selectedPr]);
 
   const repoOptions = useMemo(() => {
     const s = new Set<string>();
@@ -267,7 +301,7 @@ export function IssuesAndPRs() {
           <IssueDrawer issue={selectedIssue} comments={comments} loadingComments={loadingComments} onClose={closeDrawer} />
         )}
         {selectedPr && (
-          <PrDrawer pr={selectedPr} onClose={closeDrawer} />
+          <PrDrawer pr={selectedPr} detail={prDetail} loadingDetail={loadingDetail} onClose={closeDrawer} />
         )}
       </div>
     </div>
@@ -422,8 +456,24 @@ function IssueDrawer({ issue, comments, loadingComments, onClose }: { issue: Rea
   );
 }
 
-function PrDrawer({ pr, onClose }: { pr: RealPR; onClose: () => void }) {
+function reviewEventLabel(event: string): { label: string; cls: string } {
+  switch (event) {
+    case 'APPROVED':
+    case 'APPROVE': return { label: 'Approved', cls: 'text-cw-green' };
+    case 'CHANGES_REQUESTED':
+    case 'REQUEST_CHANGES': return { label: 'Requested changes', cls: 'text-cw-red' };
+    default: return { label: 'Commented', cls: 'text-cw-blue' };
+  }
+}
+
+function PrDrawer({ pr, detail, loadingDetail, onClose }: { pr: RealPR; detail: PrDetail | null; loadingDetail: boolean; onClose: () => void }) {
   const meta = prStatusMeta(pr);
+  const headBranch = pr.headBranch ?? detail?.headBranch ?? null;
+  const baseBranch = pr.baseBranch ?? detail?.baseBranch ?? null;
+  const additions = pr.additions ?? detail?.additions ?? null;
+  const deletions = pr.deletions ?? detail?.deletions ?? null;
+  const changedFiles = pr.changedFiles ?? detail?.changedFiles ?? null;
+  const author = pr.author ?? detail?.author ?? null;
   return (
     <>
       <div className="px-5 py-4 border-b border-cw-bdr bg-cw-bg shrink-0 flex items-start justify-between">
@@ -449,33 +499,66 @@ function PrDrawer({ pr, onClose }: { pr: RealPR; onClose: () => void }) {
 
         {/* What it was about + branches (blue) */}
         <Section color="cw-blue" title="What this PR is about" icon={<GitBranch size={12} />}>
-          {pr.headBranch && pr.baseBranch ? (
+          {headBranch && baseBranch ? (
             <div className="flex items-center gap-1.5 text-[12px] mb-2">
-              <span className="font-mono text-cw-txt px-1.5 py-0.5 rounded bg-cw-bg3">{pr.headBranch}</span>
+              <span className="font-mono text-cw-txt px-1.5 py-0.5 rounded bg-cw-bg3">{headBranch}</span>
               <span className="text-cw-txt3">→</span>
-              <span className="font-mono text-cw-txt px-1.5 py-0.5 rounded bg-cw-bg3">{pr.baseBranch}</span>
+              <span className="font-mono text-cw-txt px-1.5 py-0.5 rounded bg-cw-bg3">{baseBranch}</span>
             </div>
           ) : (
             <div className="text-[12px] text-cw-txt3 mb-2">Codeward opened this fix PR{pr.agentId ? ` from the ${pr.agentId} agent's changes` : ''}.</div>
           )}
-          {(pr.additions != null || pr.deletions != null || pr.changedFiles != null) && (
+          {(additions != null || deletions != null || changedFiles != null) && (
             <div className="flex items-center gap-3 text-[12px]">
-              {pr.changedFiles != null && <span className="text-cw-txt2 flex items-center gap-1"><FileDiff size={12} /> {pr.changedFiles} file{pr.changedFiles === 1 ? '' : 's'}</span>}
-              {pr.additions != null && <span className="text-cw-green">+{pr.additions}</span>}
-              {pr.deletions != null && <span className="text-cw-red">−{pr.deletions}</span>}
+              {changedFiles != null && <span className="text-cw-txt2 flex items-center gap-1"><FileDiff size={12} /> {changedFiles} file{changedFiles === 1 ? '' : 's'}</span>}
+              {additions != null && <span className="text-cw-green">+{additions}</span>}
+              {deletions != null && <span className="text-cw-red">−{deletions}</span>}
             </div>
           )}
-          {pr.author && <div className="text-[11px] text-cw-txt3 mt-2">Author: <span className="text-cw-txt2">@{pr.author}</span></div>}
+          {author && <div className="text-[11px] text-cw-txt3 mt-2">Author: <span className="text-cw-txt2">@{author}</span></div>}
         </Section>
 
-        {/* Guardian review (purple) */}
-        {(pr.guardianVerdict || pr.humanPrReview) && (
-          <Section color="cw-purple" title="Guardian review" icon={<ShieldCheck size={12} />}>
-            {pr.guardianVerdict && <div className="text-[12px] text-cw-txt2">Verdict: <span className="font-semibold text-cw-txt">{pr.guardianVerdict}</span></div>}
-            {pr.humanPrReview?.reviewed && <div className="text-[12px] text-cw-txt2">Guardian posted a <span className="font-semibold text-cw-txt">{pr.humanPrReview.event}</span> review on this human PR.</div>}
-            {pr.humanPrReview && !pr.humanPrReview.reviewed && <div className="text-[12px] text-cw-txt3">Review did not complete: {pr.humanPrReview.reason}</div>}
-          </Section>
-        )}
+        {/* Full PR description/message (blue) — the real GitHub PR body */}
+        <Section color="cw-blue" title="PR description" icon={<FileDiff size={12} />}>
+          {loadingDetail && !detail ? (
+            <div className="flex items-center gap-2 text-[12px] text-cw-txt3"><Loader size={12} className="animate-spin" /> Loading the full PR message from GitHub…</div>
+          ) : detail?.body && detail.body.trim() ? (
+            <pre className="text-[12px] text-cw-txt2 leading-relaxed whitespace-pre-wrap break-words font-sans">{detail.body}</pre>
+          ) : (
+            <div className="text-[12px] text-cw-txt3">This PR has no description body.</div>
+          )}
+        </Section>
+
+        {/* Guardian review (purple) — what guardian ACTUALLY said, verbatim from GitHub */}
+        <Section color="cw-purple" title="What guardian said" icon={<ShieldCheck size={12} />}>
+          {pr.guardianVerdict && <div className="text-[12px] text-cw-txt2 mb-2">Recorded verdict: <span className="font-semibold text-cw-txt">{pr.guardianVerdict}</span></div>}
+          {loadingDetail && !detail ? (
+            <div className="flex items-center gap-2 text-[12px] text-cw-txt3"><Loader size={12} className="animate-spin" /> Loading guardian's review from GitHub…</div>
+          ) : detail && detail.guardianReview.length > 0 ? (
+            <div className="flex flex-col gap-2.5">
+              {detail.guardianReview.map((rv, i) => {
+                const ev = reviewEventLabel(rv.event);
+                return (
+                  <div key={i} className="border-t border-cw-purple/15 pt-2 first:border-0 first:pt-0">
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
+                      <span className={`text-[11px] font-bold ${ev.cls}`}>{ev.label}</span>
+                      {rv.author && <span className="text-[11px] text-cw-txt3">by {rv.author}</span>}
+                      {rv.viaComment && <span className="text-[9px] text-cw-txt3 px-1.5 py-0.5 rounded bg-cw-bg3">as comment</span>}
+                      {rv.createdAt && <span className="text-[10px] text-cw-txt3">{relTime(rv.createdAt)}</span>}
+                    </div>
+                    {rv.body && rv.body.trim()
+                      ? <div className="text-[12px] text-cw-txt2 leading-relaxed whitespace-pre-wrap break-words">{rv.body}</div>
+                      : <div className="text-[11px] text-cw-txt3 italic">No written comment — verdict only.</div>}
+                  </div>
+                );
+              })}
+            </div>
+          ) : pr.humanPrReview && !pr.humanPrReview.reviewed ? (
+            <div className="text-[12px] text-cw-txt3">Guardian's review did not complete: {pr.humanPrReview.reason}</div>
+          ) : (
+            <div className="text-[12px] text-cw-txt3">Guardian has not posted a review on this PR{pr.kind === 'human' ? ' yet' : ''}.</div>
+          )}
+        </Section>
 
         {/* Merge status / decision (green or amber) */}
         <Section color={pr.status === 'pending' ? 'cw-amber' : 'cw-green'} title="Merge status" icon={<GitMerge size={12} />}>

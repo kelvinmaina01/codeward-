@@ -23,7 +23,7 @@ export interface ReviewHumanPRParams {
 }
 
 export type ReviewResult =
-  | { reviewed: true; event: 'APPROVE' | 'REQUEST_CHANGES' | 'COMMENT'; viaFormalReview: boolean; reviewId: number; htmlUrl: string }
+  | { reviewed: true; event: 'APPROVE' | 'REQUEST_CHANGES' | 'COMMENT'; viaFormalReview: boolean; reviewId: number; htmlUrl: string; body: string; comments?: Array<{ path: string; line: number; body: string }> }
   | { reviewed: false; reason: string };
 
 /**
@@ -65,7 +65,14 @@ async function runGuardianReview(sandbox: SandboxHandle, taskMessage: string): P
 
   if (!reviewArgs) return { reviewed: false, reason: 'Guardian did not submit a review within its step budget.' };
   if (!reviewResult?.success) return { reviewed: false, reason: `submit_pr_review's real GitHub call failed: ${reviewResult?.error ?? 'unknown error'}` };
-  return { reviewed: true, event: reviewArgs.event, viaFormalReview: !!reviewResult.viaFormalReview, reviewId: reviewResult.reviewId, htmlUrl: reviewResult.htmlUrl };
+  return {
+    reviewed: true, event: reviewArgs.event, viaFormalReview: !!reviewResult.viaFormalReview,
+    reviewId: reviewResult.reviewId, htmlUrl: reviewResult.htmlUrl,
+    // Guardian's actual written assessment + any inline comments — the "what did guardian say"
+    // the dashboard shows. Captured here because it's the only place that has reviewArgs.
+    body: String(reviewArgs.body ?? ''),
+    comments: Array.isArray(reviewArgs.comments) ? reviewArgs.comments : [],
+  };
 }
 
 /**
