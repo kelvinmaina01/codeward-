@@ -33,6 +33,9 @@ export const repositories = pgTable('repositories', {
   // (a full user-journey audit caught this). When true, the push webhook and pushWorker both
   // skip real analysis for this repo instead of silently queuing work nobody asked for.
   paused: boolean('paused').default(false).notNull(),
+  // Per-repo opt-out of automated fixing. Analysis/reporting still runs; when false, the fixer
+  // never opens an auto-fix PR for this repo — users choose which repos they trust to auto-fix.
+  autoFixEnabled: boolean('auto_fix_enabled').default(true).notNull(),
   auditTriggeredAt: timestamp('audit_triggered_at'),
   auditCompletedAt: timestamp('audit_completed_at'),
   baselineScore: integer('baseline_score'),

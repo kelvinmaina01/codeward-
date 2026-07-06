@@ -121,6 +121,35 @@ reposRouter.patch('/:id/pause', async (c) => {
   return c.json({ paused });
 });
 
+/**
+ * PATCH /api/repos/:id/autofix
+ * Per-repo opt-out of automated fixing. Analysis still runs; when disabled, the fixer never
+ * opens an auto-fix PR for this repo (enforced in agent.queue.ts).
+ */
+reposRouter.patch('/:id/autofix', async (c) => {
+  const session = await auth.api.getSession({ headers: c.req.raw.headers });
+  if (!session) return c.json({ error: 'Unauthorized' }, 401);
+
+  const repoId = Number(c.req.param('id'));
+  if (!Number.isFinite(repoId)) return c.json({ error: 'Invalid repo id' }, 400);
+
+  const [repo] = await db.select().from(schema.repositories).where(eq(schema.repositories.id, repoId));
+  if (!repo) return c.json({ error: 'Repository not found' }, 404);
+  if (repo.userId !== session.user.id) {
+    if (!repo.orgId) return c.json({ error: 'Forbidden' }, 403);
+    const [membership] = await db.select().from(schema.organizationMember)
+      .where(and(eq(schema.organizationMember.userId, session.user.id), eq(schema.organizationMember.orgId, repo.orgId)));
+    if (!membership) return c.json({ error: 'Forbidden' }, 403);
+  }
+
+  let body: any;
+  try { body = await c.req.json(); } catch { return c.json({ error: 'Invalid JSON body' }, 400); }
+  const autoFixEnabled = !!body?.autoFixEnabled;
+
+  await db.update(schema.repositories).set({ autoFixEnabled }).where(eq(schema.repositories.id, repoId));
+  return c.json({ autoFixEnabled });
+});
+
 
 /**
  * GET /api/repos

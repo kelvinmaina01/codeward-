@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Loader, AlertCircle, ShieldAlert, Activity, LayoutTemplate, TrendingDown, Bot, Scale, Database, MessageSquare, ExternalLink, CheckCircle2, Download, X as XIcon, ClipboardList, Wrench } from 'lucide-react';
+import { Loader, AlertCircle, ShieldAlert, Activity, LayoutTemplate, TrendingDown, Bot, Scale, Database, MessageSquare, CheckCircle2, Download, X as XIcon, ClipboardList, Wrench } from 'lucide-react';
 import { API_URL } from '../../lib/api';
+import { GithubIcon, GithubLink, githubFileUrl, extractFilePaths } from './GithubLink';
 
 interface RealAlert {
   id: string;
@@ -79,6 +80,7 @@ export function DebtReport() {
   const [error, setError] = useState<string | null>(null);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [repoFilter, setRepoFilter] = useState<string>('All');
 
   useEffect(() => {
     fetch(`${API_URL}/api/alerts`, { credentials: 'include' })
@@ -92,7 +94,12 @@ export function DebtReport() {
       .finally(() => setLoading(false));
   }, []);
 
-  const findings = alerts.filter((a) => a.kind === 'finding');
+  const allFindings = alerts.filter((a) => a.kind === 'finding');
+  const repoOptions = ['All', ...Array.from(new Set(allFindings.map((a) => a.repo)))];
+  const orgOptions = Array.from(new Set(allFindings.map((a) => a.repo.split('/')[0])));
+  const findings = allFindings.filter(
+    (f) => repoFilter === 'All' || f.repo === repoFilter || (orgOptions.includes(repoFilter) && f.repo.split('/')[0] === repoFilter)
+  );
   const byCategory = (source: string) => findings.filter((f) => f.source === source);
   const visible = activeCategory ? findings.filter((f) => f.source === activeCategory) : findings;
   const selected = findings.find((f) => f.id === selectedId) || null;
@@ -109,13 +116,26 @@ export function DebtReport() {
             <div className="text-[14px] font-medium text-cw-txt">Debt report</div>
             <div className="text-[11px] text-cw-txt3">Real open high-priority debt across your repos · {fixesOpened} auto-fix PR(s) opened</div>
           </div>
-          <button
-            onClick={() => downloadReport(findings, fixesOpened)}
-            disabled={findings.length === 0}
-            className="flex items-center gap-2 bg-cw-purple hover:brightness-110 text-white px-3.5 py-2 rounded-lg text-[12px] font-semibold transition-colors disabled:opacity-40"
-          >
-            <Download size={14} /> Download report
-          </button>
+          <div className="flex items-center gap-2.5">
+            {allFindings.length > 0 && (
+              <select
+                value={repoFilter}
+                onChange={(e) => setRepoFilter(e.target.value)}
+                className="bg-cw-bg2 border border-cw-bdr rounded-lg text-[12px] text-cw-txt py-2 px-3 outline-none focus:border-cw-purple max-w-[220px]"
+              >
+                <option value="All">All repos & orgs</option>
+                {orgOptions.length > 1 && <optgroup label="Organizations">{orgOptions.map((o) => <option key={`org-${o}`} value={o}>{o} (org)</option>)}</optgroup>}
+                <optgroup label="Repositories">{repoOptions.filter((r) => r !== 'All').map((r) => <option key={r} value={r}>{r}</option>)}</optgroup>
+              </select>
+            )}
+            <button
+              onClick={() => downloadReport(findings, fixesOpened)}
+              disabled={findings.length === 0}
+              className="flex items-center gap-2 bg-cw-purple hover:brightness-110 text-white px-3.5 py-2 rounded-lg text-[12px] font-semibold transition-colors disabled:opacity-40 shrink-0"
+            >
+              <Download size={14} /> Download report
+            </button>
+          </div>
         </div>
 
         <div className="p-6">
@@ -215,13 +235,36 @@ export function DebtReport() {
                 <div className="text-[13px] text-cw-txt2 leading-relaxed">{selected.description}</div>
               </div>
 
-              {/* Evidence (red) */}
-              {selected.evidence && (
-                <div className="rounded-xl border border-cw-red/25 bg-cw-red/5 p-3 mb-3">
-                  <div className="text-[10px] font-bold text-cw-red uppercase tracking-wide mb-1.5 flex items-center gap-1.5"><ClipboardList size={12} /> Tool evidence</div>
-                  <div className="text-[11px] text-cw-txt2 font-mono leading-relaxed break-words">{selected.evidence}</div>
+              {/* Where it was found — exact file:line CTA (blue) */}
+              {selected.file && selected.file.includes('.') && (
+                <div className="rounded-xl border border-cw-blue/25 bg-cw-blue/5 p-3 mb-3">
+                  <div className="text-[10px] font-bold text-cw-blue uppercase tracking-wide mb-1.5">Where it was found</div>
+                  <a href={githubFileUrl(selected.repo, selected.file, selected.line)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-[12px] text-cw-txt font-mono no-underline hover:underline">
+                    <GithubIcon size={13} /> {selected.file}{selected.line != null ? `:${selected.line}` : ''}
+                  </a>
                 </div>
               )}
+
+              {/* Evidence (red) — with per-file deep links to the exact spots */}
+              {selected.evidence && (() => {
+                const paths = extractFilePaths(selected.evidence).filter((p) => p !== selected.file);
+                return (
+                  <div className="rounded-xl border border-cw-red/25 bg-cw-red/5 p-3 mb-3">
+                    <div className="text-[10px] font-bold text-cw-red uppercase tracking-wide mb-1.5 flex items-center gap-1.5"><ClipboardList size={12} /> Tool evidence</div>
+                    <div className="text-[11px] text-cw-txt2 font-mono leading-relaxed break-words">{selected.evidence}</div>
+                    {paths.length > 0 && (
+                      <div className="mt-2 flex flex-col gap-1 border-t border-cw-red/15 pt-2">
+                        <div className="text-[10px] text-cw-txt3 mb-0.5">{paths.length} file{paths.length === 1 ? '' : 's'} — open the exact location:</div>
+                        {paths.map((p) => (
+                          <a key={p} href={githubFileUrl(selected.repo, p)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-[11px] text-cw-blue font-mono no-underline hover:underline truncate">
+                            <GithubIcon size={11} className="shrink-0" /> {p}
+                          </a>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
 
               {/* Suggested fix (green) */}
               {selected.suggestedFix && (
@@ -232,9 +275,7 @@ export function DebtReport() {
               )}
 
               {selected.htmlUrl && (
-                <a href={selected.htmlUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 px-4 py-2 bg-cw-purple hover:brightness-110 text-white text-[12px] font-semibold rounded-lg no-underline mt-1">
-                  <ExternalLink size={14} /> Open on GitHub
-                </a>
+                <GithubLink href={selected.htmlUrl} label="Open on GitHub" className="px-4 py-2 bg-cw-purple hover:brightness-110 text-white text-[12px] font-semibold rounded-lg mt-1" />
               )}
             </div>
           </>

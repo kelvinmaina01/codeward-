@@ -101,7 +101,10 @@ approvalsRouter.get('/:id/diff', async (c) => {
         patch: f.patch ?? null,
       })),
     });
-  } catch (e) {
+  } catch (e: any) {
+    if (e?.status === 404) {
+      return c.json({ error: 'This pull request no longer exists on GitHub — it may have been deleted, or the branch it was on was removed.' }, 404);
+    }
     return c.json({ error: `Real GitHub diff fetch failed: ${(e as Error).message}` }, 502);
   }
 });

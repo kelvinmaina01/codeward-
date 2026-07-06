@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import {
-  ShieldAlert, GitPullRequest, AlertCircle, ExternalLink, ShieldCheck,
+  ShieldAlert, GitPullRequest, AlertCircle, ShieldCheck,
   ClipboardList, X, ChevronRight, Loader
 } from 'lucide-react';
 import { API_URL } from '../../lib/api';
+import { GithubIcon, GithubLink, githubFileUrl, extractFilePaths } from './GithubLink';
 
 interface RealAlert {
   id: string;
@@ -49,6 +50,7 @@ export function Alerts() {
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'CRITICAL' | 'HIGH' | 'autofix'>('all');
   const [sourceTab, setSourceTab] = useState<string>('All');
+  const [repoFilter, setRepoFilter] = useState<string>('All');
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -65,11 +67,15 @@ export function Alerts() {
 
   // Real category tabs, derived from the sources actually present in the data (no fake tabs).
   const sourceTabs = ['All', ...Array.from(new Set(alerts.map((a) => a.source)))];
+  // Real repo + org filters for personalizing reports before viewing/sending.
+  const repoOptions = ['All', ...Array.from(new Set(alerts.map((a) => a.repo)))];
+  const orgOptions = Array.from(new Set(alerts.map((a) => a.repo.split('/')[0])));
 
   const filtered = alerts.filter((a) => {
     const matchesSeverity = filter === 'all' ? true : filter === 'autofix' ? a.kind === 'autofix' : a.severity === filter;
     const matchesSource = sourceTab === 'All' || a.source === sourceTab;
-    return matchesSeverity && matchesSource;
+    const matchesRepo = repoFilter === 'All' || a.repo === repoFilter || (orgOptions.includes(repoFilter) && a.repo.split('/')[0] === repoFilter);
+    return matchesSeverity && matchesSource && matchesRepo;
   });
   const selected = alerts.find((a) => a.id === selectedId) || null;
 
@@ -78,11 +84,22 @@ export function Alerts() {
       <div className="flex-1 overflow-y-auto w-full transition-all duration-300">
         <div className="p-8 max-w-[1000px] mx-auto pb-24">
 
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center justify-between mb-8 gap-4 flex-wrap">
             <div>
               <h1 className="text-[22px] font-bold text-cw-txt">Alerts</h1>
               <div className="text-[13px] text-cw-txt2 mt-1">Real notable events from your repos — high-severity findings, escalated GitHub issues, and auto-fix PRs.</div>
             </div>
+            {alerts.length > 0 && (
+              <select
+                value={repoFilter}
+                onChange={(e) => setRepoFilter(e.target.value)}
+                className="bg-cw-bg2 border border-cw-bdr rounded-lg text-[12px] text-cw-txt py-2 px-3 outline-none focus:border-cw-purple max-w-[240px]"
+              >
+                <option value="All">All repos & orgs</option>
+                {orgOptions.length > 1 && <optgroup label="Organizations">{orgOptions.map((o) => <option key={`org-${o}`} value={o}>{o} (org)</option>)}</optgroup>}
+                <optgroup label="Repositories">{repoOptions.filter((r) => r !== 'All').map((r) => <option key={r} value={r}>{r}</option>)}</optgroup>
+              </select>
+            )}
           </div>
 
           {/* Real stat counts */}
@@ -175,33 +192,69 @@ export function Alerts() {
               <h2 className="text-[16px] font-bold text-cw-txt truncate pr-4">Alert Details</h2>
               <button onClick={() => setSelectedId(null)} className="w-8 h-8 shrink-0 rounded hover:bg-cw-bg3 flex items-center justify-center text-cw-txt3 hover:text-cw-txt transition-colors"><X size={18} /></button>
             </div>
-            <div className="flex-1 overflow-y-auto p-6 bg-cw-bg">
-              <div className="flex items-start gap-4 mb-6">
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${sevColor[selected.severity]}`}>
-                  {(() => { const Icon = kindIcon[selected.kind] || ShieldAlert; return <Icon size={24} />; })()}
+            <div className="flex-1 overflow-y-auto p-5 bg-cw-bg">
+              <div className="flex items-start gap-3 mb-4">
+                <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${sevColor[selected.severity]}`}>
+                  {(() => { const Icon = kindIcon[selected.kind] || ShieldAlert; return <Icon size={22} />; })()}
                 </div>
-                <div>
-                  <h3 className="text-[16px] font-bold text-cw-txt mb-1 leading-tight">{selected.title}</h3>
+                <div className="min-w-0">
+                  <h3 className="text-[15px] font-bold text-cw-txt mb-1 leading-tight">{selected.title}</h3>
                   <div className="text-[12px] text-cw-txt3">{selected.source} · {selected.repo} · {timeAgo(selected.createdAt)}</div>
                 </div>
               </div>
-              <div className="text-[14px] text-cw-txt2 leading-relaxed mb-6">{selected.description}</div>
-              {(selected.file || selected.evidence) && (
-                <div className="bg-cw-bg2 border border-cw-bdr rounded-lg p-3 mb-6 font-mono text-[11px] text-cw-txt2 leading-relaxed flex items-start gap-3">
-                  <ClipboardList size={14} className="mt-0.5 shrink-0 text-cw-txt3" />
-                  <span>{selected.file ? `${selected.file}${selected.line != null ? `:${selected.line}` : ''}` : ''}{selected.file && selected.evidence ? ' · ' : ''}{selected.evidence ?? ''}</span>
+
+              <div className="flex items-center gap-2 mb-4 flex-wrap">
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${sevColor[selected.severity]}`}>{selected.severity}</span>
+                {selected.category && <span className="text-[11px] text-cw-txt3 uppercase">{selected.category}</span>}
+              </div>
+
+              {/* What Codeward found (purple) */}
+              <div className="rounded-xl border border-cw-purple/25 bg-cw-purple/5 p-3 mb-3">
+                <div className="text-[10px] font-bold text-cw-purple uppercase tracking-wide mb-1.5">What Codeward found</div>
+                <div className="text-[13px] text-cw-txt2 leading-relaxed">{selected.description}</div>
+              </div>
+
+              {/* Where it was found — exact file:line CTA (blue) */}
+              {selected.file && (
+                <div className="rounded-xl border border-cw-blue/25 bg-cw-blue/5 p-3 mb-3">
+                  <div className="text-[10px] font-bold text-cw-blue uppercase tracking-wide mb-1.5">Where it was found</div>
+                  <a href={githubFileUrl(selected.repo, selected.file, selected.line)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-[12px] text-cw-txt font-mono no-underline hover:underline">
+                    <GithubIcon size={13} /> {selected.file}{selected.line != null ? `:${selected.line}` : ''}
+                  </a>
                 </div>
               )}
+
+              {/* Tool evidence (red) — with per-file deep links when the evidence lists files */}
+              {selected.evidence && (() => {
+                const paths = extractFilePaths(selected.evidence).filter((p) => p !== selected.file);
+                return (
+                  <div className="rounded-xl border border-cw-red/25 bg-cw-red/5 p-3 mb-3">
+                    <div className="text-[10px] font-bold text-cw-red uppercase tracking-wide mb-1.5 flex items-center gap-1.5"><ClipboardList size={12} /> Tool evidence</div>
+                    <div className="text-[11px] text-cw-txt2 font-mono leading-relaxed break-words">{selected.evidence}</div>
+                    {paths.length > 0 && (
+                      <div className="mt-2 flex flex-col gap-1 border-t border-cw-red/15 pt-2">
+                        <div className="text-[10px] text-cw-txt3 mb-0.5">{paths.length} file{paths.length === 1 ? '' : 's'} — open the exact location:</div>
+                        {paths.map((p) => (
+                          <a key={p} href={githubFileUrl(selected.repo, p)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-[11px] text-cw-blue font-mono no-underline hover:underline truncate">
+                            <GithubIcon size={11} className="shrink-0" /> {p}
+                          </a>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+
+              {/* Suggested fix (green) */}
               {selected.suggestedFix && (
-                <div className="bg-cw-bg3/50 border border-cw-bdr rounded-lg p-3 mb-6 text-[12px] text-cw-txt2">
-                  <div className="text-[10px] font-bold text-cw-txt3 uppercase tracking-wide mb-1">Suggested fix</div>
-                  {selected.suggestedFix}
+                <div className="rounded-xl border border-cw-green/25 bg-cw-green/5 p-3 mb-3">
+                  <div className="text-[10px] font-bold text-cw-green uppercase tracking-wide mb-1.5">Suggested fix</div>
+                  <div className="text-[13px] text-cw-txt2 leading-relaxed">{selected.suggestedFix}</div>
                 </div>
               )}
+
               {selected.htmlUrl && (
-                <a href={selected.htmlUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 px-4 py-2 bg-cw-purple hover:brightness-110 text-white text-[12px] font-semibold rounded-lg no-underline">
-                  <ExternalLink size={14} /> Open on GitHub
-                </a>
+                <GithubLink href={selected.htmlUrl} label={selected.kind === 'autofix' ? 'View the pull request' : 'Open on GitHub'} className="px-4 py-2 bg-cw-purple hover:brightness-110 text-white text-[12px] font-semibold rounded-lg mt-1" />
               )}
             </div>
           </>

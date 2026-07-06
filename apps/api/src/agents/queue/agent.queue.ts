@@ -240,7 +240,10 @@ Use these EXACT values for any tool parameter named runId/repoId — never inven
     // -----------------------------------------------------------------------
     let autoFixPR: any = null;
     const { AUTO_FIX_ELIGIBLE_AGENTS } = await import('../fixer/fixer.service.js');
-    if (AUTO_FIX_ELIGIBLE_AGENTS.has(agentId) && result.status !== 'error' && result.findings.length > 0 && runRow?.repoId != null) {
+    // Per-repo opt-out: analysis still ran and is reported, but users choose which repos they
+    // trust to auto-fix. repoForClone was already loaded above for the clone token.
+    const autoFixAllowed = repoForClone?.autoFixEnabled !== false;
+    if (autoFixAllowed && AUTO_FIX_ELIGIBLE_AGENTS.has(agentId) && result.status !== 'error' && result.findings.length > 0 && runRow?.repoId != null) {
       try {
         const { openFixPR } = await import('../fixer/fixer.service.js');
         const outcome = await openFixPR({
