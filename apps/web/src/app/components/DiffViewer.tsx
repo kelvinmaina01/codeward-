@@ -1,7 +1,8 @@
 import { useEffect, useState, useCallback } from 'react';
-import { RefreshCw, GitMerge, X as XIcon, ExternalLink, GitPullRequest, Clock, AlertTriangle, ShieldCheck, ChevronRight, Loader } from 'lucide-react';
+import { RefreshCw, GitMerge, X as XIcon, GitPullRequest, Clock, AlertTriangle, ShieldCheck, ChevronRight, Loader } from 'lucide-react';
 import { toast } from 'sonner';
 import { API_URL } from '../../lib/api';
+import { GithubIcon } from './GithubLink';
 
 interface Approval {
   id: number;
@@ -267,7 +268,7 @@ export function DiffViewer() {
                 <div className="text-[14px] font-bold text-cw-txt truncate">{selected.prTitle ?? `PR #${selected.pullRequestNumber}`}</div>
                 {selected.prUrl && (
                   <a href={selected.prUrl} target="_blank" rel="noreferrer" className="text-[11px] text-cw-blue no-underline hover:underline flex items-center gap-1 mt-0.5">
-                    View PR #{selected.pullRequestNumber} on GitHub <ExternalLink size={10} />
+                    <GithubIcon size={11} /> View PR #{selected.pullRequestNumber} on GitHub
                   </a>
                 )}
               </div>

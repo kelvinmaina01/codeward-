@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Loader, ShieldCheck, AlertCircle, ExternalLink } from 'lucide-react';
+import { Loader, ShieldCheck, AlertCircle } from 'lucide-react';
 import { API_URL } from '../../lib/api';
+import { GithubIcon, githubFileUrl, isValidRepoFullName } from './GithubLink';
 
 interface RealAlert {
   id: string;
@@ -66,11 +67,18 @@ export function Security() {
               </div>
             )}
             {issue.suggestedFix && <div className="text-[11px] text-cw-txt2 mt-1"><span className="text-cw-txt3">Suggested fix:</span> {issue.suggestedFix}</div>}
-            {issue.htmlUrl && (
-              <a href={issue.htmlUrl} target="_blank" rel="noreferrer" className="mt-1.5 inline-flex items-center gap-1 text-[10px] text-cw-blue no-underline hover:underline">
-                <ExternalLink size={11} /> View on GitHub
-              </a>
-            )}
+            <div className="flex items-center gap-3 mt-1.5 flex-wrap">
+              {issue.file && isValidRepoFullName(issue.repo) && (
+                <a href={githubFileUrl(issue.repo, issue.file, issue.line)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[10px] text-cw-blue no-underline hover:underline font-mono">
+                  <GithubIcon size={11} /> {issue.file}{issue.line != null ? `:${issue.line}` : ''}
+                </a>
+              )}
+              {issue.htmlUrl && (
+                <a href={issue.htmlUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[10px] text-cw-blue no-underline hover:underline">
+                  <GithubIcon size={11} /> View on GitHub
+                </a>
+              )}
+            </div>
           </div>
         </div>
       ))}

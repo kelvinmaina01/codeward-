@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { X, RefreshCw, ChevronDown, ChevronRight, Wrench, ShieldCheck, GitPullRequest, ExternalLink, AlertTriangle } from 'lucide-react';
+import { X, RefreshCw, ChevronDown, ChevronRight, Wrench, ShieldCheck, GitPullRequest, AlertTriangle } from 'lucide-react';
 import { API_URL } from '../../lib/api';
+import { GithubIcon } from './GithubLink';
 
 interface Props {
   repoId: number;
@@ -147,7 +148,7 @@ function AgentSection({ agent }: { agent: AgentReport }) {
               >
                 <GitPullRequest size={13} />
                 <span className="font-medium">Auto-fix PR #{agent.autoFixPR!.pullRequestNumber} — {agent.autoFixPR!.fixedCount} fix{agent.autoFixPR!.fixedCount === 1 ? '' : 'es'} applied — {reviewText}</span>
-                <ExternalLink size={11} className="ml-auto shrink-0" />
+                <GithubIcon size={12} className="ml-auto shrink-0" />
               </a>
             );
           })()}
@@ -321,7 +322,7 @@ export function RunDetail({ repoId, runId, onBack }: Props) {
                     <span className="font-mono text-cw-red">#{issue.issueNumber}</span>
                     <span>{issue.title}</span>
                     <span className="text-cw-txt3">({issue.agentId})</span>
-                    <ExternalLink size={11} className="ml-auto shrink-0" />
+                    <GithubIcon size={12} className="ml-auto shrink-0" />
                   </a>
                 ))}
               </div>
