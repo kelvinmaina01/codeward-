@@ -1,79 +1,76 @@
-interface Issue {
-  icon: string;
+import { useEffect, useState } from 'react';
+import { Loader, ShieldCheck, AlertCircle, ExternalLink } from 'lucide-react';
+import { API_URL } from '../../lib/api';
+
+interface RealAlert {
+  id: string;
+  kind: string;
+  severity: 'CRITICAL' | 'HIGH' | 'INFO';
+  category?: string | null;
   title: string;
-  desc: string;
-  fixLabel: string;
-  bg: string;
-  border?: string;
-  btnPrimary?: boolean;
+  description: string;
+  source: string;
+  repo: string;
+  file?: string | null;
+  line?: number | null;
+  evidence?: string | null;
+  suggestedFix?: string | null;
+  htmlUrl?: string | null;
 }
 
-const issues: Issue[] = [
-  {
-    icon: '🔴',
-    title: 'Hardcoded API keys — config/api.js lines 3–4',
-    desc: 'Two live API keys (Stripe, OpenAI) found hardcoded. Visible in git history for 47 commits. Anyone with repo read access has these keys right now.',
-    fixLabel: 'Auto-fix: move to .env',
-    bg: 'bg-[#FEF2F2]',
-    btnPrimary: true,
-  },
-  {
-    icon: '🔴',
-    title: 'Missing authentication — GET /api/admin/users',
-    desc: 'Endpoint returns full user records with no auth check. Agent confirmed: 200 response with all user data when called with no token.',
-    fixLabel: 'View suggested fix',
-    bg: 'bg-[#FEF2F2]',
-    btnPrimary: true,
-  },
-  {
-    icon: '🔴',
-    title: 'Database RLS missing — users table (Supabase)',
-    desc: 'Row-level security not enabled. Any authenticated user can query all rows. Critical for multi-tenant apps.',
-    fixLabel: 'Auto-fix: apply RLS policy',
-    bg: 'bg-[#FEF2F2]',
-    btnPrimary: true,
-  },
-  {
-    icon: '🟡',
-    title: 'No rate limiting — POST /api/auth/login',
-    desc: '100 rapid requests all returned 200. Brute-force attack is trivially possible on this endpoint.',
-    fixLabel: 'View fix',
-    bg: 'bg-[#FFFBEB]',
-    btnPrimary: false,
-  },
-  {
-    icon: '🟣',
-    title: 'AI-era: no max_tokens guard — /api/chat (LLM endpoint)',
-    desc: 'OpenAI API called with no max_tokens set. Adversarial user input can trigger extremely long completions, draining your API budget in minutes.',
-    fixLabel: 'Auto-fix: add max_tokens: 1000',
-    bg: 'bg-[#EFF6FF]',
-    border: 'border-[3px] border-[#6D28D9]',
-    btnPrimary: true,
-  },
-  {
-    icon: '🔵',
-    title: 'Outdated dependency — lodash 4.17.15 · 3 known CVEs',
-    desc: 'CVE-2021-23337 (high), CVE-2020-28500 (medium). Update to lodash@4.17.21.',
-    fixLabel: 'Auto-update',
-    bg: 'bg-[#EFF6FF]',
-    btnPrimary: true,
-  },
-];
+const sevBg: Record<string, string> = {
+  CRITICAL: 'bg-cw-red/10 border-cw-red/30',
+  HIGH: 'bg-cw-amber/10 border-cw-amber/30',
+  INFO: 'bg-cw-bg2 border-cw-bdr',
+};
+const sevDot: Record<string, string> = { CRITICAL: '🔴', HIGH: '🟠', INFO: '🔵' };
 
 export function Security() {
+  const [issues, setIssues] = useState<RealAlert[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch(`${API_URL}/api/alerts`, { credentials: 'include' })
+      .then(async (res) => {
+        const data = await res.json();
+        if (!res.ok) throw new Error(data?.error || `Request failed (${res.status})`);
+        // Real security-relevant findings only, from the real alerts feed.
+        const sec = (data.alerts || []).filter((a: RealAlert) => a.kind === 'finding' && a.source === 'Security Agent');
+        setIssues(sec);
+      })
+      .catch((e) => setError(e.message))
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return <div className="flex-1 flex justify-center items-center py-20"><Loader size={24} className="animate-spin text-cw-purple" /></div>;
+  if (error) return <div className="flex-1 py-10 text-cw-red flex items-center justify-center gap-2"><AlertCircle size={16} /> {error}</div>;
+
   return (
     <div className="flex-1 overflow-y-auto px-5 py-4">
-      {issues.map((issue, i) => (
-        <div key={i} className={`flex gap-2.5 px-3 py-2.5 rounded-lg mb-2 items-start ${issue.bg} ${issue.border || 'border border-cw-bdr'}`}>
-          <div className="text-[20px]">{issue.icon}</div>
-          <div>
-            <div className="text-xs font-medium mb-[3px] text-[#111]">{issue.title}</div>
-            <div className="text-[11px] text-[#555] leading-[1.4]">{issue.desc}</div>
-            <div className="mt-1.5">
-              <button className={`text-[10px] px-[9px] py-[3px] rounded-md cursor-pointer transition-colors ${issue.btnPrimary ? 'border-none bg-cw-blue text-white hover:opacity-90' : 'border border-cw-bdr bg-cw-bg2 text-cw-txt2 hover:bg-cw-bg3'}`}>
-                {issue.fixLabel}
-              </button>
-            </div>
+      {issues.length === 0 ? (
+        <div className="py-16 text-center text-cw-txt3">
+          <ShieldCheck size={32} className="mx-auto mb-3 text-cw-green" />
+          <div className="text-[14px] text-cw-txt2">No open critical or high security findings.</div>
+          <div className="text-[12px] text-cw-txt3 mt-1">Real Security Agent findings across your repos appear here.</div>
+        </div>
+      ) : issues.map((issue) => (
+        <div key={issue.id} className={`flex gap-2.5 px-3 py-2.5 rounded-lg mb-2 items-start border ${sevBg[issue.severity]}`}>
+          <div className="text-[20px]">{sevDot[issue.severity]}</div>
+          <div className="min-w-0 flex-1">
+            <div className="text-xs font-medium mb-[3px] text-cw-txt">{issue.title} <span className="text-cw-txt3 font-normal">· {issue.repo}</span></div>
+            <div className="text-[11px] text-cw-txt2 leading-[1.4]">{issue.description}</div>
+            {(issue.file || issue.evidence) && (
+              <div className="text-[10px] text-cw-txt3 font-mono mt-1 truncate">
+                {issue.file ? `${issue.file}${issue.line != null ? `:${issue.line}` : ''}` : ''}{issue.file && issue.evidence ? ' · ' : ''}{issue.evidence ?? ''}
+              </div>
+            )}
+            {issue.suggestedFix && <div className="text-[11px] text-cw-txt2 mt-1"><span className="text-cw-txt3">Suggested fix:</span> {issue.suggestedFix}</div>}
+            {issue.htmlUrl && (
+              <a href={issue.htmlUrl} target="_blank" rel="noreferrer" className="mt-1.5 inline-flex items-center gap-1 text-[10px] text-cw-blue no-underline hover:underline">
+                <ExternalLink size={11} /> View on GitHub
+              </a>
+            )}
           </div>
         </div>
       ))}
