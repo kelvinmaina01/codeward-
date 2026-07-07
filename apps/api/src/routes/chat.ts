@@ -1,11 +1,11 @@
 import { Hono } from 'hono';
 import { streamText, generateText, convertToModelMessages, stepCountIs, type UIMessage } from 'ai';
-import { eq, and, desc } from 'drizzle-orm';
+import { eq, and, desc, inArray } from 'drizzle-orm';
 import { getModel } from '../providers/model.provider.js';
 import { auth } from '../auth/index.js';
 import { db } from '../db/index.js';
-import { chatSessions, chatMessages } from '../db/schema.js';
-import { createGordonTools } from '../agents/definitions/chat/gordon.tools.js';
+import { chatSessions, chatMessages, repositories } from '../db/schema.js';
+import { createGordonTools, accessibleRepoIds, assertRepoAccess } from '../agents/definitions/chat/gordon.tools.js';
 
 export const chatRouter = new Hono();
 
@@ -17,7 +17,11 @@ How you work:
 - Explain WHY findings matter (impact, exploitability, cost), not just what they are. Give the actual fix, not a doc link.
 - Be conversational but precise: short answers for simple questions, deep technical answers for technical ones. Put the most important information first — your output streams.
 - Push back when a user wants to ignore a Critical finding, and say why.
-- You currently have READ access to the user's repositories, runs and findings. Taking actions (running an agent, opening a fix PR, merging) is coming next — if a user asks you to DO one of those now, say plainly that action execution is not wired up yet rather than pretending you did it.
+
+Your capabilities are REAL:
+- READ: run history, findings, trends, fix priorities, agents' shared memory, and actual source files (read_repo_file / list_repo_dir via the GitHub API), plus live run status (get_run_status).
+- ACT (these require the user to approve a card before they run — never claim you did them until the tool returns success): spawn_agent runs an analysis agent in a real sandbox; approve_and_merge / reject_fix act on real pending auto-fix PRs. After spawning an agent, tell the user it's running and offer to follow progress with get_run_status. If an action tool returns an error, report it honestly.
+
 Format answers in GitHub-flavored markdown. When comparing repos, listing findings, or presenting anything with 3+ rows of structure, use a GFM table.`;
 
 async function getSessionUser(c: any) {
@@ -53,6 +57,36 @@ function textOfMessage(msg: UIMessage): string {
 }
 
 /* ------------------------------- session management ------------------------------- */
+
+/**
+ * Skills — Gordon's slash commands. Server-owned so the set can grow without a client deploy.
+ * Each is a templated prompt the composer inserts when the user picks it from the "/" menu;
+ * {repo} is filled with the pinned repo's name (or a gentle placeholder).
+ */
+const GORDON_SKILLS = [
+  { id: 'scan', label: '/scan', description: 'Run a security scan on the active repo', template: 'Run a security scan on {repo} and walk me through what you find.' },
+  { id: 'fix', label: '/fix', description: 'Find the highest-priority issues and offer to fix', template: 'What are the highest-priority issues in {repo} right now, and can you open fixes for the safe ones?' },
+  { id: 'report', label: '/report', description: 'Summarize the latest run', template: 'Give me a summary of the latest run for {repo}: score, top findings by severity, and what changed.' },
+  { id: 'compare', label: '/compare', description: 'Compare health across my repos', template: 'Compare the health scores across all my repositories and show them as a table, worst first.' },
+  { id: 'health', label: '/health', description: 'Health trend over time', template: 'How has the code health of {repo} trended over the last 30 days?' },
+  { id: 'approvals', label: '/approvals', description: 'Show pending auto-fix PRs to approve', template: 'Show me the Codeward auto-fix PRs waiting for a merge decision.' },
+];
+
+chatRouter.get('/skills', async (c) => {
+  const user = await getSessionUser(c);
+  if (!user) return c.json({ error: 'Unauthorized' }, 401);
+  return c.json({ skills: GORDON_SKILLS });
+});
+
+// Lightweight repo list for the composer's @-tag picker.
+chatRouter.get('/repos', async (c) => {
+  const user = await getSessionUser(c);
+  if (!user) return c.json({ error: 'Unauthorized' }, 401);
+  const ids = await accessibleRepoIds(user.id);
+  if (ids.length === 0) return c.json({ repos: [] });
+  const rows = await db.select({ id: repositories.id, fullName: repositories.fullName }).from(repositories).where(inArray(repositories.id, ids));
+  return c.json({ repos: rows });
+});
 
 chatRouter.get('/sessions', async (c) => {
   const user = await getSessionUser(c);
@@ -105,7 +139,7 @@ chatRouter.post('/', async (c) => {
   const user = await getSessionUser(c);
   if (!user) return c.json({ error: 'Unauthorized' }, 401);
 
-  const { messages, sessionId }: { messages: UIMessage[]; sessionId?: string } = await c.req.json();
+  const { messages, sessionId, repoId }: { messages: UIMessage[]; sessionId?: string; repoId?: number } = await c.req.json();
   if (!Array.isArray(messages) || messages.length === 0) return c.json({ error: 'messages required' }, 400);
 
   // Resolve or lazily create the session. A bad/foreign sessionId falls through to a fresh
@@ -114,6 +148,15 @@ chatRouter.post('/', async (c) => {
   const isNewSession = !session;
   if (!session) {
     [session] = await db.insert(chatSessions).values({ userId: user.id }).returning();
+  }
+
+  // Pinned repo (@-tag): validate ownership, persist it on the session, and tell Gordon which
+  // repo is active so it defaults tools to it without re-asking.
+  let activeRepoLine = '';
+  if (typeof repoId === 'number' && (await assertRepoAccess(user.id, repoId))) {
+    if (session.repoId !== repoId) await db.update(chatSessions).set({ repoId }).where(eq(chatSessions.id, session.id));
+    const [repo] = await db.select().from(repositories).where(eq(repositories.id, repoId));
+    if (repo) activeRepoLine = `\n\nACTIVE REPO: the user has pinned "${repo.fullName}" (repoId ${repoId}). Default to this repoId for repo-scoped tools unless they clearly mean another.`;
   }
 
   // Persist the incoming user message now (not in onFinish) so even an aborted/errored
@@ -125,7 +168,7 @@ chatRouter.post('/', async (c) => {
 
   const result = streamText({
     model: getModel('orchestrator'), // gpt-4o — best tool-calling reliability
-    system: GORDON_SYSTEM,
+    system: GORDON_SYSTEM + activeRepoLine,
     messages: await convertToModelMessages(messages),
     tools: createGordonTools(user.id),
     stopWhen: stepCountIs(12), // real agentic loop: plan -> call tools -> observe -> answer
