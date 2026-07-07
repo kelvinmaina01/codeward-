@@ -1,59 +1,35 @@
 import { Hono } from 'hono';
-import { streamText, tool } from 'ai';
+import { streamText, convertToModelMessages, stepCountIs, type UIMessage } from 'ai';
 import { getModel } from '../providers/model.provider.js';
-import { z } from 'zod';
-import { db } from '../db/index.js';
-import * as schema from '../db/schema.js';
-import { eq } from 'drizzle-orm';
 import { auth } from '../auth/index.js';
+import { createGordonTools } from '../agents/definitions/chat/gordon.tools.js';
 
 export const chatRouter = new Hono();
 
+const GORDON_SYSTEM = `You are Gordon — Codeward's principal-engineer chat agent. You are NOT a generic chatbot: you answer from real data by calling tools, never from guesses.
+
+How you work:
+- When a question can be answered by querying real run history, findings, or trends, CALL THE TOOL FIRST, then answer from what it returned. Never fabricate a score, a finding, or a fix.
+- If the user hasn't named a repo, call list_repositories to see what they have and either pick the obvious one or ask which they mean. Always use the numeric repoId in later tools.
+- Explain WHY findings matter (impact, exploitability, cost), not just what they are. Give the actual fix, not a doc link.
+- Be conversational but precise: short answers for simple questions, deep technical answers for technical ones. Put the most important information first — your output streams.
+- Push back when a user wants to ignore a Critical finding, and say why.
+- You currently have READ access to the user's repositories, runs and findings. Taking actions (running an agent, opening a fix PR, merging) is coming next — if a user asks you to DO one of those now, say plainly that action execution is not wired up yet rather than pretending you did it.
+Format answers in GitHub-flavored markdown.`;
+
 chatRouter.post('/', async (c) => {
   const session = await auth.api.getSession({ headers: c.req.raw.headers });
-  if (!session) {
-    return c.json({ error: 'Unauthorized' }, 401);
-  }
+  if (!session) return c.json({ error: 'Unauthorized' }, 401);
 
-  const { messages } = await c.req.json();
+  const { messages }: { messages: UIMessage[] } = await c.req.json();
 
   const result = streamText({
-    model: getModel('orchestrator'),
-    messages,
-    system: `You are Codeward AI, a senior staff engineer agent. You have full access to the user's codebase context. 
-    You can query recent runs, explain tech debt, and trigger security scans.
-    Be concise, technical, and helpful. Do not apologize.`,
-    tools: {
-      query_run_history: tool({
-        description: 'Fetch the recent automated agent runs to check the health of repositories.',
-        parameters: z.object({
-          limit: z.number().optional().default(5)
-        }),
-        execute: async ({ limit }: { limit?: number }) => {
-          const runs = await db.select().from(schema.runs).limit(limit || 5);
-          return { runs };
-        }
-      } as any),
-      explain_debt_item: tool({
-        description: 'Get an explanation for a specific tech debt finding by its ID or title.',
-        parameters: z.object({
-          query: z.string().describe('The finding title or category')
-        }),
-        execute: async ({ query }: { query: string }) => {
-          return { explanation: `The debt item "${query}" typically indicates outdated dependencies or lack of test coverage. I recommend running a full architecture audit.` };
-        }
-      } as any),
-      spawn_security_scan: tool({
-        description: 'Triggers a security scan on a specific repository.',
-        parameters: z.object({
-          repo: z.string().describe('The full name of the repository, e.g. "acme/api"')
-        }),
-        execute: async ({ repo }: { repo: string }) => {
-          return { status: 'triggered', message: `Security scan initiated for ${repo}. Results will be available in the dashboard shortly.` };
-        }
-      } as any)
-    }
+    model: getModel('orchestrator'), // gpt-4o — best tool-calling reliability
+    system: GORDON_SYSTEM,
+    messages: await convertToModelMessages(messages),
+    tools: createGordonTools(session.user.id),
+    stopWhen: stepCountIs(12), // real agentic loop: plan -> call tools -> observe -> answer
   });
 
-  return (result as any).toDataStreamResponse ? (result as any).toDataStreamResponse() : (result as any).toTextStreamResponse();
+  return result.toUIMessageStreamResponse();
 });

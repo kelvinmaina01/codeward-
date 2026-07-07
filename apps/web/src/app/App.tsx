@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation, NavLink } from 'react-router';
 import {
   LayoutDashboard, Radio, GitCompare, ShieldAlert, BarChart3,
-  Bot, Monitor, Clock, GitFork, Award, Settings as SettingsIcon,
+  Bot, ShieldCheck, Monitor, Clock, GitFork, Award, Settings as SettingsIcon,
   Sun, Moon, Circle, Menu, LogOut, LucideIcon, ChevronDown, Plus, Blocks, Bell, Globe, X,
   LayoutGrid, TerminalSquare, Sparkles, FileText, BadgeCheck, GitPullRequest
 } from 'lucide-react';
@@ -88,7 +88,7 @@ const nav: NavGroup[] = [
     { id: 'debt', label: 'Debt report', dot: 'a', icon: BarChart3, path: '/dashboard/debt' },
   ]},
   { group: 'AI Agent', items: [
-    { id: 'agent', label: 'Codeward AI', dot: 'p', icon: Bot, path: '/dashboard/agent' },
+    { id: 'agent', label: 'Gordon', dot: 'p', icon: ShieldCheck, path: '/dashboard/agent' },
   ]},
   { group: 'Deploy', items: [
     { id: 'staging', label: 'Staging', dot: 'a', icon: Monitor, path: '/dashboard/staging' },
@@ -108,7 +108,7 @@ const topbarConfig: Record<Screen, { title: string; sub: string }> = {
   diff:      { title: 'Diff viewer', sub: 'my-api · commit 3fa2c1 · 3 files changed by agent' },
   security:  { title: 'Security panel', sub: '3 critical · 2 high · 1 medium · last scan 4 min ago' },
   debt:      { title: 'Debt report', sub: 'my-api · all categories · this month' },
-  agent:     { title: 'Codeward AI', sub: 'Your autonomous engineering agent — not just a chatbot' },
+  agent:     { title: 'Gordon', sub: 'Your principal-engineer agent — answers from real run data, not guesses' },
   staging:   { title: 'Staging', sub: '1 deployment awaiting approval' },
   history:   { title: 'Audit Log', sub: 'All autonomous interventions and checks · last 30 days' },
   repos:     { title: 'Repositories', sub: '4 repos · health score last 30 days' },
