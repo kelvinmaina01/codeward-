@@ -36,6 +36,13 @@
       "when": 1781680810735,
       "tag": "0004_normal_venom",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1783451681830,
+      "tag": "0005_gordon_chat_persistence",
+      "breakpoints": true
     }
   ]
 }

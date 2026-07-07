@@ -27,6 +27,9 @@ const corsConfig = {
   },
   allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowHeaders: ['Content-Type', 'Authorization'],
+  // Gordon's chat stream returns the (possibly lazily-created) session id in this header so
+  // the client can adopt it after the first send.
+  exposeHeaders: ['X-Chat-Session-Id'],
   credentials: true,
   maxAge: 600,
 };

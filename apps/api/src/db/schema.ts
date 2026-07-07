@@ -225,3 +225,30 @@ export const demoLeads = pgTable("demo_leads", {
   gitProvider: varchar("git_provider", { length: 50 }).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
 });
+
+/**
+ * Gordon chat persistence — every conversation and every message part survives verbatim.
+ *
+ * chat_messages.parts stores the AI SDK UIMessage `parts` array as-is (text, tool calls with
+ * inputs/outputs/approval states, data parts), so reopening an old chat replays exactly what
+ * happened — tool cards included — with zero reconstruction logic. Titles are auto-generated
+ * after the first exchange (gpt-4o-mini) and user-renamable; repoId is the optional repo the
+ * user pinned with @-tagging so tools default to it.
+ */
+export const chatSessions = pgTable('chat_sessions', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
+  title: text('title'),                          // null until auto-titled
+  repoId: integer('repo_id').references(() => repositories.id, { onDelete: 'set null' }),
+  archived: boolean('archived').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+export const chatMessages = pgTable('chat_messages', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  sessionId: uuid('session_id').notNull().references(() => chatSessions.id, { onDelete: 'cascade' }),
+  role: varchar('role', { length: 20 }).notNull(),   // 'user' | 'assistant'
+  parts: jsonb('parts').notNull(),                    // UIMessage parts array, verbatim
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
