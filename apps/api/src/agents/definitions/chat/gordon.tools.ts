@@ -1,7 +1,7 @@
 import { tool } from 'ai';
 import { z } from 'zod';
 import { db } from '../../../db/index.js';
-import { runs, agentTasks, repositories, organizationMember } from '../../../db/schema.js';
+import { runs, agentTasks, repositories, organizationMember, mergeApprovals, agentMemory } from '../../../db/schema.js';
 import { eq, and, desc, gte, inArray } from 'drizzle-orm';
 
 /**
@@ -13,7 +13,7 @@ import { eq, and, desc, gte, inArray } from 'drizzle-orm';
  * action tools (spawn/fix/merge) arrive in Phase 1 behind an explicit confirmation gate.
  */
 
-async function accessibleRepoIds(userId: string): Promise<number[]> {
+export async function accessibleRepoIds(userId: string): Promise<number[]> {
   const owned = await db.select({ id: repositories.id }).from(repositories).where(eq(repositories.userId, userId));
   const memberships = await db.select({ orgId: organizationMember.orgId }).from(organizationMember).where(eq(organizationMember.userId, userId));
   const orgIds = memberships.map((m) => m.orgId);
@@ -24,7 +24,7 @@ async function accessibleRepoIds(userId: string): Promise<number[]> {
   return [...new Set([...owned.map((r) => r.id), ...orgRepos.map((r) => r.id)])];
 }
 
-async function assertRepoAccess(userId: string, repoId: number): Promise<boolean> {
+export async function assertRepoAccess(userId: string, repoId: number): Promise<boolean> {
   const ids = await accessibleRepoIds(userId);
   return ids.includes(repoId);
 }
@@ -151,6 +151,149 @@ export function createGordonTools(userId: string) {
         }
         comparison.sort((a, b) => ((b as any).latestScore ?? -1) - ((a as any).latestScore ?? -1));
         return { comparison: comparison.map((c, i) => ({ ranking: i + 1, ...c })) };
+      },
+    }),
+
+    /* ------------------------- read tools: live + code + memory ------------------------- */
+
+    get_run_status: tool({
+      description: 'Get the live status of a specific run and its agents (queued/running/completed/failed) — use to report progress after spawning an agent, or when the user asks how a scan is going.',
+      inputSchema: z.object({ runId: z.number() }),
+      execute: async ({ runId }) => {
+        const [run] = await db.select().from(runs).where(eq(runs.id, runId));
+        if (!run) return { error: `No run #${runId}.` };
+        if (!run.repoId || !(await assertRepoAccess(userId, run.repoId))) return { error: 'You do not have access to that run.' };
+        const tasks = await db.select().from(agentTasks).where(eq(agentTasks.runId, runId));
+        return {
+          runId, status: run.status, overallScore: run.score, commitSha: run.commitSha,
+          agents: tasks.map((t) => ({ agentId: t.agentId, status: t.status, score: t.score, findingsCount: t.findingsCount, durationMs: t.duration })),
+        };
+      },
+    }),
+
+    read_repo_file: tool({
+      description: "Read a file's real contents from a repo via the GitHub API (default branch unless a ref is given). Use to show or reason about actual source code.",
+      inputSchema: z.object({ repoId: z.number(), filePath: z.string(), ref: z.string().optional() }),
+      execute: async ({ repoId, filePath, ref }) => {
+        if (!(await assertRepoAccess(userId, repoId))) return { error: 'You do not have access to that repository.' };
+        const { resolveOctokit } = await import('../guardian/guardian.tools.js');
+        const ctx = await resolveOctokit(String(repoId));
+        if ('error' in ctx) return { error: ctx.error };
+        try {
+          const res: any = await ctx.octokit.request('GET /repos/{owner}/{repo}/contents/{path}', {
+            owner: ctx.owner, repo: ctx.repo, path: filePath, ...(ref ? { ref } : {}),
+          });
+          if (Array.isArray(res.data)) return { error: `${filePath} is a directory — use list_repo_dir.` };
+          const content = Buffer.from(res.data.content ?? '', 'base64').toString('utf8');
+          return { filePath, size: res.data.size, content: content.slice(0, 12000), truncated: content.length > 12000 };
+        } catch (e: any) {
+          return { error: `Could not read ${filePath}: ${e.status ?? ''} ${e.message}` };
+        }
+      },
+    }),
+
+    list_repo_dir: tool({
+      description: 'List the files/folders at a path in a repo via the GitHub API. Use to explore structure before reading files.',
+      inputSchema: z.object({ repoId: z.number(), path: z.string().optional().default('') }),
+      execute: async ({ repoId, path }) => {
+        if (!(await assertRepoAccess(userId, repoId))) return { error: 'You do not have access to that repository.' };
+        const { resolveOctokit } = await import('../guardian/guardian.tools.js');
+        const ctx = await resolveOctokit(String(repoId));
+        if ('error' in ctx) return { error: ctx.error };
+        try {
+          const res: any = await ctx.octokit.request('GET /repos/{owner}/{repo}/contents/{path}', { owner: ctx.owner, repo: ctx.repo, path: path ?? '' });
+          const items = Array.isArray(res.data) ? res.data : [res.data];
+          return { path: path ?? '', entries: items.map((i: any) => ({ name: i.name, type: i.type, size: i.size })) };
+        } catch (e: any) {
+          return { error: `Could not list ${path}: ${e.status ?? ''} ${e.message}` };
+        }
+      },
+    }),
+
+    read_agent_memory: tool({
+      description: "Read the agents' shared cross-run memory (patterns, exceptions, prior dismissals) for a repo. Use to see what the agents have already learned before answering.",
+      inputSchema: z.object({ repoId: z.number(), agentType: z.string().optional() }),
+      execute: async ({ repoId, agentType }) => {
+        if (!(await assertRepoAccess(userId, repoId))) return { error: 'You do not have access to that repository.' };
+        const conds = [eq(agentMemory.repoId, String(repoId))];
+        if (agentType) conds.push(eq(agentMemory.agentType, agentType));
+        const rows = await db.select().from(agentMemory).where(and(...conds)).orderBy(desc(agentMemory.createdAt)).limit(50);
+        return { memories: rows.map((m) => ({ agentType: m.agentType, memoryType: m.memoryType, filePath: m.filePath, summary: m.summary, confidence: m.confidence, useCount: m.useCount })) };
+      },
+    }),
+
+    list_pending_approvals: tool({
+      description: 'List Codeward auto-fix PRs awaiting a merge decision (pending merge approvals), optionally for one repo. Use before approving/rejecting so you have the real approvalId.',
+      inputSchema: z.object({ repoId: z.number().optional() }),
+      execute: async ({ repoId }) => {
+        const ids = repoId ? [repoId] : await accessibleRepoIds(userId);
+        if (repoId && !(await assertRepoAccess(userId, repoId))) return { error: 'You do not have access to that repository.' };
+        if (ids.length === 0) return { pending: [] };
+        const rows = await db.select().from(mergeApprovals)
+          .where(and(inArray(mergeApprovals.repoId, ids), eq(mergeApprovals.status, 'pending')))
+          .orderBy(desc(mergeApprovals.createdAt)).limit(50);
+        return { pending: rows.map((r) => ({ approvalId: r.id, repoId: r.repoId, prNumber: r.pullRequestNumber, prTitle: r.prTitle, prUrl: r.prUrl, guardianVerdict: r.guardianVerdict, maxSeverity: r.maxSeverity, mode: r.mode })) };
+      },
+    }),
+
+    /* ------------------------------- ACTION tools (gated) ------------------------------- */
+    // These carry needsApproval:true — the AI SDK emits an approval request and the client must
+    // Accept before execute() ever runs. That is the human-in-the-loop gate, enforced in code,
+    // not just asked for in the prompt. Every execute() below does REAL work.
+
+    spawn_agent: tool({
+      description: 'Run one of the analysis agents on a repo NOW (real sandbox job). Requires user approval. Use when the user asks to scan/analyze/check a repo. agentType is one of the analysis agents.',
+      inputSchema: z.object({
+        agentType: z.enum(['security', 'bloat', 'broken_code', 'architecture', 'ai_era', 'compliance']),
+        repoId: z.number(),
+      }),
+      needsApproval: true,
+      execute: async ({ agentType, repoId }) => {
+        if (!(await assertRepoAccess(userId, repoId))) return { error: 'You do not have access to that repository.' };
+        const { resolveOctokit } = await import('../guardian/guardian.tools.js');
+        const ctx = await resolveOctokit(String(repoId));
+        if ('error' in ctx) return { error: `Cannot reach GitHub for this repo: ${ctx.error}` };
+        let sha: string;
+        try {
+          const info: any = await ctx.octokit.request('GET /repos/{owner}/{repo}', { owner: ctx.owner, repo: ctx.repo });
+          const ref: any = await ctx.octokit.request('GET /repos/{owner}/{repo}/git/ref/{ref}', { owner: ctx.owner, repo: ctx.repo, ref: `heads/${info.data.default_branch}` });
+          sha = ref.data.object.sha;
+        } catch (e: any) {
+          return { error: `Could not resolve the default-branch head: ${e.message}` };
+        }
+        const fullName = `${ctx.owner}/${ctx.repo}`;
+        const [run] = await db.insert(runs).values({ repoId, commitSha: sha, status: 'queued' }).returning();
+        const { agentQueue } = await import('../../queue/agent.queue.js');
+        const job = await agentQueue.add(`agent-${agentType}`, { agentId: agentType, commitSHA: sha, repoFullName: fullName, runId: run.id });
+        return { spawned: true, runId: run.id, jobId: job.id, agentType, repo: fullName, commitSha: sha.slice(0, 7), note: 'Running in a real sandbox — call get_run_status to follow progress.' };
+      },
+    }),
+
+    approve_and_merge: tool({
+      description: 'Approve a pending Codeward auto-fix PR and merge it for real. Requires user approval. Get the approvalId from list_pending_approvals first.',
+      inputSchema: z.object({ approvalId: z.number() }),
+      needsApproval: true,
+      execute: async ({ approvalId }) => {
+        const [row] = await db.select().from(mergeApprovals).where(eq(mergeApprovals.id, approvalId));
+        if (!row) return { error: `No approval #${approvalId}.` };
+        if (!(await assertRepoAccess(userId, row.repoId))) return { error: 'You do not have access to that approval.' };
+        const { executeMerge } = await import('../../merge/merge.service.js');
+        const outcome = await executeMerge(approvalId, userId);
+        return outcome.merged ? { merged: true, sha: outcome.sha, prNumber: row.pullRequestNumber } : { merged: false, reason: outcome.reason };
+      },
+    }),
+
+    reject_fix: tool({
+      description: 'Reject a pending Codeward auto-fix PR — closes the PR with an explanatory comment. Requires user approval. Get the approvalId from list_pending_approvals.',
+      inputSchema: z.object({ approvalId: z.number(), note: z.string().optional() }),
+      needsApproval: true,
+      execute: async ({ approvalId, note }) => {
+        const [row] = await db.select().from(mergeApprovals).where(eq(mergeApprovals.id, approvalId));
+        if (!row) return { error: `No approval #${approvalId}.` };
+        if (!(await assertRepoAccess(userId, row.repoId))) return { error: 'You do not have access to that approval.' };
+        const { rejectApproval } = await import('../../merge/merge.service.js');
+        const outcome = await rejectApproval(approvalId, userId, note);
+        return outcome.rejected ? { rejected: true, prNumber: row.pullRequestNumber } : { rejected: false, reason: outcome.reason };
       },
     }),
   };
