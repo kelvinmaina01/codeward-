@@ -4,10 +4,11 @@ import { DefaultChatTransport, isToolUIPart, getToolName, type UIMessage } from 
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import {
-  Send, ShieldCheck, ChevronRight, Loader2, Wrench, CheckCircle2, AlertTriangle,
+  Send, ChevronRight, Loader2, Wrench, CheckCircle2, AlertTriangle,
   History, Plus, Search, Pencil, Trash2, X, Square, MessageSquare,
 } from 'lucide-react';
 import { API_URL } from '../../lib/api';
+import { GordonIcon } from './GordonIcon';
 
 /* ---------------------------------- markdown ---------------------------------- */
 
@@ -281,7 +282,7 @@ export function AIAgent() {
       <div className="flex-1 flex flex-col overflow-hidden px-5 py-4 min-w-0">
         <div className="flex items-center gap-2 mb-3">
           <div className="flex-1 bg-[#F5F3FF] border border-[#C4B5FD] rounded-[10px] px-3.5 py-2.5 text-[11px] text-cw-purple flex items-start gap-2">
-            <ShieldCheck size={14} className="shrink-0 mt-[1px]" />
+            <GordonIcon size={18} className="mt-[1px]" />
             <span><strong>Gordon</strong> reads your real runs, findings and trends and answers from live data — never guesses. Action execution (running agents, opening fixes) is landing next.</span>
           </div>
           <button onClick={newChat} title="New chat"
@@ -297,7 +298,7 @@ export function AIAgent() {
         <div className="flex-1 overflow-y-auto flex flex-col gap-2.5 pb-2.5">
           {messages.length === 0 && (
             <div className="flex flex-col items-center justify-center h-full text-center gap-3 text-cw-txt3">
-              <div className="w-11 h-11 rounded-full bg-cw-blue/10 flex items-center justify-center"><ShieldCheck size={22} className="text-cw-blue" /></div>
+              <GordonIcon size={48} />
               <div className="text-xs text-cw-txt2 max-w-[280px]">Ask Gordon about your codebase. It queries real run data to answer.</div>
               <div className="flex flex-col gap-1.5 w-full max-w-[340px]">
                 {SUGGESTIONS.map((s) => (
@@ -309,9 +310,9 @@ export function AIAgent() {
 
           {messages.map((msg) => (
             <div key={msg.id} className={`flex gap-2.5 items-start ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-              <div className={`w-[26px] h-[26px] rounded-full flex items-center justify-center text-[10px] font-medium shrink-0 ${msg.role === 'assistant' ? 'bg-cw-blue text-white' : 'bg-cw-bg3 text-cw-txt2'}`}>
-                {msg.role === 'assistant' ? <ShieldCheck size={14} /> : 'You'}
-              </div>
+              {msg.role === 'assistant'
+                ? <GordonIcon size={26} />
+                : <div className="w-[26px] h-[26px] rounded-full flex items-center justify-center text-[10px] font-medium shrink-0 bg-cw-bg3 text-cw-txt2">You</div>}
               <div className={`rounded-[10px] px-3 py-2 text-xs leading-[1.6] max-w-[85%] min-w-0 border ${msg.role === 'user' ? 'bg-cw-blue border-cw-blue text-white' : 'bg-cw-bg2 border-cw-bdr text-cw-txt'}`}>
                 {msg.parts.map((part, i) => {
                   if (part.type === 'text') return msg.role === 'user' ? <span key={i}>{part.text}</span> : <Markdown key={i} text={part.text} />;
@@ -324,7 +325,7 @@ export function AIAgent() {
 
           {busy && messages[messages.length - 1]?.role === 'user' && (
             <div className="flex gap-2.5 items-center text-cw-txt3 text-[11px]">
-              <div className="w-[26px] h-[26px] rounded-full bg-cw-blue text-white flex items-center justify-center"><ShieldCheck size={14} /></div>
+              <GordonIcon size={26} />
               <Loader2 size={13} className="animate-spin" /> Gordon is thinking…
             </div>
           )}

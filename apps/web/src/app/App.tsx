@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation, NavLink } from 'react-router';
 import {
   LayoutDashboard, Radio, GitCompare, ShieldAlert, BarChart3,
-  Bot, ShieldCheck, Monitor, Clock, GitFork, Award, Settings as SettingsIcon,
+  Bot, Monitor, Clock, GitFork, Award, Settings as SettingsIcon,
   Sun, Moon, Circle, Menu, LogOut, LucideIcon, ChevronDown, Plus, Blocks, Bell, Globe, X,
   LayoutGrid, TerminalSquare, Sparkles, FileText, BadgeCheck, GitPullRequest
 } from 'lucide-react';
@@ -10,6 +10,7 @@ import { Theme, Screen } from './components/types';
 import { AuthPage } from './components/AuthPage';
 import { ConnectRepo } from './components/ConnectRepo';
 import { Dashboard } from './components/Dashboard';
+import { GordonIcon } from './components/GordonIcon';
 import { LiveFeed } from './components/LiveFeed';
 import { DiffViewer } from './components/DiffViewer';
 import { Security } from './components/Security';
@@ -88,7 +89,7 @@ const nav: NavGroup[] = [
     { id: 'debt', label: 'Debt report', dot: 'a', icon: BarChart3, path: '/dashboard/debt' },
   ]},
   { group: 'AI Agent', items: [
-    { id: 'agent', label: 'Gordon', dot: 'p', icon: ShieldCheck, path: '/dashboard/agent' },
+    { id: 'agent', label: 'Gordon', dot: 'p', icon: GordonIcon as unknown as LucideIcon, path: '/dashboard/agent' },
   ]},
   { group: 'Deploy', items: [
     { id: 'staging', label: 'Staging', dot: 'a', icon: Monitor, path: '/dashboard/staging' },
