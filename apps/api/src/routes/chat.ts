@@ -170,7 +170,7 @@ chatRouter.post('/', async (c) => {
     model: getModel('orchestrator'), // gpt-4o — best tool-calling reliability
     system: GORDON_SYSTEM + activeRepoLine,
     messages: await convertToModelMessages(messages),
-    tools: createGordonTools(user.id),
+    tools: createGordonTools(user.id, session.id),
     stopWhen: stepCountIs(12), // real agentic loop: plan -> call tools -> observe -> answer
   });
 

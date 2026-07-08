@@ -252,3 +252,27 @@ export const chatMessages = pgTable('chat_messages', {
   parts: jsonb('parts').notNull(),                    // UIMessage parts array, verbatim
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
+
+/**
+ * Gordon telemetry — one row per real tool invocation, independent of chat display concerns.
+ * chat_messages already stores tool parts for replay, but that's shaped for the UI (per
+ * message, full input/output). This table is shaped for learning from usage while Gordon is in
+ * beta: which tools get called, how often they fail, how long they take, and — for the gated
+ * action tools — whether users actually approve or reject what Gordon proposes. Logged
+ * fire-and-forget from a wrapper around every tool's execute(); a logging failure must never
+ * break the chat itself.
+ */
+export const gordonEvents = pgTable('gordon_events', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
+  sessionId: uuid('session_id').references(() => chatSessions.id, { onDelete: 'set null' }),
+  toolName: text('tool_name').notNull(),
+  repoId: integer('repo_id'),                          // best-effort, extracted from input when present
+  input: jsonb('input'),
+  outputSummary: jsonb('output_summary'),               // truncated — enough to learn from, not a full replay copy
+  success: boolean('success').notNull(),
+  errorText: text('error_text'),
+  requiredApproval: boolean('required_approval').notNull().default(false),
+  durationMs: integer('duration_ms').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});

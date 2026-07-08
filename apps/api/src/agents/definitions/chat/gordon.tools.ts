@@ -1,8 +1,51 @@
 import { tool } from 'ai';
 import { z } from 'zod';
 import { db } from '../../../db/index.js';
-import { runs, agentTasks, repositories, organizationMember, mergeApprovals, agentMemory } from '../../../db/schema.js';
+import { runs, agentTasks, repositories, organizationMember, mergeApprovals, agentMemory, gordonEvents } from '../../../db/schema.js';
 import { eq, and, desc, gte, inArray } from 'drizzle-orm';
+
+/**
+ * Fire-and-forget telemetry for one tool call. Never awaited by the caller and never throws
+ * into it — a logging failure must not break the chat. repoId is pulled from the input when
+ * present (every repo-scoped tool names it `repoId`) purely for cheap per-repo analytics;
+ * output is capped so a huge file read doesn't bloat the table.
+ */
+function logGordonEvent(params: {
+  userId: string; sessionId: string | undefined; toolName: string; input: unknown;
+  output: unknown; success: boolean; errorText?: string; requiredApproval: boolean; durationMs: number;
+}) {
+  const repoId = typeof (params.input as any)?.repoId === 'number' ? (params.input as any).repoId : null;
+  const outputStr = JSON.stringify(params.output ?? null);
+  db.insert(gordonEvents).values({
+    userId: params.userId, sessionId: params.sessionId ?? null, toolName: params.toolName, repoId,
+    input: params.input as object, outputSummary: { preview: outputStr.slice(0, 2000), truncated: outputStr.length > 2000 },
+    success: params.success, errorText: params.errorText ?? null,
+    requiredApproval: params.requiredApproval, durationMs: params.durationMs,
+  }).catch((e) => console.error('[Gordon telemetry] insert failed (non-fatal):', (e as Error).message));
+}
+
+/** Wraps every tool's execute() with timing + outcome logging, preserving schema/approval flags. */
+function withTelemetry<T extends Record<string, any>>(tools: T, userId: string, sessionId: string | undefined): T {
+  const wrapped: Record<string, any> = {};
+  for (const [name, def] of Object.entries(tools)) {
+    const originalExecute = def.execute;
+    wrapped[name] = {
+      ...def,
+      execute: async (input: unknown, options: unknown) => {
+        const t0 = Date.now();
+        try {
+          const output = await originalExecute(input, options);
+          logGordonEvent({ userId, sessionId, toolName: name, input, output, success: true, requiredApproval: !!def.needsApproval, durationMs: Date.now() - t0 });
+          return output;
+        } catch (e) {
+          logGordonEvent({ userId, sessionId, toolName: name, input, output: null, success: false, errorText: (e as Error).message, requiredApproval: !!def.needsApproval, durationMs: Date.now() - t0 });
+          throw e;
+        }
+      },
+    };
+  }
+  return wrapped as T;
+}
 
 /**
  * Gordon's Phase-0 toolset: REAL, DB-backed, and auth-scoped to the signed-in user.
@@ -31,8 +74,8 @@ export async function assertRepoAccess(userId: string, repoId: number): Promise<
 
 const SEVERITY_RANK: Record<string, number> = { CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 3, INFO: 4 };
 
-export function createGordonTools(userId: string) {
-  return {
+export function createGordonTools(userId: string, sessionId?: string) {
+  const tools = {
     list_repositories: tool({
       description: "List the repositories this user can see, each with its latest run's score, status and date. Call this first when the user hasn't named a specific repo, so you can resolve which repo they mean and use the numeric repoId in later tools.",
       inputSchema: z.object({}),
@@ -297,4 +340,5 @@ export function createGordonTools(userId: string) {
       },
     }),
   };
+  return withTelemetry(tools, userId, sessionId);
 }

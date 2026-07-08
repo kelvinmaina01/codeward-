@@ -73,7 +73,7 @@ const themeIcons: Record<Theme, React.ReactNode> = {
   white: <Sun size={14} />,
 };
 
-interface NavItem { id: Screen; label: string; dot: 'g'|'a'|'r'|'b'|'p'|''; badge?: number; icon: LucideIcon; path: string; }
+interface NavItem { id: Screen; label: string; dot: 'g'|'a'|'r'|'b'|'p'|''; badge?: number; beta?: boolean; icon: LucideIcon; path: string; }
 interface NavGroup { group: string; items: NavItem[] }
 
 const nav: NavGroup[] = [
@@ -89,7 +89,7 @@ const nav: NavGroup[] = [
     { id: 'debt', label: 'Debt report', dot: 'a', icon: BarChart3, path: '/dashboard/debt' },
   ]},
   { group: 'AI Agent', items: [
-    { id: 'agent', label: 'Gordon', dot: 'p', icon: GordonIcon as unknown as LucideIcon, path: '/dashboard/agent' },
+    { id: 'agent', label: 'Gordon', dot: 'p', beta: true, icon: GordonIcon as unknown as LucideIcon, path: '/dashboard/agent' },
   ]},
   { group: 'Deploy', items: [
     { id: 'staging', label: 'Staging', dot: 'a', icon: Monitor, path: '/dashboard/staging' },
@@ -266,6 +266,7 @@ function DashboardLayout() {
                       </div>
                       <div className={`flex items-center flex-1 whitespace-nowrap overflow-hidden transition-opacity duration-300 ${isSidebarPinned ? 'opacity-100' : 'opacity-0'}`}>
                         {item.label}
+                        {item.beta && <span className="ml-auto text-[9px] px-[6px] py-[1px] rounded-full border border-cw-purple text-cw-purple font-semibold tracking-wide">BETA</span>}
                         {item.badge && <span className="ml-auto text-[10px] px-[6px] py-[2px] rounded-full bg-cw-red text-white font-medium">{item.badge}</span>}
                       </div>
                     </>
@@ -311,7 +312,10 @@ function DashboardLayout() {
                 <Menu size={18} />
               </button>
               <div>
-                <h1 className="text-[22px] font-bold text-cw-txt tracking-tight leading-none mb-1.5">{topbar.title}</h1>
+                <h1 className="text-[22px] font-bold text-cw-txt tracking-tight leading-none mb-1.5 flex items-center gap-2">
+                  {topbar.title}
+                  {screen === 'agent' && <span className="text-[10px] px-2 py-[3px] rounded-full border border-cw-purple text-cw-purple font-semibold tracking-wide">BETA</span>}
+                </h1>
                 <div className="text-[13px] text-cw-txt2">{topbar.sub}</div>
               </div>
             </div>

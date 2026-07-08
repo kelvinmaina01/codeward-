@@ -50,6 +50,13 @@
       "when": 1783494917448,
       "tag": "0006_backfill_merge_approvals_demo_leads",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1783497725437,
+      "tag": "0007_gordon_events_telemetry",
+      "breakpoints": true
     }
   ]
 }
