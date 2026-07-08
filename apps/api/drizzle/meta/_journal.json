@@ -43,6 +43,13 @@
       "when": 1783451681830,
       "tag": "0005_gordon_chat_persistence",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1783494917448,
+      "tag": "0006_backfill_merge_approvals_demo_leads",
+      "breakpoints": true
     }
   ]
 }
