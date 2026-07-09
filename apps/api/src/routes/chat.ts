@@ -1,10 +1,10 @@
 import { Hono } from 'hono';
 import { streamText, generateText, convertToModelMessages, stepCountIs, type UIMessage } from 'ai';
-import { eq, and, desc, inArray } from 'drizzle-orm';
+import { eq, and, desc, inArray, count } from 'drizzle-orm';
 import { getModel } from '../providers/model.provider.js';
 import { auth } from '../auth/index.js';
 import { db } from '../db/index.js';
-import { chatSessions, chatMessages, repositories } from '../db/schema.js';
+import { chatSessions, chatMessages, repositories, runs, mergeApprovals, gordonEvents } from '../db/schema.js';
 import { createGordonTools, accessibleRepoIds, assertRepoAccess } from '../agents/definitions/chat/gordon.tools.js';
 
 export const chatRouter = new Hono();
@@ -76,6 +76,119 @@ chatRouter.get('/skills', async (c) => {
   const user = await getSessionUser(c);
   if (!user) return c.json({ error: 'Unauthorized' }, 401);
   return c.json({ skills: GORDON_SKILLS });
+});
+
+/**
+ * Dynamic suggested prompts — NOT hardcoded. Computed from the user's REAL activity: pending
+ * approvals, lowest-health repo, never-scanned repos, most-recent run, and cross-repo compare.
+ * Each suggestion carries an `icon` key the client maps to a hugeicon. Only suggestions backed
+ * by real data are returned, best/most-actionable first; falls back to safe generic prompts
+ * only when the account has literally no repos yet.
+ */
+chatRouter.get('/suggestions', async (c) => {
+  const user = await getSessionUser(c);
+  if (!user) return c.json({ error: 'Unauthorized' }, 401);
+  const ids = await accessibleRepoIds(user.id);
+  if (ids.length === 0) {
+    return c.json({ suggestions: [
+      { id: 'connect', icon: 'connect', title: 'Connect your first repository', subtitle: 'Gordon works from your real repos', prompt: 'How do I connect a repository to Codeward so you can analyze it?' },
+      { id: 'what', icon: 'info', title: 'What can you do?', subtitle: 'See Gordon’s real capabilities', prompt: 'What can you actually do for me, and what data do you work from?' },
+    ] });
+  }
+
+  const repos = await db.select().from(repositories).where(inArray(repositories.id, ids));
+  const byId = new Map(repos.map((r) => [r.id, r]));
+
+  // Latest run per repo (one query, then reduce in JS).
+  const latestByRepo = new Map<number, { score: number | null; status: string; at: Date | null }>();
+  for (const r of repos) {
+    const [latest] = await db.select().from(runs).where(eq(runs.repoId, r.id)).orderBy(desc(runs.createdAt)).limit(1);
+    if (latest) latestByRepo.set(r.id, { score: latest.score, status: latest.status, at: latest.createdAt });
+  }
+
+  const pending = await db.select({ id: mergeApprovals.id }).from(mergeApprovals)
+    .where(and(inArray(mergeApprovals.repoId, ids), eq(mergeApprovals.status, 'pending')));
+
+  const suggestions: Array<{ id: string; icon: string; title: string; subtitle: string; prompt: string }> = [];
+
+  // 1) Pending approvals — highest-value action.
+  if (pending.length > 0) {
+    suggestions.push({ id: 'approvals', icon: 'approvals',
+      title: `Review ${pending.length} auto-fix PR${pending.length === 1 ? '' : 's'} waiting`,
+      subtitle: 'Approve or reject Codeward’s fixes', prompt: 'Show me the Codeward auto-fix PRs waiting for a merge decision, with the guardian verdict for each.' });
+  }
+
+  // 2) Lowest-health scanned repo — what to fix.
+  const scored = repos.map((r) => ({ r, s: latestByRepo.get(r.id)?.score })).filter((x) => x.s != null) as { r: typeof repos[number]; s: number }[];
+  if (scored.length) {
+    scored.sort((a, b) => a.s - b.s);
+    const worst = scored[0];
+    suggestions.push({ id: 'fix-worst', icon: 'fix',
+      title: `Fix ${worst.r.name} (health ${worst.s})`,
+      subtitle: 'Your lowest-scoring repository', prompt: `What are the highest-priority issues in ${worst.r.fullName} right now, and can you open fixes for the safe ones?` });
+  }
+
+  // 3) A never-scanned repo — nudge a first scan.
+  const neverScanned = repos.find((r) => !latestByRepo.has(r.id) && !r.paused);
+  if (neverScanned) {
+    suggestions.push({ id: 'scan-new', icon: 'scan',
+      title: `Scan ${neverScanned.name}`,
+      subtitle: 'Never analyzed yet', prompt: `Run a security scan on ${neverScanned.fullName} and walk me through what you find.` });
+  }
+
+  // 4) Most-recently scanned repo — summarize it.
+  const recent = [...latestByRepo.entries()].sort((a, b) => (b[1].at?.getTime() ?? 0) - (a[1].at?.getTime() ?? 0))[0];
+  if (recent) {
+    const rr = byId.get(recent[0])!;
+    suggestions.push({ id: 'report-recent', icon: 'report',
+      title: `Summarize ${rr.name}’s latest scan`,
+      subtitle: 'Score, top findings, what changed', prompt: `Give me a summary of the latest run for ${rr.fullName}: score, top findings by severity, and what changed.` });
+  }
+
+  // 5) Compare — only meaningful with 2+ scored repos.
+  if (scored.length >= 2) {
+    suggestions.push({ id: 'compare', icon: 'compare',
+      title: `Compare health across ${scored.length} repos`,
+      subtitle: 'Ranked worst to best', prompt: 'Compare the health scores across all my repositories and show them as a table, worst first.' });
+  }
+
+  return c.json({ suggestions: suggestions.slice(0, 6) });
+});
+
+/**
+ * Gordon Logs — real, per-user accountability trail from gordon_events. Newest first, paginated.
+ * Enriches repoId → repo name so the client can show a human label. The full input/output preview
+ * is included for the collapsible per-row breakdown.
+ */
+chatRouter.get('/logs', async (c) => {
+  const user = await getSessionUser(c);
+  if (!user) return c.json({ error: 'Unauthorized' }, 401);
+  const limit = Math.min(Number(c.req.query('limit')) || 100, 500);
+  const offset = Math.max(Number(c.req.query('offset')) || 0, 0);
+
+  const rows = await db.select().from(gordonEvents)
+    .where(eq(gordonEvents.userId, user.id))
+    .orderBy(desc(gordonEvents.createdAt))
+    .limit(limit).offset(offset);
+
+  // Resolve repo names for the repoIds present (bounded set).
+  const repoIds = [...new Set(rows.map((r) => r.repoId).filter((x): x is number => x != null))];
+  const repoNames = new Map<number, string>();
+  if (repoIds.length) {
+    const rr = await db.select({ id: repositories.id, fullName: repositories.fullName }).from(repositories).where(inArray(repositories.id, repoIds));
+    for (const r of rr) repoNames.set(r.id, r.fullName);
+  }
+
+  const total = (await db.select({ n: count() }).from(gordonEvents).where(eq(gordonEvents.userId, user.id)))[0]?.n ?? rows.length;
+
+  return c.json({
+    total: Number(total), limit, offset,
+    logs: rows.map((r) => ({
+      id: r.id, toolName: r.toolName, repoId: r.repoId, repoName: r.repoId ? repoNames.get(r.repoId) ?? null : null,
+      success: r.success, requiredApproval: r.requiredApproval, durationMs: r.durationMs, errorText: r.errorText,
+      createdAt: r.createdAt, input: r.input, outputSummary: r.outputSummary,
+    })),
+  });
 });
 
 // Lightweight repo list for the composer's @-tag picker.

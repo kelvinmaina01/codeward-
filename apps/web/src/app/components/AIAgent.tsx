@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+import { useState, useRef, useEffect, useMemo, useCallback, Fragment } from 'react';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport, isToolUIPart, getToolName, lastAssistantMessageIsCompleteWithApprovalResponses, type UIMessage } from 'ai';
 import ReactMarkdown from 'react-markdown';
@@ -8,8 +8,22 @@ import {
   History, Plus, Search, Pencil, Trash2, X, Square, MessageSquare,
   GitFork, ChevronDown, Check, Ban, Radio, Zap,
 } from 'lucide-react';
+import {
+  SecurityCheckIcon, Analytics01Icon, SourceCodeIcon, GitPullRequestIcon, Rocket01Icon, Time04Icon,
+  Wrench01Icon, File01Icon, ChartLineData01Icon, AnalyticsUpIcon, GitBranchIcon, BubbleChatIcon,
+  ListViewIcon, CheckmarkCircle01Icon, Cancel01Icon, RefreshIcon,
+} from 'hugeicons-react';
 import { API_URL, WS_URL } from '../../lib/api';
 import { GordonIcon } from './GordonIcon';
+
+type HugeIcon = typeof SecurityCheckIcon;
+
+/** icon key (from the server's dynamic suggestions) → hugeicon component */
+const SUGGESTION_ICON: Record<string, HugeIcon> = {
+  approvals: GitPullRequestIcon, fix: Wrench01Icon, scan: SecurityCheckIcon,
+  report: File01Icon, compare: ChartLineData01Icon, health: AnalyticsUpIcon,
+  connect: GitBranchIcon, info: BubbleChatIcon,
+};
 
 /* ---------------------------------- markdown ---------------------------------- */
 
@@ -217,17 +231,225 @@ function HistoryDrawer({ sessions, activeId, onSelect, onRename, onDelete, onClo
   );
 }
 
+/* ------------------------------------ hero ------------------------------------ */
+
+interface Suggestion { id: string; icon: string; title: string; subtitle: string; prompt: string }
+
+const CAPABILITIES: { icon: HugeIcon; label: string }[] = [
+  { icon: SecurityCheckIcon, label: 'Runs real security & quality scans' },
+  { icon: Rocket01Icon, label: 'Dispatches agents in a real sandbox' },
+  { icon: Analytics01Icon, label: 'Reads your runs, findings & trends' },
+  { icon: SourceCodeIcon, label: 'Reads your actual source code' },
+  { icon: GitPullRequestIcon, label: 'Opens, approves & merges fix PRs' },
+  { icon: Time04Icon, label: 'Remembers every session' },
+];
+
+/** The welcome/empty state — Meet Gordon, capabilities, and DYNAMIC suggestions from real data. */
+function GordonHero({ suggestions, loadingSuggestions, onPick }: {
+  suggestions: Suggestion[]; loadingSuggestions: boolean; onPick: (prompt: string) => void;
+}) {
+  return (
+    <div className="flex-1 overflow-y-auto">
+      <div className="max-w-[760px] mx-auto px-2 py-6">
+        {/* hero */}
+        <div className="flex items-center gap-5 flex-wrap-reverse">
+          <div className="flex-1 min-w-[260px]">
+            <div className="flex items-center gap-2 mb-2">
+              <h1 className="text-2xl font-bold text-cw-txt">Meet Gordon</h1>
+              <span className="text-xl">👋</span>
+              <span className="text-[9px] px-[6px] py-[2px] rounded-full border border-cw-purple text-cw-purple font-semibold tracking-wide">BETA</span>
+            </div>
+            <p className="text-sm font-semibold text-cw-txt leading-snug mb-1.5">Your AI teammate that scans repos, fixes issues, and ships safer code.</p>
+            <p className="text-[13px] text-cw-txt2 leading-relaxed">
+              Just describe what you need. Gordon reads your real runs and code, dispatches the security agents in a sandbox, and acts on findings — with your approval — so you spend less time chasing debt and more time building.
+            </p>
+          </div>
+          <div className="relative shrink-0 mx-auto">
+            <div className="absolute inset-0 rounded-full bg-cw-blue/15 blur-2xl" />
+            <GordonIcon size={104} className="relative" />
+          </div>
+        </div>
+
+        {/* capabilities */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 mt-5">
+          {CAPABILITIES.map((c) => {
+            const Icon = c.icon;
+            return (
+              <div key={c.label} className="flex items-center gap-2 text-[12px] text-cw-txt2">
+                <Icon size={15} className="text-cw-blue shrink-0" />
+                <span>{c.label}</span>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* dynamic suggestions */}
+        <div className="mt-7">
+          <div className="text-[10px] uppercase tracking-wider text-cw-txt3 font-semibold mb-2.5">Suggested for you · from your real activity</div>
+          {loadingSuggestions ? (
+            <div className="flex items-center gap-2 text-[12px] text-cw-txt3 py-3"><Loader2 size={14} className="animate-spin" /> Reading your repositories…</div>
+          ) : suggestions.length === 0 ? (
+            <div className="text-[12px] text-cw-txt3 py-3">No activity yet — connect a repo and Gordon will suggest what to do next.</div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              {suggestions.map((s) => {
+                const Icon = SUGGESTION_ICON[s.icon] ?? BubbleChatIcon;
+                return (
+                  <button key={s.id} onClick={() => onPick(s.prompt)}
+                    className="group text-left border border-cw-bdr rounded-xl px-3.5 py-3 bg-cw-bg2 hover:border-cw-blue hover:bg-cw-blue/[0.03] transition-colors flex items-start gap-2.5">
+                    <div className="w-8 h-8 rounded-lg bg-cw-blue/10 flex items-center justify-center shrink-0 group-hover:bg-cw-blue/15 transition-colors">
+                      <Icon size={17} className="text-cw-blue" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-[12.5px] font-semibold text-cw-txt leading-tight">{s.title}</div>
+                      <div className="text-[11px] text-cw-txt3 mt-0.5">{s.subtitle}</div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* -------------------------------- gordon logs drawer -------------------------------- */
+
+interface GordonLog {
+  id: string; toolName: string; repoId: number | null; repoName: string | null;
+  success: boolean; requiredApproval: boolean; durationMs: number; errorText: string | null;
+  createdAt: string; input: unknown; outputSummary: { preview?: string; truncated?: boolean } | null;
+}
+
+function fmtTime(iso: string) {
+  const d = new Date(iso);
+  return d.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+}
+function fmtDur(ms: number) { return ms < 1000 ? `${ms}ms` : `${(ms / 1000).toFixed(1)}s`; }
+
+function LogsDrawer({ onClose }: { onClose: () => void }) {
+  const [logs, setLogs] = useState<GordonLog[]>([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [expanded, setExpanded] = useState<string | null>(null);
+  const [query, setQuery] = useState('');
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/api/chat/logs?limit=200`, { credentials: 'include' });
+      if (res.ok) { const d = await res.json(); setLogs(d.logs ?? []); setTotal(d.total ?? 0); }
+    } catch { /* degrade to empty */ } finally { setLoading(false); }
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  const filtered = logs.filter((l) => !query
+    || l.toolName.toLowerCase().includes(query.toLowerCase())
+    || (l.repoName ?? '').toLowerCase().includes(query.toLowerCase()));
+
+  const successRate = logs.length ? Math.round((logs.filter((l) => l.success).length / logs.length) * 100) : null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex justify-end">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px]" onClick={onClose} />
+      <div className="relative w-[min(1040px,94vw)] h-full bg-cw-bg2 border-l border-cw-bdr flex flex-col shadow-2xl animate-in slide-in-from-right duration-200">
+        {/* header */}
+        <div className="flex items-center gap-2.5 px-5 py-3.5 border-b border-cw-bdr">
+          <ListViewIcon size={18} className="text-cw-purple" />
+          <div>
+            <div className="text-sm font-semibold text-cw-txt flex items-center gap-2">Gordon logs <span className="text-[9px] px-[6px] py-[1px] rounded-full border border-cw-purple text-cw-purple font-semibold">ACCOUNTABILITY</span></div>
+            <div className="text-[11px] text-cw-txt3">Every real action Gordon took, on your account. {total} total{successRate != null ? ` · ${successRate}% succeeded` : ''}.</div>
+          </div>
+          <div className="ml-auto flex items-center gap-2">
+            <div className="flex items-center gap-1.5 border border-cw-bdr rounded-md px-2 py-1.5 bg-cw-bg focus-within:border-cw-blue transition-colors">
+              <Search size={12} className="text-cw-txt3 shrink-0" />
+              <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Filter by tool or repo…" className="w-[180px] bg-transparent text-[11px] text-cw-txt outline-none" />
+            </div>
+            <button onClick={load} title="Refresh" className="p-1.5 text-cw-txt3 hover:text-cw-txt transition-colors"><RefreshIcon size={15} /></button>
+            <button onClick={onClose} className="p-1.5 text-cw-txt3 hover:text-cw-txt transition-colors"><X size={16} /></button>
+          </div>
+        </div>
+
+        {/* table */}
+        <div className="flex-1 overflow-auto">
+          {loading ? (
+            <div className="flex items-center justify-center gap-2 text-[12px] text-cw-txt3 py-16"><Loader2 size={15} className="animate-spin" /> Loading real activity…</div>
+          ) : filtered.length === 0 ? (
+            <div className="flex flex-col items-center justify-center gap-2 text-cw-txt3 py-16">
+              <ListViewIcon size={30} className="opacity-40" />
+              <div className="text-[12px]">{query ? 'No entries match your filter.' : 'No actions logged yet. Ask Gordon to do something and it’ll appear here.'}</div>
+            </div>
+          ) : (
+            <table className="w-full text-[11.5px] border-collapse">
+              <thead className="sticky top-0 bg-cw-bg3 text-cw-txt2 z-10">
+                <tr>
+                  <th className="w-6"></th>
+                  <th className="text-left font-semibold px-3 py-2 border-b border-cw-bdr">When</th>
+                  <th className="text-left font-semibold px-3 py-2 border-b border-cw-bdr">Action</th>
+                  <th className="text-left font-semibold px-3 py-2 border-b border-cw-bdr">Repository</th>
+                  <th className="text-left font-semibold px-3 py-2 border-b border-cw-bdr">Approval</th>
+                  <th className="text-left font-semibold px-3 py-2 border-b border-cw-bdr">Result</th>
+                  <th className="text-right font-semibold px-3 py-2 border-b border-cw-bdr">Duration</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((l) => {
+                  const open = expanded === l.id;
+                  return (
+                    <Fragment key={l.id}>
+                      <tr onClick={() => setExpanded(open ? null : l.id)}
+                        className={`cursor-pointer border-b border-cw-bdr/50 hover:bg-black/[0.03] ${open ? 'bg-cw-blue/[0.04]' : ''}`}>
+                        <td className="pl-3"><ChevronRight size={12} className={`text-cw-txt3 transition-transform ${open ? 'rotate-90' : ''}`} /></td>
+                        <td className="px-3 py-2 text-cw-txt3 whitespace-nowrap">{fmtTime(l.createdAt)}</td>
+                        <td className="px-3 py-2 font-medium text-cw-txt whitespace-nowrap">{TOOL_LABELS[l.toolName] ?? l.toolName}</td>
+                        <td className="px-3 py-2 text-cw-txt2 whitespace-nowrap">{l.repoName ?? (l.repoId ? `#${l.repoId}` : '—')}</td>
+                        <td className="px-3 py-2">
+                          {l.requiredApproval
+                            ? <span className="inline-flex items-center gap-1 text-cw-amber"><Zap size={11} /> gated</span>
+                            : <span className="text-cw-txt3">—</span>}
+                        </td>
+                        <td className="px-3 py-2">
+                          {l.success
+                            ? <span className="inline-flex items-center gap-1 text-cw-green"><CheckmarkCircle01Icon size={13} /> ok</span>
+                            : <span className="inline-flex items-center gap-1 text-cw-red"><Cancel01Icon size={13} /> error</span>}
+                        </td>
+                        <td className="px-3 py-2 text-right text-cw-txt2 whitespace-nowrap tabular-nums">{fmtDur(l.durationMs)}</td>
+                      </tr>
+                      {open && (
+                        <tr className="bg-cw-bg/40">
+                          <td></td>
+                          <td colSpan={6} className="px-3 pb-3 pt-1">
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-2.5">
+                              <div>
+                                <div className="text-[10px] uppercase tracking-wide text-cw-txt3 mb-1">Input</div>
+                                <pre className="text-[10.5px] text-cw-txt2 whitespace-pre-wrap break-all bg-cw-bg2 border border-cw-bdr rounded p-2 max-h-56 overflow-auto">{JSON.stringify(l.input ?? {}, null, 2)}</pre>
+                              </div>
+                              <div>
+                                <div className="text-[10px] uppercase tracking-wide text-cw-txt3 mb-1">{l.success ? 'Output' : 'Error'}</div>
+                                <pre className={`text-[10.5px] whitespace-pre-wrap break-all border rounded p-2 max-h-56 overflow-auto ${l.success ? 'text-cw-txt2 bg-cw-bg2 border-cw-bdr' : 'text-cw-red bg-cw-red/[0.05] border-cw-red/30'}`}>{l.success ? (l.outputSummary?.preview ?? '(no output)') + (l.outputSummary?.truncated ? '\n…(truncated)' : '') : (l.errorText ?? 'unknown error')}</pre>
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ----------------------------------- the page ----------------------------------- */
 
 interface Repo { id: number; fullName: string }
 interface Skill { id: string; label: string; description: string; template: string }
-
-const SUGGESTIONS = [
-  'Which of my repos has the lowest health score?',
-  'What are the top things I should fix first?',
-  'Run a security scan on my most active repo',
-  'Show me the auto-fix PRs waiting for approval',
-];
 
 export function AIAgent() {
   const [input, setInput] = useState('');
@@ -238,6 +460,9 @@ export function AIAgent() {
   const [pinnedRepo, setPinnedRepo] = useState<Repo | null>(null);
   const [repoMenuOpen, setRepoMenuOpen] = useState(false);
   const [skills, setSkills] = useState<Skill[]>([]);
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(true);
+  const [logsOpen, setLogsOpen] = useState(false);
   const sessionIdRef = useRef<string | null>(null);
   const pinnedRepoRef = useRef<Repo | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -253,6 +478,11 @@ export function AIAgent() {
     refreshSessions();
     fetch(`${API_URL}/api/chat/repos`, { credentials: 'include' }).then((r) => r.ok ? r.json() : { repos: [] }).then((d) => setRepos(d.repos ?? [])).catch(() => {});
     fetch(`${API_URL}/api/chat/skills`, { credentials: 'include' }).then((r) => r.ok ? r.json() : { skills: [] }).then((d) => setSkills(d.skills ?? [])).catch(() => {});
+    fetch(`${API_URL}/api/chat/suggestions`, { credentials: 'include' })
+      .then((r) => r.ok ? r.json() : { suggestions: [] })
+      .then((d) => setSuggestions(d.suggestions ?? []))
+      .catch(() => {})
+      .finally(() => setLoadingSuggestions(false));
   }, [refreshSessions]);
 
   const transport = useMemo(() => new DefaultChatTransport({
@@ -330,22 +560,16 @@ export function AIAgent() {
             <span><strong>Gordon</strong> reads your real runs, findings, code and memory, and can run agents & act on fix PRs — with your approval. It answers from live data, never guesses.</span>
           </div>
           <button onClick={newChat} title="New chat" className="shrink-0 flex items-center gap-1.5 px-2.5 py-2 border border-cw-bdr rounded-lg text-[11px] text-cw-txt2 hover:border-cw-blue hover:text-cw-blue transition-colors"><Plus size={13} /> New</button>
+          <button onClick={() => setLogsOpen(true)} title="Gordon logs" className="shrink-0 flex items-center gap-1.5 px-2.5 py-2 border border-cw-bdr rounded-lg text-[11px] text-cw-txt2 hover:border-cw-purple hover:text-cw-purple transition-colors"><ListViewIcon size={14} /> Logs</button>
           <button onClick={() => setDrawerOpen((o) => !o)} title="Chat history" className={`shrink-0 flex items-center gap-1.5 px-2.5 py-2 border rounded-lg text-[11px] transition-colors ${drawerOpen ? 'border-cw-blue text-cw-blue bg-cw-blue/5' : 'border-cw-bdr text-cw-txt2 hover:border-cw-blue hover:text-cw-blue'}`}><History size={13} /> History</button>
         </div>
 
         <LiveStrip events={liveEvents} />
 
+        {messages.length === 0 ? (
+          <GordonHero suggestions={suggestions} loadingSuggestions={loadingSuggestions} onPick={send} />
+        ) : (
         <div className="flex-1 overflow-y-auto flex flex-col gap-2.5 pb-2.5">
-          {messages.length === 0 && (
-            <div className="flex flex-col items-center justify-center h-full text-center gap-3 text-cw-txt3">
-              <GordonIcon size={48} />
-              <div className="text-xs text-cw-txt2 max-w-[300px]">Ask Gordon about your codebase, or tell it to run a scan. Tag a repo below, or type <code className="bg-black/10 px-1 rounded">/</code> for commands.</div>
-              <div className="flex flex-col gap-1.5 w-full max-w-[340px]">
-                {SUGGESTIONS.map((s) => <button key={s} onClick={() => send(s)} className="text-left text-[11px] text-cw-txt2 border border-cw-bdr rounded-lg px-3 py-2 hover:border-cw-blue hover:bg-cw-blue/[0.03] transition-colors">{s}</button>)}
-              </div>
-            </div>
-          )}
-
           {messages.map((msg) => (
             <div key={msg.id} className={`flex gap-2.5 items-start ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
               {msg.role === 'assistant' ? <GordonIcon size={26} /> : <div className="w-[26px] h-[26px] rounded-full flex items-center justify-center text-[10px] font-medium shrink-0 bg-cw-bg3 text-cw-txt2">You</div>}
@@ -374,6 +598,7 @@ export function AIAgent() {
           )}
           <div ref={bottomRef} />
         </div>
+        )}
 
         {/* composer */}
         <div className="pt-2.5 border-t border-cw-bdr mt-auto shrink-0 relative">
@@ -422,6 +647,7 @@ export function AIAgent() {
       </div>
 
       {drawerOpen && <HistoryDrawer sessions={sessions} activeId={activeSessionId} onSelect={selectSession} onRename={renameSession} onDelete={deleteSession} onClose={() => setDrawerOpen(false)} />}
+      {logsOpen && <LogsDrawer onClose={() => setLogsOpen(false)} />}
     </div>
   );
 }
