@@ -198,7 +198,10 @@ chatRouter.get('/repos', async (c) => {
   const ids = await accessibleRepoIds(user.id);
   if (ids.length === 0) return c.json({ repos: [] });
   const rows = await db.select({ id: repositories.id, fullName: repositories.fullName }).from(repositories).where(inArray(repositories.id, ids));
-  return c.json({ repos: rows });
+  // `source` drives the provider logo in the picker. Every repo today is ingested through the
+  // GitHub App, so it's derived as 'github'; when GitLab ingestion lands, set the distinguishing
+  // signal here and the UI shows the GitLab logo automatically — no client change needed.
+  return c.json({ repos: rows.map((r) => ({ ...r, source: 'github' as const })) });
 });
 
 chatRouter.get('/sessions', async (c) => {

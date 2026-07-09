@@ -15,6 +15,14 @@ import {
 } from 'hugeicons-react';
 import { API_URL, WS_URL } from '../../lib/api';
 import { GordonIcon } from './GordonIcon';
+import { GithubIcon, GitlabIcon } from './GithubLink';
+
+/** Provider logo for a repo, chosen by where the repo is hosted. */
+function RepoSourceIcon({ source, className = '' }: { source?: 'github' | 'gitlab'; className?: string }) {
+  return source === 'gitlab'
+    ? <GitlabIcon size={12} className={`text-[#FC6D26] ${className}`} />
+    : <GithubIcon size={12} className={className} />;
+}
 
 type HugeIcon = typeof SecurityCheckIcon;
 
@@ -448,7 +456,7 @@ function LogsDrawer({ onClose }: { onClose: () => void }) {
 
 /* ----------------------------------- the page ----------------------------------- */
 
-interface Repo { id: number; fullName: string }
+interface Repo { id: number; fullName: string; source?: 'github' | 'gitlab' }
 interface Skill { id: string; label: string; description: string; template: string }
 
 export function AIAgent() {
@@ -613,15 +621,18 @@ export function AIAgent() {
           <div className="flex items-center gap-2 mb-2">
             {/* repo @-tag picker */}
             <div className="relative">
-              <button onClick={() => setRepoMenuOpen((o) => !o)} className={`flex items-center gap-1 px-2 py-1 rounded-md border text-[11px] transition-colors ${pinnedRepo ? 'border-cw-blue text-cw-blue bg-cw-blue/5' : 'border-cw-bdr text-cw-txt3 hover:text-cw-txt2'}`}>
-                <GitFork size={11} /> {pinnedRepo ? pinnedRepo.fullName : 'Tag a repo'} <ChevronDown size={11} />
+              <button onClick={() => setRepoMenuOpen((o) => !o)} className={`flex items-center gap-1.5 px-2 py-1 rounded-md border text-[11px] transition-colors ${pinnedRepo ? 'border-cw-blue text-cw-blue bg-cw-blue/5' : 'border-cw-bdr text-cw-txt3 hover:text-cw-txt2'}`}>
+                {pinnedRepo ? <RepoSourceIcon source={pinnedRepo.source} /> : <GitFork size={11} />} {pinnedRepo ? pinnedRepo.fullName : 'Tag a repo'} <ChevronDown size={11} />
               </button>
               {repoMenuOpen && (
-                <div className="absolute bottom-full left-0 mb-1.5 w-[260px] max-h-64 overflow-y-auto bg-cw-bg2 border border-cw-bdr rounded-lg shadow-lg z-10">
+                <div className="absolute bottom-full left-0 mb-1.5 w-[270px] max-h-64 overflow-y-auto bg-cw-bg2 border border-cw-bdr rounded-lg shadow-lg z-10">
                   {pinnedRepo && <button onClick={() => { setPinnedRepo(null); setRepoMenuOpen(false); }} className="w-full text-left px-3 py-1.5 text-[11px] text-cw-txt3 hover:bg-cw-bg3 border-b border-cw-bdr">✕ Clear tag</button>}
                   {repos.length === 0 && <div className="px-3 py-2 text-[11px] text-cw-txt3">No repos connected.</div>}
                   {repos.map((r) => (
-                    <button key={r.id} onClick={() => { setPinnedRepo(r); setRepoMenuOpen(false); }} className={`w-full text-left px-3 py-1.5 text-[11px] hover:bg-cw-bg3 transition-colors ${pinnedRepo?.id === r.id ? 'text-cw-blue' : 'text-cw-txt2'}`}>{r.fullName}</button>
+                    <button key={r.id} onClick={() => { setPinnedRepo(r); setRepoMenuOpen(false); }} className={`w-full text-left px-3 py-1.5 text-[11px] hover:bg-cw-bg3 transition-colors flex items-center gap-2 ${pinnedRepo?.id === r.id ? 'text-cw-blue' : 'text-cw-txt2'}`}>
+                      <RepoSourceIcon source={r.source} className="shrink-0 opacity-80" />
+                      <span className="truncate">{r.fullName}</span>
+                    </button>
                   ))}
                 </div>
               )}
