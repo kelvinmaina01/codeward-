@@ -14,6 +14,7 @@ import {
   ListViewIcon, CheckmarkCircle01Icon, Cancel01Icon, RefreshIcon,
 } from 'hugeicons-react';
 import { API_URL, WS_URL } from '../../lib/api';
+import { useSession } from '../../lib/auth';
 import { GordonIcon } from './GordonIcon';
 import { GithubIcon, GitlabIcon } from './GithubLink';
 
@@ -84,27 +85,86 @@ const ACTION_VERB: Record<string, string> = {
   reject_fix: 'reject and close this auto-fix PR',
 };
 
-function ToolCard({ name, state, input, output }: { name: string; state: string; input: unknown; output: unknown }) {
-  const [open, setOpen] = useState(false);
+interface ToolDetail { id: string; name: string; state: string; input: unknown; output: unknown }
+
+/** A subtle, Claude-style activity line for a tool call. Clicking opens the right detail drawer. */
+function ActivityRow({ name, state, active, onOpen }: { name: string; state: string; active: boolean; onOpen: () => void }) {
   const running = state === 'input-streaming' || state === 'input-available';
   const errored = state === 'output-error';
-  const Icon = errored ? AlertTriangle : running ? Loader2 : CheckCircle2;
+  const StatusIcon = errored ? AlertTriangle : running ? Loader2 : CheckCircle2;
   const tone = errored ? 'text-cw-red' : running ? 'text-cw-blue' : 'text-cw-green';
   return (
-    <div className="border border-cw-bdr rounded-md bg-cw-bg3/60 mt-1.5 text-[11px] overflow-hidden">
-      <button onClick={() => setOpen((o) => !o)} className="w-full flex items-center gap-1.5 px-2.5 py-1.5 text-left hover:bg-black/[0.03] transition-colors">
-        <ChevronRight size={11} className={`shrink-0 text-cw-txt3 transition-transform ${open ? 'rotate-90' : ''}`} />
-        <Wrench size={11} className="shrink-0 text-cw-txt3" />
-        <span className="text-cw-txt2">{TOOL_LABELS[name] ?? name}</span>
-        <Icon size={12} className={`shrink-0 ml-auto ${tone} ${running ? 'animate-spin' : ''}`} />
-        <span className={`shrink-0 ${tone}`}>{running ? 'running' : errored ? 'error' : 'done'}</span>
+    <button onClick={onOpen}
+      className={`group flex items-center gap-2 w-fit max-w-full py-1 pl-1.5 pr-2 -ml-1.5 rounded-md text-[11px] transition-colors ${active ? 'bg-cw-blue/[0.07]' : 'hover:bg-black/[0.04]'}`}>
+      <StatusIcon size={12} className={`shrink-0 ${tone} ${running ? 'animate-spin' : ''}`} />
+      <Wrench size={11} className="shrink-0 text-cw-txt3" />
+      <span className="text-cw-txt2 truncate">{TOOL_LABELS[name] ?? name}</span>
+      {running && <span className="shrink-0 text-cw-txt3 italic">working…</span>}
+      <ChevronRight size={11} className={`shrink-0 text-cw-txt3 transition-opacity ${active ? 'opacity-100' : 'opacity-0 group-hover:opacity-70'}`} />
+    </button>
+  );
+}
+
+/** Recursive, collapsible tree for arbitrary tool input/output — the "details, listed & collapsible". */
+function JsonView({ data, name, depth = 0 }: { data: unknown; name?: string; depth?: number }) {
+  const isObj = data !== null && typeof data === 'object';
+  const [open, setOpen] = useState(depth < 2);
+  if (!isObj) {
+    const str = typeof data === 'string';
+    return (
+      <div className="flex gap-1.5 py-[1px] leading-relaxed">
+        {name != null && <span className="text-cw-txt3 shrink-0">{name}:</span>}
+        <span className={str ? 'text-cw-green break-all' : typeof data === 'number' ? 'text-cw-blue' : 'text-cw-purple'}>{str ? (data as string) : String(data)}</span>
+      </div>
+    );
+  }
+  const entries = Array.isArray(data) ? (data as unknown[]).map((v, i) => [String(i), v] as const) : Object.entries(data as Record<string, unknown>);
+  const label = Array.isArray(data) ? `${entries.length} item${entries.length === 1 ? '' : 's'}` : `${entries.length} field${entries.length === 1 ? '' : 's'}`;
+  return (
+    <div>
+      <button onClick={() => setOpen((o) => !o)} className="flex items-center gap-1 py-[1px] text-left hover:text-cw-txt transition-colors">
+        <ChevronRight size={10} className={`shrink-0 text-cw-txt3 transition-transform ${open ? 'rotate-90' : ''}`} />
+        {name != null && <span className="text-cw-txt2">{name}</span>}
+        <span className="text-cw-txt3 opacity-60">{label}</span>
       </button>
-      {open && (
-        <div className="px-2.5 pb-2 pt-0.5 space-y-1.5 border-t border-cw-bdr/60">
-          {input != null && <pre className="text-[10px] text-cw-txt3 whitespace-pre-wrap break-all max-h-24 overflow-auto">{JSON.stringify(input, null, 2)}</pre>}
-          {output != null && <pre className="text-[10px] text-cw-txt2 whitespace-pre-wrap break-all max-h-56 overflow-auto bg-cw-bg2 rounded p-1.5">{JSON.stringify(output, null, 2)}</pre>}
+      {open && <div className="pl-3 ml-[5px] border-l border-cw-bdr/50">{entries.map(([k, v]) => <JsonView key={k} data={v} name={k} depth={depth + 1} />)}</div>}
+    </div>
+  );
+}
+
+/** Right side-pull drawer showing a tool call's full request + result, Claude-style. */
+function DetailDrawer({ detail, onClose }: { detail: ToolDetail; onClose: () => void }) {
+  const running = detail.state === 'input-streaming' || detail.state === 'input-available';
+  const errored = detail.state === 'output-error';
+  return (
+    <div className="fixed inset-0 z-50 flex justify-end">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px]" onClick={onClose} />
+      <div className="relative w-[min(600px,94vw)] h-full bg-cw-bg2 border-l border-cw-bdr flex flex-col shadow-2xl animate-in slide-in-from-right duration-200">
+        <div className="flex items-center gap-2.5 px-5 py-3.5 border-b border-cw-bdr">
+          <div className="w-8 h-8 rounded-lg bg-cw-blue/10 flex items-center justify-center shrink-0"><Wrench size={15} className="text-cw-blue" /></div>
+          <div className="min-w-0">
+            <div className="text-sm font-semibold text-cw-txt truncate">{TOOL_LABELS[detail.name] ?? detail.name}</div>
+            <div className="text-[11px] text-cw-txt3">{running ? 'Running…' : errored ? 'Failed' : 'Completed'} · Gordon tool call</div>
+          </div>
+          <button onClick={onClose} className="ml-auto p-1.5 text-cw-txt3 hover:text-cw-txt transition-colors"><X size={16} /></button>
         </div>
-      )}
+        <div className="flex-1 overflow-auto px-5 py-4 space-y-5">
+          <div>
+            <div className="text-[10px] uppercase tracking-wide text-cw-txt3 mb-2 font-semibold">Request</div>
+            <div className="text-[11px] font-mono bg-cw-bg rounded-lg border border-cw-bdr p-3"><JsonView data={detail.input ?? {}} /></div>
+          </div>
+          <div>
+            <div className="text-[10px] uppercase tracking-wide text-cw-txt3 mb-2 font-semibold">{errored ? 'Error' : 'Result'}</div>
+            {errored ? (
+              <div className="text-[11px] text-cw-red whitespace-pre-wrap break-all bg-cw-red/[0.05] border border-cw-red/30 rounded-lg p-3">{String(detail.output ?? 'unknown error')}</div>
+            ) : detail.output == null ? (
+              <div className="text-[11px] text-cw-txt3">No result yet — still running.</div>
+            ) : (
+              <div className="text-[11px] font-mono bg-cw-bg rounded-lg border border-cw-bdr p-3"><JsonView data={detail.output} /></div>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -471,10 +531,14 @@ export function AIAgent() {
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(true);
   const [logsOpen, setLogsOpen] = useState(false);
+  const [detail, setDetail] = useState<ToolDetail | null>(null);
   const sessionIdRef = useRef<string | null>(null);
   const pinnedRepoRef = useRef<Repo | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const liveEvents = useLiveActivity();
+  const { data: session } = useSession();
+  const userImage = session?.user?.image ?? null;
+  const userInitial = (session?.user?.name ?? 'You').charAt(0).toUpperCase();
 
   useEffect(() => { pinnedRepoRef.current = pinnedRepo; }, [pinnedRepo]);
 
@@ -574,11 +638,16 @@ export function AIAgent() {
         {messages.length === 0 ? (
           <GordonHero suggestions={suggestions} loadingSuggestions={loadingSuggestions} onPick={send} />
         ) : (
-        <div className="flex-1 overflow-y-auto flex flex-col gap-2.5 pb-2.5">
+        <div className="flex-1 overflow-y-auto pb-2.5">
+          <div className="max-w-3xl w-full mx-auto flex flex-col gap-5 px-2">
           {messages.map((msg) => (
-            <div key={msg.id} className={`flex gap-2.5 items-start ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-              {msg.role === 'assistant' ? <GordonIcon size={26} /> : <div className="w-[26px] h-[26px] rounded-full flex items-center justify-center text-[10px] font-medium shrink-0 bg-cw-bg3 text-cw-txt2">You</div>}
-              <div className={`rounded-[10px] px-3 py-2 text-xs leading-[1.6] max-w-[85%] min-w-0 border ${msg.role === 'user' ? 'bg-cw-blue border-cw-blue text-white' : 'bg-cw-bg2 border-cw-bdr text-cw-txt'}`}>
+            <div key={msg.id} className={`flex gap-3 items-start ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
+              {msg.role === 'assistant'
+                ? <GordonIcon size={28} />
+                : userImage
+                  ? <img src={userImage} alt="You" className="w-7 h-7 rounded-full object-cover shrink-0" />
+                  : <div className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-medium shrink-0 bg-cw-bg3 text-cw-txt2">{userInitial}</div>}
+              <div className={`min-w-0 ${msg.role === 'user' ? 'max-w-[82%] rounded-2xl px-3.5 py-2 bg-cw-blue text-white text-xs leading-[1.6]' : 'flex-1 pt-0.5 space-y-1.5'}`}>
                 {msg.parts.map((part, i) => {
                   if (part.type === 'text') return msg.role === 'user' ? <span key={i}>{part.text}</span> : <Markdown key={i} text={part.text} />;
                   if (isToolUIPart(part)) {
@@ -590,7 +659,9 @@ export function AIAgent() {
                     if (part.state === 'approval-responded') {
                       return <ApprovalCard key={i} name={name} input={(part as any).input} decided={(part as any).approval.approved ? 'approved' : 'denied'} onDecide={() => {}} />;
                     }
-                    return <ToolCard key={i} name={name} state={part.state} input={(part as any).input} output={(part as any).output} />;
+                    const id = (part as any).toolCallId as string;
+                    return <ActivityRow key={i} name={name} state={part.state} active={detail?.id === id}
+                      onOpen={() => setDetail({ id, name, state: part.state, input: (part as any).input, output: (part as any).output })} />;
                   }
                   return null;
                 })}
@@ -599,14 +670,26 @@ export function AIAgent() {
           ))}
 
           {busy && messages[messages.length - 1]?.role === 'user' && (
-            <div className="flex gap-2.5 items-center text-cw-txt3 text-[11px]"><GordonIcon size={26} /><Loader2 size={13} className="animate-spin" /> Gordon is thinking…</div>
+            <div className="flex gap-3 items-center">
+              <GordonIcon size={28} />
+              <div className="flex items-center gap-1.5 text-cw-txt3 text-[12px]">
+                Gordon is thinking
+                <span className="inline-flex gap-0.5">
+                  <span className="w-1 h-1 rounded-full bg-cw-txt3 animate-bounce [animation-delay:-0.3s]" />
+                  <span className="w-1 h-1 rounded-full bg-cw-txt3 animate-bounce [animation-delay:-0.15s]" />
+                  <span className="w-1 h-1 rounded-full bg-cw-txt3 animate-bounce" />
+                </span>
+              </div>
+            </div>
           )}
           <div ref={bottomRef} />
+          </div>
         </div>
         )}
 
         {/* composer */}
-        <div className="pt-2.5 border-t border-cw-bdr mt-auto shrink-0 relative">
+        <div className="pt-2.5 border-t border-cw-bdr mt-auto shrink-0">
+          <div className="max-w-3xl w-full mx-auto relative">
           {/* slash-command menu */}
           {slashActive && slashMatches.length > 0 && (
             <div className="absolute bottom-full left-0 mb-1.5 w-[320px] bg-cw-bg2 border border-cw-bdr rounded-lg shadow-lg overflow-hidden z-10">
@@ -651,11 +734,13 @@ export function AIAgent() {
               <button onClick={() => send(input)} disabled={!input.trim()} className="px-3.5 py-2 bg-cw-blue text-white border-none rounded-lg text-xs cursor-pointer flex items-center gap-1.5 hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"><Send size={13} /> Send</button>
             )}
           </div>
+          </div>
         </div>
       </div>
 
       {drawerOpen && <HistoryDrawer sessions={sessions} activeId={activeSessionId} onSelect={selectSession} onRename={renameSession} onDelete={deleteSession} onClose={() => setDrawerOpen(false)} />}
       {logsOpen && <LogsDrawer onClose={() => setLogsOpen(false)} />}
+      {detail && <DetailDrawer detail={detail} onClose={() => setDetail(null)} />}
     </div>
   );
 }
