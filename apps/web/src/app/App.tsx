@@ -301,25 +301,28 @@ function DashboardLayout() {
 
       {/* MAIN CONTAINER */}
       <div className="flex-1 flex overflow-hidden">
-        <div className="flex-1 flex flex-col min-w-0 bg-cw-bg">
-          {/* Topbar */}
-          <div className="px-8 h-[80px] border-b border-cw-bdr flex items-center justify-between bg-cw-bg shrink-0 transition-all duration-300">
+        <div className="flex-1 flex flex-col min-w-0 bg-cw-bg relative">
+          {/* Topbar — on Gordon's page it collapses to a slim floating bar (hamburger + controls
+              only, no title) so the chat reclaims the full height. pointer-events pass through the
+              empty areas to Gordon underneath. */}
+          <div className={`flex items-center justify-between transition-all duration-300 ${screen === 'agent' ? 'absolute top-0 left-0 right-0 z-30 px-5 h-[52px] pointer-events-none' : 'px-8 h-[80px] border-b border-cw-bdr bg-cw-bg shrink-0'}`}>
             <div className="flex items-center gap-5">
               <button
                 onClick={() => setIsSidebarPinned(!isSidebarPinned)}
-                className="w-9 h-9 rounded-md border border-cw-bdr bg-cw-bg2 text-cw-txt flex items-center justify-center cursor-pointer hover:bg-cw-bg3 transition-colors shrink-0"
+                className="w-9 h-9 rounded-md border border-cw-bdr bg-cw-bg2 text-cw-txt flex items-center justify-center cursor-pointer hover:bg-cw-bg3 transition-colors shrink-0 pointer-events-auto shadow-sm"
               >
                 <Menu size={18} />
               </button>
-              <div>
-                <h1 className="text-[22px] font-bold text-cw-txt tracking-tight leading-none mb-1.5 flex items-center gap-2">
-                  {topbar.title}
-                  {screen === 'agent' && <span className="text-[10px] px-2 py-[3px] rounded-full border border-cw-purple text-cw-purple font-semibold tracking-wide">BETA</span>}
-                </h1>
-                <div className="text-[13px] text-cw-txt2">{topbar.sub}</div>
-              </div>
+              {screen !== 'agent' && (
+                <div>
+                  <h1 className="text-[22px] font-bold text-cw-txt tracking-tight leading-none mb-1.5 flex items-center gap-2">
+                    {topbar.title}
+                  </h1>
+                  <div className="text-[13px] text-cw-txt2">{topbar.sub}</div>
+                </div>
+              )}
             </div>
-            <div className="flex gap-3 items-center">
+            <div className="flex gap-3 items-center pointer-events-auto">
               {screen === 'repos' && (
                 <button
                   onClick={() => navigate('/connect')}
@@ -371,7 +374,7 @@ function DashboardLayout() {
             </div>
           </div>
 
-          <div className="flex-1 overflow-hidden flex flex-col">
+          <div className={`flex-1 overflow-hidden flex flex-col ${screen === 'agent' ? 'pt-[52px]' : ''}`}>
             {renderScreen()}
           </div>
         </div>

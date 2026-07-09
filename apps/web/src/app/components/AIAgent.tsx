@@ -555,10 +555,7 @@ export function AIAgent() {
     <div className="flex-1 flex overflow-hidden">
       <div className="flex-1 flex flex-col overflow-hidden px-5 py-4 min-w-0">
         <div className="flex items-center gap-2 mb-3">
-          <div className="flex-1 bg-[#F5F3FF] border border-[#C4B5FD] rounded-[10px] px-3.5 py-2.5 text-[11px] text-cw-purple flex items-start gap-2">
-            <GordonIcon size={18} className="mt-[1px]" />
-            <span><strong>Gordon</strong> reads your real runs, findings, code and memory, and can run agents & act on fix PRs — with your approval. It answers from live data, never guesses.</span>
-          </div>
+          <div className="flex-1" />
           <button onClick={newChat} title="New chat" className="shrink-0 flex items-center gap-1.5 px-2.5 py-2 border border-cw-bdr rounded-lg text-[11px] text-cw-txt2 hover:border-cw-blue hover:text-cw-blue transition-colors"><Plus size={13} /> New</button>
           <button onClick={() => setLogsOpen(true)} title="Gordon logs" className="shrink-0 flex items-center gap-1.5 px-2.5 py-2 border border-cw-bdr rounded-lg text-[11px] text-cw-txt2 hover:border-cw-purple hover:text-cw-purple transition-colors"><ListViewIcon size={14} /> Logs</button>
           <button onClick={() => setDrawerOpen((o) => !o)} title="Chat history" className={`shrink-0 flex items-center gap-1.5 px-2.5 py-2 border rounded-lg text-[11px] transition-colors ${drawerOpen ? 'border-cw-blue text-cw-blue bg-cw-blue/5' : 'border-cw-bdr text-cw-txt2 hover:border-cw-blue hover:text-cw-blue'}`}><History size={13} /> History</button>
