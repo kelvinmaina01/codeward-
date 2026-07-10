@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Routes, Route, Navigate, useNavigate, useLocation, NavLink } from 'react-router';
+import { Routes, Route, Navigate, useNavigate, useLocation, useParams, NavLink } from 'react-router';
 import {
   LayoutDashboard, Radio, GitCompare, ShieldAlert, BarChart3,
   Bot, Monitor, Clock, GitFork, Award, Settings as SettingsIcon,
@@ -25,6 +25,7 @@ import { Integrations } from './components/Integrations';
 import { Alerts } from './components/Alerts';
 import { IssuesAndPRs } from './components/IssuesAndPRs';
 import { RunDetail } from './components/RunDetail';
+import { CommitHistory } from './components/CommitHistory';
 import { LegalPage } from './components/legal/LegalPage';
 import { useSession, signOut } from '../lib/auth';
 import { Toaster } from 'sonner';
@@ -84,6 +85,7 @@ const nav: NavGroup[] = [
   ]},
   { group: 'Analysis', items: [
     { id: 'diff', label: 'Diff viewer', dot: 'b', icon: GitCompare, path: '/dashboard/diff' },
+    { id: 'commits', label: 'Commit History', dot: 'p', icon: GitFork, path: '/dashboard/commits' },
     { id: 'issuesprs', label: 'Issues & PRs', dot: 'p', icon: GitPullRequest, path: '/dashboard/issues-prs' },
     { id: 'security', label: 'Security', dot: 'r', badge: 3, icon: ShieldAlert, path: '/dashboard/security' },
     { id: 'debt', label: 'Debt report', dot: 'a', icon: BarChart3, path: '/dashboard/debt' },
@@ -103,7 +105,7 @@ const nav: NavGroup[] = [
   ]},
 ];
 
-const topbarConfig: Record<Screen, { title: string; sub: string }> = {
+const topbarConfig: Partial<Record<string, { title: string; sub: string }>> = {
   dashboard: { title: 'Dashboard', sub: 'acme-corp · 4 repos guarded · all systems normal' },
   livefeed:  { title: 'Live run feed', sub: 'my-api · commit 3fa2c1 · running now' },
   diff:      { title: 'Diff viewer', sub: 'my-api · commit 3fa2c1 · 3 files changed by agent' },
@@ -118,24 +120,30 @@ const topbarConfig: Record<Screen, { title: string; sub: string }> = {
   integrations: { title: 'Integrations', sub: 'Connect external tools and MCP servers' },
   alerts:    { title: 'Alerts center', sub: 'acme-corp · active incidents & notifications' },
   issuesprs: { title: 'Issues & PRs', sub: 'Real escalated issues and pull requests across your repos' },
+  commits:   { title: 'Commit History', sub: 'acme-corp / my-api · every push · agent activity per commit' },
 };
 
 // Map URL paths to screen IDs
-const pathToScreen: Record<string, Screen> = {
-  '/dashboard': 'dashboard',
-  '/dashboard/alerts': 'alerts',
-  '/dashboard/livefeed': 'livefeed',
-  '/dashboard/diff': 'diff',
-  '/dashboard/issues-prs': 'issuesprs',
-  '/dashboard/security': 'security',
-  '/dashboard/debt': 'debt',
-  '/dashboard/agent': 'agent',
-  '/dashboard/staging': 'staging',
-  '/dashboard/history': 'history',
-  '/dashboard/repos': 'repos',
-  '/dashboard/cert': 'cert',
-  '/dashboard/settings': 'settings',
-  '/dashboard/integrations': 'integrations',
+const pathToScreen = (pathname: string): string => {
+  if (pathname.match(/^\/dashboard\/repos\/\d+\/commits/)) return 'commits';
+  if (pathname === '/dashboard/commits') return 'commits';
+  const exact: Record<string, string> = {
+    '/dashboard': 'dashboard',
+    '/dashboard/alerts': 'alerts',
+    '/dashboard/livefeed': 'livefeed',
+    '/dashboard/diff': 'diff',
+    '/dashboard/issues-prs': 'issuesprs',
+    '/dashboard/security': 'security',
+    '/dashboard/debt': 'debt',
+    '/dashboard/agent': 'agent',
+    '/dashboard/staging': 'staging',
+    '/dashboard/history': 'history',
+    '/dashboard/repos': 'repos',
+    '/dashboard/cert': 'cert',
+    '/dashboard/settings': 'settings',
+    '/dashboard/integrations': 'integrations',
+  };
+  return exact[pathname] ?? 'dashboard';
 };
 
 // ─── Auth Guard ───────────────────────────────────────────────────────────────
@@ -163,7 +171,7 @@ function DashboardLayout() {
   const theme = themeOrder[themeIdx];
   const cycleTheme = () => setThemeIdx(i => (i + 1) % themeOrder.length);
 
-  const screen: Screen = pathToScreen[location.pathname] ?? 'dashboard';
+  const screen = pathToScreen(location.pathname);
 
   useEffect(() => {
     if (session?.user && globalOrgs.length === 0) {
@@ -189,9 +197,16 @@ function DashboardLayout() {
     ? { name: session.user.name, avatar: session.user.image ? null : session.user.name.charAt(0).toUpperCase() }
     : { name: 'Admin Manager', avatar: 'AM' };
 
-  const topbar = topbarConfig[screen];
+  const topbar = topbarConfig[screen] ?? { title: 'Codeward', sub: '' };
 
   const renderScreen = () => {
+    // Commits page — accessible from sidebar (/dashboard/commits) or per-repo (/dashboard/repos/:id/commits)
+    const commitsMatch = location.pathname.match(/^\/dashboard\/repos\/(\d+)\/commits/);
+    if (commitsMatch || screen === 'commits') {
+      const repoId = commitsMatch ? Number(commitsMatch[1]) : undefined;
+      return <CommitHistory repoId={repoId} repoFullName={commitsMatch ? undefined : 'acme-corp / my-api'} onBack={() => navigate(commitsMatch ? '/dashboard/repos' : '/dashboard')} />;
+    }
+
     switch (screen) {
       case 'dashboard':    return <Dashboard onRunClick={(repoId, runId) => setRunDetailTarget({ repoId, runId })} />;
       case 'livefeed':     return <LiveFeed viewMode={liveFeedView} />;
@@ -459,7 +474,17 @@ export default function App() {
       } />
       <Route path="/terms" element={<LegalPage type="terms" onBack={() => {}} theme="dark" onCycleTheme={() => {}} themeIcon={<Moon size={14} />} />} />
       <Route path="/privacy" element={<LegalPage type="privacy" onBack={() => {}} theme="dark" onCycleTheme={() => {}} themeIcon={<Moon size={14} />} />} />
+      <Route path="/dashboard/commits" element={
+        <RequireAuth>
+          <DashboardLayout />
+        </RequireAuth>
+      } />
       <Route path="/dashboard/*" element={
+        <RequireAuth>
+          <DashboardLayout />
+        </RequireAuth>
+      } />
+      <Route path="/dashboard/repos/:repoId/commits" element={
         <RequireAuth>
           <DashboardLayout />
         </RequireAuth>

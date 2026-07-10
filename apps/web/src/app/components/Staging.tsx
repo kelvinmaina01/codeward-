@@ -13,6 +13,7 @@ export function Staging({ onRunClick }: Props) {
   const [diffOpen, setDiffOpen] = useState(false);
   const [logsOpen, setLogsOpen] = useState(false);
   const [envOpen, setEnvOpen] = useState(false);
+  const [timerSettingsOpen, setTimerSettingsOpen] = useState(false);
   const [forceReason, setForceReason] = useState('');
   const [showOverride, setShowOverride] = useState(false);
 
@@ -53,6 +54,13 @@ export function Staging({ onRunClick }: Props) {
     'hard-blocked': 'Critical Alert',
     'auto-merged': 'Auto-Merging'
   }[deployState];
+
+  const closeAllDrawers = () => {
+    setDiffOpen(false);
+    setLogsOpen(false);
+    setEnvOpen(false);
+    setTimerSettingsOpen(false);
+  };
 
   return (
     <div className="flex-1 flex overflow-hidden">
@@ -181,7 +189,7 @@ export function Staging({ onRunClick }: Props) {
                   <ExternalLink size={14} /> staging-3fa2c1.codeward.app <span className="opacity-60 font-normal ml-1">— open live preview</span>
                 </div>
                 {/* Environment Variable Configurator */}
-                <button onClick={() => { setDiffOpen(false); setLogsOpen(false); setEnvOpen(true); }} className="w-6 h-6 flex items-center justify-center hover:bg-cw-blue/10 rounded shrink-0">
+                <button onClick={() => { closeAllDrawers(); setEnvOpen(true); }} className="w-6 h-6 flex items-center justify-center hover:bg-cw-blue/10 rounded shrink-0 transition-colors">
                   <Settings size={14} />
                 </button>
               </div>
@@ -189,15 +197,16 @@ export function Staging({ onRunClick }: Props) {
               {/* Added Infra Cost Metric */}
               <div className="grid grid-cols-5 gap-3 my-4">
                 {[
-                  { icon: <CheckCircle size={16} className="text-cw-blue" />, label: '142/142 tests' },
-                  { icon: <ShieldCheck size={16} className="text-cw-teal" />, label: '0 critical vulns' },
-                  { icon: <TrendingDown size={16} className="text-cw-purple" />, label: '−247 lines' },
-                  { icon: <Zap size={16} className="text-cw-amber" />, label: 'p99 < 120ms' },
-                  { icon: <Server size={16} className="text-cw-red" />, label: '+$14/mo infra' },
+                  { icon: <CheckCircle size={16} className="text-cw-blue" />, label: '142/142 tests', desc: 'Code quality checks' },
+                  { icon: <ShieldCheck size={16} className="text-cw-teal" />, label: '0 critical vulns', desc: 'Security scan clean' },
+                  { icon: <TrendingDown size={16} className="text-cw-purple" />, label: '−247 lines', desc: 'Code debt removed' },
+                  { icon: <Zap size={16} className="text-cw-amber" />, label: 'p99 < 120ms', desc: 'API latency profile' },
+                  { icon: <Server size={16} className="text-cw-red" />, label: '+$14/mo infra', desc: 'Cloud billing estimate' },
                 ].map((c, i) => (
-                  <div key={i} className="bg-cw-bg border border-cw-bdr/50 rounded-lg p-2.5 flex items-center justify-center flex-col gap-1.5 text-center">
-                    <div>{c.icon}</div>
-                    <div className="text-[11px] font-medium text-cw-txt">{c.label}</div>
+                  <div key={i} className="bg-cw-bg border border-cw-bdr/50 rounded-lg p-2.5 flex items-center justify-center flex-col gap-1 text-center">
+                    <div className="mb-0.5">{c.icon}</div>
+                    <div className="text-[11px] font-bold text-cw-txt">{c.label}</div>
+                    <div className="text-[9px] text-cw-txt3 leading-tight px-1">{c.desc}</div>
                   </div>
                 ))}
               </div>
@@ -222,61 +231,185 @@ export function Staging({ onRunClick }: Props) {
                 >
                   <XCircle size={14} /> Reject
                 </button>
-                {/* Agent Logs Button */}
+                {/* Agent Summary Button */}
                 <button 
-                  onClick={() => { setDiffOpen(false); setEnvOpen(false); setLogsOpen(true); }}
+                  onClick={() => { closeAllDrawers(); setLogsOpen(true); }}
                   className="flex-1 px-3 py-2 text-[12px] rounded-lg border border-cw-bdr bg-cw-bg2 hover:bg-cw-bg3 text-cw-txt cursor-pointer font-semibold shadow-sm transition-all flex items-center justify-center gap-1.5"
                 >
-                  <TerminalSquare size={14} className="text-cw-purple" /> Agent Logs
+                  <TerminalSquare size={14} className="text-cw-purple" /> Agent Summary
                 </button>
                 <button 
-                  onClick={() => { setLogsOpen(false); setEnvOpen(false); setDiffOpen(true); }}
+                  onClick={() => { closeAllDrawers(); setDiffOpen(true); }}
                   className="flex-1 px-3 py-2 text-[12px] rounded-lg border-none bg-cw-purple text-white cursor-pointer font-semibold shadow-sm hover:brightness-110 transition-all flex items-center justify-center gap-1.5"
                 >
                   <ExternalLink size={14} /> View diff
                 </button>
               </div>
-              <div className="text-[10px] text-cw-txt3 mt-3 text-center">
-                Auto-approves in <span className="font-mono text-cw-purple font-semibold">{formatTime(timeLeft)}</span> if no action taken
+              
+              <div className="flex items-center justify-center gap-2 mt-3">
+                <div className="text-[10px] text-cw-txt3 text-center">
+                  Auto-approves in <span className="font-mono text-cw-purple font-semibold">{formatTime(timeLeft)}</span> if no action taken
+                </div>
+                <button 
+                  onClick={() => { closeAllDrawers(); setTimerSettingsOpen(true); }}
+                  className="w-5 h-5 flex items-center justify-center rounded hover:bg-cw-bg3 text-cw-txt3 hover:text-cw-txt transition-colors"
+                  title="Configure Auto-Actions"
+                >
+                  <Settings size={12} />
+                </button>
               </div>
             </>
           )}
         </div>
       </div>
 
-      {/* ── Right side-pull agent logs drawer ── */}
-      <div className={`shrink-0 h-full bg-[#0a0a0a] border-l border-cw-bdr flex flex-col transition-[width,opacity] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${logsOpen ? 'w-[480px] opacity-100' : 'w-0 opacity-0 overflow-hidden border-none'}`}>
-        {logsOpen && (
-          <div className="flex flex-col h-full font-mono">
-            <div className="px-5 py-3 border-b border-[#333] flex items-center justify-between bg-[#111] shrink-0">
-              <div className="flex items-center gap-2 text-cw-purple">
-                <TerminalSquare size={16} />
-                <h3 className="text-[13px] font-semibold text-white leading-none">Agent Execution Logs</h3>
+      {/* ── Right side-pull Timer/Action Settings drawer ── */}
+      <div className={`shrink-0 h-full bg-cw-bg border-l border-cw-bdr flex flex-col transition-[width,opacity] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${timerSettingsOpen ? 'w-[400px] opacity-100' : 'w-0 opacity-0 overflow-hidden border-none'}`}>
+        {timerSettingsOpen && (
+          <div className="flex flex-col h-full">
+            <div className="px-5 py-4 border-b border-cw-bdr flex items-center justify-between bg-cw-bg2 shrink-0">
+              <div>
+                <h3 className="text-[14px] font-semibold text-cw-txt leading-none mb-1">Gatekeeper Settings</h3>
+                <p className="text-[11px] text-cw-txt3 leading-none">Configure auto-actions for this PR</p>
               </div>
               <button 
-                onClick={() => setLogsOpen(false)}
-                className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-[#333] text-cw-txt3 hover:text-white transition-colors"
+                onClick={() => setTimerSettingsOpen(false)}
+                className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-cw-bg3 text-cw-txt3 hover:text-cw-txt transition-colors"
               >
                 <X size={15} />
               </button>
             </div>
-            <div className="flex-1 p-5 overflow-y-auto text-[11px] text-[#ccc] leading-relaxed">
-              <div className="text-[#888] mb-1">[09:41:22] [SYSTEM] Initializing Sandbox registry.fly.io/codeward-sandboxes-v2</div>
-              <div className="text-[#888] mb-4">[09:41:24] [SYSTEM] Cloning repository... Done.</div>
+            
+            <div className="flex-1 p-5 overflow-y-auto">
+              <div className="mb-5">
+                <label className="text-[11px] font-semibold text-cw-txt2 uppercase tracking-wide mb-2 block">Action on Expiry</label>
+                <select className="w-full bg-cw-bg2 border border-cw-bdr rounded p-2.5 text-[12px] text-cw-txt outline-none focus:border-cw-purple appearance-none">
+                  <option>Auto-Approve & Merge</option>
+                  <option>Auto-Reject & Block</option>
+                  <option>Do Nothing (Wait indefinitely)</option>
+                </select>
+              </div>
               
-              <div className="text-cw-blue mb-1">[09:41:25] [AGENT:SECURITY] Starting SAST scan...</div>
-              <div className="mb-4">  &gt; Scanning 412 files... No critical vulns found.<br/>  &gt; Status: PASS</div>
+              <div className="mb-6">
+                <label className="text-[11px] font-semibold text-cw-txt2 uppercase tracking-wide mb-2 block">Review Timeout Duration</label>
+                <div className="flex gap-2">
+                  <input type="number" defaultValue="2" className="w-20 bg-cw-bg2 border border-cw-bdr rounded p-2.5 text-[12px] text-cw-txt font-mono outline-none focus:border-cw-purple text-center" />
+                  <select className="flex-1 bg-cw-bg2 border border-cw-bdr rounded p-2.5 text-[12px] text-cw-txt outline-none focus:border-cw-purple appearance-none">
+                    <option>Hours</option>
+                    <option>Days</option>
+                    <option>Minutes</option>
+                  </select>
+                </div>
+              </div>
 
-              <div className="text-cw-amber mb-1">[09:41:28] [AGENT:ARCHITECTURE] Analyzing data access patterns...</div>
-              <div className="mb-1 text-cw-red">  &gt; WARNING: Detected N+1 query loop in /api/users</div>
-              <div className="mb-1">  &gt; "Looping over `users` and calling `db.profiles.findUnique` inside the loop will cause N+1 database queries."</div>
-              <div className="mb-4 text-cw-green">  &gt; Auto-fixed by injecting `include: {'{'} profile: true {'}'}`. Status: WARNING RESOLVED.</div>
+              <div className="mb-6 p-3 bg-cw-blue/5 border border-cw-blue/20 rounded-lg">
+                <p className="text-[11px] text-cw-blue leading-relaxed">
+                  These settings currently apply only to this specific deployment gate. To change the default behavior for all future pipelines, visit your Project Settings.
+                </p>
+              </div>
 
-              <div className="text-cw-purple mb-1">[09:41:35] [AGENT:PERFORMANCE] Estimating bundle & compute impact...</div>
-              <div className="mb-1">  &gt; V8 Heap snapshot analysis...</div>
-              <div className="mb-4 text-[#888]">  &gt; Infrastructure cost estimated to increase by $14/mo due to heavier join queries.</div>
-              
-              <div className="text-white mt-4">[09:41:38] [SYSTEM] All agents completed. Final Score: 91/100.</div>
+              <button 
+                onClick={() => { alert("Mock: Gatekeeper rules updated!"); setTimerSettingsOpen(false); }}
+                className="w-full py-2.5 text-[12px] rounded-lg border-none bg-cw-purple text-white cursor-pointer font-semibold shadow-sm hover:brightness-110 transition-all flex items-center justify-center gap-2"
+              >
+                <CheckCircle size={14} /> Save Rules
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ── Right side-pull agent summary drawer ── */}
+      <div className={`shrink-0 h-full bg-cw-bg border-l border-cw-bdr flex flex-col transition-[width,opacity] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${logsOpen ? 'w-[440px] opacity-100' : 'w-0 opacity-0 overflow-hidden border-none'}`}>
+        {logsOpen && (
+          <div className="flex flex-col h-full">
+            <div className="px-5 py-4 border-b border-cw-bdr flex items-center justify-between bg-cw-bg2 shrink-0">
+              <div>
+                <h3 className="text-[14px] font-semibold text-cw-txt leading-none mb-1">Agent Decision Summary</h3>
+                <p className="text-[11px] text-cw-txt3 leading-none">High-level rationale for this deployment</p>
+              </div>
+              <button 
+                onClick={() => setLogsOpen(false)}
+                className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-cw-bg3 text-cw-txt3 hover:text-cw-txt transition-colors"
+              >
+                <X size={15} />
+              </button>
+            </div>
+            
+            <div className="flex-1 p-5 overflow-y-auto">
+              <div className="mb-6">
+                <h4 className="text-[12px] font-semibold text-cw-txt mb-2">Final Recommendation</h4>
+                <div className="bg-cw-green/10 border border-cw-green/20 rounded-lg p-3 text-[12px] text-cw-green font-medium leading-relaxed">
+                  Merge Recommended. All critical security checks passed. The architecture flaw identified during analysis was successfully auto-remediated, making this build safe for production.
+                </div>
+              </div>
+
+              <div className="mb-6">
+                <h4 className="text-[12px] font-semibold text-cw-txt mb-2">Security & Compliance</h4>
+                <div className="bg-cw-bg2 border border-cw-bdr rounded-lg p-3 text-[12px] text-cw-txt2 leading-relaxed">
+                  Zero unauthenticated access paths or SSRF vulnerabilities detected across the 412 modified lines. The codebase remains compliant with SOC2 constraints.
+                </div>
+              </div>
+
+              <div className="mb-6">
+                <h4 className="text-[12px] font-semibold text-cw-txt mb-2 flex items-center justify-between">
+                  Architecture Remediation <span className="bg-cw-amber/20 text-cw-amber px-2 py-0.5 rounded text-[10px] uppercase font-bold">Auto-Fixed</span>
+                </h4>
+                <div className="bg-cw-bg2 border border-cw-bdr rounded-lg p-3 text-[12px] text-cw-txt2 leading-relaxed">
+                  <p className="mb-2"><strong>Issue:</strong> An N+1 query loop was detected in <code className="text-cw-txt bg-cw-bg border border-cw-bdr px-1 rounded">/api/users</code> which would have resulted in an exponential database load under heavy traffic.</p>
+                  <p><strong>Action:</strong> The agent automatically injected <code className="text-cw-txt bg-cw-bg border border-cw-bdr px-1 rounded">include: {'{'} profile: true {'}'}</code> to flatten the query and eliminate the loop, resolving the architectural risk.</p>
+                </div>
+              </div>
+
+              <div>
+                <h4 className="text-[12px] font-semibold text-cw-txt mb-2">Cost & Performance Impact</h4>
+                <div className="bg-cw-bg2 border border-cw-bdr rounded-lg p-3 text-[12px] text-cw-txt2 leading-relaxed">
+                  The updated data access patterns (heavier join queries) will marginally increase database CPU usage. The estimated infrastructure cost increase is <strong>$14/mo</strong>, which is well within acceptable limits.
+                </div>
+              </div>
+
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ── Right side-pull ENV configurator drawer ── */}
+      <div className={`shrink-0 h-full bg-cw-bg border-l border-cw-bdr flex flex-col transition-[width,opacity] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${envOpen ? 'w-[400px] opacity-100' : 'w-0 opacity-0 overflow-hidden border-none'}`}>
+        {envOpen && (
+          <div className="flex flex-col h-full">
+            <div className="px-5 py-4 border-b border-cw-bdr flex items-center justify-between bg-cw-bg2 shrink-0">
+              <div>
+                <h3 className="text-[14px] font-semibold text-cw-txt leading-none mb-1">Environment Variables</h3>
+                <p className="text-[11px] text-cw-txt3 leading-none">Inject overrides for this staging build</p>
+              </div>
+              <button 
+                onClick={() => setEnvOpen(false)}
+                className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-cw-bg3 text-cw-txt3 hover:text-cw-txt transition-colors"
+              >
+                <X size={15} />
+              </button>
+            </div>
+            
+            <div className="flex-1 p-5 overflow-y-auto">
+              <div className="mb-4">
+                <label className="text-[11px] font-semibold text-cw-txt2 uppercase tracking-wide mb-2 block">DATABASE_URL</label>
+                <input type="text" defaultValue="postgres://staging:***@db.internal:5432/main" className="w-full bg-cw-bg2 border border-cw-bdr rounded p-2.5 text-[12px] text-cw-txt font-mono outline-none focus:border-cw-purple" />
+              </div>
+              <div className="mb-4">
+                <label className="text-[11px] font-semibold text-cw-txt2 uppercase tracking-wide mb-2 block">NEXT_PUBLIC_API_URL</label>
+                <input type="text" defaultValue="https://api-staging.codeward.app" className="w-full bg-cw-bg2 border border-cw-bdr rounded p-2.5 text-[12px] text-cw-txt font-mono outline-none focus:border-cw-purple" />
+              </div>
+              <div className="mb-6">
+                <label className="text-[11px] font-semibold text-cw-txt2 uppercase tracking-wide mb-2 block">STRIPE_SECRET_KEY</label>
+                <input type="password" defaultValue="sk_test_123456789" className="w-full bg-cw-bg2 border border-cw-bdr rounded p-2.5 text-[12px] text-cw-txt font-mono outline-none focus:border-cw-purple" />
+              </div>
+
+              <button 
+                onClick={() => { alert("Mock: Restarting staging with new ENV vars..."); setEnvOpen(false); }}
+                className="w-full py-2.5 text-[12px] rounded-lg border-none bg-cw-purple text-white cursor-pointer font-semibold shadow-sm hover:brightness-110 transition-all flex items-center justify-center gap-2"
+              >
+                <Zap size={14} /> Restart Staging
+              </button>
             </div>
           </div>
         )}
@@ -333,49 +466,6 @@ export function Staging({ onRunClick }: Props) {
           </div>
         )}
       </div>
-
-      {/* ── Right side-pull ENV configurator drawer ── */}
-      <div className={`shrink-0 h-full bg-cw-bg border-l border-cw-bdr flex flex-col transition-[width,opacity] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${envOpen ? 'w-[400px] opacity-100' : 'w-0 opacity-0 overflow-hidden border-none'}`}>
-        {envOpen && (
-          <div className="flex flex-col h-full">
-            <div className="px-5 py-4 border-b border-cw-bdr flex items-center justify-between bg-cw-bg2 shrink-0">
-              <div>
-                <h3 className="text-[14px] font-semibold text-cw-txt leading-none mb-1">Environment Variables</h3>
-                <p className="text-[11px] text-cw-txt3 leading-none">Inject overrides for this staging build</p>
-              </div>
-              <button 
-                onClick={() => setEnvOpen(false)}
-                className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-cw-bg3 text-cw-txt3 hover:text-cw-txt transition-colors"
-              >
-                <X size={15} />
-              </button>
-            </div>
-            
-            <div className="flex-1 p-5 overflow-y-auto">
-              <div className="mb-4">
-                <label className="text-[11px] font-semibold text-cw-txt2 uppercase tracking-wide mb-2 block">DATABASE_URL</label>
-                <input type="text" defaultValue="postgres://staging:***@db.internal:5432/main" className="w-full bg-cw-bg2 border border-cw-bdr rounded p-2.5 text-[12px] text-cw-txt font-mono outline-none focus:border-cw-purple" />
-              </div>
-              <div className="mb-4">
-                <label className="text-[11px] font-semibold text-cw-txt2 uppercase tracking-wide mb-2 block">NEXT_PUBLIC_API_URL</label>
-                <input type="text" defaultValue="https://api-staging.codeward.app" className="w-full bg-cw-bg2 border border-cw-bdr rounded p-2.5 text-[12px] text-cw-txt font-mono outline-none focus:border-cw-purple" />
-              </div>
-              <div className="mb-6">
-                <label className="text-[11px] font-semibold text-cw-txt2 uppercase tracking-wide mb-2 block">STRIPE_SECRET_KEY</label>
-                <input type="password" defaultValue="sk_test_123456789" className="w-full bg-cw-bg2 border border-cw-bdr rounded p-2.5 text-[12px] text-cw-txt font-mono outline-none focus:border-cw-purple" />
-              </div>
-
-              <button 
-                onClick={() => { alert("Mock: Restarting staging with new ENV vars..."); setEnvOpen(false); }}
-                className="w-full py-2.5 text-[12px] rounded-lg border-none bg-cw-purple text-white cursor-pointer font-semibold shadow-sm hover:brightness-110 transition-all flex items-center justify-center gap-2"
-              >
-                <Zap size={14} /> Restart Staging
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-
     </div>
   );
 }

@@ -218,3 +218,106 @@ reportsRouter.get('/:repoId/history', async (c) => {
     runs: runsList.map((r) => ({ runId: r.id, commitSha: r.commitSha, status: r.status, overallScore: r.score, createdAt: r.createdAt })),
   });
 });
+
+/**
+ * GET /api/reports/:repoId/commits
+ *
+ * Fetches the latest 30 commits from GitHub for a connected repo, then overlays each
+ * commit with the corresponding Codeward run status from our database. This is the
+ * data backbone for the Commit History transparency page.
+ *
+ * The orchestrator decides which agents run for each push (it may skip agents if the diff
+ * is narrow), so each run row in our DB tells us whether it was incremental or comprehensive.
+ * The per-agent breakdown is fetched on demand by the side-pull (GET /runs/:runId).
+ */
+reportsRouter.get('/:repoId/commits', async (c) => {
+  const session = await auth.api.getSession({ headers: c.req.raw.headers });
+  if (!session) return c.json({ error: 'Unauthorized' }, 401);
+
+  const repoId = Number(c.req.param('repoId'));
+  if (!Number.isFinite(repoId)) return c.json({ error: 'Invalid repoId' }, 400);
+  if (!(await userCanAccessRepo(session.user.id, repoId))) return c.json({ error: 'Forbidden' }, 403);
+
+  const [repo] = await db.select().from(schema.repositories).where(eq(schema.repositories.id, repoId));
+  if (!repo) return c.json({ error: 'Repository not found' }, 404);
+
+  // If there is no installationId yet (repo just connected, not fully active) we can still
+  // return any runs we have in the DB so the page is not empty.
+  let githubCommits: any[] = [];
+  if (repo.installationId) {
+    try {
+      const { getInstallationOctokit } = await import('../lib/github.js');
+      const octokit = await getInstallationOctokit(repo.installationId);
+      const res = await octokit.request('GET /repos/{owner}/{repo}/commits', {
+        owner: repo.owner,
+        repo: repo.name,
+        per_page: 30,
+      });
+      githubCommits = res.data;
+    } catch (err: any) {
+      console.error(`[commits] GitHub API error for ${repo.fullName}:`, err.message);
+      // Don't hard-fail — fall through to DB-only mode below
+    }
+  }
+
+  // Fetch all runs for this repo from our DB
+  const runsList = await db.select().from(schema.runs)
+    .where(eq(schema.runs.repoId, repoId))
+    .orderBy(desc(schema.runs.createdAt))
+    .limit(100);
+
+  // Build SHA → latest run map (a SHA can theoretically appear twice if a webhook fires twice)
+  const runMap = new Map<string, typeof runsList[0]>();
+  for (const r of runsList) {
+    const existing = runMap.get(r.commitSha);
+    if (!existing || (r.createdAt && existing.createdAt && r.createdAt > existing.createdAt)) {
+      runMap.set(r.commitSha, r);
+    }
+  }
+
+  // If GitHub gave us commits, merge them with our run data
+  if (githubCommits.length > 0) {
+    const merged = githubCommits.map((ghc: any) => {
+      const run = runMap.get(ghc.sha) ?? null;
+      return {
+        sha: ghc.sha,
+        message: ghc.commit.message,
+        authorName: ghc.commit.author?.name ?? ghc.author?.login ?? 'Unknown',
+        authorAvatar: ghc.author?.avatar_url ?? null,
+        date: ghc.commit.author?.date ?? null,
+        htmlUrl: ghc.html_url,
+        run: run
+          ? {
+              id: run.id,
+              status: run.status,
+              score: run.score,
+              // scope tells the UI whether this was incremental (only changed files) or comprehensive
+              isIncremental: !!(run.scope as any)?.incremental,
+              changedFileCount: (run.scope as any)?.changedFiles?.length ?? null,
+              createdAt: run.createdAt,
+            }
+          : null,
+      };
+    });
+    return c.json({ commits: merged, repoFullName: repo.fullName });
+  }
+
+  // DB-only fallback: surface our runs as pseudo-commit entries when GitHub is unavailable
+  const fallback = runsList.map((r) => ({
+    sha: r.commitSha,
+    message: null,
+    authorName: null,
+    authorAvatar: null,
+    date: r.createdAt,
+    htmlUrl: null,
+    run: {
+      id: r.id,
+      status: r.status,
+      score: r.score,
+      isIncremental: !!(r.scope as any)?.incremental,
+      changedFileCount: (r.scope as any)?.changedFiles?.length ?? null,
+      createdAt: r.createdAt,
+    },
+  }));
+  return c.json({ commits: fallback, repoFullName: repo.fullName });
+});
