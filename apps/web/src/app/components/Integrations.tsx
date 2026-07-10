@@ -493,8 +493,8 @@ export function Integrations() {
                     <div className="relative flex items-center justify-center py-10 shrink-0 overflow-hidden">
                       <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse 80% 70% at 50% 50%, color-mix(in srgb, var(--cw-purple) 10%, transparent), transparent)' }} />
                       <div className="relative flex items-center gap-5 z-10">
-                        {/* Integration logo — fixed box, padding constrains large SVGs */}
-                        <div className="w-12 h-12 flex items-center justify-center p-2">
+                        {/* Integration logo — shrink slightly using padding since 3rd party SVGs lack intrinsic whitespace */}
+                        <div className="w-12 h-12 flex items-center justify-center p-2.5">
                           <img src={connectingIntg.logoUrl} alt={connectingIntg.name} className="w-full h-full object-contain" />
                         </div>
                         <div className="flex items-center gap-1.5">
@@ -502,9 +502,9 @@ export function Integrations() {
                           <Link2 size={13} className="text-cw-txt3" />
                           <div className="w-4 h-px bg-cw-bdr" />
                         </div>
-                        {/* Codeward logo — same fixed box */}
-                        <div className="w-12 h-12 flex items-center justify-center p-2">
-                          <img src="https://i.ibb.co/0jxSNrnp/codewrdlogo-png-removebg-preview.png" alt="Codeward" className="w-full h-full object-contain" />
+                        {/* Codeward logo — remove padding and scale slightly since the PNG has a lot of transparent padding baked in */}
+                        <div className="w-12 h-12 flex items-center justify-center p-0">
+                          <img src="https://i.ibb.co/0jxSNrnp/codewrdlogo-png-removebg-preview.png" alt="Codeward" className="w-full h-full object-contain scale-125" />
                         </div>
                       </div>
                     </div>

@@ -179,9 +179,9 @@ function AgentSection({ agent }: { agent: AgentReport }) {
                   <div className="text-[12px] text-cw-txt2">{f.description}</div>
 
                   {(f.file || f.toolName) && (
-                    <div className="flex items-center gap-2 text-[10px] text-cw-txt3 font-mono">
-                      {f.file && <span>{f.file}{f.line != null ? `:${f.line}` : ''}</span>}
-                      {f.toolName && <span className="px-1.5 py-0.5 bg-cw-bg3 rounded">{f.toolName}</span>}
+                    <div className="flex items-center gap-2 text-[10px] font-mono mt-0.5">
+                      {f.file && <span className="text-cw-blue font-medium">{f.file}{f.line != null ? `:${f.line}` : ''}</span>}
+                      {f.toolName && <span className="px-1.5 py-0.5 bg-cw-purple/10 text-cw-purple rounded border border-cw-purple/20">{f.toolName}</span>}
                     </div>
                   )}
 
@@ -190,11 +190,11 @@ function AgentSection({ agent }: { agent: AgentReport }) {
                   )}
 
                   {f.suggestedFix && f.fixStatus === 'suggested' && (
-                    <div className="mt-1 flex items-start gap-2 text-[11px] bg-cw-bg3/50 border border-cw-bdr rounded-md px-2.5 py-2">
+                    <div className="mt-1 flex items-start gap-2 text-[11px] bg-cw-amber/5 border border-cw-amber/20 rounded-md px-2.5 py-2">
                       <Wrench size={12} className="text-cw-amber shrink-0 mt-0.5" />
-                      <div>
-                        <span className="text-cw-txt3">Suggested fix{f.refactorSafe === false ? ' (needs manual review — no test coverage confirmed)' : ''}: </span>
-                        <span className="text-cw-txt2">{f.suggestedFix}</span>
+                      <div className="leading-relaxed">
+                        <span className="text-cw-amber font-bold">Suggested fix{f.refactorSafe === false ? ' (needs manual review)' : ''}: </span>
+                        <span className="text-cw-txt">{f.suggestedFix}</span>
                       </div>
                     </div>
                   )}
@@ -213,14 +213,25 @@ function AgentSection({ agent }: { agent: AgentReport }) {
                 {showTools ? 'Hide' : 'Show'} checks run ({agent.toolsExecuted.length})
               </button>
               {showTools && (
-                <div className="px-4 pb-3 flex flex-col gap-1">
-                  {agent.toolsExecuted.map((t, i) => (
-                    <div key={i} className="text-[10px] text-cw-txt3 font-mono flex gap-2">
-                      <span className="text-cw-txt2 shrink-0">{t.toolName}</span>
-                      <span className="text-cw-txt3">({t.durationMs}ms)</span>
-                      <span className="truncate">{t.resultSummary}</span>
-                    </div>
-                  ))}
+                <div className="px-4 pb-3 flex flex-col gap-1.5 mt-2">
+                  {agent.toolsExecuted.map((t, i) => {
+                    const isClean = /^(no|0)\b/i.test(t.resultSummary) || /\bclean\b/i.test(t.resultSummary) || /\bpassed\b/i.test(t.resultSummary);
+                    const isWarn = /\b(found|error|failed|warning)\b/i.test(t.resultSummary) && !isClean;
+                    
+                    return (
+                      <div key={i} className={`text-[10px] font-mono flex items-center gap-2 p-2 rounded-md border ${
+                        isClean ? 'bg-cw-green/10 border-cw-green/20 text-cw-green' :
+                        isWarn ? 'bg-cw-amber/10 border-cw-amber/20 text-cw-amber' :
+                        'bg-cw-bg3 border-cw-bdr text-cw-txt2'
+                      }`}>
+                        <span className={`shrink-0 font-bold ${
+                          isClean ? 'text-cw-green' : isWarn ? 'text-cw-amber' : 'text-cw-txt'
+                        }`}>{t.toolName}</span>
+                        <span className="opacity-60 shrink-0">({t.durationMs}ms)</span>
+                        <span className="truncate flex-1 font-medium">{t.resultSummary}</span>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
