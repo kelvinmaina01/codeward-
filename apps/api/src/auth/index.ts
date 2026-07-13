@@ -39,4 +39,34 @@ export const auth = betterAuth({
       trustedProviders: ["google", "github"],
     }
   },
+  databaseHooks: {
+    user: {
+      create: {
+        after: async (user) => {
+          try {
+            // Note: Since Resend is in "mock" mode until the domain is verified,
+            // this will safely log to the console instead of throwing errors.
+            const { NotificationService } = await import("../notifications/NotificationService.js");
+            
+            // Assume it's OAuth if there's no password field or based on the context.
+            // BetterAuth handles verification natively for OAuth. We will pass a default 
+            // verification link (this would ideally route to your frontend verification page).
+            const verificationLink = `${process.env.FRONTEND_URL || "http://localhost:5173"}/verify?token=example`;
+            
+            // For now, we assume if we reach here via social provider, we can flag isOAuth based on if the user is verified
+            const isOAuth = user.emailVerified === true; 
+
+            await NotificationService.sendWelcomeVerification(
+              user.email,
+              user.name || "Developer",
+              verificationLink,
+              isOAuth
+            );
+          } catch (error) {
+            console.error("Failed to send welcome email in hook:", error);
+          }
+        }
+      }
+    }
+  }
 });

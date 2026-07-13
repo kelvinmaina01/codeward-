@@ -31,7 +31,7 @@ export class NotificationService {
 
     try {
       const data = await resend.emails.send({
-        from: 'Codeward <system@codeward.io>',
+        from: process.env.EMAIL_FROM_ADDRESS || 'Codeward <hello@codeward.cloud>',
         to,
         subject,
         html,
@@ -43,11 +43,11 @@ export class NotificationService {
     }
   }
 
-  static async sendWelcomeVerification(to: string, userName: string, verificationLink: string) {
+  static async sendWelcomeVerification(to: string, userName: string, verificationLink: string, isOAuth: boolean = false) {
     return this.sendEmail(
       to,
-      'Welcome to Codeward — Action Required',
-      React.createElement(WelcomeVerificationEmail, { userName, verificationLink })
+      isOAuth ? 'Welcome to Codeward' : 'Welcome to Codeward — Action Required',
+      React.createElement(WelcomeVerificationEmail, { userName, verificationLink, isOAuth })
     );
   }
 
