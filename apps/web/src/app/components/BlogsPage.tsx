@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
-import { useNavigate } from 'react-router';
+import { useNavigate } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 import { blogs } from '../data/blogs';
 
 const FadeInSection: React.FC<{ children: React.ReactNode; direction?: 'up' | 'left' | 'right'; className?: string; delay?: number }> = ({ children, direction = 'up', className = '', delay = 0 }) => {
@@ -42,7 +43,12 @@ export const BlogsPage: React.FC = () => {
 
   return (
     <div className="h-screen overflow-y-auto overflow-x-hidden bg-[#05060a] font-['DM_Sans']">
-      {/* Ã¢â€â‚¬Ã¢â€â‚¬ HEADER Ã¢â€â‚¬Ã¢â€â‚¬ */}
+      <Helmet>
+        <title>Codeward Blog | Engineering Velocity, AI Agents & Code Quality</title>
+        <meta name="description" content="Insights, technical deep dives, and expert perspectives on automated reviews, refactoring legacy debt, and running secure code execution." />
+        <link rel="canonical" href="https://codeward.cloud/blogs" />
+      </Helmet>
+      {/* ── HEADER ── */}
       <header className="relative z-50 flex items-center justify-between px-8 py-6 md:px-14">
         <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/')}>
           <img src="https://i.ibb.co/0jxSNrnp/codewrdlogo-png-removebg-preview.png" alt="Codeward Logo" className="h-8 w-auto object-contain -mr-2" />
@@ -168,16 +174,6 @@ export const BlogsPage: React.FC = () => {
           
           <div className="mx-auto max-w-[1500px] relative z-10">
             {/* Huge Logo/Text Graphic */}
-            <div className="w-full flex justify-center mb-32 select-none pointer-events-none overflow-hidden">
-              <h2 className="text-[14vw] md:text-[12vw] font-black tracking-tighter leading-none opacity-90 drop-shadow-xl lowercase flex items-center justify-center">
-                <FadeInSection direction="left" delay={200}>
-                  <span className="text-black inline-block">code</span>
-                </FadeInSection>
-                <FadeInSection direction="right" delay={200}>
-                  <span className="text-[#49007D] inline-block">ward</span>
-                </FadeInSection>
-              </h2>
-            </div>
 
             {/* Mission & Contact */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-8 mb-20">

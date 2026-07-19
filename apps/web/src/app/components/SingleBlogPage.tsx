@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router';
+import { useParams, useNavigate } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 import { blogs } from '../data/blogs';
 
 export const SingleBlogPage: React.FC = () => {
@@ -10,16 +11,6 @@ export const SingleBlogPage: React.FC = () => {
 
   useEffect(() => {
     window.scrollTo(0, 0);
-    if (post) {
-      document.title = `${post.title} | Codeward Engineering`;
-      let metaDesc = document.querySelector('meta[name="description"]');
-      if (!metaDesc) {
-        metaDesc = document.createElement('meta');
-        metaDesc.setAttribute('name', 'description');
-        document.head.appendChild(metaDesc);
-      }
-      metaDesc.setAttribute('content', post.seoDescription);
-    }
   }, [post]);
 
   if (!post) {
@@ -33,7 +24,33 @@ export const SingleBlogPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#05060a] text-white font-['DM_Sans'] selection:bg-purple-500/30">
-      {/* Ã¢â€â‚¬Ã¢â€â‚¬ HEADER Ã¢â€â‚¬Ã¢â€â‚¬ */}
+      <Helmet>
+        <title>{`${post.title} | Codeward Engineering`}</title>
+        <meta name="description" content={post.seoDescription} />
+        <link rel="canonical" href={`https://codeward.cloud/blogs/${slug}`} />
+        <script type="application/ld+json">
+          {JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Article",
+            "headline": post.title,
+            "datePublished": post.date,
+            "author": {
+              "@type": "Person",
+              "name": post.author
+            },
+            "publisher": {
+              "@type": "Organization",
+              "name": "Codeward",
+              "logo": {
+                "@type": "ImageObject",
+                "url": "https://i.ibb.co/0jxSNrnp/codewrdlogo-png-removebg-preview.png"
+              }
+            },
+            "description": post.seoDescription
+          })}
+        </script>
+      </Helmet>
+      {/* ── HEADER ── */}
       <header className="relative z-50 flex items-center justify-between px-8 py-6 md:px-14 border-b border-white/5">
         <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/')}>
           <img src="https://i.ibb.co/0jxSNrnp/codewrdlogo-png-removebg-preview.png" alt="Codeward Logo" className="h-6 w-auto object-contain -mr-1" />
@@ -219,24 +236,14 @@ export const SingleBlogPage: React.FC = () => {
         </section>
       </main>
 
-      {/* Ã¢â€â‚¬Ã¢â€â‚¬ Footer Section Ã¢â€â‚¬Ã¢â€â‚¬ */}
+      {/* Ã¢â€ â‚¬Ã¢â€ â‚¬ Footer Section Ã¢â€ â‚¬Ã¢â€ â‚¬ */}
       <div className="px-4 md:px-8 pb-4 md:pb-8 bg-[#05060a] mt-20">
         <footer className="relative bg-[#C3DBFF] rounded-[16px] pt-32 pb-8 px-8 md:px-14 overflow-hidden shadow-2xl">
           {/* Fabric Gradient Overlay */}
           <div className="absolute inset-0 bg-gradient-to-tr from-white/40 via-transparent to-black/5 mix-blend-overlay pointer-events-none" />
           
           <div className="mx-auto max-w-[1500px] relative z-10">
-            {/* Huge Logo/Text Graphic */}
-            <div className="w-full flex justify-center mb-32 select-none pointer-events-none overflow-hidden">
-              <h2 className="text-[14vw] md:text-[12vw] font-black tracking-tighter leading-none opacity-90 drop-shadow-xl lowercase flex items-center justify-center">
-                <FadeInSection direction="left" delay={200}>
-                  <span className="text-black inline-block">code</span>
-                </FadeInSection>
-                <FadeInSection direction="right" delay={200}>
-                  <span className="text-[#49007D] inline-block">ward</span>
-                </FadeInSection>
-              </h2>
-            </div>
+
 
             {/* Mission & Contact */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-8 mb-20">

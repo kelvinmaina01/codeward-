@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router";
-import Confetti from 'react-confetti';
+import { useNavigate } from "react-router-dom";
+import { Helmet } from 'react-helmet-async';
 import { ArchitectureFlow } from './ArchitectureFlow';
 import { blogs } from '../data/blogs';
 
@@ -336,9 +336,14 @@ function ParticleField({ centered = false }: { centered?: boolean }) {
 
       raf = requestAnimationFrame(render);
     };
-    render();
+
+    // Delay start of loop to free main thread during initial load/hydration
+    const startTimeout = setTimeout(() => {
+      render();
+    }, 400);
 
     return () => {
+      clearTimeout(startTimeout);
       cancelAnimationFrame(raf);
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("resize", resize);
@@ -355,10 +360,11 @@ function ParticleField({ centered = false }: { centered?: boolean }) {
 }
 
 function TypingText() {
-  const [text, setText] = useState("");
   const fullText = "Ship AI code\nwithout the technical\ndebt";
+  const [text, setText] = useState(fullText); // Start with fullText to match server-side render
   
   useEffect(() => {
+    setText("");
     let i = 0;
     const interval = setInterval(() => {
       setText(fullText.slice(0, i + 1));
@@ -377,18 +383,19 @@ function TypingText() {
 }
 
 function MissionTypingText() {
-  const [text, setText] = useState("");
   const normalText = "Codeward is your autonomous\ncode quality platform, without\n";
   const highlightedText = "the technical debt";
-  const totalLength = normalText.length + highlightedText.length;
+  const fullText = normalText + highlightedText;
+  const [text, setText] = useState(fullText); // Match server-side render
+  const totalLength = fullText.length;
 
   useEffect(() => {
+    setText("");
     let i = 0;
-    // Start after a short delay so it triggers when user scrolls down
     const timeout = setTimeout(() => {
       const interval = setInterval(() => {
         i++;
-        setText((normalText + highlightedText).slice(0, i));
+        setText(fullText.slice(0, i));
         if (i >= totalLength) clearInterval(interval);
       }, 55);
       return () => clearInterval(interval);
@@ -676,35 +683,86 @@ function VideoPlayer() {
 
 export default function CodewardHero() {
   const navigate = useNavigate();
-  const [showConfetti, setShowConfetti] = useState(false);
-  const footerRef = useRef<HTMLElement>(null);
-  const [windowSize, setWindowSize] = useState({ width: 0, height: 0 });
-
-  useEffect(() => {
-    setWindowSize({ width: window.innerWidth, height: window.innerHeight });
-    const handleResize = () => setWindowSize({ width: window.innerWidth, height: window.innerHeight });
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(entries => {
-      if (entries[0].isIntersecting) {
-        setShowConfetti(true);
-      }
-    }, { threshold: 0.1 });
-    
-    if (footerRef.current) observer.observe(footerRef.current);
-    return () => {
-      if (footerRef.current) observer.unobserve(footerRef.current);
-    };
-  }, []);
 
   return (
     <div className="h-screen overflow-y-auto overflow-x-hidden bg-[#05060a]">
+      <Helmet>
+        <title>Codeward | Autonomous AI Code Quality & Refactoring Platform</title>
+        <meta name="description" content="Catch bugs, security vulnerabilities, and code bloat before production. Codeward spins up secure Firecracker sandboxes, tests your code, and pushes fixes automatically." />
+        <link rel="canonical" href="https://codeward.cloud/" />
+        <script type="application/ld+json">
+          {JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Organization",
+            "name": "Codeward",
+            "url": "https://codeward.cloud",
+            "logo": "https://i.ibb.co/0jxSNrnp/codewrdlogo-png-removebg-preview.png",
+            "sameAs": [
+              "https://github.com/codeward-ai",
+              "https://twitter.com/codeward_ai",
+              "https://linkedin.com/company/codeward"
+            ]
+          })}
+        </script>
+        <script type="application/ld+json">
+          {JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "SoftwareApplication",
+            "name": "Codeward",
+            "operatingSystem": "All",
+            "applicationCategory": "DeveloperApplication",
+            "offers": {
+              "@type": "Offer",
+              "price": "29.00",
+              "priceCurrency": "USD"
+            }
+          })}
+        </script>
+        <script type="application/ld+json">
+          {JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "FAQPage",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "Is this just another CodeRabbit?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "No. While tools like CodeRabbit focus heavily on PR summaries and superficial code review comments, Codeward is an active participant in your codebase. We don't just leave comments—our autonomous agents actively write the code, generate the fixes, and manage your technical debt directly."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "How does Codeward integrate with my existing CI/CD?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Codeward connects directly to your GitHub, GitLab, or Bitbucket repositories. It listens for pull requests and branch updates, running its analysis and patching autonomously without disrupting your existing pipelines."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Is my source code secure?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Absolutely. We run all analysis in isolated, ephemeral sandboxes. Your code is never used to train public models, and our infrastructure is SOC2 compliant, ensuring military-grade security for your intellectual property."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Can Codeward automatically fix the issues it finds?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes! Our Self-healing Patches feature doesn't just point out errors; it generates ready-to-merge pull requests with verified fixes for vulnerabilities, test failures, and legacy technical debt."
+                }
+              }
+            ]
+          })}
+        </script>
+      </Helmet>
       <section className="relative min-h-screen overflow-hidden bg-[#05060a] text-white">
         <style>
         {`
+          @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap');
           /* Additional styles can go here */
         `}
       </style>
@@ -1013,9 +1071,10 @@ export default function CodewardHero() {
           </h1>
 
           <p className="mt-6 max-w-xl text-base text-white/60 md:text-lg">
-            Codeward sits between your developers and production. Every push is
-            sandboxed, stress-tested, refactored against your existing codebase,
-            and rolled back instantly if anything breaks.
+            Codeward is an autonomous AI code review platform for engineering teams that runs specialized review agents automatically on every pull request.
+          </p>
+          <p className="mt-4 max-w-xl text-base text-white/50 md:text-lg font-light">
+            Every push is sandboxed, stress-tested, refactored against your existing codebase, and rolled back instantly if anything breaks.
           </p>
 
           <div className="mt-10 flex flex-wrap gap-4">
@@ -1502,27 +1561,12 @@ export default function CodewardHero() {
 
       {/* ─── Footer Section ─── */}
       <div className="px-4 md:px-8 pb-4 md:pb-8 bg-[#05060a]">
-        <footer ref={footerRef} className="relative bg-[#C3DBFF] rounded-[16px] pt-20 md:pt-24 pb-8 px-8 md:px-14 overflow-hidden shadow-2xl">
-          {showConfetti && (
-            <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 50 }}>
-              <Confetti width={windowSize.width} height={windowSize.height} recycle={false} numberOfPieces={400} />
-            </div>
-          )}
+        <footer className="relative bg-[#C3DBFF] rounded-[16px] pt-20 md:pt-24 pb-8 px-8 md:px-14 overflow-hidden shadow-2xl">
           {/* Fabric Gradient Overlay */}
           <div className="absolute inset-0 bg-gradient-to-tr from-white/40 via-transparent to-black/5 mix-blend-overlay pointer-events-none" />
           
           <div className="mx-auto max-w-[1500px] relative z-10">
-            {/* Huge Logo/Text Graphic */}
-            <div className="w-full flex justify-center mb-20 md:mb-24 select-none pointer-events-none overflow-hidden">
-              <h2 className="text-[12vw] md:text-[10vw] font-black tracking-tighter leading-none opacity-90 drop-shadow-xl lowercase flex items-center justify-center">
-                <FadeInSection direction="left" delay={200}>
-                  <span className="text-black inline-block">code</span>
-                </FadeInSection>
-                <FadeInSection direction="right" delay={200}>
-                  <span className="text-[#49007D] inline-block">ward</span>
-                </FadeInSection>
-              </h2>
-            </div>
+
 
             {/* Mission & Contact */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-8 mb-20">
