@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Routes, Route, Navigate, useNavigate, useLocation, useParams, NavLink } from 'react-router';
+import { useRoutes, Navigate, useNavigate, useLocation, useParams, NavLink } from 'react-router-dom';
+import { HelmetProvider } from 'react-helmet-async';
 import {
   LayoutDashboard, Radio, GitCompare, ShieldAlert, BarChart3,
   Bot, Monitor, Clock, GitFork, Award, Settings as SettingsIcon,
@@ -54,6 +55,8 @@ import { AdminSandbox } from './components/admin/AdminSandbox';
 import { AdminGitHubApp } from './components/admin/AdminGitHubApp';
 import { AdminAlerts } from './components/admin/AdminAlerts';
 import { AdminSettings } from './components/admin/AdminSettings';
+import { blogs } from './data/blogs';
+import { comparisons } from './data/comparisons';
 
 function AdminPlaceholder({ title }: { title: string }) {
   return (
@@ -106,21 +109,21 @@ const nav: NavGroup[] = [
 ];
 
 const topbarConfig: Partial<Record<string, { title: string; sub: string }>> = {
-  dashboard: { title: 'Dashboard', sub: 'acme-corp · 4 repos guarded · all systems normal' },
-  livefeed:  { title: 'Live run feed', sub: 'my-api · commit 3fa2c1 · running now' },
-  diff:      { title: 'Diff viewer', sub: 'my-api · commit 3fa2c1 · 3 files changed by agent' },
-  security:  { title: 'Security panel', sub: '3 critical · 2 high · 1 medium · last scan 4 min ago' },
-  debt:      { title: 'Debt report', sub: 'my-api · all categories · this month' },
+  dashboard: { title: 'Dashboard', sub: 'Overview of connected repositories' },
+  livefeed:  { title: 'Live run feed', sub: 'Real-time analysis runs' },
+  diff:      { title: 'Diff viewer', sub: 'Inspect agent-modified files' },
+  security:  { title: 'Security panel', sub: 'Vulnerabilities and security health' },
+  debt:      { title: 'Debt report', sub: 'Codebase health and technical debt' },
   agent:     { title: 'Gordon', sub: 'Your principal-engineer agent — answers from real run data, not guesses' },
-  staging:   { title: 'Staging', sub: '1 deployment awaiting approval' },
-  history:   { title: 'Audit Log', sub: 'All autonomous interventions and checks · last 30 days' },
-  repos:     { title: 'Repositories', sub: '4 repos · health score last 30 days' },
-  cert:      { title: 'Health certificate', sub: 'shareable · updates on every scan' },
-  settings:  { title: 'Settings', sub: 'acme-corp · my-api · trust & automation' },
+  staging:   { title: 'Staging', sub: 'Deployments awaiting approval' },
+  history:   { title: 'Audit Log', sub: 'Autonomous interventions and checks' },
+  repos:     { title: 'Repositories', sub: 'Connected GitHub repositories' },
+  cert:      { title: 'Health certificate', sub: 'Shareable health status' },
+  settings:  { title: 'Settings', sub: 'Manage your Codeward preferences' },
   integrations: { title: 'Integrations', sub: 'Connect external tools and MCP servers' },
-  alerts:    { title: 'Alerts center', sub: 'acme-corp · active incidents & notifications' },
-  issuesprs: { title: 'Issues & PRs', sub: 'Real escalated issues and pull requests across your repos' },
-  commits:   { title: 'Commit History', sub: 'acme-corp / my-api · every push · agent activity per commit' },
+  alerts:    { title: 'Alerts center', sub: 'Active incidents & notifications' },
+  issuesprs: { title: 'Issues & PRs', sub: 'Escalated issues and pull requests across your repos' },
+  commits:   { title: 'Commit History', sub: 'Agent activity per commit' },
 };
 
 // Map URL paths to screen IDs
@@ -204,7 +207,7 @@ function DashboardLayout() {
     const commitsMatch = location.pathname.match(/^\/dashboard\/repos\/(\d+)\/commits/);
     if (commitsMatch || screen === 'commits') {
       const repoId = commitsMatch ? Number(commitsMatch[1]) : undefined;
-      return <CommitHistory repoId={repoId} repoFullName={commitsMatch ? undefined : 'acme-corp / my-api'} onBack={() => navigate(commitsMatch ? '/dashboard/repos' : '/dashboard')} />;
+      return <CommitHistory repoId={repoId} repoFullName={commitsMatch ? undefined : 'Global feed'} onBack={() => navigate(commitsMatch ? '/dashboard/repos' : '/dashboard')} />;
     }
 
     switch (screen) {
@@ -215,7 +218,7 @@ function DashboardLayout() {
       case 'security':     return <Security />;
       case 'debt':         return <DebtReport />;
       case 'agent':        return <AIAgent />;
-      case 'staging':      return <Staging />;
+      case 'staging':      return <Staging onRunClick={(repoId, runId) => setRunDetailTarget({ repoId, runId })} />;
       case 'history':      return <DeployHistory onRunClick={(repoId, runId) => setRunDetailTarget({ repoId, runId })} />;
       case 'repos':        return <Repositories activeOrg={activeOrg} />;
       case 'cert':         return <Certificate />;
@@ -264,29 +267,33 @@ function DashboardLayout() {
               <div className={`px-5 pb-2 text-[10px] font-medium text-cw-txt tracking-[0.07em] uppercase whitespace-nowrap overflow-hidden transition-opacity duration-300 ${isSidebarPinned ? 'opacity-100' : 'opacity-0'}`}>
                 {group.group}
               </div>
-              {group.items.map(item => (
-                <NavLink
-                  key={item.id}
-                  to={item.path}
-                  end={item.path === '/dashboard'}
-                  className={({ isActive }) =>
-                    `group flex items-center gap-3 px-[23px] py-2.5 text-[13px] cursor-pointer relative transition-colors ${isActive ? 'text-cw-txt font-semibold' : 'text-cw-txt2 font-medium hover:bg-cw-bg3 hover:text-cw-txt'}`
-                  }
-                >
-                  {({ isActive }) => (
-                    <>
-                      {isActive && <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-cw-blue" />}
-                      <div className={`${isActive ? 'text-cw-blue' : 'text-cw-txt3 group-hover:text-cw-txt'} shrink-0 transition-colors`}>
-                        <item.icon size={20} strokeWidth={2.5} absoluteStrokeWidth />
-                      </div>
-                      <div className={`flex items-center flex-1 whitespace-nowrap overflow-hidden transition-opacity duration-300 ${isSidebarPinned ? 'opacity-100' : 'opacity-0'}`}>
-                        {item.label}
-                        {item.beta && <span className="ml-auto text-[9px] px-[6px] py-[1px] rounded-full border border-cw-purple text-cw-purple font-semibold tracking-wide">BETA</span>}
-                        {item.badge && <span className="ml-auto text-[10px] px-[6px] py-[2px] rounded-full bg-cw-red text-white font-medium">{item.badge}</span>}
-                      </div>
-                    </>
-                  )}
-                </NavLink>
+              {nav.map(group => (
+                <div key={group.group} className="mb-4">
+                  {group.items.map(item => (
+                    <NavLink
+                      key={item.id}
+                      to={item.path}
+                      end={item.path === '/dashboard'}
+                      className={({ isActive }) =>
+                        `group flex items-center gap-3 px-[23px] py-2.5 text-[13px] cursor-pointer relative transition-colors ${isActive ? 'text-cw-txt font-semibold' : 'text-cw-txt2 font-medium hover:bg-cw-bg3 hover:text-cw-txt'}`
+                      }
+                    >
+                      {({ isActive }) => (
+                        <>
+                          {isActive && <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-cw-blue" />}
+                          <div className={`${isActive ? 'text-cw-blue' : 'text-cw-txt3 group-hover:text-cw-txt'} shrink-0 transition-colors`}>
+                            <item.icon size={20} strokeWidth={2.5} absoluteStrokeWidth />
+                          </div>
+                          <div className={`flex items-center flex-1 whitespace-nowrap overflow-hidden transition-opacity duration-300 ${isSidebarPinned ? 'opacity-100' : 'opacity-0'}`}>
+                            {item.label}
+                            {item.beta && <span className="ml-auto text-[9px] px-[6px] py-[1px] rounded-full border border-cw-purple text-cw-purple font-semibold tracking-wide">BETA</span>}
+                            {item.badge && <span className="ml-auto text-[10px] px-[6px] py-[2px] rounded-full bg-cw-red text-white font-medium">{item.badge}</span>}
+                          </div>
+                        </>
+                      )}
+                    </NavLink>
+                  ))}
+                </div>
               ))}
             </div>
           ))}
@@ -317,9 +324,7 @@ function DashboardLayout() {
       {/* MAIN CONTAINER */}
       <div className="flex-1 flex overflow-hidden">
         <div className="flex-1 flex flex-col min-w-0 bg-cw-bg relative">
-          {/* Topbar — on Gordon's page it collapses to a slim floating bar (hamburger + controls
-              only, no title) so the chat reclaims the full height. pointer-events pass through the
-              empty areas to Gordon underneath. */}
+          {/* Topbar */}
           <div className={`flex items-center justify-between transition-all duration-300 ${screen === 'agent' ? 'absolute top-0 left-0 right-0 z-30 px-5 h-[52px] pointer-events-none' : 'px-8 h-[80px] border-b border-cw-bdr bg-cw-bg shrink-0'}`}>
             <div className="flex items-center gap-5">
               <button
@@ -456,69 +461,6 @@ function DashboardLayout() {
   );
 }
 
-// ─── Root App ─────────────────────────────────────────────────────────────────
-export default function App() {
-  const { data: session, isPending } = useSession();
-
-  if (isPending) return <div className="h-screen bg-[#05060a] flex items-center justify-center text-white/50 text-sm">Loading…</div>;
-
-  return (
-    <Routes>
-      <Route path="/" element={<CodewardHero />} />
-      <Route path="/login" element={<AuthPage onBack={() => {}} theme="dark" onCycleTheme={() => {}} onNavigate={() => {}} />} />
-      <Route path="/signup" element={<AuthPage onBack={() => {}} theme="dark" onCycleTheme={() => {}} onNavigate={() => {}} />} />
-      <Route path="/connect" element={
-        <RequireAuth>
-          <ConnectRepoWrapper />
-        </RequireAuth>
-      } />
-      <Route path="/terms" element={<LegalPage type="terms" onBack={() => {}} theme="dark" onCycleTheme={() => {}} themeIcon={<Moon size={14} />} />} />
-      <Route path="/privacy" element={<LegalPage type="privacy" onBack={() => {}} theme="dark" onCycleTheme={() => {}} themeIcon={<Moon size={14} />} />} />
-      <Route path="/dashboard/commits" element={
-        <RequireAuth>
-          <DashboardLayout />
-        </RequireAuth>
-      } />
-      <Route path="/dashboard/*" element={
-        <RequireAuth>
-          <DashboardLayout />
-        </RequireAuth>
-      } />
-      <Route path="/dashboard/repos/:repoId/commits" element={
-        <RequireAuth>
-          <DashboardLayout />
-        </RequireAuth>
-      } />
-      <Route path="/admin" element={<AdminLayout />}>
-        <Route index element={<AdminOverview />} />
-        <Route path="feed" element={<AdminFeed />} />
-        <Route path="runs" element={<AdminRuns />} />
-        <Route path="repos" element={<AdminRepos />} />
-        <Route path="security" element={<AdminSecurity />} />
-        <Route path="bloat" element={<AdminBloat />} />
-        <Route path="broken" element={<AdminBroken />} />
-        <Route path="architecture" element={<AdminArchitecture />} />
-        <Route path="agents" element={<AdminAgents />} />
-        <Route path="revenue" element={<AdminRevenue />} />
-        <Route path="customers" element={<AdminCustomers />} />
-        <Route path="growth" element={<AdminGrowth />} />
-        <Route path="billing" element={<AdminBilling />} />
-        <Route path="sandbox" element={<AdminSandbox />} />
-        <Route path="github" element={<AdminGitHubApp />} />
-        <Route path="alerts" element={<AdminAlerts />} />
-        <Route path="settings" element={<AdminSettings />} />
-        <Route path="*" element={<AdminOverview />} />
-      </Route>
-      <Route path="/compare/:competitorId" element={<ComparePage />} />
-      <Route path="/blogs" element={<BlogsPage />} />
-      <Route path="/blogs/:slug" element={<SingleBlogPage />} />
-      <Route path="/book-demo" element={<BookDemo />} />
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
-  );
-}
-
-// Wrapper for ConnectRepo that supplies the session user and navigate
 function ConnectRepoWrapper() {
   const { data: session } = useSession();
   const navigate = useNavigate();
@@ -537,5 +479,170 @@ function ConnectRepoWrapper() {
       theme="dark"
       onCycleTheme={() => {}}
     />
+  );
+}
+
+function DocsPlaceholderPage() {
+  return (
+    <div className="min-h-screen bg-[#05060a] text-white flex flex-col items-center justify-center font-['DM_Sans'] p-6">
+      <h1 className="text-4xl font-bold mb-4">Documentation</h1>
+      <p className="text-white/60 mb-6">Learn how to connect, analyze, and automate reviews for your repositories.</p>
+      <a href="/" className="px-6 py-2.5 bg-white text-black font-semibold rounded-full hover:bg-gray-100 transition-colors">Return home</a>
+    </div>
+  );
+}
+
+export const routes = [
+  {
+    path: "/",
+    element: <CodewardHero />
+  },
+  {
+    path: "/pricing",
+    element: <CodewardHero />
+  },
+  {
+    path: "/agents/:agentId",
+    element: <CodewardHero />,
+    getStaticPaths: () => [
+      "/agents/security",
+      "/agents/bloat",
+      "/agents/broken-code",
+      "/agents/architecture",
+      "/agents/ai-era",
+      "/agents/orchestrator"
+    ]
+  },
+  {
+    path: "/solutions/:solutionId",
+    element: <CodewardHero />,
+    getStaticPaths: () => [
+      "/solutions/ci-cd-shield",
+      "/solutions/tech-debt",
+      "/solutions/compliance",
+      "/solutions/secrets",
+      "/solutions/flaky-tests",
+      "/solutions/enterprise"
+    ]
+  },
+  {
+    path: "/docs",
+    element: <DocsPlaceholderPage />
+  },
+  {
+    path: "/docs/*",
+    element: <DocsPlaceholderPage />,
+    getStaticPaths: () => [
+      "/docs/intro",
+      "/docs/setup",
+      "/docs/agents",
+      "/docs/security"
+    ]
+  },
+  {
+    path: "/login",
+    element: <AuthPage onBack={() => {}} theme="dark" onCycleTheme={() => {}} onNavigate={() => {}} />
+  },
+  {
+    path: "/signup",
+    element: <AuthPage onBack={() => {}} theme="dark" onCycleTheme={() => {}} onNavigate={() => {}} />
+  },
+  {
+    path: "/connect",
+    element: (
+      <RequireAuth>
+        <ConnectRepoWrapper />
+      </RequireAuth>
+    )
+  },
+  {
+    path: "/terms",
+    element: <LegalPage type="terms" onBack={() => {}} theme="dark" onCycleTheme={() => {}} themeIcon={<Moon size={14} />} />
+  },
+  {
+    path: "/privacy",
+    element: <LegalPage type="privacy" onBack={() => {}} theme="dark" onCycleTheme={() => {}} themeIcon={<Moon size={14} />} />
+  },
+  {
+    path: "/dashboard/commits",
+    element: (
+      <RequireAuth>
+        <DashboardLayout />
+      </RequireAuth>
+    )
+  },
+  {
+    path: "/dashboard/*",
+    element: (
+      <RequireAuth>
+        <DashboardLayout />
+      </RequireAuth>
+    )
+  },
+  {
+    path: "/dashboard/repos/:repoId/commits",
+    element: (
+      <RequireAuth>
+        <DashboardLayout />
+      </RequireAuth>
+    )
+  },
+  {
+    path: "/admin",
+    element: <AdminLayout />,
+    children: [
+      { index: true, element: <AdminOverview /> },
+      { path: "feed", element: <AdminFeed /> },
+      { path: "runs", element: <AdminRuns /> },
+      { path: "repos", element: <AdminRepos /> },
+      { path: "security", element: <AdminSecurity /> },
+      { path: "bloat", element: <AdminBloat /> },
+      { path: "broken", element: <AdminBroken /> },
+      { path: "architecture", element: <AdminArchitecture /> },
+      { path: "agents", element: <AdminAgents /> },
+      { path: "revenue", element: <AdminRevenue /> },
+      { path: "customers", element: <AdminCustomers /> },
+      { path: "growth", element: <AdminGrowth /> },
+      { path: "billing", element: <AdminBilling /> },
+      { path: "sandbox", element: <AdminSandbox /> },
+      { path: "github", element: <AdminGitHubApp /> },
+      { path: "alerts", element: <AdminAlerts /> },
+      { path: "settings", element: <AdminSettings /> },
+      { path: "*", element: <AdminOverview /> }
+    ]
+  },
+  {
+    path: "/compare/:competitorId",
+    element: <ComparePage />,
+    getStaticPaths: () => Object.keys(comparisons).map(key => `/compare/${key}`)
+  },
+  {
+    path: "/blogs",
+    element: <BlogsPage />
+  },
+  {
+    path: "/blogs/:slug",
+    element: <SingleBlogPage />,
+    getStaticPaths: () => blogs.map(b => `/blogs/${b.slug}`)
+  },
+  {
+    path: "/book-demo",
+    element: <BookDemo />
+  },
+  {
+    path: "*",
+    element: <Navigate to="/" replace />
+  }
+];
+
+import { CookieConsent } from './components/CookieConsent';
+
+export default function App() {
+  const element = useRoutes(routes);
+  return (
+    <HelmetProvider>
+      {element}
+      <CookieConsent />
+    </HelmetProvider>
   );
 }
