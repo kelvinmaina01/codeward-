@@ -113,6 +113,9 @@ import { reportsRouter } from './routes/reports.js';
 import { approvalsRouter } from './routes/approvals.js';
 import { alertsRouter } from './routes/alerts.js';
 import { issuesPrsRouter } from './routes/issues-prs.js';
+import { integrationsRouter } from './routes/integrations.js';
+import { connectorRequestsRouter } from './routes/connector-requests.js';
+import { mcpRouter } from './routes/mcp.js';
 
 const routes = app
   .route('/api/webhooks', webhookRouter)
@@ -125,6 +128,9 @@ const routes = app
   .route('/api/approvals', approvalsRouter)
   .route('/api/alerts', alertsRouter)
   .route('/api/issues-prs', issuesPrsRouter)
+  .route('/api/integrations', integrationsRouter)
+  .route('/api/connector-requests', connectorRequestsRouter)
+  .route('/api/mcp', mcpRouter)
   .route('/ws', wsRouter);
 
 export type AppType = typeof routes;

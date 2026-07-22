@@ -64,6 +64,13 @@
       "when": 1783500983745,
       "tag": "0008_backfill_agent_tasks_run_id_fk",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1783794885057,
+      "tag": "0009_peaceful_power_man",
+      "breakpoints": true
     }
   ]
 }

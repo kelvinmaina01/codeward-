@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router';
+import { useNavigate } from 'react-router-dom';
 import { Search, Loader, AlertCircle, Play, Pause, Settings as SettingsIcon, BarChart2, GitFork, Lock, Globe, Wrench } from 'lucide-react';
 import { toast } from 'sonner';
 import { API_URL } from '../../lib/api';

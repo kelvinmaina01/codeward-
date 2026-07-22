@@ -266,6 +266,7 @@ export const gordonEvents = pgTable('gordon_events', {
   id: uuid('id').defaultRandom().primaryKey(),
   userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
   sessionId: uuid('session_id').references(() => chatSessions.id, { onDelete: 'set null' }),
+  integrationId: uuid('integration_id').references(() => integrations.id, { onDelete: 'set null' }),
   toolName: text('tool_name').notNull(),
   repoId: integer('repo_id'),                          // best-effort, extracted from input when present
   input: jsonb('input'),
@@ -275,4 +276,82 @@ export const gordonEvents = pgTable('gordon_events', {
   requiredApproval: boolean('required_approval').notNull().default(false),
   durationMs: integer('duration_ms').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export type IntegrationMetadata = {
+  linearTeamId?: string;
+  linearLabels?: string[];
+  slackIncidentChannel?: string;
+  slackPRChannel?: string;
+  slackUserMapping?: Record<string, string>;
+  datadogRegion?: 'us' | 'eu';
+  datadogWebhookUrl?: string;
+  figmaWatchedFiles?: string[];
+  googleScopes?: Record<string, boolean>;
+  googleDigestRecipients?: string[];
+  googleExportFolderId?: string;
+  sentryProjectMapping?: Record<string, string>;
+  whatsappOnCallNumbers?: string[];
+  whatsappChannelPreference?: 'whatsapp' | 'sms';
+  mcpServerUrl?: string;
+  mcpAuthType?: string;
+  [key: string]: any;
+};
+
+export const connectorRequests = pgTable('connector_requests', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  orgId: integer('org_id').references(() => organization.id, { onDelete: 'cascade' }),
+  requestedBy: text('requested_by').references(() => user.id, { onDelete: 'set null' }),
+  toolName: varchar('tool_name', { length: 100 }).notNull(),
+  useCase: text('use_case'),
+  notifyEmail: varchar('notify_email', { length: 255 }),
+  status: varchar('status', { length: 20 }).default('pending').notNull(),
+  voteCount: integer('vote_count').default(1).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+export const integrations = pgTable('integrations', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  provider: varchar('provider', { length: 50 }).notNull(), // 'gmail', 'workspace', 'linear', etc.
+  orgId: integer('org_id').references(() => organization.id, { onDelete: 'cascade' }),
+  userId: text('user_id').references(() => user.id, { onDelete: 'cascade' }),
+  status: varchar('status', { length: 20 }).default('connected').notNull(),
+  credentialsJson: jsonb('credentials_json'), // Encrypted/secure storage of access and refresh tokens
+  metadata: jsonb('metadata').$type<IntegrationMetadata>(), // Extra info like connected email, selected Slack channels, etc.
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+export const agentIntegrationAccess = pgTable('agent_integration_access', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  integrationId: uuid('integration_id').notNull().references(() => integrations.id, { onDelete: 'cascade' }),
+  agentId: varchar('agent_id', { length: 100 }).notNull(), // e.g. 'security', 'compliance'
+  isEnabled: boolean('is_enabled').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// ─── Managed MCP Servers ───────────────────────────────────────────────────────
+// Customer-owned infrastructure connections (Postgres, Redis).
+// These are NOT SaaS OAuth integrations — they reach directly into the customer's infra.
+// Credentials are encrypted with AES-256-GCM before being stored.
+export const mcpServers = pgTable('mcp_servers', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  orgId: integer('org_id').references(() => organization.id, { onDelete: 'cascade' }),
+  createdBy: text('created_by').references(() => user.id, { onDelete: 'set null' }),
+  // 'postgres' | 'redis' | 'custom'
+  provider: varchar('provider', { length: 50 }).notNull(),
+  // Human-readable name, e.g. "Production Postgres" or "Analytics Redis"
+  displayName: varchar('display_name', { length: 100 }).notNull(),
+  // AES-256-GCM encrypted JSON: { host, port, database, user, password, sslMode } for postgres
+  // or { host, port, password, db } for redis
+  encryptedCredentials: text('encrypted_credentials'),
+  // 'connected' | 'failed' | 'pending'
+  status: varchar('status', { length: 20 }).default('pending').notNull(),
+  // JSONB map of agentId -> boolean for access control
+  agentAccess: jsonb('agent_access').default({}).notNull(),
+  // Extra config: SSL mode, connection timeouts, custom URL (for 'custom' MCPs)
+  config: jsonb('config').default({}).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });

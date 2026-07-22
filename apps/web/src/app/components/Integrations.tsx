@@ -2,8 +2,12 @@ import { useState, useEffect } from 'react';
 import {
   LayoutGrid, List, Plus, Settings as SettingsIcon, Book, CheckSquare,
   Bot, X, Loader2, Zap, Terminal, Shield, CheckCircle2, Cpu, Link2,
-  Keyboard
+  Keyboard, HelpCircle
 } from 'lucide-react';
+import { IntegrationSettingsDrawer } from './IntegrationSettingsDrawer';
+import { ConnectorRequestDrawer } from './ConnectorRequestDrawer';
+import { McpConnectionDrawer, type McpProvider } from './McpConnectionDrawer';
+import { API_URL } from '../../lib/api';
 
 interface Integration {
   id: string;
@@ -27,226 +31,52 @@ interface AgentAccess {
 interface McpServer {
   name: string;
   icon: React.ElementType;
+  provider: McpProvider;
+  /** URL to a real logo */
+  logoUrl: string;
+  /** One-line description shown on the card */
+  desc: string;
   connected: boolean;
 }
 
-const initialIntegrations: Integration[] = [
+const defaultMcpAgents: AgentAccess[] = [
+  { name: 'Base Agent', desc: 'Can use tools implicitly without asking', on: true },
+  { name: 'Research Agent', desc: 'Will ask permission before taking destructive actions', on: false },
+  { name: 'Deploy Agent', desc: 'Read-only access to all server tools', on: true },
+];
+
+const initialMcpServers: McpServer[] = [
   {
-    id: 'linear', name: 'Linear', logoUrl: 'https://cdn.simpleicons.org/linear',
-    connected: true, authType: 'oauth', connectedAccount: 'engineering@codeward.ai',
-    desc: 'Aggregates ticket context and auto-files bug reports with AST-level root cause analysis.',
-    features: [
-      { title: 'Contextual PR Reviews', desc: 'Agents pull acceptance criteria directly from Linear tickets to verify PR completeness.' },
-      { title: 'Autonomous Bug Filing', desc: 'Build failures on main automatically generate detailed tickets with AST-level root cause analysis.' },
-    ],
-    tools: [
-      { label: 'Extract acceptance criteria', desc: 'Pull testable requirements from a Linear issue into the review context.' },
-      { label: 'Create bug ticket', desc: 'File a new issue with priority, description, and suspected code location.' },
-      { label: 'Search issues by keyword', desc: 'Find relevant tickets based on branch name or commit message.' },
-      { label: 'Update issue status', desc: 'Move a ticket to In Progress or Done when a PR is merged.' },
-    ],
-    commands: [
-      { label: 'Open Linear issue', desc: 'Jump to the ticket linked to the current branch.' },
-      { label: 'Show my active issues', desc: 'List all tickets currently assigned to you.' },
-    ],
+    name: 'PostgreSQL Database',
+    provider: 'postgres',
+    logoUrl: 'https://cdn.simpleicons.org/postgresql',
+    desc: 'Read-only SQL queries across your tables',
+    connected: false,
   },
   {
-    id: 'slack', name: 'Slack', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/d/d5/Slack_icon_2019.svg',
-    connected: true, authType: 'oauth', connectedAccount: 'Codeward HQ Workspace',
-    desc: 'PR review threads with per-agent replies, plus in-channel chat with the Chat Agent.',
-    features: [
-      { title: 'Human-in-the-loop Approvals', desc: 'Agents halt high-risk workflows and send interactive Approve / Reject messages to staff engineers.' },
-      { title: 'Incident War Rooms', desc: 'Security Agent automatically creates dedicated channels and pages on-call engineers during active zero-days.' },
-    ],
-    tools: [
-      { label: 'Request human approval', desc: 'Send an interactive Approve/Reject message that blocks the agent until responded to.' },
-      { label: 'Post PR review thread', desc: 'Open a threaded review with findings from all participating agents.' },
-      { label: 'Create incident channel', desc: 'Spin up a temporary war room and invite relevant code owners.' },
-      { label: 'Send direct message', desc: 'DM an on-call engineer with a critical alert.' },
-    ],
-    commands: [
-      { label: 'Open active incident channel', desc: 'Navigate to the most recent incident war room.' },
-      { label: 'Show pending approvals', desc: 'List all agent workflows waiting for your sign-off.' },
-    ],
-  },
-  {
-    id: 'datadog', name: 'Datadog', logoUrl: 'https://cdn.simpleicons.org/datadog',
-    connected: false, authType: 'apikey',
-    desc: 'Ingests production alerts so the Performance Agent can auto-detect and revert latency regressions.',
-    features: [
-      { title: 'Autonomous Rollbacks', desc: 'Deploy Manager reverts canary deployments the moment error rates breach defined SLOs.' },
-      { title: 'Flamegraph Analysis', desc: 'Performance Agent maps CPU spikes from the profiler directly back to lines of code in the PR.' },
-    ],
-    tools: [
-      { label: 'Query distributed traces', desc: 'Fetch trace data to identify which service function is bottlenecking.' },
-      { label: 'Get profiling flamegraph', desc: 'Pull CPU/memory flamegraphs scoped to a specific commit SHA.' },
-      { label: 'Trigger deployment rollback', desc: 'Execute an emergency rollback on the active deployment via the API.' },
-      { label: 'List active monitors', desc: 'Check which SLO alerts are currently firing in production.' },
-    ],
-    commands: [
-      { label: 'Open APM dashboard', desc: 'Launch the Datadog APM view for the current service.' },
-      { label: 'Show SLO status', desc: 'Check current error budget burn rate across all services.' },
-    ],
-  },
-  {
-    id: 'figma', name: 'Figma', logoUrl: 'https://cdn.simpleicons.org/figma',
-    connected: false, authType: 'oauth',
-    desc: 'Prevents visual drift by cross-referencing PR component changes against design system tokens.',
-    features: [
-      { title: 'Visual Drift Prevention', desc: 'Frontend Guardian asserts every code change matches the Figma source of truth.' },
-      { title: 'Design Token Sync', desc: 'Agents extract token values directly from Figma nodes so CSS variables stay in sync.' },
-    ],
-    tools: [
-      { label: 'Extract design tokens', desc: 'Pull color, spacing, and typography values from a Figma node.' },
-      { label: 'Assert visual compliance', desc: 'Flag hardcoded values in a PR that deviate from design system variables.' },
-      { label: 'Fetch component spec', desc: 'Retrieve the full spec of a component from a Figma file by node ID.' },
-    ],
-    commands: [
-      { label: 'Open component in Figma', desc: 'Jump to the Figma frame for the component in the current file.' },
-    ],
-  },
-  {
-    id: 'workspace', name: 'Google Workspace', logoUrl: 'https://cdn.simpleicons.org/google',
-    connected: false, authType: 'oauth',
-    desc: 'Lets agents cross-reference PRDs in Docs, analyze data in Sheets, and export audit PDFs to Drive.',
-    features: [
-      { title: 'PRD Compliance Verification', desc: 'Architecture Agent ensures all implementations strictly adhere to the agreed spec in Docs.' },
-      { title: 'Automated Audit Exports', desc: 'Compliance Agent generates ISO-ready audit reports and saves them as PDFs to Drive.' },
-    ],
-    tools: [
-      { label: 'Parse PRD to spec', desc: 'Extract structured requirements from a Google Doc using NLP.' },
-      { label: 'Verify ADR compliance', desc: 'Cross-reference agreed architectural patterns against the PR code.' },
-      { label: 'Read spreadsheet data', desc: 'Pull metrics or configuration data from a specific Sheets range.' },
-      { label: 'Export report to Drive', desc: 'Generate a formatted PDF and save it to a specified Drive folder.' },
-    ],
-    commands: [
-      { label: 'Open linked PRD', desc: 'Open the Product Requirements Doc for the current project.' },
-      { label: 'Show audit folder', desc: 'Navigate to the Drive folder containing compliance exports.' },
-    ],
-  },
-  {
-    id: 'sentry', name: 'Sentry', logoUrl: 'https://cdn.simpleicons.org/sentry',
-    connected: false, authType: 'oauth',
-    desc: 'Lets agents check live production errors for files in the current diff.',
-    features: [
-      { title: 'Code-to-Error Mapping', desc: 'Maps production stack traces directly to the exact AST nodes modified in the PR.' },
-      { title: 'Auto-resolution Tracking', desc: 'Links the AI-generated fix PR to the Sentry issue for automatic closure on merge.' },
-    ],
-    tools: [
-      { label: 'Fetch issue stack trace', desc: 'Retrieve a raw JSON stack trace with local variable state from an exception.' },
-      { label: 'Map trace to source', desc: 'Resolve minified stack frames to repository file paths using sourcemaps.' },
-      { label: 'Link PR to issue', desc: 'Attach PR metadata to a Sentry issue so it auto-resolves on merge.' },
-      { label: 'Search issues by file', desc: 'Find active Sentry errors that touch a specific file path.' },
-    ],
-    commands: [
-      { label: 'Open active issues', desc: 'Launch Sentry filtered to unresolved issues for this project.' },
-    ],
-  },
-  {
-    id: 'gmail', name: 'Gmail', logoUrl: 'https://cdn.simpleicons.org/gmail',
-    connected: true, authType: 'oauth', connectedAccount: 'admin@codeward.ai',
-    desc: 'Sends weekly executive summaries and compliance digests to leadership inboxes.',
-    features: [
-      { title: 'Executive Summaries', desc: 'Compiles and emails weekly team health, velocity, and code quality metrics to leadership.' },
-      { title: 'Compliance Alerts', desc: 'Sends signed PII/GDPR digests directly to legal and compliance teams.' },
-    ],
-    tools: [
-      { label: 'Send summary email', desc: 'Dispatch a formatted HTML email with agent-generated report content.' },
-      { label: 'Send compliance digest', desc: 'Email a signed, structured compliance report to specified recipients.' },
-      { label: 'Read vendor responses', desc: 'Parse replies from external vendor compliance questionnaires.' },
-    ],
-    commands: [
-      { label: 'Send weekly summary now', desc: 'Manually trigger this week\'s executive summary to be dispatched.' },
-    ],
-  },
-  {
-    id: 'whatsapp', name: 'WhatsApp / SMS', logoUrl: 'https://cdn.simpleicons.org/whatsapp',
-    connected: false, authType: 'apikey',
-    desc: 'Critical pager via Sent API — only fires on a CRITICAL finding that blocks a PR.',
-    features: [
-      { title: 'Critical Incident Paging', desc: 'Bypasses all standard channels to immediately reach the on-call engineer during a P0 incident.' },
-    ],
-    tools: [
-      { label: 'Dispatch critical page', desc: 'Send an immediate SMS/WhatsApp to the on-call engineer with the incident summary.' },
-    ],
-    commands: [
-      { label: 'Page on-call now', desc: 'Manually trigger an emergency page to the current on-call rotation.' },
-    ],
-  },
-  {
-    id: 'calendar', name: 'Calendar', logoUrl: 'https://cdn.simpleicons.org/googlecalendar',
-    connected: false, authType: 'oauth',
-    desc: 'Schedules approval windows and compliance reviews around working hours.',
-    features: [
-      { title: 'Context-Aware Deployment', desc: 'Deploy Manager avoids merging to production outside defined working hours.' },
-    ],
-    tools: [
-      { label: 'Check team availability', desc: 'Query the shared calendar to confirm if working hours are active.' },
-      { label: 'Schedule architecture review', desc: 'Find the next available slot and create a review meeting event.' },
-      { label: 'List upcoming events', desc: 'Retrieve the calendar schedule for the next 24 hours.' },
-    ],
-    commands: [
-      { label: 'Show today\'s schedule', desc: 'Display all events from the team calendar for today.' },
-      { label: 'Check deploy window', desc: 'Verify if the current time falls inside an approved deployment window.' },
-    ],
+    name: 'Redis Cache',
+    provider: 'redis',
+    logoUrl: 'https://cdn.simpleicons.org/redis',
+    desc: 'Key inspection, TTL reads, cursor-paginated SCAN',
+    connected: false,
   },
 ];
 
 const initialAgentsByIntegration: Record<string, AgentAccess[]> = {
-  gmail: [
-    { name: 'Data & DX Agent', desc: 'Sends weekly team health summary', on: true },
-    { name: 'Compliance Agent', desc: 'Sends PII / GDPR digests to legal', on: true },
-  ],
-  workspace: [
-    { name: 'Architecture Agent', desc: 'Cross-references PRDs and ADRs in Docs', on: false },
-    { name: 'Documentation Agent', desc: 'Exports audit reports as PDFs to Drive', on: false },
-  ],
-  slack: [
-    { name: 'Guardian Agent', desc: 'Posts PR review thread', on: true },
-    { name: 'Security Agent', desc: 'Threaded reply with findings', on: true },
-    { name: 'Performance Agent', desc: 'Threaded reply with findings', on: true },
-    { name: 'Chat Agent', desc: 'Replies to developer questions in-thread', on: true },
-  ],
-  linear: [
-    { name: 'Architecture Agent', desc: 'Pulls acceptance criteria for PR review', on: true },
-    { name: 'Chat Agent', desc: 'Fetches issue context for user questions', on: true },
-    { name: 'Broken Code Agent', desc: 'Auto-files bugs on main branch test failures', on: true },
-  ],
-  figma: [
-    { name: 'Frontend Guardian Agent', desc: 'Checks CSS changes against design tokens', on: false },
-  ],
-  datadog: [
-    { name: 'Performance Agent', desc: 'Auto-reverts PRs causing latency spikes', on: true },
-    { name: 'Deploy Manager', desc: 'Pauses deploys during active alerts', on: true },
-    { name: 'Broken Code Agent', desc: 'Analyzes stack traces from APM', on: false },
-  ],
-  sentry: [
-    { name: 'Broken Code Agent', desc: 'Checks active errors for files in diff', on: true },
-    { name: 'Performance Agent', desc: 'Checks latency regressions in diff', on: true },
-  ],
-  whatsapp: [
-    { name: 'Security Agent', desc: 'Critical secret or key exposure', on: true },
-    { name: 'Performance Agent', desc: 'Catastrophic memory leak detected', on: true },
-  ],
-  calendar: [
-    { name: 'Deploy Manager', desc: 'Approval windows aligned to working hours', on: true },
-  ],
+  'google': [...defaultMcpAgents],
+  'workspace': [...defaultMcpAgents],
+  'linear': [...defaultMcpAgents],
+  'slack': [...defaultMcpAgents],
+  'github': [...defaultMcpAgents],
+  'sentry': [...defaultMcpAgents],
+  'figma': [...defaultMcpAgents],
+  'datadog': [...defaultMcpAgents],
 };
-
-const initialMcpServers: McpServer[] = [
-  { name: 'Internal Wiki MCP', icon: Book, connected: true },
-  { name: 'Corporate Jira MCP', icon: CheckSquare, connected: false },
-];
-
-const defaultMcpAgents: AgentAccess[] = [
-  { name: 'Security Agent', desc: 'Can read configuration from this MCP', on: true },
-  { name: 'Architecture Agent', desc: 'Can fetch architectural guidelines', on: true },
-  { name: 'Data & DX Agent', desc: 'Can sync metrics', on: true },
-];
 
 export function Integrations() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [integrations, setIntegrations] = useState(initialIntegrations);
+  const [integrations, setIntegrations] = useState<Integration[]>([]);
+  const [isLoaded, setIsLoaded] = useState(false);
   const [agentsByIntegration, setAgentsByIntegration] = useState(initialAgentsByIntegration);
   const [mcpServers, setMcpServers] = useState(initialMcpServers);
   const [mcpAgents, setMcpAgents] = useState<Record<number, AgentAccess[]>>({
@@ -255,8 +85,63 @@ export function Integrations() {
   });
 
   const [settingsState, setSettingsState] = useState<{ type: 'integration' | 'mcp', id: string | number } | null>(null);
+  const [requestDrawerOpen, setRequestDrawerOpen] = useState(false);
   const [connectingIntg, setConnectingIntg] = useState<Integration | null>(null);
   const [connectStep, setConnectStep] = useState<'idle' | 'polling' | 'done'>('idle');
+  // Which MCP server is showing its connect form in the push drawer
+  const [connectingMcp, setConnectingMcp] = useState<{ provider: McpProvider; index: number } | null>(null);
+
+  // Fetch real connection states and catalog
+  useEffect(() => {
+    const fetchIntegrations = async () => {
+      try {
+        const [catRes, stateRes] = await Promise.all([
+          fetch(`${API_URL}/api/integrations/catalog`),
+          fetch(`${API_URL}/api/integrations`, { credentials: 'include' })
+        ]);
+        
+        if (catRes.ok && stateRes.ok) {
+          const { catalog } = await catRes.json();
+          const { integrations: connectedData } = await stateRes.json();
+          const connectedMap = new Map(connectedData.map((i: any) => [i.id, i]));
+          
+          const merged = catalog.map((cat: any) => {
+            const meta = connectedMap.get(cat.id);
+            return {
+              ...cat,
+              connected: !!meta,
+              connectedAccount: meta?.email
+            };
+          });
+          
+          setIntegrations(merged);
+          setIsLoaded(true);
+
+          // Once loaded, check URL parameters for success/error
+          const params = new URLSearchParams(window.location.search);
+          const successProvider = params.get('success');
+          const errorParam = params.get('error');
+
+          if (successProvider) {
+            const target = merged.find((i: Integration) => i.id === successProvider);
+            if (target) {
+              setConnectingIntg(target);
+              setConnectStep('done');
+            }
+            window.history.replaceState({}, '', '/dashboard/integrations');
+          }
+          
+          if (errorParam) {
+            alert(`Integration failed: ${errorParam}`);
+            window.history.replaceState({}, '', '/dashboard/integrations');
+          }
+        }
+      } catch (e) {
+        console.error('Failed to fetch integrations', e);
+      }
+    };
+    fetchIntegrations();
+  }, []);
 
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
@@ -269,10 +154,18 @@ export function Integrations() {
     return () => window.removeEventListener('keydown', handleEsc);
   }, [connectingIntg]);
 
-  const toggleConnect = (intg: Integration) => {
+  const toggleConnect = async (intg: Integration) => {
     if (intg.connected) {
-      setIntegrations(prev => prev.map(i => i.id === intg.id ? { ...i, connected: false, connectedAccount: undefined } : i));
-      if (settingsState?.type === 'integration' && settingsState.id === intg.id) setSettingsState(null);
+      try {
+        await fetch(`${API_URL}/api/integrations/${intg.id}`, { 
+          method: 'DELETE',
+          credentials: 'include' 
+        });
+        setIntegrations(prev => prev.map(i => i.id === intg.id ? { ...i, connected: false, connectedAccount: undefined } : i));
+        if (settingsState?.type === 'integration' && settingsState.id === intg.id) setSettingsState(null);
+      } catch (e) {
+        console.error('Failed to disconnect integration', e);
+      }
     } else {
       setConnectingIntg(intg);
       setConnectStep('idle');
@@ -296,8 +189,17 @@ export function Integrations() {
   };
 
   const handleMcpConnect = (index: number) => {
-    setMcpServers(prev => prev.map((mcp, i) => i === index ? { ...mcp, connected: !mcp.connected } : mcp));
-    if (settingsState?.type === 'mcp' && settingsState.id === index) setSettingsState(null);
+    const mcp = mcpServers[index];
+    if (mcp.connected) {
+      // Disconnect — clear connected state
+      setMcpServers(prev => prev.map((m, i) => i === index ? { ...m, connected: false } : m));
+      if (settingsState?.type === 'mcp' && settingsState.id === index) setSettingsState(null);
+    } else {
+      // Open provider-specific connect form
+      setConnectingMcp({ provider: mcp.provider, index });
+      setSettingsState(null);
+      setRequestDrawerOpen(false);
+    }
   };
 
   const addMcp = () => {
@@ -338,7 +240,7 @@ export function Integrations() {
     if (mcpObj) { panelTitle = mcpObj.name; activeAgents = mcpAgents[settingsState.id as number] || []; currentId = settingsState.id; isMcp = true; }
   }
 
-  const drawerOpen = !!(settingsState || connectingIntg);
+  const drawerOpen = !!connectingIntg || !!connectingMcp || settingsState?.type === 'mcp' || settingsState?.type === 'integration' || requestDrawerOpen;
 
   return (
     <div className="flex-1 flex overflow-hidden relative h-full">
@@ -413,22 +315,51 @@ export function Integrations() {
             <h2 className="text-[12px] font-semibold text-cw-txt uppercase tracking-widest mb-3">Model Context Protocol (MCP) Servers</h2>
             <div className="flex flex-col gap-2">
               {mcpServers.map((mcp, i) => {
-                const Icon = mcp.icon;
                 const isSelected = settingsState?.type === 'mcp' && settingsState.id === i;
+                const isConnecting = connectingMcp?.index === i;
                 return (
-                  <div key={i} className={`flex items-center gap-3 p-3 rounded-lg border ${isSelected ? 'border-cw-purple bg-cw-bg' : 'border-cw-bdr bg-cw-bg2'}`}>
-                    <div className="w-8 h-8 rounded-md bg-cw-bg border border-cw-bdr flex items-center justify-center text-cw-txt2 shrink-0"><Icon size={15} /></div>
+                  <div key={i} className={`flex items-center gap-3 p-3 rounded-lg border transition-all duration-200 ${isSelected || isConnecting ? 'border-cw-purple bg-cw-bg' : 'border-cw-bdr bg-cw-bg2'}`}>
+                    {/* Real logo */}
+                    <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 bg-white border border-cw-bdr p-1.5">
+                      <img src={mcp.logoUrl} alt={mcp.name} className="w-full h-full object-contain" />
+                    </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="text-[13px] font-medium text-cw-txt">{mcp.name}</span>
-                        <div className={`w-1.5 h-1.5 rounded-full ${mcp.connected ? 'bg-cw-green' : 'bg-cw-bdr'}`} />
+                        <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${mcp.connected ? 'bg-cw-green' : 'bg-cw-bdr'}`} />
                       </div>
-                      <div className="text-[11px] text-cw-txt3 mt-0.5">Custom internal connection</div>
+                      <div className="text-[11px] text-cw-txt3 mt-0.5">{mcp.desc}</div>
                     </div>
-                    <button onClick={() => handleMcpConnect(i)} className={`px-3 py-1.5 text-[12px] font-medium rounded-md border transition-colors ${mcp.connected ? 'border-cw-red/30 text-cw-red hover:bg-cw-red/10' : 'border-cw-bdr bg-cw-bg text-cw-txt hover:bg-cw-bg3'}`}>
-                      {mcp.connected ? 'Disconnect' : 'Connect'}
+                    {/* Provider-specific Connect / Disconnect */}
+                    <button
+                      onClick={() => handleMcpConnect(i)}
+                      className={`px-3 py-1.5 text-[12px] font-medium rounded-md border transition-colors shrink-0 ${
+                        mcp.connected
+                          ? 'border-cw-red/30 text-cw-red hover:bg-cw-red/10'
+                          : isConnecting
+                            ? 'border-cw-purple bg-cw-purple text-white'
+                            : 'border-cw-bdr bg-cw-bg text-cw-txt hover:bg-cw-bg3'
+                      }`}
+                    >
+                      {mcp.connected ? 'Disconnect' : isConnecting ? 'Connecting…' : 'Connect'}
                     </button>
-                    <button onClick={() => { if (!mcp.connected) return; setSettingsState(isSelected ? null : { type: 'mcp', id: i }); }} disabled={!mcp.connected} className={`w-8 h-8 flex items-center justify-center rounded-md border transition-colors ${isSelected ? 'border-cw-purple bg-cw-purple text-white' : mcp.connected ? 'border-cw-bdr bg-cw-bg text-cw-txt2 hover:bg-cw-bg3' : 'border-cw-bdr bg-cw-bg text-cw-txt3 opacity-40 cursor-not-allowed'}`}>
+                    {/* Settings button — only active when connected */}
+                    <button
+                      onClick={() => {
+                        if (!mcp.connected) return;
+                        setConnectingMcp(null);
+                        setSettingsState(isSelected ? null : { type: 'mcp', id: i });
+                      }}
+                      disabled={!mcp.connected}
+                      title={mcp.connected ? `${mcp.name} settings` : 'Connect first to access settings'}
+                      className={`w-8 h-8 flex items-center justify-center rounded-md border transition-colors shrink-0 ${
+                        isSelected
+                          ? 'border-cw-purple bg-cw-purple text-white'
+                          : mcp.connected
+                            ? 'border-cw-bdr bg-cw-bg text-cw-txt2 hover:bg-cw-bg3'
+                            : 'border-cw-bdr bg-cw-bg text-cw-txt3 opacity-40 cursor-not-allowed'
+                      }`}
+                    >
                       <SettingsIcon size={13} />
                     </button>
                   </div>
@@ -440,11 +371,27 @@ export function Integrations() {
             </button>
           </div>
 
+          {/* Missing Integration CTA */}
+          <div className="mt-12 p-6 border border-cw-bdr bg-cw-bg2 rounded-xl flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 rounded-full bg-cw-bg border border-cw-bdr flex items-center justify-center">
+                <HelpCircle size={18} className="text-cw-txt2" />
+              </div>
+              <div>
+                <h3 className="text-[14px] font-semibold text-cw-txt">Missing an integration?</h3>
+                <p className="text-[12px] text-cw-txt3 mt-0.5">Tell us what tool your agents need to connect to next.</p>
+              </div>
+            </div>
+            <button onClick={() => setRequestDrawerOpen(true)} className="px-4 py-2 bg-cw-bg border border-cw-bdr hover:border-cw-purple hover:text-cw-purple transition-colors text-cw-txt font-medium text-[13px] rounded-lg">
+              Request a Connector
+            </button>
+          </div>
+
         </div>
       </div>
 
       {/* ── Right side-pull drawer ── */}
-      <div className={`shrink-0 h-full bg-cw-bg border-l border-cw-bdr flex flex-col transition-[width,opacity] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${drawerOpen ? 'w-[440px] opacity-100' : 'w-0 opacity-0 overflow-hidden border-none'}`}>
+      <div className={`shrink-0 h-full bg-cw-bg2 border-l border-cw-bdr flex flex-col transition-[width,min-width,opacity] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${drawerOpen ? 'w-[520px] min-w-[360px] md:w-[440px] lg:w-[520px] opacity-100' : 'w-0 min-w-0 opacity-0 overflow-hidden border-none'}`}>
         {drawerOpen && (
 
           /* ── CONNECTION SETUP FLOW ── */
@@ -510,43 +457,67 @@ export function Integrations() {
                     </div>
 
                     <div className="px-6 pb-6 flex flex-col gap-2.5">
-                      <p className="text-[13px] font-semibold text-cw-txt mb-1">Connection instructions</p>
-
-                      {connectingIntg.authType === 'oauth' ? (
-                        <>
-                          {[
-                            { n: 1, active: connectStep === 'idle', title: <><span className="font-semibold">{connectingIntg.name}</span> will open in a new browser tab</>, sub: <span>If it doesn't open, <button className="text-cw-blue hover:underline">click here to retry</button>.</span> },
-                            { n: 2, active: connectStep === 'polling', title: <>Follow {connectingIntg.name}'s authorization steps</>, sub: <span>Grant the requested permissions when prompted.</span> },
-                            { n: 3, active: false, title: <>Click <span className="font-semibold">Next</span> below when finished</>, sub: null },
-                          ].map(({ n, active, title, sub }) => (
-                            <div key={n} className={`flex gap-3.5 p-4 rounded-xl border transition-all duration-200 ${active ? 'border-cw-purple/40 bg-cw-bg2 shadow-sm' : 'border-cw-bdr bg-cw-bg2 opacity-50'}`}>
-                              <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 mt-0.5 transition-colors ${active ? 'bg-cw-purple text-white' : 'border border-cw-bdr text-cw-txt3'}`}>{n}</div>
-                              <div>
-                                <p className="text-[13px] text-cw-txt">{title}</p>
-                                {sub && <p className="text-[12px] text-cw-txt3 mt-0.5">{sub}</p>}
-                              </div>
+                      {connectingIntg.id === 'workspace' ? (
+                        <div className="flex flex-col items-center text-center mt-2">
+                          <div className="flex items-center justify-center gap-4 mb-6">
+                            <div className="w-12 h-12 p-2 bg-white rounded-xl shadow-sm border border-cw-bdr flex items-center justify-center"><img src="https://upload.wikimedia.org/wikipedia/commons/1/12/Google_Drive_icon_%282020%29.svg" alt="Drive" className="w-full h-full object-contain" /></div>
+                            <div className="w-12 h-12 p-2 bg-white rounded-xl shadow-sm border border-cw-bdr flex items-center justify-center"><img src="https://upload.wikimedia.org/wikipedia/commons/0/01/Google_Docs_logo_%282014-2020%29.svg" alt="Docs" className="w-full h-full object-contain" /></div>
+                            <div className="w-12 h-12 p-2 bg-white rounded-xl shadow-sm border border-cw-bdr flex items-center justify-center"><img src="https://upload.wikimedia.org/wikipedia/commons/3/30/Google_Sheets_logo_%282014-2020%29.svg" alt="Sheets" className="w-full h-full object-contain" /></div>
+                            <div className="w-12 h-12 p-2 bg-white rounded-xl shadow-sm border border-cw-bdr flex items-center justify-center"><img src="https://www.gstatic.com/images/branding/product/2x/calendar_48dp.png" alt="Calendar" className="w-full h-full object-contain" /></div>
+                          </div>
+                          <h4 className="text-[16px] font-semibold text-cw-txt mb-2">Unified Google Authorization</h4>
+                          <p className="text-[13px] text-cw-txt2 leading-relaxed mb-6 px-2">
+                            Codeward uses a single, secure OAuth flow for all Google applications. By connecting Google Workspace, you will authorize Codeward Agents to interact with your Drive files, Docs, Sheets, and Calendar all in one step.
+                          </p>
+                          <div className="flex gap-3.5 p-4 w-full text-left rounded-xl border border-cw-purple/40 bg-cw-bg2 shadow-sm">
+                            <div className="w-5 h-5 rounded-full bg-cw-purple text-white flex items-center justify-center text-[11px] font-bold shrink-0 mt-0.5">!</div>
+                            <div>
+                              <p className="text-[13px] font-medium text-cw-txt">Action required</p>
+                              <p className="text-[12px] text-cw-txt2 mt-0.5">Click <span className="font-semibold text-cw-txt">Next</span> below to open the Google consent screen and grant access.</p>
                             </div>
-                          ))}
-                        </>
+                          </div>
+                        </div>
                       ) : (
                         <>
-                          <div className="flex gap-3.5 p-4 rounded-xl border border-cw-purple/40 bg-cw-bg2 shadow-sm">
-                            <div className="w-5 h-5 rounded-full bg-cw-purple text-white flex items-center justify-center text-[11px] font-bold shrink-0 mt-0.5">1</div>
-                            <p className="text-[13px] text-cw-txt">
-                              Log into <span className="font-semibold">{connectingIntg.name}</span> and navigate to{' '}
-                              <span className="font-mono text-[11px] text-cw-blue bg-cw-bg border border-cw-bdr px-1.5 py-0.5 rounded">Org Settings → API Keys</span>
-                            </p>
-                          </div>
-                          <div className="flex gap-3.5 p-4 rounded-xl border border-cw-bdr bg-cw-bg2">
-                            <div className="w-5 h-5 rounded-full border border-cw-bdr text-cw-txt3 flex items-center justify-center text-[11px] font-bold shrink-0 mt-0.5">2</div>
-                            <div className="flex-1 flex flex-col gap-2">
-                              <p className="text-[13px] font-medium text-cw-txt">Paste your credentials</p>
-                              <input type="password" placeholder="API Key" className="w-full bg-cw-bg border border-cw-bdr rounded-lg px-3 py-2 text-[13px] text-cw-txt placeholder:text-cw-txt3 focus:outline-none focus:border-cw-purple focus:ring-2 focus:ring-cw-purple/10 transition-all" />
-                              {connectingIntg.id === 'datadog' && (
-                                <input type="password" placeholder="Application Key" className="w-full bg-cw-bg border border-cw-bdr rounded-lg px-3 py-2 text-[13px] text-cw-txt placeholder:text-cw-txt3 focus:outline-none focus:border-cw-purple focus:ring-2 focus:ring-cw-purple/10 transition-all" />
-                              )}
-                            </div>
-                          </div>
+                          <p className="text-[13px] font-semibold text-cw-txt mb-1">Connection instructions</p>
+
+                          {connectingIntg.authType === 'oauth' ? (
+                            <>
+                              {[
+                                { n: 1, active: connectStep === 'idle', title: <><span className="font-semibold">{connectingIntg.name}</span> will open in a new browser tab</>, sub: <span>If it doesn't open, <button className="text-cw-blue hover:underline">click here to retry</button>.</span> },
+                                { n: 2, active: connectStep === 'polling', title: <>Follow {connectingIntg.name}'s authorization steps</>, sub: <span>Grant the requested permissions when prompted.</span> },
+                                { n: 3, active: false, title: <>Click <span className="font-semibold">Next</span> below when finished</>, sub: null },
+                              ].map(({ n, active, title, sub }) => (
+                                <div key={n} className={`flex gap-3.5 p-4 rounded-xl border transition-all duration-200 ${active ? 'border-cw-purple/40 bg-cw-bg2 shadow-sm' : 'border-cw-bdr bg-cw-bg2 opacity-50'}`}>
+                                  <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 mt-0.5 transition-colors ${active ? 'bg-cw-purple text-white' : 'border border-cw-bdr text-cw-txt3'}`}>{n}</div>
+                                  <div>
+                                    <p className="text-[13px] text-cw-txt">{title}</p>
+                                    {sub && <p className="text-[12px] text-cw-txt3 mt-0.5">{sub}</p>}
+                                  </div>
+                                </div>
+                              ))}
+                            </>
+                          ) : (
+                            <>
+                              <div className="flex gap-3.5 p-4 rounded-xl border border-cw-purple/40 bg-cw-bg2 shadow-sm">
+                                <div className="w-5 h-5 rounded-full bg-cw-purple text-white flex items-center justify-center text-[11px] font-bold shrink-0 mt-0.5">1</div>
+                                <p className="text-[13px] text-cw-txt">
+                                  Log into <span className="font-semibold">{connectingIntg.name}</span> and navigate to{' '}
+                                  <span className="font-mono text-[11px] text-cw-blue bg-cw-bg border border-cw-bdr px-1.5 py-0.5 rounded">Org Settings → API Keys</span>
+                                </p>
+                              </div>
+                              <div className="flex gap-3.5 p-4 rounded-xl border border-cw-bdr bg-cw-bg2">
+                                <div className="w-5 h-5 rounded-full border border-cw-bdr text-cw-txt3 flex items-center justify-center text-[11px] font-bold shrink-0 mt-0.5">2</div>
+                                <div className="flex-1 flex flex-col gap-2">
+                                  <p className="text-[13px] font-medium text-cw-txt">Paste your credentials</p>
+                                  <input type="password" placeholder="API Key" className="w-full bg-cw-bg border border-cw-bdr rounded-lg px-3 py-2 text-[13px] text-cw-txt placeholder:text-cw-txt3 focus:outline-none focus:border-cw-purple focus:ring-2 focus:ring-cw-purple/10 transition-all" />
+                                  {connectingIntg.id === 'datadog' && (
+                                    <input type="password" placeholder="Application Key" className="w-full bg-cw-bg border border-cw-bdr rounded-lg px-3 py-2 text-[13px] text-cw-txt placeholder:text-cw-txt3 focus:outline-none focus:border-cw-purple focus:ring-2 focus:ring-cw-purple/10 transition-all" />
+                                  )}
+                                </div>
+                              </div>
+                            </>
+                          )}
                         </>
                       )}
                     </div>
@@ -561,7 +532,14 @@ export function Integrations() {
                     Cancel
                   </button>
                   <button
-                    onClick={() => { setConnectStep('polling'); setTimeout(finishConnection, 1000); }}
+                    onClick={() => { 
+                      setConnectStep('polling');
+                      if (['gmail', 'workspace', 'calendar'].includes(connectingIntg.id)) {
+                        window.location.href = `${API_URL}/api/integrations/google/${connectingIntg.id}/connect`;
+                      } else {
+                        setTimeout(finishConnection, 1000);
+                      }
+                    }}
                     disabled={connectStep === 'polling'}
                     className="flex-1 py-2.5 rounded-lg bg-cw-blue hover:brightness-110 text-white text-[13px] font-semibold transition-all flex items-center justify-center gap-2 disabled:opacity-70"
                   >
@@ -571,125 +549,48 @@ export function Integrations() {
               )}
             </>
 
+          ) : connectingMcp ? (
+            /* ── MCP CONNECT FORM ── */
+            <McpConnectionDrawer
+              provider={connectingMcp.provider}
+              onClose={() => setConnectingMcp(null)}
+              onSaved={(_server) => {
+                setMcpServers(prev => prev.map((m, i) =>
+                  i === connectingMcp.index ? { ...m, connected: true } : m
+                ));
+                setConnectingMcp(null);
+              }}
+            />
+
           ) : (
-            /* ── DETAILS VIEW ── */
+            /* ── DETAILS / SETTINGS VIEW ── */
+            settingsState?.type === 'mcp' ? (
             <>
-              {/* Details header */}
-              <div className="px-5 py-5 border-b border-cw-bdr flex items-start justify-between shrink-0 bg-cw-bg">
-                {activeIntg ? (
-                  <div className="flex items-center gap-3.5">
-                    <div className="w-12 h-12 flex items-center justify-center p-1 shrink-0">
-                      <img src={activeIntg.logoUrl} alt={activeIntg.name} className="w-full h-full object-contain" />
+              {/* Details header — uses the real logo */}
+              <div className="px-5 py-4 border-b border-cw-bdr shrink-0 bg-cw-bg flex items-start justify-between">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  {mcpServers[settingsState.id as number] && (
+                    <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 bg-white border border-cw-bdr p-1.5">
+                      <img src={mcpServers[settingsState.id as number].logoUrl} alt={panelTitle} className="w-full h-full object-contain" />
                     </div>
-                    <div>
-                      <h3 className="text-[16px] font-semibold text-cw-txt flex items-center gap-1.5">
-                        {activeIntg.name}
-                        {activeIntg.connected && <CheckCircle2 size={14} className="text-cw-green" />}
-                      </h3>
-                      <p className="text-[12px] text-cw-txt2 mt-0.5 flex items-center gap-1">
-                        {activeIntg.connected
-                          ? <><Shield size={11} className="text-cw-blue" /> {activeIntg.connectedAccount}</>
-                          : <span className="text-cw-txt3">Not connected</span>
-                        }
-                      </p>
-                    </div>
+                  )}
+                  <div className="min-w-0">
+                    <div className="text-[13px] font-bold text-cw-txt truncate">{panelTitle}</div>
+                    <div className="text-[11px] text-cw-txt3">{mcpServers[settingsState.id as number]?.desc}</div>
                   </div>
-                ) : (
-                  <div>
-                    <h3 className="text-[15px] font-semibold text-cw-txt">{panelTitle}</h3>
-                    <p className="text-[12px] text-cw-txt2 mt-0.5">Custom MCP server</p>
-                  </div>
-                )}
-                <button onClick={() => setSettingsState(null)} className="w-8 h-8 shrink-0 rounded-lg hover:bg-cw-bg3 flex items-center justify-center text-cw-txt3 hover:text-cw-txt transition-colors">
+                </div>
+                <button onClick={() => setSettingsState(null)} className="w-8 h-8 shrink-0 rounded-full hover:bg-cw-bg3 flex items-center justify-center text-cw-txt3 hover:text-cw-txt transition-colors">
                   <X size={15} />
                 </button>
               </div>
 
               {/* Details scrollable body */}
-              <div className="flex-1 overflow-y-auto">
-
-                {/* Connect CTA if disconnected */}
-                {activeIntg && !activeIntg.connected && (
-                  <div className="p-5 border-b border-cw-bdr bg-cw-bg">
-                    <p className="text-[12px] text-cw-txt2 mb-3 leading-relaxed">{activeIntg.desc}</p>
-                    <button onClick={() => { setSettingsState(null); toggleConnect(activeIntg!); }} className="w-full py-2.5 bg-cw-blue hover:brightness-110 text-white rounded-lg text-[13px] font-semibold transition-all">
-                      Connect {activeIntg.name}
-                    </button>
-                  </div>
-                )}
-
-                {/* Features */}
-                {activeIntg && (
-                  <div className="px-5 py-5 border-b border-cw-bdr bg-cw-bg">
-                    <div className="flex items-center gap-2 mb-4">
-                      <Zap size={13} className="text-cw-purple" />
-                      <h4 className="text-[12px] font-semibold text-cw-txt uppercase tracking-widest">Features</h4>
-                    </div>
-                    <div className="flex flex-col gap-4">
-                      {activeIntg.features.map((f, i) => (
-                        <div key={i} className="flex gap-3">
-                          <CheckCircle2 size={14} className="text-cw-green shrink-0 mt-0.5" />
-                          <div>
-                            <p className="text-[13px] font-medium text-cw-txt">{f.title}</p>
-                            <p className="text-[12px] text-cw-txt2 mt-0.5 leading-relaxed">{f.desc}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Tools — ClickUp style: human-readable action names */}
-                {activeIntg && (
-                  <div className="px-5 py-5 border-b border-cw-bdr bg-cw-bg">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Terminal size={13} className="text-cw-amber" />
-                      <h4 className="text-[12px] font-semibold text-cw-txt uppercase tracking-widest">Tools</h4>
-                    </div>
-                    <p className="text-[12px] text-cw-txt3 mb-4">See and update {activeIntg.name} data with AI.</p>
-                    <div className="flex flex-col gap-0">
-                      {activeIntg.tools.map((t, i) => (
-                        <div key={i} className="flex items-start gap-3 py-3 border-b border-cw-bdr/50 last:border-0">
-                          <div className="w-1.5 h-1.5 rounded-full bg-cw-bdr shrink-0 mt-[7px]" />
-                          <div>
-                            <p className="text-[13px] font-medium text-cw-txt">{t.label}</p>
-                            <p className="text-[12px] text-cw-txt2 mt-0.5">{t.desc}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Commands */}
-                {activeIntg && activeIntg.commands.length > 0 && (
-                  <div className="px-5 py-5 border-b border-cw-bdr bg-cw-bg">
-                    <div className="flex items-center gap-2 mb-4">
-                      <Keyboard size={13} className="text-cw-teal" />
-                      <h4 className="text-[12px] font-semibold text-cw-txt uppercase tracking-widest">Commands</h4>
-                    </div>
-                    <div className="flex flex-col gap-0">
-                      {activeIntg.commands.map((c, i) => (
-                        <div key={i} className="flex items-start gap-3 py-3 border-b border-cw-bdr/50 last:border-0">
-                          <div className="w-1.5 h-1.5 rounded-full bg-cw-bdr shrink-0 mt-[7px]" />
-                          <div>
-                            <p className="text-[13px] font-medium text-cw-txt">{c.label}</p>
-                            <p className="text-[12px] text-cw-txt2 mt-0.5">{c.desc}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
+              <div className="flex-1 overflow-y-auto px-5 py-4">
                 {/* Agent Access */}
-                <div className="px-5 py-5 bg-cw-bg">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Cpu size={13} className="text-cw-blue" />
-                    <h4 className="text-[12px] font-semibold text-cw-txt uppercase tracking-widest">Agent Access</h4>
-                  </div>
+                <div>
+                  <h3 className="text-[12px] font-semibold text-cw-txt uppercase tracking-widest mb-1">Agent Access</h3>
                   <p className="text-[12px] text-cw-txt3 mb-4">
-                    Toggle which agents can use {activeIntg?.name || panelTitle} tools.
+                    Toggle which agents can use {panelTitle} tools.
                   </p>
                   <div className="flex flex-col gap-2">
                     {activeAgents.length > 0 ? activeAgents.map((agent, i) => (
@@ -701,9 +602,8 @@ export function Integrations() {
                           <p className="text-[12px] text-cw-txt2 ml-[21px]">{agent.desc}</p>
                         </div>
                         <button
-                          disabled={!activeIntg?.connected && !isMcp}
                           onClick={() => toggleAgent(currentId, i, isMcp)}
-                          className={`shrink-0 w-[36px] h-[22px] rounded-full relative transition-colors ${!activeIntg?.connected && !isMcp ? 'opacity-40 cursor-not-allowed bg-cw-bg2 border border-cw-bdr' : agent.on ? 'bg-cw-blue' : 'bg-cw-bg2 border border-cw-bdr'}`}
+                          className={`shrink-0 w-[36px] h-[22px] rounded-full relative transition-colors ${agent.on ? 'bg-cw-blue' : 'bg-cw-bg2 border border-cw-bdr'}`}
                         >
                           <div className={`absolute top-[2px] w-[16px] h-[16px] bg-white rounded-full transition-all duration-200 shadow-sm ${agent.on ? 'left-[18px]' : 'left-[2px] border border-cw-bdr'}`} />
                         </button>
@@ -713,13 +613,28 @@ export function Integrations() {
                     )}
                   </div>
                 </div>
-
               </div>
             </>
+          ) : settingsState?.type === 'integration' ? (
+            <IntegrationSettingsDrawer
+              integration={activeIntg}
+              catalog={activeIntg}
+              isOpen={true}
+              onClose={() => setSettingsState(null)}
+              onDisconnected={() => {
+                setIntegrations(prev => prev.map(i => i.id === activeIntg?.id ? { ...i, connected: false, connectedAccount: undefined } : i));
+                setSettingsState(null);
+              }}
+            />
+          ) : requestDrawerOpen ? (
+            <ConnectorRequestDrawer 
+              isOpen={true}
+              onClose={() => setRequestDrawerOpen(false)}
+            />
+          ) : null
           )
         )}
       </div>
-
     </div>
   );
 }

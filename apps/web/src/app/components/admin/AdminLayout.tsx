@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { NavLink, Outlet, useLocation, useNavigate } from 'react-router';
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, Radio, List, GitFork, ShieldAlert, Package, 
   AlertTriangle, Network, Bot, ClipboardCheck, Database, MessageSquare,

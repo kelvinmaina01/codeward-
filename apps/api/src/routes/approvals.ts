@@ -51,23 +51,72 @@ approvalsRouter.get('/', async (c) => {
     (await db.select().from(schema.repositories).where(inArray(schema.repositories.id, repoIds))).map((r) => [r.id, r.fullName])
   );
 
+  const runIds = rows.map((r) => r.runId).filter((id): id is number => id != null);
+  const runById = new Map<number, typeof schema.runs.$inferSelect>();
+  const tasksByRunId = new Map<number, typeof schema.agentTasks.$inferSelect[]>();
+  if (runIds.length > 0) {
+    const runRows = await db.select().from(schema.runs).where(inArray(schema.runs.id, runIds));
+    runRows.forEach((run) => runById.set(run.id, run));
+
+    const taskRows = await db.select().from(schema.agentTasks).where(inArray(schema.agentTasks.runId, runIds));
+    for (const task of taskRows) {
+      const existing = tasksByRunId.get(task.runId) ?? [];
+      existing.push(task);
+      tasksByRunId.set(task.runId, existing);
+    }
+  }
+
   return c.json({
-    approvals: rows.map((r) => ({
-      id: r.id,
-      repoId: r.repoId,
-      repoFullName: repoById.get(r.repoId) ?? 'unknown',
-      runId: r.runId,
-      agentId: r.agentId,
-      pullRequestNumber: r.pullRequestNumber,
-      prUrl: r.prUrl,
-      prTitle: r.prTitle,
-      guardianVerdict: r.guardianVerdict,
-      maxSeverity: r.maxSeverity,
-      mode: r.mode,
-      deadlineAt: r.deadlineAt,
-      status: r.status,
-      createdAt: r.createdAt,
-    })),
+    approvals: rows.map((r) => {
+      const run = r.runId != null ? runById.get(r.runId) : null;
+      const tasks = r.runId != null ? (tasksByRunId.get(r.runId) ?? []) : [];
+      const nonOrchestratorTasks = tasks.filter((task) => !task.agentId.startsWith('orchestrator'));
+      const allFindings = nonOrchestratorTasks.flatMap((task) => Array.isArray(task.findings) ? task.findings as any[] : []);
+      const criticalFindings = allFindings.filter((finding) => String(finding?.severity ?? '').toLowerCase() === 'critical').length;
+      const completedTasks = nonOrchestratorTasks.filter((task) => task.status === 'completed').length;
+      const failedTasks = nonOrchestratorTasks.filter((task) => task.status === 'failed').length;
+
+      return {
+        id: r.id,
+        repoId: r.repoId,
+        repoFullName: repoById.get(r.repoId) ?? 'unknown',
+        runId: r.runId,
+        agentId: r.agentId,
+        pullRequestNumber: r.pullRequestNumber,
+        prUrl: r.prUrl,
+        prTitle: r.prTitle,
+        guardianVerdict: r.guardianVerdict,
+        maxSeverity: r.maxSeverity,
+        mode: r.mode,
+        deadlineAt: r.deadlineAt,
+        status: r.status,
+        createdAt: r.createdAt,
+        run: run ? {
+          id: run.id,
+          commitSha: run.commitSha,
+          status: run.status,
+          score: run.score,
+          createdAt: run.createdAt,
+          scope: run.scope,
+        } : null,
+        agentSummary: {
+          completedTasks,
+          failedTasks,
+          totalTasks: nonOrchestratorTasks.length,
+          findingsCount: allFindings.length,
+          criticalFindings,
+          tasks: nonOrchestratorTasks.map((task) => ({
+            agentId: task.agentId,
+            status: task.status,
+            score: task.score,
+            findingsCount: task.findingsCount ?? (Array.isArray(task.findings) ? task.findings.length : 0),
+            gateDecision: (task.reportMeta as any)?.gateDecision ?? null,
+            summary: (task.reportMeta as any)?.summary ?? null,
+            duration: task.duration,
+          })),
+        },
+      };
+    }),
   });
 });
 

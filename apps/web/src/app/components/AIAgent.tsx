@@ -75,12 +75,18 @@ const TOOL_LABELS: Record<string, string> = {
   get_finding_details: 'Read finding details', search_findings: 'Searched findings',
   get_fix_priority_list: 'Built fix priority list', get_health_trend: 'Computed health trend',
   compare_repos: 'Compared repositories', get_run_status: 'Checked run status',
+  get_run_logs: 'Read run logs', list_branches: 'Listed branches',
+  get_commit_diff: 'Read commit diff', run_all_agents: 'Ran full agent suite',
+  create_github_issue: 'Opened GitHub issue', create_issue_from_finding: 'Escalated finding to issue',
   read_repo_file: 'Read a source file', list_repo_dir: 'Listed repo files',
   read_agent_memory: 'Read shared agent memory', list_pending_approvals: 'Listed pending approvals',
   spawn_agent: 'Ran an analysis agent', approve_and_merge: 'Approved & merged a PR', reject_fix: 'Rejected a fix PR',
 };
 const ACTION_VERB: Record<string, string> = {
   spawn_agent: 'run an analysis agent in a real sandbox',
+  run_all_agents: 'run the full Codeward suite in real sandboxes',
+  create_github_issue: 'open a real GitHub issue',
+  create_issue_from_finding: 'open a real GitHub issue from this finding',
   approve_and_merge: 'approve and merge this auto-fix PR for real',
   reject_fix: 'reject and close this auto-fix PR',
 };
@@ -137,9 +143,7 @@ function DetailDrawer({ detail, onClose }: { detail: ToolDetail; onClose: () => 
   const running = detail.state === 'input-streaming' || detail.state === 'input-available';
   const errored = detail.state === 'output-error';
   return (
-    <div className="fixed inset-0 z-50 flex justify-end">
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px]" onClick={onClose} />
-      <div className="relative w-[min(600px,94vw)] h-full bg-cw-bg2 border-l border-cw-bdr flex flex-col shadow-2xl animate-in slide-in-from-right duration-200">
+    <div className="shrink-0 h-full bg-cw-bg2 border-l border-cw-bdr flex flex-col w-[min(500px,94vw)] lg:w-[500px] animate-in slide-in-from-right duration-200">
         <div className="flex items-center gap-2.5 px-5 py-3.5 border-b border-cw-bdr">
           <div className="w-8 h-8 rounded-lg bg-cw-blue/10 flex items-center justify-center shrink-0"><Wrench size={15} className="text-cw-blue" /></div>
           <div className="min-w-0">
@@ -164,7 +168,6 @@ function DetailDrawer({ detail, onClose }: { detail: ToolDetail; onClose: () => 
             )}
           </div>
         </div>
-      </div>
     </div>
   );
 }
@@ -420,9 +423,7 @@ function LogsDrawer({ onClose }: { onClose: () => void }) {
   const successRate = logs.length ? Math.round((logs.filter((l) => l.success).length / logs.length) * 100) : null;
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end">
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px]" onClick={onClose} />
-      <div className="relative w-[min(1040px,94vw)] h-full bg-cw-bg2 border-l border-cw-bdr flex flex-col shadow-2xl animate-in slide-in-from-right duration-200">
+    <div className="shrink-0 h-full bg-cw-bg2 border-l border-cw-bdr flex flex-col w-[min(1040px,94vw)] lg:w-[1040px] animate-in slide-in-from-right duration-200">
         {/* header */}
         <div className="flex items-center gap-2.5 px-5 py-3.5 border-b border-cw-bdr">
           <ListViewIcon size={18} className="text-cw-purple" />
@@ -509,7 +510,6 @@ function LogsDrawer({ onClose }: { onClose: () => void }) {
             </table>
           )}
         </div>
-      </div>
     </div>
   );
 }

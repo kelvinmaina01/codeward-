@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Helmet } from 'react-helmet-async';
-import { ArchitectureFlow } from './ArchitectureFlow';
 import { blogs } from '../data/blogs';
 
 // ============================================================
@@ -1073,9 +1072,6 @@ export default function CodewardHero() {
           <p className="mt-6 max-w-xl text-base text-white/60 md:text-lg">
             Codeward is an autonomous AI code review platform for engineering teams that runs specialized review agents automatically on every pull request.
           </p>
-          <p className="mt-4 max-w-xl text-base text-white/50 md:text-lg font-light">
-            Every push is sandboxed, stress-tested, refactored against your existing codebase, and rolled back instantly if anything breaks.
-          </p>
 
           <div className="mt-10 flex flex-wrap gap-4">
             <button
@@ -1130,24 +1126,14 @@ export default function CodewardHero() {
           </div>
         </div>
 
-        {/* Product Hunt Badges */}
-        <div className="absolute bottom-8 right-8 md:bottom-12 md:right-14 flex flex-col gap-4 sm:flex-row sm:gap-6 opacity-90 hover:opacity-100 transition-opacity">
 
-          <a href="#" target="_blank" rel="noopener noreferrer" className="transition-transform hover:scale-105">
-            <img 
-              src="https://i.ibb.co/jPgJJdTs/developer-tools-badge.png" 
-              alt="Product Hunt - Developer Tools" 
-              className="h-[50px] w-auto drop-shadow-xl" 
-            />
-          </a>
-        </div>
       </section>
       </section>
 
       {/* Video Demo Section */}
       <section className="relative bg-[#05060a] py-20 md:py-24 px-8 md:px-14 overflow-hidden perspective-[1000px]">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(139,92,246,0.15)_0%,_transparent_50%)] mix-blend-screen pointer-events-none" />
-        <div className="mx-auto max-w-[1300px] relative z-10">
+        <div className="mx-auto max-w-[700px] relative z-10">
           <VideoPlayer />
         </div>
       </section>
@@ -1162,113 +1148,113 @@ export default function CodewardHero() {
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-8">
             
             {/* AI */}
-            <fieldset className="border border-white/10 rounded-2xl px-8 pb-10 pt-6 bg-white/5 backdrop-blur-sm transition-transform hover:-translate-y-1">
-              <legend className="px-3 mx-auto">
-                <span className="relative inline-block px-3 py-1">
+            <fieldset className="border border-white/10 rounded-xl px-4 pb-5 pt-3 bg-white/5 backdrop-blur-sm transition-transform hover:-translate-y-1">
+              <legend className="px-2 mx-auto">
+                <span className="relative inline-block px-2 py-0.5">
                   <span className="absolute inset-0 bg-[#00F700] transform -skew-x-12 rounded-sm rotate-1" />
-                  <span className="relative text-xs font-bold text-black uppercase tracking-widest drop-shadow-md">AI</span>
+                  <span className="relative text-[10px] font-bold text-black uppercase tracking-widest drop-shadow-md">AI</span>
                 </span>
               </legend>
-              <div className="grid grid-cols-2 gap-x-4 gap-y-10 mt-6">
-                <div className="flex items-center gap-4">
-                  <img src="https://www.google.com/s2/favicons?domain=openai.com&sz=128" alt="OpenAI" className="h-8 w-8 shrink-0 object-contain drop-shadow-md" />
-                  <span className="text-white/90 text-base font-semibold tracking-wide truncate">OpenAI</span>
+              <div className="grid grid-cols-2 gap-x-3 gap-y-4 mt-3">
+                <div className="flex items-center gap-2">
+                  <img src="https://www.google.com/s2/favicons?domain=openai.com&sz=128" alt="OpenAI" className="h-5 w-5 shrink-0 object-contain drop-shadow-md" />
+                  <span className="text-white/90 text-sm font-semibold tracking-wide truncate">OpenAI</span>
                 </div>
-                <div className="flex items-center gap-4">
-                  <img src="https://www.google.com/s2/favicons?domain=anthropic.com&sz=128" alt="Anthropic" className="h-8 w-8 shrink-0 object-contain drop-shadow-md" />
-                  <span className="text-white/90 text-base font-semibold tracking-wide truncate">Anthropic</span>
+                <div className="flex items-center gap-2">
+                  <img src="https://www.google.com/s2/favicons?domain=anthropic.com&sz=128" alt="Anthropic" className="h-5 w-5 shrink-0 object-contain drop-shadow-md" />
+                  <span className="text-white/90 text-sm font-semibold tracking-wide truncate">Anthropic</span>
                 </div>
-                <div className="flex items-center gap-4">
-                  <img src="https://www.google.com/s2/favicons?domain=huggingface.co&sz=128" alt="HuggingFace" className="h-8 w-8 shrink-0 object-contain drop-shadow-md" />
-                  <span className="text-white/90 text-base font-semibold tracking-wide truncate">HuggingFace</span>
+                <div className="flex items-center gap-2">
+                  <img src="https://www.google.com/s2/favicons?domain=huggingface.co&sz=128" alt="HuggingFace" className="h-5 w-5 shrink-0 object-contain drop-shadow-md" />
+                  <span className="text-white/90 text-sm font-semibold tracking-wide truncate">HuggingFace</span>
                 </div>
-                <div className="flex items-center gap-4">
-                  <img src="https://www.google.com/s2/favicons?domain=mistral.ai&sz=128" alt="Mistral AI" className="h-8 w-8 shrink-0 object-contain drop-shadow-md" />
-                  <span className="text-white/90 text-base font-semibold tracking-wide truncate">Mistral AI</span>
+                <div className="flex items-center gap-2">
+                  <img src="https://www.google.com/s2/favicons?domain=mistral.ai&sz=128" alt="Mistral AI" className="h-5 w-5 shrink-0 object-contain drop-shadow-md" />
+                  <span className="text-white/90 text-sm font-semibold tracking-wide truncate">Mistral AI</span>
                 </div>
               </div>
             </fieldset>
 
             {/* Enterprise */}
-            <fieldset className="border border-white/10 rounded-2xl px-8 pb-10 pt-6 bg-white/5 backdrop-blur-sm transition-transform hover:-translate-y-1">
-              <legend className="px-3 mx-auto">
-                <span className="relative inline-block px-3 py-1">
+            <fieldset className="border border-white/10 rounded-xl px-4 pb-5 pt-3 bg-white/5 backdrop-blur-sm transition-transform hover:-translate-y-1">
+              <legend className="px-2 mx-auto">
+                <span className="relative inline-block px-2 py-0.5">
                   <span className="absolute inset-0 bg-[#00F700] transform -skew-x-12 rounded-sm -rotate-1" />
-                  <span className="relative text-xs font-bold text-black uppercase tracking-widest drop-shadow-md">Enterprise</span>
+                  <span className="relative text-[10px] font-bold text-black uppercase tracking-widest drop-shadow-md">Enterprise</span>
                 </span>
               </legend>
-              <div className="grid grid-cols-2 gap-x-4 gap-y-10 mt-6">
-                <div className="flex items-center gap-4">
-                  <img src="https://www.google.com/s2/favicons?domain=microsoft.com&sz=128" alt="Microsoft" className="h-8 w-8 shrink-0 object-contain drop-shadow-md" />
-                  <span className="text-white/90 text-base font-semibold tracking-wide truncate">Microsoft</span>
+              <div className="grid grid-cols-2 gap-x-3 gap-y-4 mt-3">
+                <div className="flex items-center gap-2">
+                  <img src="https://www.google.com/s2/favicons?domain=microsoft.com&sz=128" alt="Microsoft" className="h-5 w-5 shrink-0 object-contain drop-shadow-md" />
+                  <span className="text-white/90 text-sm font-semibold tracking-wide truncate">Microsoft</span>
                 </div>
-                <div className="flex items-center gap-4">
-                  <img src="https://www.google.com/s2/favicons?domain=google.com&sz=128" alt="Google" className="h-8 w-8 shrink-0 object-contain drop-shadow-md" />
-                  <span className="text-white/90 text-base font-semibold tracking-wide truncate">Google</span>
+                <div className="flex items-center gap-2">
+                  <img src="https://www.google.com/s2/favicons?domain=google.com&sz=128" alt="Google" className="h-5 w-5 shrink-0 object-contain drop-shadow-md" />
+                  <span className="text-white/90 text-sm font-semibold tracking-wide truncate">Google</span>
                 </div>
-                <div className="flex items-center gap-4">
-                  <img src="https://www.google.com/s2/favicons?domain=paypal.com&sz=128" alt="PayPal" className="h-8 w-8 shrink-0 object-contain drop-shadow-md" />
-                  <span className="text-white/90 text-base font-semibold tracking-wide truncate">PayPal</span>
+                <div className="flex items-center gap-2">
+                  <img src="https://www.google.com/s2/favicons?domain=paypal.com&sz=128" alt="PayPal" className="h-5 w-5 shrink-0 object-contain drop-shadow-md" />
+                  <span className="text-white/90 text-sm font-semibold tracking-wide truncate">PayPal</span>
                 </div>
-                <div className="flex items-center gap-4">
-                  <img src="https://www.google.com/s2/favicons?domain=vercel.com&sz=128" alt="Vercel" className="h-8 w-8 shrink-0 object-contain drop-shadow-md" />
-                  <span className="text-white/90 text-base font-semibold tracking-wide truncate">Vercel</span>
+                <div className="flex items-center gap-2">
+                  <img src="https://www.google.com/s2/favicons?domain=vercel.com&sz=128" alt="Vercel" className="h-5 w-5 shrink-0 object-contain drop-shadow-md" />
+                  <span className="text-white/90 text-sm font-semibold tracking-wide truncate">Vercel</span>
                 </div>
               </div>
             </fieldset>
 
             {/* IoT/Infrastructure */}
-            <fieldset className="border border-white/10 rounded-2xl px-8 pb-10 pt-6 bg-white/5 backdrop-blur-sm transition-transform hover:-translate-y-1">
-              <legend className="px-3 mx-auto">
-                <span className="relative inline-block px-3 py-1">
+            <fieldset className="border border-white/10 rounded-xl px-4 pb-5 pt-3 bg-white/5 backdrop-blur-sm transition-transform hover:-translate-y-1">
+              <legend className="px-2 mx-auto">
+                <span className="relative inline-block px-2 py-0.5">
                   <span className="absolute inset-0 bg-[#00F700] transform skew-x-12 rounded-sm rotate-2" />
-                  <span className="relative text-xs font-bold text-black uppercase tracking-widest drop-shadow-md">IoT/Infrastructure</span>
+                  <span className="relative text-[10px] font-bold text-black uppercase tracking-widest drop-shadow-md">IoT/Infrastructure</span>
                 </span>
               </legend>
-              <div className="grid grid-cols-2 gap-x-4 gap-y-10 mt-6">
-                <div className="flex items-center gap-4">
-                  <img src="https://www.google.com/s2/favicons?domain=aws.amazon.com&sz=128" alt="AWS" className="h-8 w-8 shrink-0 object-contain drop-shadow-md" />
-                  <span className="text-white/90 text-base font-semibold tracking-wide truncate">AWS</span>
+              <div className="grid grid-cols-2 gap-x-3 gap-y-4 mt-3">
+                <div className="flex items-center gap-2">
+                  <img src="https://www.google.com/s2/favicons?domain=aws.amazon.com&sz=128" alt="AWS" className="h-5 w-5 shrink-0 object-contain drop-shadow-md" />
+                  <span className="text-white/90 text-sm font-semibold tracking-wide truncate">AWS</span>
                 </div>
-                <div className="flex items-center gap-4">
-                  <img src="https://www.google.com/s2/favicons?domain=cloudflare.com&sz=128" alt="Cloudflare" className="h-8 w-8 shrink-0 object-contain drop-shadow-md" />
-                  <span className="text-white/90 text-base font-semibold tracking-wide truncate">Cloudflare</span>
+                <div className="flex items-center gap-2">
+                  <img src="https://www.google.com/s2/favicons?domain=cloudflare.com&sz=128" alt="Cloudflare" className="h-5 w-5 shrink-0 object-contain drop-shadow-md" />
+                  <span className="text-white/90 text-sm font-semibold tracking-wide truncate">Cloudflare</span>
                 </div>
-                <div className="flex items-center gap-4">
-                  <img src="https://www.google.com/s2/favicons?domain=safaricom.co.ke&sz=128" alt="Safaricom" className="h-8 w-8 shrink-0 object-contain drop-shadow-md" />
-                  <span className="text-white/90 text-base font-semibold tracking-wide truncate">Safaricom</span>
+                <div className="flex items-center gap-2">
+                  <img src="https://www.google.com/s2/favicons?domain=safaricom.co.ke&sz=128" alt="Safaricom" className="h-5 w-5 shrink-0 object-contain drop-shadow-md" />
+                  <span className="text-white/90 text-sm font-semibold tracking-wide truncate">Safaricom</span>
                 </div>
-                <div className="flex items-center gap-4">
-                  <img src="https://www.google.com/s2/favicons?domain=docker.com&sz=128" alt="Docker" className="h-8 w-8 shrink-0 object-contain drop-shadow-md" />
-                  <span className="text-white/90 text-base font-semibold tracking-wide truncate">Docker</span>
+                <div className="flex items-center gap-2">
+                  <img src="https://www.google.com/s2/favicons?domain=docker.com&sz=128" alt="Docker" className="h-5 w-5 shrink-0 object-contain drop-shadow-md" />
+                  <span className="text-white/90 text-sm font-semibold tracking-wide truncate">Docker</span>
                 </div>
               </div>
             </fieldset>
 
             {/* Finance */}
-            <fieldset className="border border-white/10 rounded-2xl px-8 pb-10 pt-6 bg-white/5 backdrop-blur-sm transition-transform hover:-translate-y-1">
-              <legend className="px-3 mx-auto">
-                <span className="relative inline-block px-3 py-1">
+            <fieldset className="border border-white/10 rounded-xl px-4 pb-5 pt-3 bg-white/5 backdrop-blur-sm transition-transform hover:-translate-y-1">
+              <legend className="px-2 mx-auto">
+                <span className="relative inline-block px-2 py-0.5">
                   <span className="absolute inset-0 bg-[#00F700] transform -skew-x-6 rounded-sm -rotate-2" />
-                  <span className="relative text-xs font-bold text-black uppercase tracking-widest drop-shadow-md">Finance</span>
+                  <span className="relative text-[10px] font-bold text-black uppercase tracking-widest drop-shadow-md">Finance</span>
                 </span>
               </legend>
-              <div className="grid grid-cols-2 gap-x-4 gap-y-10 mt-6">
-                <div className="flex items-center gap-4">
-                  <img src="https://www.google.com/s2/favicons?domain=stripe.com&sz=128" alt="Stripe" className="h-8 w-8 shrink-0 object-contain drop-shadow-md" />
-                  <span className="text-white/90 text-base font-semibold tracking-wide truncate">Stripe</span>
+              <div className="grid grid-cols-2 gap-x-3 gap-y-4 mt-3">
+                <div className="flex items-center gap-2">
+                  <img src="https://www.google.com/s2/favicons?domain=stripe.com&sz=128" alt="Stripe" className="h-5 w-5 shrink-0 object-contain drop-shadow-md" />
+                  <span className="text-white/90 text-sm font-semibold tracking-wide truncate">Stripe</span>
                 </div>
-                <div className="flex items-center gap-4">
-                  <img src="https://www.google.com/s2/favicons?domain=plaid.com&sz=128" alt="Plaid" className="h-8 w-8 shrink-0 object-contain drop-shadow-md" />
-                  <span className="text-white/90 text-base font-semibold tracking-wide truncate">Plaid</span>
+                <div className="flex items-center gap-2">
+                  <img src="https://www.google.com/s2/favicons?domain=plaid.com&sz=128" alt="Plaid" className="h-5 w-5 shrink-0 object-contain drop-shadow-md" />
+                  <span className="text-white/90 text-sm font-semibold tracking-wide truncate">Plaid</span>
                 </div>
-                <div className="flex items-center gap-4">
-                  <img src="https://www.google.com/s2/favicons?domain=flutterwave.com&sz=128" alt="Flutterwave" className="h-8 w-8 shrink-0 object-contain drop-shadow-md" />
-                  <span className="text-white/90 text-base font-semibold tracking-wide truncate">Flutterwave</span>
+                <div className="flex items-center gap-2">
+                  <img src="https://www.google.com/s2/favicons?domain=flutterwave.com&sz=128" alt="Flutterwave" className="h-5 w-5 shrink-0 object-contain drop-shadow-md" />
+                  <span className="text-white/90 text-sm font-semibold tracking-wide truncate">Flutterwave</span>
                 </div>
-                <div className="flex items-center gap-4">
-                  <img src="https://www.google.com/s2/favicons?domain=paystack.com&sz=128" alt="Paystack" className="h-8 w-8 shrink-0 object-contain drop-shadow-md" />
-                  <span className="text-white/90 text-base font-semibold tracking-wide truncate">Paystack</span>
+                <div className="flex items-center gap-2">
+                  <img src="https://www.google.com/s2/favicons?domain=paystack.com&sz=128" alt="Paystack" className="h-5 w-5 shrink-0 object-contain drop-shadow-md" />
+                  <span className="text-white/90 text-sm font-semibold tracking-wide truncate">Paystack</span>
                 </div>
               </div>
             </fieldset>
@@ -1458,11 +1444,8 @@ export default function CodewardHero() {
       </section>
 
       {/* Ã¢â€â‚¬Ã¢â€â‚¬ Flow / Architecture Section Ã¢â€â‚¬Ã¢â€â‚¬ */}
-      <section className="w-full bg-[#000000] relative py-12 px-6 md:px-12 select-none">
-        <div className="max-w-[1500px] mx-auto rounded-[15px] overflow-hidden shadow-2xl">
-          <ArchitectureFlow />
-        </div>
-      </section>
+
+
 
       {/* Ã¢â€â‚¬Ã¢â€â‚¬ Testimonials Section Ã¢â€â‚¬Ã¢â€â‚¬ */}
       <TestimonialsSection />
