@@ -116,6 +116,7 @@ import { issuesPrsRouter } from './routes/issues-prs.js';
 import { integrationsRouter } from './routes/integrations.js';
 import { connectorRequestsRouter } from './routes/connector-requests.js';
 import { mcpRouter } from './routes/mcp.js';
+import { newsletterRouter } from './routes/newsletter.js';
 
 const routes = app
   .route('/api/webhooks', webhookRouter)
@@ -131,6 +132,7 @@ const routes = app
   .route('/api/integrations', integrationsRouter)
   .route('/api/connector-requests', connectorRequestsRouter)
   .route('/api/mcp', mcpRouter)
+  .route('/api/newsletter', newsletterRouter)
   .route('/ws', wsRouter);
 
 export type AppType = typeof routes;

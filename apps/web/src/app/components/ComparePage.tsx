@@ -2,6 +2,8 @@ import React, { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { comparisons } from '../data/comparisons';
+import { FooterTrustBadges } from './FooterTrustBadges';
+import { NewsletterForm } from './NewsletterForm';
 
 // Reusing the fade in component logic for smooth scrolling
 const FadeInSection: React.FC<{ children: React.ReactNode; direction?: 'up' | 'left' | 'right'; className?: string; delay?: number }> = ({ children, direction = 'up', className = '', delay = 0 }) => {
@@ -507,13 +509,18 @@ export const ComparePage: React.FC = () => {
           <div className="mx-auto max-w-[1500px] relative z-10">
 
 
-            {/* Mission & Contact */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-8 mb-20">
-              <p className="text-black/80 text-lg md:text-xl font-medium max-w-sm leading-relaxed">
+            {/* Mission, Trust Badges & Contact */}
+            <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-8 mb-16 pb-10 border-b border-black/10">
+              <p className="text-black/80 text-lg md:text-xl font-medium max-w-xs leading-relaxed shrink-0">
                 Codeward builds, tests, and optimizes your codebase.<br />
                 Automatically.
               </p>
-              <a href="mailto:hello@codeward.ai" className="text-black hover:text-[#8B5CF6] transition-colors text-lg md:text-xl font-bold flex items-center gap-2 group">
+
+              <div className="my-2 xl:my-0">
+                <FooterTrustBadges />
+              </div>
+
+              <a href="mailto:hello@codeward.ai" className="text-black hover:text-[#8B5CF6] transition-colors text-lg md:text-xl font-bold flex items-center gap-2 group shrink-0">
                 <span className="group-hover:translate-x-1 transition-transform">→</span> hello@codeward.ai
               </a>
             </div>
@@ -576,16 +583,7 @@ export const ComparePage: React.FC = () => {
             </div>
 
             {/* Newsletter Block */}
-            <div className="mb-16 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8 bg-white/50 backdrop-blur-sm p-8 md:p-10 rounded-3xl border border-black/10 shadow-sm">
-              <div className="max-w-lg">
-                <h4 className="text-black text-2xl font-black mb-3 tracking-tight">Subscribe to our newsletter</h4>
-                <p className="text-black/60 text-base font-medium">Get the latest updates on autonomous engineering, product releases, and technical debt management delivered to your inbox.</p>
-              </div>
-              <div className="flex items-center bg-white rounded-full p-1.5 pl-5 shadow-sm w-full lg:w-[450px] border border-black/10 shrink-0">
-                <input type="email" placeholder="Enter your email address" className="flex-1 bg-transparent text-sm text-black outline-none placeholder:text-black/40 font-medium" />
-                <button className="bg-black text-white px-7 py-3 rounded-full text-sm font-bold hover:bg-black/80 transition-colors shrink-0 shadow-md">Start for free &rarr;</button>
-              </div>
-            </div>
+            <NewsletterForm />
 
             {/* Bottom Bar */}
             <div className="flex flex-col md:flex-row justify-between items-center gap-6 pt-8 border-t border-black/10 text-black/50 text-sm font-semibold">

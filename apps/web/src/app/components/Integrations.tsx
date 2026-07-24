@@ -88,6 +88,8 @@ export function Integrations() {
   const [requestDrawerOpen, setRequestDrawerOpen] = useState(false);
   const [connectingIntg, setConnectingIntg] = useState<Integration | null>(null);
   const [connectStep, setConnectStep] = useState<'idle' | 'polling' | 'done'>('idle');
+  const [apiKeyInput, setApiKeyInput] = useState('');
+  const [appKeyInput, setAppKeyInput] = useState('');
   // Which MCP server is showing its connect form in the push drawer
   const [connectingMcp, setConnectingMcp] = useState<{ provider: McpProvider; index: number } | null>(null);
 
@@ -510,9 +512,21 @@ export function Integrations() {
                                 <div className="w-5 h-5 rounded-full border border-cw-bdr text-cw-txt3 flex items-center justify-center text-[11px] font-bold shrink-0 mt-0.5">2</div>
                                 <div className="flex-1 flex flex-col gap-2">
                                   <p className="text-[13px] font-medium text-cw-txt">Paste your credentials</p>
-                                  <input type="password" placeholder="API Key" className="w-full bg-cw-bg border border-cw-bdr rounded-lg px-3 py-2 text-[13px] text-cw-txt placeholder:text-cw-txt3 focus:outline-none focus:border-cw-purple focus:ring-2 focus:ring-cw-purple/10 transition-all" />
+                                  <input 
+                                    type="password" 
+                                    placeholder="API Key" 
+                                    value={apiKeyInput}
+                                    onChange={(e) => setApiKeyInput(e.target.value)}
+                                    className="w-full bg-cw-bg border border-cw-bdr rounded-lg px-3 py-2 text-[13px] text-cw-txt placeholder:text-cw-txt3 focus:outline-none focus:border-cw-purple focus:ring-2 focus:ring-cw-purple/10 transition-all" 
+                                  />
                                   {connectingIntg.id === 'datadog' && (
-                                    <input type="password" placeholder="Application Key" className="w-full bg-cw-bg border border-cw-bdr rounded-lg px-3 py-2 text-[13px] text-cw-txt placeholder:text-cw-txt3 focus:outline-none focus:border-cw-purple focus:ring-2 focus:ring-cw-purple/10 transition-all" />
+                                    <input 
+                                      type="password" 
+                                      placeholder="Application Key" 
+                                      value={appKeyInput}
+                                      onChange={(e) => setAppKeyInput(e.target.value)}
+                                      className="w-full bg-cw-bg border border-cw-bdr rounded-lg px-3 py-2 text-[13px] text-cw-txt placeholder:text-cw-txt3 focus:outline-none focus:border-cw-purple focus:ring-2 focus:ring-cw-purple/10 transition-all" 
+                                    />
                                   )}
                                 </div>
                               </div>
@@ -528,14 +542,29 @@ export function Integrations() {
               {/* Setup footer */}
               {connectStep !== 'done' && (
                 <div className="px-6 py-4 border-t border-cw-bdr flex gap-3 shrink-0 bg-cw-bg">
-                  <button onClick={() => { setConnectingIntg(null); setConnectStep('idle'); }} className="flex-1 py-2.5 rounded-lg border border-cw-bdr text-[13px] font-medium text-cw-txt hover:bg-cw-bg3 transition-colors">
+                  <button onClick={() => { setConnectingIntg(null); setConnectStep('idle'); setApiKeyInput(''); setAppKeyInput(''); }} className="flex-1 py-2.5 rounded-lg border border-cw-bdr text-[13px] font-medium text-cw-txt hover:bg-cw-bg3 transition-colors">
                     Cancel
                   </button>
                   <button
-                    onClick={() => { 
+                    onClick={async () => { 
                       setConnectStep('polling');
                       if (['gmail', 'workspace', 'calendar'].includes(connectingIntg.id)) {
                         window.location.href = `${API_URL}/api/integrations/google/${connectingIntg.id}/connect`;
+                      } else if (connectingIntg.authType === 'oauth') {
+                        window.location.href = `${API_URL}/api/integrations/${connectingIntg.id}/connect`;
+                      } else if (connectingIntg.authType === 'apikey') {
+                        try {
+                          await fetch(`${API_URL}/api/integrations/${connectingIntg.id}/connect-key`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            credentials: 'include',
+                            body: JSON.stringify({ apiKey: apiKeyInput, appKey: appKeyInput })
+                          });
+                          finishConnection();
+                        } catch (e) {
+                          console.error('Failed to save API keys:', e);
+                          setConnectStep('idle');
+                        }
                       } else {
                         setTimeout(finishConnection, 1000);
                       }

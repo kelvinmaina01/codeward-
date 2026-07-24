@@ -15,13 +15,20 @@ export const auth = betterAuth({
   }),
   baseURL: process.env.API_URL || "http://localhost:3001",
   secret: process.env.BETTER_AUTH_SECRET || "development-secret-key-change-in-prod",
-  trustedOrigins: [
-    "http://localhost:3000",
-    "http://localhost:5173", 
-    "http://localhost:5175",
-    "https://codeward-frontend-production.up.railway.app",
-    process.env.FRONTEND_URL || ""
-  ].filter(Boolean),
+  trustedOrigins: (request?: Request) => {
+    const origin = request?.headers.get("origin") || "";
+    if (origin.startsWith("http://localhost:") || origin.startsWith("http://127.0.0.1:")) {
+      return [origin];
+    }
+    return [
+      "http://localhost:3000",
+      "http://localhost:5173", 
+      "http://localhost:5174", 
+      "http://localhost:5175",
+      "https://codeward-frontend-production.up.railway.app",
+      process.env.FRONTEND_URL || ""
+    ].filter(Boolean);
+  },
   socialProviders: {
     github: {
       clientId: process.env.GITHUB_CLIENT_ID || "",
