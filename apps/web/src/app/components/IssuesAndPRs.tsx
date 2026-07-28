@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import {
   Loader, AlertCircle, CircleDot, CheckCircle2, GitPullRequest, GitMerge, XCircle,
   Clock, X as XIcon, MessageSquare, GitBranch, FileDiff, ShieldCheck, Bot, User as UserIcon,
@@ -102,6 +104,15 @@ function relTime(iso: string): string {
   if (h > 0) return `${h}h ago`;
   const m = Math.floor(ms / 60_000);
   return m > 0 ? `${m}m ago` : 'just now';
+}
+
+function MarkdownView({ text }: { text: string }) {
+  if (!text || !text.trim()) return <div className="text-[12px] text-cw-txt3 italic">No description provided.</div>;
+  return (
+    <div className="text-[12.5px] leading-relaxed text-cw-txt2 space-y-2 [&_p]:mb-2 [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_code]:bg-cw-bg3 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-[11px] [&_code]:font-mono [&_code]:text-cw-txt [&_pre]:bg-cw-bg3 [&_pre]:p-3 [&_pre]:rounded-lg [&_pre]:overflow-x-auto [&_pre]:my-2 [&_h1]:text-sm [&_h2]:text-xs [&_h3]:text-[12px] [&_h1]:font-bold [&_h2]:font-bold [&_h3]:font-bold [&_blockquote]:border-l-2 [&_blockquote]:border-cw-blue/40 [&_blockquote]:pl-3 [&_blockquote]:italic text-wrap break-words overflow-hidden">
+      <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>
+    </div>
+  );
 }
 
 /** Real PR status → display label, color, icon. Covers our own auto-fix lifecycle AND live GitHub state. */
@@ -268,7 +279,7 @@ export function IssuesAndPRs() {
                   sub="When an agent finds a critical problem it can't auto-fix, it opens a real GitHub issue — those appear here as proof of work."
                 />
               ) : (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                <div className={`grid gap-3 ${drawerOpen ? 'grid-cols-1 xl:grid-cols-2' : 'grid-cols-1 md:grid-cols-2'}`}>
                   {visibleIssues.map((issue) => (
                     <IssueCard key={issue.id} issue={issue} onOpen={() => { closeDrawer(); setSelectedIssue(issue); }} />
                   ))}
@@ -284,7 +295,7 @@ export function IssuesAndPRs() {
                   sub="Codeward's auto-fix PRs and human PRs your guardian reviewed will appear here with real merge status."
                 />
               ) : (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                <div className={`grid gap-3 ${drawerOpen ? 'grid-cols-1 xl:grid-cols-2' : 'grid-cols-1 md:grid-cols-2'}`}>
                   {visiblePrs.map((pr) => (
                     <PrCard key={pr.id} pr={pr} onOpen={() => { closeDrawer(); setSelectedPr(pr); }} />
                   ))}
@@ -322,9 +333,9 @@ function EmptyState({ icon, title, sub }: { icon: React.ReactNode; title: string
 function IssueCard({ issue, onOpen }: { issue: RealIssue; onOpen: () => void }) {
   const open = issue.state === 'open';
   return (
-    <button onClick={onOpen} className="text-left bg-cw-bg2 border border-cw-bdr rounded-xl p-4 hover:border-cw-purple/50 transition-colors flex flex-col gap-2">
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex items-center gap-2 min-w-0">
+    <button onClick={onOpen} className="text-left bg-cw-bg2 border border-cw-bdr rounded-xl p-4 hover:border-cw-purple/50 transition-colors flex flex-col gap-2 min-w-0 w-full overflow-hidden">
+      <div className="flex items-start justify-between gap-2 min-w-0">
+        <div className="flex items-center gap-2 min-w-0 flex-1">
           <GithubIcon size={15} className="text-cw-txt2 shrink-0" />
           {open
             ? <CircleDot size={15} className="text-cw-green shrink-0" />
@@ -334,11 +345,11 @@ function IssueCard({ issue, onOpen }: { issue: RealIssue; onOpen: () => void }) 
         {issue.severity && <span className={`text-[9px] font-bold px-2 py-0.5 rounded uppercase shrink-0 ${sevChip[issue.severity] ?? 'bg-cw-bg3 text-cw-txt3'}`}>{issue.severity}</span>}
       </div>
       <div className="text-[12px] text-cw-txt2 line-clamp-2">{(issue.body || '').replace(/[#*`_>]/g, '').trim() || 'No description.'}</div>
-      <div className="flex items-center gap-3 text-[11px] text-cw-txt3 mt-1">
-        <span className="font-mono">{issue.repoFullName}</span>
-        <span>#{issue.issueNumber}</span>
-        <span className="flex items-center gap-1"><MessageSquare size={11} /> {issue.comments}</span>
-        <span>{relTime(issue.createdAt)}</span>
+      <div className="flex items-center gap-2 text-[11px] text-cw-txt3 mt-1 flex-wrap min-w-0">
+        <span className="font-mono truncate max-w-[170px]" title={issue.repoFullName}>{issue.repoFullName}</span>
+        <span className="shrink-0">#{issue.issueNumber}</span>
+        <span className="flex items-center gap-1 shrink-0"><MessageSquare size={11} /> {issue.comments}</span>
+        <span className="ml-auto shrink-0 text-cw-txt3">{relTime(issue.createdAt)}</span>
       </div>
     </button>
   );
@@ -347,9 +358,9 @@ function IssueCard({ issue, onOpen }: { issue: RealIssue; onOpen: () => void }) 
 function PrCard({ pr, onOpen }: { pr: RealPR; onOpen: () => void }) {
   const meta = prStatusMeta(pr);
   return (
-    <button onClick={onOpen} className="text-left bg-cw-bg2 border border-cw-bdr rounded-xl p-4 hover:border-cw-purple/50 transition-colors flex flex-col gap-2">
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex items-center gap-2 min-w-0">
+    <button onClick={onOpen} className="text-left bg-cw-bg2 border border-cw-bdr rounded-xl p-4 hover:border-cw-purple/50 transition-colors flex flex-col gap-2 min-w-0 w-full overflow-hidden">
+      <div className="flex items-start justify-between gap-2 min-w-0">
+        <div className="flex items-center gap-2 min-w-0 flex-1">
           <GithubIcon size={15} className="text-cw-txt2 shrink-0" />
           {pr.kind === 'autofix' ? <Bot size={15} className="text-cw-purple shrink-0" /> : <UserIcon size={15} className="text-cw-blue shrink-0" />}
           <span className="text-[13px] font-semibold text-cw-txt truncate">{pr.prTitle || `PR #${pr.pullRequestNumber}`}</span>
@@ -357,15 +368,15 @@ function PrCard({ pr, onOpen }: { pr: RealPR; onOpen: () => void }) {
         <span className={`text-[9px] font-bold px-2 py-0.5 rounded border uppercase shrink-0 flex items-center gap-1 ${meta.cls}`}><meta.Icon size={10} /> {meta.label}</span>
       </div>
       {pr.headBranch && pr.baseBranch && (
-        <div className="flex items-center gap-1.5 text-[11px] text-cw-txt3">
-          <GitBranch size={11} /> <span className="font-mono text-cw-txt2">{pr.headBranch}</span> → <span className="font-mono text-cw-txt2">{pr.baseBranch}</span>
+        <div className="flex items-center gap-1.5 text-[11px] text-cw-txt3 truncate min-w-0">
+          <GitBranch size={11} className="shrink-0" /> <span className="font-mono text-cw-txt2 truncate">{pr.headBranch}</span> → <span className="font-mono text-cw-txt2 truncate">{pr.baseBranch}</span>
         </div>
       )}
-      <div className="flex items-center gap-3 text-[11px] text-cw-txt3 mt-1 flex-wrap">
-        <span className="font-mono">{pr.repoFullName}</span>
-        <span>#{pr.pullRequestNumber}</span>
-        <span className="px-1.5 py-0.5 rounded bg-cw-bg3 text-[10px]">{pr.kind === 'autofix' ? 'Codeward auto-fix' : 'Human PR'}</span>
-        <span>{relTime(pr.createdAt)}</span>
+      <div className="flex items-center gap-2 text-[11px] text-cw-txt3 mt-1 flex-wrap min-w-0">
+        <span className="font-mono truncate max-w-[170px]" title={pr.repoFullName}>{pr.repoFullName}</span>
+        <span className="shrink-0">#{pr.pullRequestNumber}</span>
+        <span className="px-1.5 py-0.5 rounded bg-cw-bg3 text-[10px] shrink-0">{pr.kind === 'autofix' ? 'Codeward auto-fix' : 'Human PR'}</span>
+        <span className="ml-auto shrink-0 text-cw-txt3">{relTime(pr.createdAt)}</span>
       </div>
     </button>
   );
@@ -425,7 +436,7 @@ function IssueDrawer({ issue, comments, loadingComments, onClose }: { issue: Rea
 
         {/* Full issue body (blue) */}
         <Section color="cw-blue" title="Issue detail" icon={<FileDiff size={12} />}>
-          <pre className="text-[12px] text-cw-txt2 leading-relaxed whitespace-pre-wrap break-words font-sans">{issue.body || 'No description.'}</pre>
+          <MarkdownView text={issue.body || 'No description.'} />
         </Section>
 
         {/* Real logs — was it worked on? (green) */}
@@ -441,7 +452,7 @@ function IssueDrawer({ issue, comments, loadingComments, onClose }: { issue: Rea
                     <span className="text-[11px] font-semibold text-cw-txt">{c.author}</span>
                     <span className="text-[10px] text-cw-txt3">{relTime(c.createdAt)}</span>
                   </div>
-                  <div className="text-[12px] text-cw-txt2 whitespace-pre-wrap break-words">{c.body}</div>
+                  <MarkdownView text={c.body} />
                 </div>
               ))}
             </div>
@@ -523,7 +534,7 @@ function PrDrawer({ pr, detail, loadingDetail, onClose }: { pr: RealPR; detail: 
           {loadingDetail && !detail ? (
             <div className="flex items-center gap-2 text-[12px] text-cw-txt3"><Loader size={12} className="animate-spin" /> Loading the full PR message from GitHub…</div>
           ) : detail?.body && detail.body.trim() ? (
-            <pre className="text-[12px] text-cw-txt2 leading-relaxed whitespace-pre-wrap break-words font-sans">{detail.body}</pre>
+            <MarkdownView text={detail.body} />
           ) : (
             <div className="text-[12px] text-cw-txt3">This PR has no description body.</div>
           )}
@@ -547,7 +558,7 @@ function PrDrawer({ pr, detail, loadingDetail, onClose }: { pr: RealPR; detail: 
                       {rv.createdAt && <span className="text-[10px] text-cw-txt3">{relTime(rv.createdAt)}</span>}
                     </div>
                     {rv.body && rv.body.trim()
-                      ? <div className="text-[12px] text-cw-txt2 leading-relaxed whitespace-pre-wrap break-words">{rv.body}</div>
+                      ? <MarkdownView text={rv.body} />
                       : <div className="text-[11px] text-cw-txt3 italic">No written comment — verdict only.</div>}
                   </div>
                 );

@@ -217,7 +217,17 @@ function useLiveActivity() {
         } catch { /* ignore malformed frames */ }
       };
     } catch { /* WS unavailable — strip just stays empty */ }
-    return () => { closed = true; try { ws?.close(); } catch { /* noop */ } void closed; };
+    return () => {
+      closed = true;
+      if (ws) {
+        if (ws.readyState === WebSocket.CONNECTING) {
+          ws.onopen = () => { try { ws?.close(); } catch {} };
+        } else if (ws.readyState === WebSocket.OPEN) {
+          try { ws.close(); } catch {}
+        }
+      }
+      void closed;
+    };
   }, []);
   return events;
 }
@@ -262,7 +272,15 @@ function HistoryDrawer({ sessions, activeId, onSelect, onRename, onDelete, onClo
     <div className="w-[290px] shrink-0 border-l border-cw-bdr bg-cw-bg2 flex flex-col animate-in slide-in-from-right duration-200">
       <div className="flex items-center gap-2 px-3 py-2.5 border-b border-cw-bdr">
         <History size={13} className="text-cw-txt2" /><span className="text-xs font-semibold text-cw-txt">Chat history</span>
-        <button onClick={onClose} className="ml-auto text-cw-txt3 hover:text-cw-txt transition-colors"><X size={14} /></button>
+        <button
+          onClick={onClose}
+          title="Collapse panel"
+          aria-label="Collapse panel"
+          className="ml-auto flex items-center gap-1 px-2 py-1 rounded-md border border-cw-bdr bg-cw-bg3/60 hover:bg-cw-bg3 hover:border-cw-blue/50 text-cw-txt2 hover:text-cw-txt transition-all text-[11px] font-medium group"
+        >
+          <ChevronRight size={13} className="text-cw-blue transition-transform group-hover:translate-x-0.5" />
+          <span>Collapse</span>
+        </button>
       </div>
       <div className="px-3 py-2 border-b border-cw-bdr">
         <div className="flex items-center gap-1.5 border border-cw-bdr rounded-md px-2 py-1.5 bg-cw-bg focus-within:border-cw-blue transition-colors">
@@ -437,7 +455,15 @@ function LogsDrawer({ onClose }: { onClose: () => void }) {
               <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Filter by tool or repo…" className="w-[180px] bg-transparent text-[11px] text-cw-txt outline-none" />
             </div>
             <button onClick={load} title="Refresh" className="p-1.5 text-cw-txt3 hover:text-cw-txt transition-colors"><RefreshIcon size={15} /></button>
-            <button onClick={onClose} className="p-1.5 text-cw-txt3 hover:text-cw-txt transition-colors"><X size={16} /></button>
+            <button
+              onClick={onClose}
+              title="Collapse logs panel"
+              aria-label="Collapse panel"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-cw-bdr bg-cw-bg3/70 hover:bg-cw-bg3 hover:border-cw-purple/50 text-cw-txt2 hover:text-cw-txt transition-all text-[11px] font-medium shadow-xs active:scale-95 group ml-1"
+            >
+              <ChevronRight size={14} className="text-cw-purple transition-transform group-hover:translate-x-0.5" />
+              <span>Collapse</span>
+            </button>
           </div>
         </div>
 
@@ -572,7 +598,7 @@ export function AIAgent() {
     }) as typeof fetch,
   }), [refreshSessions]);
 
-  const { messages, setMessages, sendMessage, status, stop, addToolApprovalResponse } = useChat({
+  const { messages, setMessages, sendMessage, status, stop, addToolApprovalResponse, error } = useChat({
     transport,
     // Auto-resume the generation once the user has answered every approval card in the turn.
     sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithApprovalResponses,
@@ -690,6 +716,20 @@ export function AIAgent() {
         {/* composer */}
         <div className="pt-2.5 border-t border-cw-bdr mt-auto shrink-0">
           <div className="max-w-3xl w-full mx-auto relative">
+          {error && (
+            <div className="mb-3 p-3 rounded-lg border border-cw-amber/30 bg-cw-amber/10 text-cw-amber flex items-center justify-between text-xs animate-in fade-in duration-200">
+              <div className="flex items-center gap-2">
+                <AlertTriangle size={15} className="shrink-0 text-cw-amber" />
+                <span>
+                  {error.message?.includes('429') || error.message?.includes('quota')
+                    ? "Gordon is experiencing high demand right now. Please wait a few moments before trying again."
+                    : error.message?.includes('500')
+                    ? "Gordon encountered a temporary server hiccup. You can retry your message in a moment."
+                    : "Connection to Gordon was interrupted. Please try re-sending your message."}
+                </span>
+              </div>
+            </div>
+          )}
           {/* slash-command menu */}
           {slashActive && slashMatches.length > 0 && (
             <div className="absolute bottom-full left-0 mb-1.5 w-[320px] bg-cw-bg2 border border-cw-bdr rounded-lg shadow-lg overflow-hidden z-10">

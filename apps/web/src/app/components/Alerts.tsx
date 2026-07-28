@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { API_URL } from '../../lib/api';
 import { GithubIcon, GithubLink, githubFileUrl, extractFilePaths } from './GithubLink';
+import { RepoSelector } from './RepoSelector';
 
 interface RealAlert {
   id: string;
@@ -90,15 +91,13 @@ export function Alerts() {
               <div className="text-[13px] text-cw-txt2 mt-1">Real notable events from your repos — high-severity findings, escalated GitHub issues, and auto-fix PRs.</div>
             </div>
             {alerts.length > 0 && (
-              <select
+              <RepoSelector
+                options={repoOptions.filter((r) => r !== 'All').map((r) => ({ id: r, fullName: r }))}
                 value={repoFilter}
-                onChange={(e) => setRepoFilter(e.target.value)}
-                className="bg-cw-bg2 border border-cw-bdr rounded-lg text-[12px] text-cw-txt py-2 px-3 outline-none focus:border-cw-purple max-w-[240px]"
-              >
-                <option value="All">All repos & orgs</option>
-                {orgOptions.length > 1 && <optgroup label="Organizations">{orgOptions.map((o) => <option key={`org-${o}`} value={o}>{o} (org)</option>)}</optgroup>}
-                <optgroup label="Repositories">{repoOptions.filter((r) => r !== 'All').map((r) => <option key={r} value={r}>{r}</option>)}</optgroup>
-              </select>
+                onChange={(val, name) => setRepoFilter(val === 'All' ? 'All' : name)}
+                showAllOption={true}
+                allOptionLabel="All repos & orgs"
+              />
             )}
           </div>
 

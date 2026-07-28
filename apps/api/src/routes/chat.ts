@@ -161,34 +161,39 @@ chatRouter.get('/suggestions', async (c) => {
  * is included for the collapsible per-row breakdown.
  */
 chatRouter.get('/logs', async (c) => {
-  const user = await getSessionUser(c);
-  if (!user) return c.json({ error: 'Unauthorized' }, 401);
-  const limit = Math.min(Number(c.req.query('limit')) || 100, 500);
-  const offset = Math.max(Number(c.req.query('offset')) || 0, 0);
+  try {
+    const user = await getSessionUser(c);
+    if (!user) return c.json({ error: 'Unauthorized' }, 401);
+    const limit = Math.min(Number(c.req.query('limit')) || 100, 500);
+    const offset = Math.max(Number(c.req.query('offset')) || 0, 0);
 
-  const rows = await db.select().from(gordonEvents)
-    .where(eq(gordonEvents.userId, user.id))
-    .orderBy(desc(gordonEvents.createdAt))
-    .limit(limit).offset(offset);
+    const rows = await db.select().from(gordonEvents)
+      .where(eq(gordonEvents.userId, user.id))
+      .orderBy(desc(gordonEvents.createdAt))
+      .limit(limit).offset(offset);
 
-  // Resolve repo names for the repoIds present (bounded set).
-  const repoIds = [...new Set(rows.map((r) => r.repoId).filter((x): x is number => x != null))];
-  const repoNames = new Map<number, string>();
-  if (repoIds.length) {
-    const rr = await db.select({ id: repositories.id, fullName: repositories.fullName }).from(repositories).where(inArray(repositories.id, repoIds));
-    for (const r of rr) repoNames.set(r.id, r.fullName);
+    // Resolve repo names for the repoIds present (bounded set).
+    const repoIds = [...new Set(rows.map((r) => r.repoId).filter((x): x is number => x != null))];
+    const repoNames = new Map<number, string>();
+    if (repoIds.length) {
+      const rr = await db.select({ id: repositories.id, fullName: repositories.fullName }).from(repositories).where(inArray(repositories.id, repoIds));
+      for (const r of rr) repoNames.set(r.id, r.fullName);
+    }
+
+    const total = (await db.select({ n: count() }).from(gordonEvents).where(eq(gordonEvents.userId, user.id)))[0]?.n ?? rows.length;
+
+    return c.json({
+      total: Number(total), limit, offset,
+      logs: rows.map((r) => ({
+        id: r.id, toolName: r.toolName, repoId: r.repoId, repoName: r.repoId ? repoNames.get(r.repoId) ?? null : null,
+        success: r.success, requiredApproval: r.requiredApproval, durationMs: r.durationMs, errorText: r.errorText,
+        createdAt: r.createdAt, input: r.input, outputSummary: r.outputSummary,
+      })),
+    });
+  } catch (err: any) {
+    console.error('[GordonLogs] Error fetching logs:', err);
+    return c.json({ total: 0, limit: 100, offset: 0, logs: [] });
   }
-
-  const total = (await db.select({ n: count() }).from(gordonEvents).where(eq(gordonEvents.userId, user.id)))[0]?.n ?? rows.length;
-
-  return c.json({
-    total: Number(total), limit, offset,
-    logs: rows.map((r) => ({
-      id: r.id, toolName: r.toolName, repoId: r.repoId, repoName: r.repoId ? repoNames.get(r.repoId) ?? null : null,
-      success: r.success, requiredApproval: r.requiredApproval, durationMs: r.durationMs, errorText: r.errorText,
-      createdAt: r.createdAt, input: r.input, outputSummary: r.outputSummary,
-    })),
-  });
 });
 
 // Lightweight repo list for the composer's @-tag picker.

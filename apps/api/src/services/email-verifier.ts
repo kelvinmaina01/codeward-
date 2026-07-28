@@ -1,5 +1,5 @@
 export async function verifyEmailRealTime(email: string): Promise<{ isValid: boolean; message: string }> {
-  const apiKey = process.env.EMAIL_VERIFICATION_API_KEY;
+  const apiKey = process.env.QUICKEMAILVERIFICATION_API_KEY || process.env.EMAIL_VERIFICATION_API_KEY;
   
   if (!apiKey) {
     console.warn('[EmailVerifier] No API key configured. Bypassing verification.');

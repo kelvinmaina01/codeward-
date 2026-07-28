@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Download, Share2, Globe, Printer, ChevronRight, CheckCircle2,
   TrendingDown, Activity, ShieldAlert, Zap, LayoutTemplate, FileText,
   X, Bot, ArrowRight, Shield, Cpu, MessageSquare, GitPullRequest,
   AlertTriangle, Wrench, BarChart3, BookOpen, FlaskConical, Eye
 } from 'lucide-react';
+import { API_URL } from '../../lib/api';
+import { RepoSelector } from './RepoSelector';
 
 interface Agent {
   id: string;
@@ -194,6 +196,17 @@ const severityConfig = {
 };
 
 export function Certificate() {
+
+  const [repoFilter, setRepoFilter] = useState<string>('All');
+  const [repoList, setRepoList] = useState<{ id: number; fullName: string }[]>([]);
+
+  useEffect(() => {
+    fetch(`${API_URL}/api/chat/repos`, { credentials: 'include' })
+      .then((r) => r.ok ? r.json() : { repos: [] })
+      .then((d) => setRepoList(d.repos ?? []))
+      .catch(() => {});
+  }, []);
+
   const [sidePanel, setSidePanel] = useState<'history' | 'share' | 'feed' | null>(null);
   const [activeAgent, setActiveAgent] = useState<Agent | null>(null);
 
@@ -203,26 +216,52 @@ export function Certificate() {
     <div className="flex-1 flex overflow-hidden">
       {/* ── Main Content ── */}
       <div className="flex-1 overflow-y-auto bg-cw-bg flex flex-col">
-        {/* Header */}
-        <div className="px-6 py-4 border-b border-cw-bdr bg-cw-bg2 flex items-center justify-between shrink-0">
-          <div>
-            <div className="text-[14px] font-medium text-cw-txt">Health certificate</div>
-            <div className="text-[11px] text-cw-txt3">shareable · updates on every scan · acme-corp / my-api</div>
+        {/* Floating Top Bar (Repo Selector + Action Buttons) */}
+        <div className="p-6 w-full max-w-[920px] mx-auto pb-0 flex justify-between items-end relative z-20 -mb-4">
+          <div className="w-[280px]">
+             <RepoSelector
+                options={repoList}
+                value={repoFilter}
+                onChange={(val, name) => setRepoFilter(val === 'All' ? 'All' : name)}
+                showAllOption={true}
+                allOptionLabel="All connected repositories"
+             />
           </div>
           <div className="flex gap-2">
-            <button onClick={() => { setActiveAgent(null); setSidePanel('share'); }} className="flex items-center gap-1.5 px-3 py-1.5 bg-cw-bg rounded-md border border-cw-bdr text-[11px] text-cw-txt2 hover:text-cw-txt hover:bg-cw-bg3 transition-colors">
+            <button onClick={() => { setActiveAgent(null); setSidePanel('share'); }} className="flex items-center gap-1.5 px-3 py-1.5 bg-cw-bg2 rounded-md border border-cw-bdr text-[12px] font-medium text-cw-txt hover:bg-cw-bg3 transition-colors shadow-sm">
               <Printer size={14} /> Print / Export
             </button>
-            <button onClick={() => { setActiveAgent(null); setSidePanel('feed'); }} className="flex items-center gap-1.5 px-3 py-1.5 bg-cw-bg rounded-md border border-cw-bdr text-[11px] text-cw-txt2 hover:text-cw-txt hover:bg-cw-bg3 transition-colors">
-              <Globe size={14} /> Global feed
-            </button>
-            <button onClick={() => { setActiveAgent(null); setSidePanel('share'); }} className="flex items-center gap-1.5 px-3 py-1.5 bg-cw-blue hover:brightness-110 rounded-md text-[11px] text-white font-medium transition-colors">
+            <button onClick={() => { setActiveAgent(null); setSidePanel('share'); }} className="flex items-center gap-1.5 px-3 py-1.5 bg-cw-blue hover:brightness-110 rounded-md text-[12px] font-medium text-white transition-colors shadow-sm">
               <Share2 size={14} /> Share link
             </button>
           </div>
         </div>
 
-        <div className="p-6 w-full max-w-[920px] mx-auto">
+        <div className="p-6 w-full max-w-[920px] mx-auto pt-4">
+          {/* Main Hero Banner */}
+          <div className="relative w-full h-[220px] rounded-2xl overflow-hidden mb-8 border border-cw-bdr/50 shadow-lg group cursor-pointer">
+            {/* Background Image */}
+            <img 
+              src="/certificate_banner.png" 
+              alt="Health Certificate" 
+              className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+            />
+            
+            {/* Gradient Overlay for text readability */}
+            <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent" />
+            
+            {/* Content Overlay */}
+            <div className="absolute inset-0 p-8 flex flex-col justify-center">
+              <h2 className="text-3xl md:text-4xl font-bold text-white mb-3 leading-tight max-w-md">
+                Prove your <br />
+                code health <span className="text-cw-green inline-block transition-transform group-hover:translate-x-1">&rarr;</span>
+              </h2>
+              <p className="text-[14px] text-gray-300 max-w-sm mt-1 font-medium">
+                Share your Codeward verified certificate to build trust with investors, partners, and customers.
+              </p>
+            </div>
+          </div>
+
           {/* Hero Score */}
           <div
             onClick={() => { setActiveAgent(null); setSidePanel('history'); }}
@@ -292,36 +331,38 @@ export function Certificate() {
           </div>
 
           {/* Comparisons */}
-          <div className="bg-cw-bg2 border border-cw-bdr rounded-xl p-6 mb-6">
-            <div className="text-[11px] font-bold text-cw-txt3 uppercase tracking-wider mb-10">How you compare</div>
-            <div className="relative w-[calc(100%-80px)] mx-auto h-2 mb-10">
-              <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-1.5 bg-cw-bg4 rounded-full" />
+          <div className="bg-cw-bg2 border border-cw-bdr rounded-2xl p-8 mb-8 shadow-sm">
+            <div className="text-[13px] font-bold text-cw-txt3 uppercase tracking-wider mb-28">How you compare</div>
+            <div className="relative w-[calc(100%-100px)] mx-auto h-3 mb-28 mt-4">
+              <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-2.5 bg-cw-bg4 rounded-full" />
               {[
-                { label: 'Lovable avg', val: 58, color: 'bg-cw-amber', pos: 'bottom' },
-                { label: 'Codeward (median)', val: 67, color: 'bg-cw-txt3', pos: 'top' },
-                { label: 'Cursor avg', val: 71, color: 'bg-cw-blue', pos: 'bottom' },
-                { label: 'Your score (Top 8%)', val: 91, color: 'bg-cw-green', pos: 'top' },
+                { label: 'Lovable avg', val: 58, img: 'https://www.google.com/s2/favicons?domain=lovable.dev&sz=128', pos: 'bottom', ring: 'ring-cw-amber/30' },
+                { label: 'Codeward (median)', val: 67, img: '/logo.png', pos: 'top', ring: 'ring-cw-txt3/30' },
+                { label: 'Cursor avg', val: 71, img: 'https://www.google.com/s2/favicons?domain=cursor.com&sz=128', pos: 'bottom', ring: 'ring-cw-blue/30' },
+                { label: 'Your score (Top 8%)', val: 91, img: 'https://github.com/vercel.png?size=128', pos: 'top', ring: 'ring-cw-green/50' },
               ].map(m => (
                 <div key={m.label} className="absolute top-1/2 -translate-y-1/2 flex flex-col items-center" style={{ left: `${m.val}%` }}>
                   {m.pos === 'top' && (
-                    <div className="absolute bottom-full mb-2 whitespace-nowrap flex flex-col items-center" style={{ transform: 'translateX(-50%)' }}>
-                      <span className="text-[10px] font-medium text-cw-txt2">{m.label}</span>
-                      <span className="text-[14px] font-bold text-cw-txt">{m.val}</span>
-                      <div className="w-[1px] h-3 bg-cw-bdr mt-1" />
+                    <div className="absolute bottom-full mb-3 whitespace-nowrap flex flex-col items-center" style={{ transform: 'translateX(-50%)' }}>
+                      <span className="text-[12px] font-medium text-cw-txt2 mb-1">{m.label}</span>
+                      <span className="text-[20px] font-bold text-cw-txt">{m.val}</span>
+                      <div className="w-[2px] h-4 bg-cw-bdr mt-2" />
                     </div>
                   )}
-                  <div className={`w-3.5 h-3.5 rounded-full ${m.color} ring-4 ring-cw-bg2 z-10`} />
+                  <div className={`w-10 h-10 rounded-full ${m.ring} ring-[4px] bg-white z-10 shadow-lg overflow-hidden flex items-center justify-center p-[2px]`}>
+                    <img src={m.img} alt={m.label} className="w-full h-full object-contain rounded-full" />
+                  </div>
                   {m.pos === 'bottom' && (
-                    <div className="absolute top-full mt-2 whitespace-nowrap flex flex-col items-center" style={{ transform: 'translateX(-50%)' }}>
-                      <div className="w-[1px] h-3 bg-cw-bdr mb-1" />
-                      <span className="text-[14px] font-bold text-cw-txt">{m.val}</span>
-                      <span className="text-[10px] font-medium text-cw-txt2">{m.label}</span>
+                    <div className="absolute top-full mt-3 whitespace-nowrap flex flex-col items-center" style={{ transform: 'translateX(-50%)' }}>
+                      <div className="w-[2px] h-4 bg-cw-bdr mb-2" />
+                      <span className="text-[20px] font-bold text-cw-txt mb-1">{m.val}</span>
+                      <span className="text-[12px] font-medium text-cw-txt2">{m.label}</span>
                     </div>
                   )}
                 </div>
               ))}
-              <div className="absolute left-0 top-full mt-3 text-[10px] text-cw-txt3 font-medium -ml-1">0</div>
-              <div className="absolute right-0 top-full mt-3 text-[10px] text-cw-txt3 font-medium -mr-2">100</div>
+              <div className="absolute left-0 top-full mt-4 text-[12px] text-cw-txt3 font-semibold -ml-1">0</div>
+              <div className="absolute right-0 top-full mt-4 text-[12px] text-cw-txt3 font-semibold -mr-3">100</div>
             </div>
           </div>
 

@@ -1,17 +1,19 @@
 import { useState } from 'react';
-import { ShieldAlert, Package, AlertTriangle, Network, Bot, ClipboardCheck, Database, MessageSquare, Activity, ChevronRight, X, Play, Terminal, CheckCircle2 } from 'lucide-react';
+import { ShieldAlert, Package, AlertTriangle, Network, Bot, ClipboardCheck, Database, MessageSquare, Activity, ChevronRight, X, Play, Terminal, CheckCircle2, Cpu, GitPullRequest } from 'lucide-react';
 import { LineChart, Line, ResponsiveContainer } from 'recharts';
 
 const sparklineData = () => Array.from({length: 7}, () => ({ value: Math.floor(Math.random() * 40) + 60 }));
 
 const agentsData = [
+  { id: 'orchestrator', name: 'Orchestrator Agent', icon: Cpu, activeRepos: 47, status: 'Running', issues: { critical: 1, warning: 5 }, lastRun: 'Live', uptime: '100%' },
   { id: 'security', name: 'Security Agent', icon: ShieldAlert, activeRepos: 47, status: 'Running', issues: { critical: 2, warning: 18 }, lastRun: '2m ago', uptime: '99.9%' },
   { id: 'bloat', name: 'Bloat Agent', icon: Package, activeRepos: 47, status: 'Running', issues: { critical: 0, warning: 4 }, lastRun: '5m ago', uptime: '100%' },
   { id: 'broken', name: 'Broken Code Agent', icon: AlertTriangle, activeRepos: 47, status: 'Running', issues: { critical: 1, warning: 11 }, lastRun: '12m ago', uptime: '99.8%' },
   { id: 'arch', name: 'Architecture Agent', icon: Network, activeRepos: 42, status: 'Running', issues: { critical: 3, warning: 34 }, lastRun: '1h ago', uptime: '99.5%' },
   { id: 'ai', name: 'AI-Era Agent', icon: Bot, activeRepos: 18, status: 'Running', issues: { critical: 0, warning: 2 }, lastRun: '3m ago', uptime: '100%' },
+  { id: 'guardian', name: 'Guardian Agent', icon: GitPullRequest, activeRepos: 47, status: 'Running', issues: { critical: 1, warning: 3 }, lastRun: '1m ago', uptime: '99.9%' },
   { id: 'compliance', name: 'Compliance Agent', icon: ClipboardCheck, activeRepos: 47, status: 'Running', issues: { critical: 2, warning: 0 }, lastRun: '10m ago', uptime: '100%' },
-  { id: 'data', name: 'Data & DX Agent', icon: Database, activeRepos: 35, status: 'Paused', issues: { critical: 0, warning: 0 }, lastRun: '2d ago', uptime: '94.2%' },
+  { id: 'data_dx', name: 'Data & DX Agent', icon: Database, activeRepos: 35, status: 'Running', issues: { critical: 0, warning: 2 }, lastRun: '15m ago', uptime: '99.2%' },
   { id: 'chat', name: 'Chat Agent', icon: MessageSquare, activeRepos: 47, status: 'Running', issues: { critical: 0, warning: 0 }, lastRun: 'Live', uptime: '99.9%' },
 ];
 
@@ -22,10 +24,9 @@ export function AdminAgents() {
     <div className="space-y-6 relative flex flex-col h-full overflow-hidden">
       {/* Summary Strip */}
       <div className="flex items-center gap-6 bg-cw-bg2 border border-cw-bdr rounded-md p-3 shadow-sm text-[12px] font-medium shrink-0">
-        <div className="flex items-center gap-2"><span className="text-[16px] font-bold text-cw-txt">8</span> <span className="text-cw-txt3 uppercase tracking-wider text-[10px]">Total Agents</span></div>
+        <div className="flex items-center gap-2"><span className="text-[16px] font-bold text-cw-txt">10</span> <span className="text-cw-txt3 uppercase tracking-wider text-[10px]">Total Agents</span></div>
         <div className="w-px h-5 bg-cw-bdr" />
-        <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-cw-green"></span> 7 Active</div>
-        <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-cw-amber"></span> 1 Paused</div>
+        <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-cw-green"></span> 10 Active</div>
         <div className="flex-1" />
         <div className="text-[11px] text-cw-txt3 flex items-center gap-2 bg-cw-bg px-2 py-1 rounded border border-cw-bdr">
           <Activity size={12} className="text-cw-green" /> Cluster: Nominal

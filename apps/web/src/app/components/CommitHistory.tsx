@@ -1,11 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import {
   AlertCircle, AlertTriangle, ArrowLeft, Bot, Bug, CheckCircle2, ChevronDown,
   ChevronRight, ExternalLink, FileText, GitCommit, GitPullRequest, Github,
   GitBranch, Info, Layers, Loader2, Lock, RefreshCw, ShieldCheck, Sparkles, Wrench, XCircle,
-  Zap,
+  Zap, Filter, Check,
 } from 'lucide-react';
 import { API_URL } from '../../lib/api';
+import { RepoSelector } from './RepoSelector';
 
 type RunStatus = 'queued' | 'running' | 'completed' | 'failed' | 'agent_failed';
 type AgentStatus = 'completed' | 'failed' | 'skipped' | 'running' | 'queued';
@@ -234,7 +235,7 @@ function AgentRow({ agent }: { agent: AgentResult }) {
   );
 }
 
-function InlineRunReport({ repoId, runId }: { repoId: number; runId: number }) {
+function ReportDrawer({ repoId, runId, onClose }: { repoId: number; runId: number; onClose: () => void }) {
   const [report, setReport] = useState<RunReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -252,63 +253,89 @@ function InlineRunReport({ repoId, runId }: { repoId: number; runId: number }) {
       .finally(() => setLoading(false));
   }, [repoId, runId]);
 
-  if (loading) {
-    return <div className="px-4 py-4 text-[12px] text-cw-txt3 flex items-center gap-2"><Loader2 size={14} className="animate-spin text-cw-blue" /> Loading real run report...</div>;
-  }
-  if (error) {
-    return <div className="mx-4 my-4 px-4 py-3 rounded-lg border border-cw-red/20 bg-cw-red/5 text-[12px] text-cw-red">{error}</div>;
-  }
-  if (!report) return null;
-
   return (
-    <div className="mx-4 mb-4 mt-2 rounded-xl border border-cw-bdr bg-cw-bg overflow-hidden">
-      <div className="px-4 py-3 border-b border-cw-bdr bg-cw-bg2">
-        <div className="flex items-center justify-between gap-3">
+    <>
+      <div className="fixed inset-0 bg-black/60 z-40 animate-in fade-in duration-200" onClick={onClose} />
+      <div className="fixed inset-y-0 right-0 w-[640px] max-w-[calc(100vw-2rem)] bg-cw-bg2 border-l border-cw-bdr z-50 shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-right duration-200">
+        {/* Header */}
+        <div className="px-6 py-4 border-b border-cw-bdr bg-cw-bg3/60 flex items-center justify-between shrink-0">
           <div>
-            <div className="text-[13px] font-bold text-cw-txt">Run report</div>
-            <div className="text-[11px] text-cw-txt3">Run #{report.runId} · {shortSha(report.commitSha)} · {report.status}</div>
+            <h2 className="text-[16px] font-bold text-cw-txt">Full Agent Analysis Report</h2>
+            <div className="text-[11px] text-cw-txt3 mt-0.5">Run #{runId} · Detailed breakdown across all autonomous sub-agents</div>
           </div>
-          <div className="flex items-center gap-2 text-[11px]">
-            <span className="px-2 py-1 rounded bg-cw-bg3 text-cw-txt2">Score {report.overallScore ?? '-'}/100</span>
-            <span className="px-2 py-1 rounded bg-cw-bg3 text-cw-txt2">{report.totalFindings} findings</span>
-          </div>
+          <button
+            onClick={onClose}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-cw-bdr bg-cw-bg text-cw-txt2 hover:text-cw-txt hover:bg-cw-bg3 text-[11px] font-medium transition-colors"
+          >
+            Collapse <ChevronRight size={13} />
+          </button>
         </div>
-        <div className="flex gap-1.5 flex-wrap mt-3">
-          {Object.entries(report.severityCounts).length === 0 ? (
-            <span className="text-[10px] text-cw-txt3">No findings by severity.</span>
-          ) : Object.entries(report.severityCounts).map(([severity, count]) => (
-            <span key={severity} className={`px-1.5 py-0.5 text-[9px] font-bold rounded ${SEV_STYLE[severity] ?? 'bg-cw-bg3 text-cw-txt2'}`}>{count} {severity}</span>
-          ))}
+
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-5">
+          {loading ? (
+            <div className="py-20 flex items-center justify-center text-[12px] text-cw-txt3 gap-2">
+              <Loader2 size={18} className="animate-spin text-cw-blue" /> Loading full analysis report...
+            </div>
+          ) : error ? (
+            <div className="p-4 rounded-xl border border-cw-red/30 bg-cw-red/10 text-cw-red text-xs">{error}</div>
+          ) : !report ? null : (
+            <>
+              {/* Stat Banner */}
+              <div className="p-4 rounded-xl border border-cw-bdr bg-cw-bg flex items-center justify-between gap-4">
+                <div>
+                  <div className="text-[11px] text-cw-txt3 uppercase tracking-wider font-bold">Overall Score</div>
+                  <div className={`text-2xl font-bold mt-0.5 ${
+                    report.overallScore == null ? 'text-cw-txt3' : report.overallScore >= 80 ? 'text-cw-green' : report.overallScore >= 60 ? 'text-cw-amber' : 'text-cw-red'
+                  }`}>
+                    {report.overallScore ?? '-'}<span className="text-xs font-normal text-cw-txt3">/100</span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  {Object.entries(report.severityCounts).map(([sev, count]) => (
+                    <span key={sev} className={`px-2.5 py-1 text-[10px] font-bold rounded-lg ${SEV_STYLE[sev] ?? 'bg-cw-bg3 text-cw-txt2'}`}>
+                      {count} {sev}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              {/* Escalated Issues */}
+              {report.escalation && report.escalation.issues.length > 0 && (
+                <div className="p-4 rounded-xl border border-cw-red/30 bg-cw-red/5 space-y-2">
+                  <div className="flex items-center gap-2 text-xs font-bold text-cw-red uppercase tracking-wide">
+                    <AlertTriangle size={14} /> Escalated GitHub Issues
+                  </div>
+                  <div className="space-y-1.5">
+                    {report.escalation.issues.map((issue) => (
+                      <a key={issue.issueNumber} href={issue.htmlUrl} target="_blank" rel="noreferrer" className="p-2 rounded-lg bg-cw-bg border border-cw-red/20 text-xs text-cw-txt hover:border-cw-red flex items-center justify-between no-underline">
+                        <div className="flex items-center gap-2 font-mono">
+                          <span className="text-cw-red font-bold">#{issue.issueNumber}</span>
+                          <span>{issue.title}</span>
+                        </div>
+                        <ExternalLink size={12} className="text-cw-txt3" />
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Agent Cards */}
+              <div className="space-y-3">
+                <div className="text-xs font-bold text-cw-txt uppercase tracking-wider">Sub-Agent Results</div>
+                {report.agents.map((agent) => (
+                  <AgentReportCard key={agent.agentId} agent={agent} />
+                ))}
+              </div>
+            </>
+          )}
         </div>
       </div>
-
-      {report.escalation && report.escalation.issues.length > 0 && (
-        <div className="px-4 py-3 border-b border-cw-bdr bg-cw-red/5">
-          <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wide text-cw-red mb-2">
-            <AlertTriangle size={12} /> Escalated issues
-          </div>
-          <div className="flex flex-col gap-1.5">
-            {report.escalation.issues.map((issue) => (
-              <a key={issue.issueNumber} href={issue.htmlUrl} target="_blank" rel="noreferrer" className="text-[12px] text-cw-txt2 hover:text-cw-txt no-underline flex items-center gap-2">
-                <span className="font-mono text-cw-red">#{issue.issueNumber}</span>
-                <span>{issue.title}</span>
-                <ExternalLink size={10} className="ml-auto text-cw-txt3" />
-              </a>
-            ))}
-          </div>
-        </div>
-      )}
-
-      <div className="p-3 flex flex-col gap-3">
-        {report.agents.length === 0 ? (
-          <div className="text-[12px] text-cw-txt3 text-center py-4">No agent reports have landed for this run yet.</div>
-        ) : report.agents.map((agent) => <AgentReportCard key={agent.agentId} agent={agent} />)}
-      </div>
-    </div>
+    </>
   );
 }
 
-function InlineCommitDiff({ repoId, sha }: { repoId: number; sha: string }) {
+function DiffDrawer({ repoId, sha, onClose }: { repoId: number; sha: string; onClose: () => void }) {
   const [diff, setDiff] = useState<CommitDiff | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -323,83 +350,102 @@ function InlineCommitDiff({ repoId, sha }: { repoId: number; sha: string }) {
         if (!res.ok) throw new Error(data?.error || `Request failed (${res.status})`);
         setDiff(data);
         const initial: Record<string, boolean> = {};
-        (data.files || []).slice(0, 3).forEach((file: CommitDiffFile) => { initial[file.filename] = true; });
+        (data.files || []).slice(0, 5).forEach((file: CommitDiffFile) => { initial[file.filename] = true; });
         setOpenFiles(initial);
       })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
   }, [repoId, sha]);
 
-  if (loading) {
-    return <div className="px-4 py-4 text-[12px] text-cw-txt3 flex items-center gap-2"><Loader2 size={14} className="animate-spin text-cw-blue" /> Loading real commit diff...</div>;
-  }
-  if (error) {
-    return <div className="mx-4 my-4 px-4 py-3 rounded-lg border border-cw-red/20 bg-cw-red/5 text-[12px] text-cw-red">{error}</div>;
-  }
-  if (!diff) return null;
-
   return (
-    <div className="mx-4 mb-4 mt-2 rounded-xl border border-cw-bdr bg-cw-bg overflow-hidden">
-      <div className="px-4 py-3 border-b border-cw-bdr bg-cw-bg2 flex items-center justify-between gap-3">
-        <div>
-          <div className="text-[13px] font-bold text-cw-txt">Commit diff</div>
-          <div className="text-[11px] text-cw-txt3">{diff.files.length} file{diff.files.length === 1 ? '' : 's'} changed · {shortSha(diff.sha)}</div>
+    <>
+      <div className="fixed inset-0 bg-black/60 z-40 animate-in fade-in duration-200" onClick={onClose} />
+      <div className="fixed inset-y-0 right-0 w-[640px] max-w-[calc(100vw-2rem)] bg-cw-bg2 border-l border-cw-bdr z-50 shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-right duration-200">
+        {/* Header */}
+        <div className="px-6 py-4 border-b border-cw-bdr bg-cw-bg3/60 flex items-center justify-between shrink-0">
+          <div>
+            <h2 className="text-[16px] font-bold text-cw-txt">Commit Diff</h2>
+            <div className="text-[11px] font-mono text-cw-txt3 mt-0.5">Commit {shortSha(sha)}</div>
+          </div>
+          <button
+            onClick={onClose}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-cw-bdr bg-cw-bg text-cw-txt2 hover:text-cw-txt hover:bg-cw-bg3 text-[11px] font-medium transition-colors"
+          >
+            Collapse <ChevronRight size={13} />
+          </button>
         </div>
-        <div className="flex items-center gap-2 text-[11px] shrink-0">
-          <span className="px-2 py-1 rounded bg-cw-green/10 text-cw-green">+{diff.stats?.additions ?? diff.files.reduce((n, f) => n + f.additions, 0)}</span>
-          <span className="px-2 py-1 rounded bg-cw-red/10 text-cw-red">-{diff.stats?.deletions ?? diff.files.reduce((n, f) => n + f.deletions, 0)}</span>
-          {diff.htmlUrl && <a href={diff.htmlUrl} target="_blank" rel="noreferrer" className="px-2 py-1 rounded bg-cw-bg3 text-cw-blue hover:underline no-underline">GitHub</a>}
-        </div>
-      </div>
 
-      <div className="p-3 flex flex-col gap-3">
-        {diff.files.length === 0 ? (
-          <div className="text-[12px] text-cw-txt3 text-center py-4">GitHub returned no file-level diff for this commit.</div>
-        ) : diff.files.map((file) => {
-          const open = openFiles[file.filename] ?? false;
-          const rows = file.patch ? parsePatch(file.patch) : [];
-          return (
-            <div key={file.filename} className="border border-cw-bdr rounded-lg overflow-hidden bg-cw-bg2">
-              <button
-                onClick={() => setOpenFiles((prev) => ({ ...prev, [file.filename]: !open }))}
-                className="w-full px-3 py-2.5 flex items-center justify-between gap-3 text-left hover:bg-cw-bg3/40"
-              >
-                <div className="flex items-center gap-2 min-w-0">
-                  {open ? <ChevronDown size={13} className="text-cw-txt3" /> : <ChevronRight size={13} className="text-cw-txt3" />}
-                  <span className="font-mono text-[12px] text-cw-txt truncate">{file.filename}</span>
-                  <span className="text-[9px] uppercase font-bold text-cw-txt3 bg-cw-bg3 rounded px-1.5 py-0.5">{file.status}</span>
-                </div>
-                <div className="flex items-center gap-2 text-[11px] shrink-0">
-                  <span className="text-cw-green">+{file.additions}</span>
-                  <span className="text-cw-red">-{file.deletions}</span>
-                </div>
-              </button>
-              {open && (
-                <div className="border-t border-cw-bdr">
-                  {rows.length === 0 ? (
-                    <div className="px-3 py-3 text-[12px] text-cw-txt3">No textual patch available for this file. It may be binary, renamed, or too large.</div>
-                  ) : (
-                    <div className="bg-[#0b0e14] font-mono text-[11px] leading-relaxed overflow-x-auto max-h-[520px]">
-                      {rows.map((line, i) => (
-                        <div key={i} className={`whitespace-pre px-3 py-0.5 ${line.startsWith('+') ? 'bg-[#0d2818] text-[#4ade80]' : line.startsWith('-') ? 'bg-[#2d0d14] text-[#f87171]' : line.startsWith('@@') ? 'bg-cw-bg3 text-cw-blue' : 'text-cw-txt3'}`}>
-                          {line || ' '}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  {(file.blobUrl || file.rawUrl) && (
-                    <div className="px-3 py-2 bg-cw-bg border-t border-cw-bdr flex gap-3 text-[11px]">
-                      {file.blobUrl && <a href={file.blobUrl} target="_blank" rel="noreferrer" className="text-cw-blue hover:underline no-underline">View file on GitHub</a>}
-                      {file.rawUrl && <a href={file.rawUrl} target="_blank" rel="noreferrer" className="text-cw-txt3 hover:text-cw-txt no-underline">Raw</a>}
-                    </div>
-                  )}
-                </div>
-              )}
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          {loading ? (
+            <div className="py-20 flex items-center justify-center text-[12px] text-cw-txt3 gap-2">
+              <Loader2 size={18} className="animate-spin text-cw-blue" /> Loading commit diff...
             </div>
-          );
-        })}
+          ) : error ? (
+            <div className="p-4 rounded-xl border border-cw-red/30 bg-cw-red/10 text-cw-red text-xs">{error}</div>
+          ) : !diff ? null : (
+            <>
+              {/* Summary Bar */}
+              <div className="p-3.5 rounded-xl border border-cw-bdr bg-cw-bg flex items-center justify-between text-xs font-mono">
+                <span className="text-cw-txt2">{diff.files.length} file{diff.files.length === 1 ? '' : 's'} changed</span>
+                <div className="flex items-center gap-2">
+                  <span className="px-2 py-0.5 rounded bg-cw-green/10 text-cw-green font-bold">+{diff.stats?.additions ?? diff.files.reduce((n, f) => n + f.additions, 0)}</span>
+                  <span className="px-2 py-0.5 rounded bg-cw-red/10 text-cw-red font-bold">-{diff.stats?.deletions ?? diff.files.reduce((n, f) => n + f.deletions, 0)}</span>
+                  {diff.htmlUrl && (
+                    <a href={diff.htmlUrl} target="_blank" rel="noreferrer" className="px-2 py-0.5 rounded bg-cw-bg3 text-cw-blue hover:underline flex items-center gap-1">
+                      GitHub <ExternalLink size={10} />
+                    </a>
+                  )}
+                </div>
+              </div>
+
+              {/* Files */}
+              <div className="space-y-3">
+                {diff.files.map((file) => {
+                  const open = openFiles[file.filename] ?? false;
+                  const rows = file.patch ? parsePatch(file.patch) : [];
+
+                  return (
+                    <div key={file.filename} className="border border-cw-bdr rounded-xl overflow-hidden bg-cw-bg">
+                      <button
+                        onClick={() => setOpenFiles((prev) => ({ ...prev, [file.filename]: !open }))}
+                        className="w-full px-3.5 py-2.5 flex items-center justify-between gap-3 text-left hover:bg-cw-bg3/40"
+                      >
+                        <div className="flex items-center gap-2 min-w-0 font-mono text-xs">
+                          {open ? <ChevronDown size={13} className="text-cw-txt3" /> : <ChevronRight size={13} className="text-cw-txt3" />}
+                          <span className="text-cw-txt truncate font-semibold">{file.filename}</span>
+                          <span className="text-[9px] uppercase font-bold text-cw-txt3 bg-cw-bg3 rounded px-1.5 py-0.5">{file.status}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-xs font-mono shrink-0">
+                          <span className="text-cw-green font-bold">+{file.additions}</span>
+                          <span className="text-cw-red font-bold">-{file.deletions}</span>
+                        </div>
+                      </button>
+
+                      {open && (
+                        <div className="border-t border-cw-bdr">
+                          {rows.length === 0 ? (
+                            <div className="px-3 py-3 text-xs text-cw-txt3 font-mono">No textual patch available for this file.</div>
+                          ) : (
+                            <div className="bg-[#0b0e14] font-mono text-[11px] leading-relaxed overflow-x-auto max-h-[500px] p-2">
+                              {rows.map((line, i) => (
+                                <div key={i} className={`whitespace-pre px-2.5 py-0.5 rounded-sm ${line.startsWith('+') ? 'bg-[#0d2818] text-[#4ade80]' : line.startsWith('-') ? 'bg-[#2d0d14] text-[#f87171]' : line.startsWith('@@') ? 'bg-cw-bg3 text-cw-blue font-bold' : 'text-cw-txt3'}`}>
+                                  {line || ' '}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 
@@ -534,15 +580,15 @@ function CommitRow({ commit, isLast, repoId }: { commit: Commit; isLast: boolean
             <div className="flex items-center gap-3 shrink-0 ml-2">
               {run?.score != null && <span className={`text-[18px] font-bold tabular-nums ${scoreColor}`}>{run.score}<span className="text-[11px] font-normal text-cw-txt3">/100</span></span>}
               {commit.htmlUrl && (
-                <button onClick={(e) => { e.stopPropagation(); setDiffOpen((v) => !v); setExpanded(true); }}
-                  className={`px-3 py-1.5 text-[11px] font-semibold border rounded-lg transition-colors flex items-center gap-1.5 whitespace-nowrap ${diffOpen ? 'text-cw-amber border-cw-amber/40 bg-cw-amber/10' : 'text-cw-txt2 border-cw-bdr bg-cw-bg hover:bg-cw-bg3'}`}>
-                  View diff {diffOpen ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
+                <button onClick={(e) => { e.stopPropagation(); setDiffOpen(true); }}
+                  className="px-3 py-1.5 text-[11px] font-semibold border rounded-lg transition-colors flex items-center gap-1.5 whitespace-nowrap text-cw-txt2 border-cw-bdr bg-cw-bg hover:bg-cw-bg3 hover:text-cw-txt">
+                  View diff <ChevronRight size={11} />
                 </button>
               )}
               {canOpenReport && (
-                <button onClick={(e) => { e.stopPropagation(); setReportOpen((v) => !v); setExpanded(true); }}
-                  className={`px-3 py-1.5 text-[11px] font-semibold border rounded-lg transition-colors flex items-center gap-1.5 whitespace-nowrap ${reportOpen ? 'text-cw-purple border-cw-purple/40 bg-cw-purple/10' : 'text-cw-blue border-cw-blue/30 bg-cw-blue/5 hover:bg-cw-blue/10'}`}>
-                  Full report {reportOpen ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
+                <button onClick={(e) => { e.stopPropagation(); setReportOpen(true); }}
+                  className="px-3 py-1.5 text-[11px] font-semibold border rounded-lg transition-colors flex items-center gap-1.5 whitespace-nowrap text-cw-purple border-cw-purple/30 bg-cw-purple/10 hover:bg-cw-purple/20">
+                  Full report <ChevronRight size={11} />
                 </button>
               )}
             </div>
@@ -565,39 +611,69 @@ function CommitRow({ commit, isLast, repoId }: { commit: Commit; isLast: boolean
                   {run.changedFiles.length > 12 && <span className="text-[10px] text-cw-txt3">+{run.changedFiles.length - 12} more</span>}
                 </div>
               )}
-              {reportOpen && <InlineRunReport repoId={repoId} runId={run.id} />}
-              {diffOpen && <InlineCommitDiff repoId={repoId} sha={commit.sha} />}
             </div>
           )}
         </div>
       </div>
+
+      {/* Side-Pull Drawers for View Diff and Full Report */}
+      {reportOpen && run && <ReportDrawer repoId={repoId} runId={run.id} onClose={() => setReportOpen(false)} />}
+      {diffOpen && <DiffDrawer repoId={repoId} sha={commit.sha} onClose={() => setDiffOpen(false)} />}
     </div>
   );
 }
 
-export function CommitHistory({ repoId, repoFullName = 'Repository', onBack }: Props) {
+export function CommitHistory({ repoId: initialRepoId, repoFullName: initialRepoFullName = 'Repository', onBack }: Props) {
+  const [repoList, setRepoList] = useState<{ id: number; fullName: string }[]>([]);
+  const [activeRepoId, setActiveRepoId] = useState<number | null>(initialRepoId ?? null);
   const [commits, setCommits] = useState<Commit[]>([]);
-  const [resolvedRepoName, setResolvedRepoName] = useState(repoFullName);
+  const [resolvedRepoName, setResolvedRepoName] = useState(initialRepoFullName);
   const [branches, setBranches] = useState<string[]>([]);
   const [defaultBranch, setDefaultBranch] = useState<string | null>(null);
   const [selectedBranch, setSelectedBranch] = useState<string>('');
-  const [loading, setLoading] = useState(!!repoId);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState<'PASS' | 'WARN' | 'BLOCK' | 'RUNNING' | 'SKIPPED' | null>(null);
+  const [filterOpen, setFilterOpen] = useState(false);
+  const filterRef = useRef<HTMLDivElement>(null);
 
-  const loadCommits = (branch = selectedBranch) => {
-    if (!repoId) return;
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (filterRef.current && !filterRef.current.contains(e.target as Node)) {
+        setFilterOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    fetch(`${API_URL}/api/chat/repos`, { credentials: 'include' })
+      .then((r) => r.ok ? r.json() : { repos: [] })
+      .then((d) => {
+        const list = d.repos ?? [];
+        setRepoList(list);
+        if (!initialRepoId && list.length > 0) {
+          setActiveRepoId(list[0].id);
+          setResolvedRepoName(list[0].fullName);
+        }
+      })
+      .catch(() => {});
+  }, [initialRepoId]);
+
+  const loadCommits = (targetRepoId = activeRepoId, branch = selectedBranch) => {
+    if (!targetRepoId) return;
     setLoading(true);
     setError(null);
     const params = new URLSearchParams();
     if (branch) params.set('branch', branch);
     const query = params.toString();
-    fetch(`${API_URL}/api/reports/${repoId}/commits${query ? `?${query}` : ''}`, { credentials: 'include' })
+    fetch(`${API_URL}/api/reports/${targetRepoId}/commits${query ? `?${query}` : ''}`, { credentials: 'include' })
       .then(async (res) => {
         const data = await res.json();
         if (!res.ok) throw new Error(data?.error || `Request failed (${res.status})`);
         setCommits(data.commits || []);
-        setResolvedRepoName(data.repoFullName || repoFullName);
+        setResolvedRepoName(data.repoFullName || initialRepoFullName);
         setBranches(Array.isArray(data.branches) ? data.branches : []);
         setDefaultBranch(data.defaultBranch || null);
         setSelectedBranch(data.selectedBranch || branch || data.defaultBranch || '');
@@ -606,7 +682,9 @@ export function CommitHistory({ repoId, repoFullName = 'Repository', onBack }: P
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { loadCommits(); }, [repoId]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (activeRepoId) loadCommits(activeRepoId);
+  }, [activeRepoId]);
 
   const filteredCommits = commits.filter((commit) => {
     if (!activeFilter) return true;
@@ -626,58 +704,130 @@ export function CommitHistory({ repoId, repoFullName = 'Repository', onBack }: P
   return (
     <div className="flex h-full overflow-hidden bg-cw-bg">
       <div className="flex flex-col min-w-0 flex-1 transition-all duration-300">
-        <div className="px-6 py-4 border-b border-cw-bdr bg-cw-bg shrink-0 flex items-center gap-4">
-          <button onClick={onBack} className="w-8 h-8 rounded-full border border-cw-bdr bg-cw-bg2 flex items-center justify-center text-cw-txt3 hover:text-cw-txt hover:bg-cw-bg3 transition-colors shrink-0"><ArrowLeft size={16} /></button>
-          <div className="flex-1 min-w-0">
-            <h1 className="text-[18px] font-bold text-cw-txt leading-none">Commit History</h1>
-            <div className="text-[12px] text-cw-txt2 mt-1 font-mono">{resolvedRepoName}{selectedBranch ? ` · ${selectedBranch}` : ''}</div>
-          </div>
-          <div className="flex items-center gap-2 text-[11px] text-cw-txt2 bg-cw-bg2 border border-cw-bdr px-2.5 py-1.5 rounded-lg">
-            <GitBranch size={12} className="text-cw-blue shrink-0" />
-            <select
-              value={selectedBranch || defaultBranch || 'main'}
-              onChange={(e) => {
-                setSelectedBranch(e.target.value);
-                loadCommits(e.target.value);
-              }}
-              disabled={!repoId || loading}
-              className="bg-transparent text-cw-txt font-mono text-[11px] outline-none max-w-[180px]"
-              title="Filter commits by branch"
-            >
-              {(branches.length > 0 ? branches : [selectedBranch || 'main', 'dev', 'staging'].filter((v, i, a) => a.indexOf(v) === i)).map((branch) => (
-                <option key={branch} value={branch}>{branch}{branch === defaultBranch ? ' (default)' : ''}</option>
-              ))}
-            </select>
-          </div>
-          <div className="flex items-center gap-2 text-[11px] text-cw-green bg-cw-green/5 border border-cw-green/20 px-3 py-1.5 rounded-lg">
-            <Info size={12} /> Live data
-          </div>
-          <button onClick={loadCommits} disabled={!repoId || loading} className="w-8 h-8 rounded-md border border-cw-bdr bg-cw-bg2 flex items-center justify-center text-cw-txt3 hover:text-cw-txt hover:bg-cw-bg3 transition-colors disabled:opacity-50">
-            <RefreshCw size={14} className={loading ? 'animate-spin text-cw-blue' : ''} />
-          </button>
-        </div>
+        {/* Unbundled Single-Level Control Bar */}
+        <div className="px-6 py-3 border-b border-cw-bdr bg-cw-bg shrink-0 flex items-center justify-between gap-4 flex-wrap">
+          <div className="flex items-center gap-3 flex-wrap">
+            {onBack && (
+              <button onClick={onBack} className="w-7 h-7 rounded-full border border-cw-bdr bg-cw-bg2 flex items-center justify-center text-cw-txt3 hover:text-cw-txt hover:bg-cw-bg3 transition-colors shrink-0">
+                <ArrowLeft size={14} />
+              </button>
+            )}
 
-        <div className="px-6 py-3 border-b border-cw-bdr bg-cw-bg flex items-center gap-5 text-[10px] text-cw-txt3 shrink-0 flex-wrap">
-          <button onClick={() => toggleFilter('PASS')} className={`flex items-center gap-1.5 px-2 py-1 rounded transition-colors ${activeFilter === 'PASS' ? 'bg-cw-bg3 text-cw-txt border border-cw-bdr' : 'hover:bg-cw-bg2 border border-transparent'}`}>
-            <div className="w-2.5 h-2.5 rounded-full bg-cw-green" /> PASS gate
-          </button>
-          <button onClick={() => toggleFilter('WARN')} className={`flex items-center gap-1.5 px-2 py-1 rounded transition-colors ${activeFilter === 'WARN' ? 'bg-cw-bg3 text-cw-txt border border-cw-bdr' : 'hover:bg-cw-bg2 border border-transparent'}`}>
-            <div className="w-2.5 h-2.5 rounded-full bg-cw-amber" /> WARN gate
-          </button>
-          <button onClick={() => toggleFilter('BLOCK')} className={`flex items-center gap-1.5 px-2 py-1 rounded transition-colors ${activeFilter === 'BLOCK' ? 'bg-cw-bg3 text-cw-txt border border-cw-bdr' : 'hover:bg-cw-bg2 border border-transparent'}`}>
-            <div className="w-2.5 h-2.5 rounded-full bg-cw-red" /> BLOCK gate
-          </button>
-          <button onClick={() => toggleFilter('RUNNING')} className={`flex items-center gap-1.5 px-2 py-1 rounded transition-colors ${activeFilter === 'RUNNING' ? 'bg-cw-bg3 text-cw-txt border border-cw-bdr' : 'hover:bg-cw-bg2 border border-transparent'}`}>
-            <div className="w-2.5 h-2.5 rounded-full bg-cw-blue animate-pulse" /> Running now
-          </button>
-          <button onClick={() => toggleFilter('SKIPPED')} className={`ml-auto flex items-center gap-1.5 px-2 py-1 rounded transition-colors ${activeFilter === 'SKIPPED' ? 'bg-cw-bg3 text-cw-txt border border-cw-bdr' : 'hover:bg-cw-bg2 border border-transparent'}`}>
-            <AlertTriangle size={10} className="text-cw-amber" /> Skipped = orchestrator chose not to run
-          </button>
+            {/* Repo selector dropdown with GitHub logo and search */}
+            <RepoSelector
+              options={repoList}
+              value={activeRepoId ?? ''}
+              onChange={(val, name) => {
+                const id = Number(val);
+                setActiveRepoId(id);
+                setResolvedRepoName(name);
+              }}
+              placeholder="Select repository"
+            />
+
+            {/* Branch selector dropdown */}
+            <div className="flex items-center gap-2 text-[11px] text-cw-txt bg-cw-bg2 border border-cw-bdr px-2.5 py-1 rounded-lg">
+              <GitBranch size={12} className="text-cw-blue shrink-0" />
+              <select
+                value={selectedBranch || defaultBranch || 'main'}
+                onChange={(e) => {
+                  setSelectedBranch(e.target.value);
+                  loadCommits(activeRepoId, e.target.value);
+                }}
+                disabled={!activeRepoId || loading}
+                className="bg-transparent text-cw-txt font-mono text-[11px] outline-none max-w-[160px]"
+                title="Filter commits by branch"
+              >
+                {(branches.length > 0 ? branches : [selectedBranch || 'main', 'dev', 'staging'].filter((v, i, a) => a.indexOf(v) === i)).map((branch) => (
+                  <option key={branch} value={branch}>{branch}{branch === defaultBranch ? ' (default)' : ''}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="h-4 w-px bg-cw-bdr/60 mx-1 hidden sm:block" />
+
+            {/* Collapsible Gate Filter Popover */}
+            <div ref={filterRef} className="relative inline-block text-left">
+              <button
+                type="button"
+                onClick={() => setFilterOpen((f) => !f)}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-lg border text-[11px] font-mono transition-all ${
+                  activeFilter
+                    ? 'bg-cw-purple/15 border-cw-purple text-cw-purple font-bold'
+                    : 'bg-cw-bg2 border-cw-bdr text-cw-txt hover:border-cw-purple/50'
+                }`}
+              >
+                <Filter size={12} className={activeFilter ? 'text-cw-purple' : 'text-cw-txt3'} />
+                <span>{activeFilter ? `Filter: ${activeFilter}` : 'Filter Gates'}</span>
+                <ChevronDown size={12} className={`transition-transform ${filterOpen ? 'rotate-180 text-cw-purple' : 'text-cw-txt3'}`} />
+              </button>
+
+              {filterOpen && (
+                <div className="absolute left-0 mt-1.5 w-56 bg-cw-bg2 border border-cw-bdr rounded-xl shadow-2xl z-50 overflow-hidden p-1 flex flex-col gap-0.5 animate-in fade-in slide-in-from-top-2 duration-150">
+                  <div className="px-3 py-1.5 text-[10px] font-bold text-cw-txt3 uppercase tracking-wider border-b border-cw-bdr/60 mb-0.5">
+                    Filter Runs by Gate
+                  </div>
+                  {[
+                    { id: 'PASS' as const, label: 'PASS gate', color: 'bg-cw-green', desc: 'All checks passed' },
+                    { id: 'WARN' as const, label: 'WARN gate', color: 'bg-cw-amber', desc: 'Warnings / debt flags' },
+                    { id: 'BLOCK' as const, label: 'BLOCK gate', color: 'bg-cw-red', desc: 'Blocked by criticals' },
+                    { id: 'RUNNING' as const, label: 'Running now', color: 'bg-cw-blue animate-pulse', desc: 'Active in sandbox' },
+                    { id: 'SKIPPED' as const, label: 'Skipped', color: 'bg-cw-txt3', desc: 'Orchestrator bypassed' },
+                  ].map((item) => {
+                    const isSelected = activeFilter === item.id;
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => {
+                          toggleFilter(item.id);
+                          setFilterOpen(false);
+                        }}
+                        className={`flex items-center justify-between px-3 py-2 rounded-lg text-[11px] font-mono text-left w-full transition-colors ${
+                          isSelected ? 'bg-cw-purple/15 text-cw-purple font-bold' : 'text-cw-txt hover:bg-cw-bg3'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <div className={`w-2 h-2 rounded-full ${item.color}`} />
+                          <div>
+                            <div>{item.label}</div>
+                            <div className="text-[9px] text-cw-txt3 font-sans font-normal">{item.desc}</div>
+                          </div>
+                        </div>
+                        {isSelected && <Check size={13} className="text-cw-purple shrink-0" />}
+                      </button>
+                    );
+                  })}
+                  {activeFilter && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveFilter(null);
+                        setFilterOpen(false);
+                      }}
+                      className="mt-1 pt-1.5 pb-1 px-3 border-t border-cw-bdr text-[10px] text-cw-red hover:underline text-center w-full"
+                    >
+                      Clear filter
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 text-[11px] text-cw-green bg-cw-green/5 border border-cw-green/20 px-2.5 py-1 rounded-lg">
+              <Info size={11} /> Live data
+            </div>
+            <button onClick={() => loadCommits(activeRepoId)} disabled={!activeRepoId || loading} className="w-7 h-7 rounded-md border border-cw-bdr bg-cw-bg2 flex items-center justify-center text-cw-txt3 hover:text-cw-txt hover:bg-cw-bg3 transition-colors disabled:opacity-50">
+              <RefreshCw size={13} className={loading ? 'animate-spin text-cw-blue' : ''} />
+            </button>
+          </div>
         </div>
 
         <div className="flex-1 overflow-y-auto px-4 py-4">
           <div className="max-w-4xl mx-auto">
-            {!repoId ? (
+            {!activeRepoId ? (
               <div className="py-20 text-center text-cw-txt3">
                 <GitCommit size={32} className="mx-auto mb-3 opacity-40" />
                 <div className="text-[14px] text-cw-txt2">Open commit history from a connected repository.</div>
@@ -694,7 +844,7 @@ export function CommitHistory({ repoId, repoFullName = 'Repository', onBack }: P
                 <div className="text-[12px] text-cw-txt3 mt-1">Once GitHub returns commits or Codeward records runs, they will appear here.</div>
               </div>
             ) : filteredCommits.map((commit, i) => (
-              <CommitRow key={`${commit.sha}-${commit.run?.id ?? 'no-run'}`} commit={commit} isLast={i === filteredCommits.length - 1} repoId={repoId} />
+              <CommitRow key={`${commit.sha}-${commit.run?.id ?? 'no-run'}`} commit={commit} isLast={i === filteredCommits.length - 1} repoId={activeRepoId!} />
             ))}
           </div>
         </div>

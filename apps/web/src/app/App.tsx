@@ -32,6 +32,10 @@ import { useSession, signOut } from '../lib/auth';
 import { Toaster } from 'sonner';
 import { API_URL } from '../lib/api';
 import CodewardHero from './components/LandingHero';
+import { WorkspaceProvider } from './contexts/WorkspaceContext';
+import { WorkspaceSwitcher } from './components/WorkspaceSwitcher';
+import { TeamDrawer } from './components/drawers/TeamDrawer';
+import { InviteDrawer } from './components/drawers/InviteDrawer';
 import { ComparePage } from './components/ComparePage';
 import { BlogsPage } from './components/BlogsPage';
 import { SingleBlogPage } from './components/SingleBlogPage';
@@ -234,30 +238,7 @@ function DashboardLayout() {
       <div className={`${isSidebarPinned ? 'w-[240px]' : 'w-0'} bg-cw-bg2 border-r border-cw-bdr flex flex-col overflow-x-hidden overflow-y-auto transition-[width] duration-300 ease-in-out z-20 shrink-0`}>
         {/* Workspace Switcher */}
         <div className={`h-[60px] px-4 flex items-center border-b border-cw-bdr shrink-0 transition-opacity duration-300 ${isSidebarPinned ? 'opacity-100' : 'opacity-0 overflow-hidden border-0'}`}>
-          <div className="relative w-full">
-            <button className="w-full flex items-center justify-between px-3 py-2 rounded-md bg-cw-bg border border-cw-bdr hover:bg-cw-bg3 transition-colors text-left overflow-hidden">
-              <div className="flex items-center gap-2 truncate">
-                <div className="w-5 h-5 rounded bg-cw-purple flex items-center justify-center text-white font-bold text-[10px] shrink-0 uppercase">
-                  {(typeof activeOrg === 'string' ? activeOrg : (activeOrg as any)?.name || displayUser.name)?.charAt(0)}
-                </div>
-                <span className="text-[12px] font-semibold text-cw-txt truncate">
-                  {typeof activeOrg === 'string' ? activeOrg : (activeOrg as any)?.name || displayUser.name}
-                </span>
-              </div>
-              <ChevronDown size={14} className="text-cw-txt3 shrink-0 ml-2" />
-            </button>
-            <select
-              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-              value={activeOrg}
-              onChange={(e) => setActiveOrg(e.target.value)}
-            >
-              {globalOrgs.map((orgObj, i) => {
-                const orgName = typeof orgObj === 'string' ? orgObj : (orgObj as any).name;
-                if (!orgName) return null;
-                return <option key={orgName + i} value={orgName}>{orgName}</option>;
-              })}
-            </select>
-          </div>
+          <WorkspaceSwitcher />
         </div>
 
         {/* Nav */}
@@ -385,12 +366,6 @@ function DashboardLayout() {
                 <BadgeCheck size={14} className="text-cw-txt3" /> Free Tier
               </div>
 
-              <button
-                onClick={cycleTheme}
-                className="w-9 h-9 rounded-full border border-cw-bdr bg-cw-bg2 text-cw-txt2 flex items-center justify-center hover:bg-cw-bg3 transition-colors ml-2"
-              >
-                {themeIcons[theme]}
-              </button>
             </div>
           </div>
 
@@ -641,8 +616,12 @@ export default function App() {
   const element = useRoutes(routes);
   return (
     <HelmetProvider>
-      {element}
-      <CookieConsent />
+      <WorkspaceProvider>
+        {element}
+        <CookieConsent />
+        <TeamDrawer />
+        <InviteDrawer />
+      </WorkspaceProvider>
     </HelmetProvider>
   );
 }
