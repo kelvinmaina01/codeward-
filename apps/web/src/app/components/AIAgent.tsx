@@ -6,7 +6,7 @@ import remarkGfm from 'remark-gfm';
 import {
   Send, ChevronRight, Loader2, Wrench, CheckCircle2, AlertTriangle,
   History, Plus, Search, Pencil, Trash2, X, Square, MessageSquare,
-  GitFork, ChevronDown, Check, Ban, Radio, Zap,
+  GitFork, ChevronDown, Check, Ban, Radio, Zap, FileSpreadsheet,
 } from 'lucide-react';
 import {
   SecurityCheckIcon, Analytics01Icon, SourceCodeIcon, GitPullRequestIcon, Rocket01Icon, Time04Icon,
@@ -17,6 +17,7 @@ import { API_URL, WS_URL } from '../../lib/api';
 import { useSession } from '../../lib/auth';
 import { GordonIcon } from './GordonIcon';
 import { GithubIcon, GitlabIcon } from './GithubLink';
+import { GordonAttachmentMenu, type AttachmentFile, type TaskItem } from './GordonAttachmentMenu';
 
 /** Provider logo for a repo, chosen by where the repo is hosted. */
 function RepoSourceIcon({ source, className = '' }: { source?: 'github' | 'gitlab'; className?: string }) {
@@ -27,7 +28,6 @@ function RepoSourceIcon({ source, className = '' }: { source?: 'github' | 'gitla
 
 type HugeIcon = typeof SecurityCheckIcon;
 
-/** icon key (from the server's dynamic suggestions) → hugeicon component */
 const SUGGESTION_ICON: Record<string, HugeIcon> = {
   approvals: GitPullRequestIcon, fix: Wrench01Icon, scan: SecurityCheckIcon,
   report: File01Icon, compare: ChartLineData01Icon, health: AnalyticsUpIcon,
@@ -92,6 +92,33 @@ const ACTION_VERB: Record<string, string> = {
 };
 
 interface ToolDetail { id: string; name: string; state: string; input: unknown; output: unknown }
+
+function ToolResultSummary({ name, output }: { name: string; output: any }) {
+  if (!output || typeof output !== 'object') return null;
+  if (name === 'run_all_agents' && output.spawned) {
+    return <div className="mt-1.5 rounded-md border border-cw-blue/20 bg-cw-blue/5 px-2.5 py-2 text-[11px] text-cw-txt2">
+      Run #{output.runId} queued on <span className="font-mono text-cw-blue">{output.ref}</span> at <span className="font-mono">{output.commitSha}</span>. {output.agents?.length ?? 0} agents scheduled.
+    </div>;
+  }
+  if (name === 'spawn_agent' && output.spawned) {
+    return <div className="mt-1.5 rounded-md border border-cw-blue/20 bg-cw-blue/5 px-2.5 py-2 text-[11px] text-cw-txt2">
+      {output.agentType} run #{output.runId} queued on <span className="font-mono text-cw-blue">{output.ref ?? 'default'}</span> at <span className="font-mono">{output.commitSha}</span>.
+    </div>;
+  }
+  if ((name === 'create_github_issue' || name === 'create_issue_from_finding') && output.htmlUrl) {
+    return <a href={output.htmlUrl} target="_blank" rel="noreferrer" className="mt-1.5 inline-flex items-center gap-1.5 rounded-md border border-cw-green/20 bg-cw-green/5 px-2.5 py-1.5 text-[11px] text-cw-green no-underline hover:brightness-110">
+      <GitPullRequestIcon size={12} /> GitHub issue #{output.issueNumber}
+    </a>;
+  }
+  if (name === 'get_run_logs' && Array.isArray(output.tasks)) {
+    return <div className="mt-1.5 grid grid-cols-2 gap-1.5 text-[10px]">
+      {output.tasks.slice(0, 6).map((t: any) => <div key={t.agentId} className="rounded border border-cw-bdr bg-cw-bg3 px-2 py-1 text-cw-txt2">
+        <span className="font-semibold text-cw-txt">{t.agentId}</span> · {t.status}{t.findingsCount != null ? ` · ${t.findingsCount} findings` : ''}
+      </div>)}
+    </div>;
+  }
+  return null;
+}
 
 /** A subtle, Claude-style activity line for a tool call. Clicking opens the right detail drawer. */
 function ActivityRow({ name, state, active, onOpen }: { name: string; state: string; active: boolean; onOpen: () => void }) {
@@ -197,7 +224,7 @@ function ApprovalCard({ name, input, decided, onDecide }: {
 
 /* ----------------------------- live activity strip ----------------------------- */
 
-interface LiveEvent { id: number; agent: string; repo: string; status: string; score?: number | null }
+interface LiveEvent { id: number; agent: string; repo: string; status: string; score?: number | null; durationMs?: number; success?: boolean; toolName?: string }
 
 function useLiveActivity() {
   const [events, setEvents] = useState<LiveEvent[]>([]);
@@ -212,6 +239,17 @@ function useLiveActivity() {
           const { type, payload } = JSON.parse(e.data);
           if (type === 'agent_active' || type === 'agent_completed' || type === 'agent_failed') {
             const ev: LiveEvent = { id: ++counter.current, agent: payload.agent, repo: payload.repo, status: payload.status, score: payload.score };
+            setEvents((prev) => [ev, ...prev].slice(0, 4));
+          } else if (type === 'gordon_tool_event') {
+            const ev: LiveEvent = {
+              id: ++counter.current,
+              agent: TOOL_LABELS[payload.toolName] ?? payload.toolName,
+              repo: payload.repoId ? `repo #${payload.repoId}` : 'Gordon',
+              status: payload.success ? 'Completed' : 'Failed',
+              durationMs: payload.durationMs,
+              success: payload.success,
+              toolName: payload.toolName,
+            };
             setEvents((prev) => [ev, ...prev].slice(0, 4));
           }
         } catch { /* ignore malformed frames */ }
@@ -541,32 +579,53 @@ function LogsDrawer({ onClose }: { onClose: () => void }) {
 }
 
 /* ----------------------------------- the page ----------------------------------- */
-
 interface Repo { id: number; fullName: string; source?: 'github' | 'gitlab' }
+interface BranchRef { name: string; protected?: boolean; commitSha?: string }
 interface Skill { id: string; label: string; description: string; template: string }
 
 export function AIAgent() {
+  const liveEvents = useLiveActivity();
   const [input, setInput] = useState('');
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [repos, setRepos] = useState<Repo[]>([]);
   const [pinnedRepo, setPinnedRepo] = useState<Repo | null>(null);
+  const [branches, setBranches] = useState<BranchRef[]>([]);
+  const [selectedRef, setSelectedRef] = useState('');
   const [repoMenuOpen, setRepoMenuOpen] = useState(false);
+  const [branchMenuOpen, setBranchMenuOpen] = useState(false);
   const [skills, setSkills] = useState<Skill[]>([]);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(true);
   const [logsOpen, setLogsOpen] = useState(false);
   const [detail, setDetail] = useState<ToolDetail | null>(null);
+  const [attachedFiles, setAttachedFiles] = useState<AttachmentFile[]>([]);
+  const [isPlanMode, setIsPlanMode] = useState(false);
   const sessionIdRef = useRef<string | null>(null);
   const pinnedRepoRef = useRef<Repo | null>(null);
+  const selectedRefRef = useRef('');
   const bottomRef = useRef<HTMLDivElement>(null);
-  const liveEvents = useLiveActivity();
   const { data: session } = useSession();
   const userImage = session?.user?.image ?? null;
   const userInitial = (session?.user?.name ?? 'You').charAt(0).toUpperCase();
 
   useEffect(() => { pinnedRepoRef.current = pinnedRepo; }, [pinnedRepo]);
+  useEffect(() => { selectedRefRef.current = selectedRef; }, [selectedRef]);
+
+  useEffect(() => {
+    setBranches([]);
+    setSelectedRef('');
+    if (!pinnedRepo) return;
+    fetch(`${API_URL}/api/chat/branches/${pinnedRepo.id}`, { credentials: 'include' })
+      .then((r) => r.ok ? r.json() : { branches: [] })
+      .then((d) => {
+        const list = Array.isArray(d.branches) ? d.branches : [];
+        setBranches(list);
+        setSelectedRef(d.defaultBranch || list[0]?.name || '');
+      })
+      .catch(() => {});
+  }, [pinnedRepo]);
 
   const refreshSessions = useCallback(async () => {
     try { const res = await fetch(`${API_URL}/api/chat/sessions`, { credentials: 'include' }); if (res.ok) setSessions((await res.json()).sessions ?? []); } catch { /* degrade */ }
@@ -586,7 +645,7 @@ export function AIAgent() {
   const transport = useMemo(() => new DefaultChatTransport({
     api: `${API_URL}/api/chat`,
     credentials: 'include',
-    body: () => ({ sessionId: sessionIdRef.current, repoId: pinnedRepoRef.current?.id }),
+    body: () => ({ sessionId: sessionIdRef.current, repoId: pinnedRepoRef.current?.id, ref: selectedRefRef.current || undefined }),
     fetch: (async (info: RequestInfo | URL, init?: RequestInit) => {
       const res = await fetch(info, init);
       const sid = res.headers.get('X-Chat-Session-Id');
@@ -686,8 +745,11 @@ export function AIAgent() {
                       return <ApprovalCard key={i} name={name} input={(part as any).input} decided={(part as any).approval.approved ? 'approved' : 'denied'} onDecide={() => {}} />;
                     }
                     const id = (part as any).toolCallId as string;
-                    return <ActivityRow key={i} name={name} state={part.state} active={detail?.id === id}
-                      onOpen={() => setDetail({ id, name, state: part.state, input: (part as any).input, output: (part as any).output })} />;
+                    return <div key={i}>
+                      <ActivityRow name={name} state={part.state} active={detail?.id === id}
+                        onOpen={() => setDetail({ id, name, state: part.state, input: (part as any).input, output: (part as any).output })} />
+                      {part.state === 'output-available' && <ToolResultSummary name={name} output={(part as any).output} />}
+                    </div>;
                   }
                   return null;
                 })}
@@ -701,8 +763,8 @@ export function AIAgent() {
               <div className="flex items-center gap-1.5 text-cw-txt3 text-[12px]">
                 Gordon is thinking
                 <span className="inline-flex gap-0.5">
-                  <span className="w-1 h-1 rounded-full bg-cw-txt3 animate-bounce [animation-delay:-0.3s]" />
-                  <span className="w-1 h-1 rounded-full bg-cw-txt3 animate-bounce [animation-delay:-0.15s]" />
+                  <span className="w-1 h-1 rounded-full bg-cw-txt3 animate-bounce" style={{ animationDelay: '-0.3s' }} />
+                  <span className="w-1 h-1 rounded-full bg-cw-txt3 animate-bounce" style={{ animationDelay: '-0.15s' }} />
                   <span className="w-1 h-1 rounded-full bg-cw-txt3 animate-bounce" />
                 </span>
               </div>
@@ -714,7 +776,7 @@ export function AIAgent() {
         )}
 
         {/* composer */}
-        <div className="pt-2.5 border-t border-cw-bdr mt-auto shrink-0">
+        <div className="pt-2.5 mt-auto shrink-0">
           <div className="max-w-3xl w-full mx-auto relative">
           {error && (
             <div className="mb-3 p-3 rounded-lg border border-cw-amber/30 bg-cw-amber/10 text-cw-amber flex items-center justify-between text-xs animate-in fade-in duration-200">
@@ -741,38 +803,130 @@ export function AIAgent() {
               ))}
             </div>
           )}
-          <div className="flex items-center gap-2 mb-2">
-            {/* repo @-tag picker */}
-            <div className="relative">
-              <button onClick={() => setRepoMenuOpen((o) => !o)} className={`flex items-center gap-1.5 px-2 py-1 rounded-md border text-[11px] transition-colors ${pinnedRepo ? 'border-cw-blue text-cw-blue bg-cw-blue/5' : 'border-cw-bdr text-cw-txt3 hover:text-cw-txt2'}`}>
-                {pinnedRepo ? <RepoSourceIcon source={pinnedRepo.source} /> : <GitFork size={11} />} {pinnedRepo ? pinnedRepo.fullName : 'Tag a repo'} <ChevronDown size={11} />
-              </button>
-              {repoMenuOpen && (
-                <div className="absolute bottom-full left-0 mb-1.5 w-[270px] max-h-64 overflow-y-auto bg-cw-bg2 border border-cw-bdr rounded-lg shadow-lg z-10">
-                  {pinnedRepo && <button onClick={() => { setPinnedRepo(null); setRepoMenuOpen(false); }} className="w-full text-left px-3 py-1.5 text-[11px] text-cw-txt3 hover:bg-cw-bg3 border-b border-cw-bdr">✕ Clear tag</button>}
-                  {repos.length === 0 && <div className="px-3 py-2 text-[11px] text-cw-txt3">No repos connected.</div>}
-                  {repos.map((r) => (
-                    <button key={r.id} onClick={() => { setPinnedRepo(r); setRepoMenuOpen(false); }} className={`w-full text-left px-3 py-1.5 text-[11px] hover:bg-cw-bg3 transition-colors flex items-center gap-2 ${pinnedRepo?.id === r.id ? 'text-cw-blue' : 'text-cw-txt2'}`}>
-                      <RepoSourceIcon source={r.source} className="shrink-0 opacity-80" />
-                      <span className="truncate">{r.fullName}</span>
-                    </button>
-                  ))}
+          {/* UNIFIED FLEXIBLE COMPOSER CARD */}
+          <div className={`w-full bg-cw-bg2 border rounded-2xl p-3 shadow-xl transition-all ${
+            isPlanMode ? 'border-cw-purple ring-1 ring-cw-purple/30 focus-within:border-cw-green focus-within:ring-cw-green/30' : 'border-cw-purple focus-within:border-cw-green focus-within:ring-1 focus-within:ring-cw-green/30'
+          }`}>
+            {/* Attached files chips inside container */}
+            {attachedFiles.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mb-2.5">
+                {attachedFiles.map((file) => (
+                  <div key={file.id} className="flex items-center gap-1.5 px-2.5 py-1 bg-cw-bg3 border border-cw-purple/40 text-cw-purple rounded-full text-[11px] font-medium">
+                    <span>📎 {file.name}</span>
+                    <button type="button" onClick={() => setAttachedFiles((prev) => prev.filter((f) => f.id !== file.id))} className="hover:text-cw-red cursor-pointer ml-1">✕</button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Main Flexible Text Area */}
+            <textarea
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  send(input);
+                }
+              }}
+              placeholder={isPlanMode ? "[PLANNING MODE] Ask Gordon to design an execution plan..." : "Ask Gordon, or type / for commands..."}
+              disabled={busy}
+              rows={Math.min(Math.max(input.split('\n').length, 1), 6)}
+              className="w-full bg-transparent text-cw-txt text-xs outline-none resize-none placeholder:text-cw-txt3 disabled:opacity-60 font-sans"
+            />
+
+            {/* Unified Control Footer Bar inside the card */}
+            <div className="flex flex-wrap items-center justify-between gap-2 pt-2.5 mt-1 border-t border-cw-bdr/60">
+              {/* Left Side Controls: Attachment (+) Button, Tool Badges, Tag Repo Dropdown, Branch Dropdown */}
+              <div className="flex items-center flex-wrap gap-2 min-w-0">
+                <GordonAttachmentMenu
+                  onAttachFile={(file) => setAttachedFiles((prev) => [...prev, file])}
+                  onSelectSkill={(promptText) => setInput(promptText)}
+                  onAttachTask={(task) => setInput(`Analyze task outcome: "${task.title}" - ${task.excerpt}`)}
+                  onTogglePlanMode={() => setIsPlanMode((prev) => !prev)}
+                  isPlanMode={isPlanMode}
+                  onOpenIntegrationSettings={() => {
+                    window.location.href = '/dashboard/integrations';
+                  }}
+                />
+
+                <div className="h-4 w-[1px] bg-cw-bdr shrink-0 mx-0.5" />
+
+                {/* Inline Tag Repo Button & Menu */}
+                <div className="relative shrink-0">
+                  <button
+                    onClick={() => setRepoMenuOpen((o) => !o)}
+                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-medium transition-colors ${
+                      pinnedRepo ? 'border-cw-blue text-cw-blue bg-cw-blue/10' : 'border-cw-bdr/70 text-cw-txt3 hover:text-cw-txt hover:bg-cw-bg3'
+                    }`}
+                  >
+                    {pinnedRepo ? <RepoSourceIcon source={pinnedRepo.source} /> : <GitFork size={12} />}
+                    <span>{pinnedRepo ? pinnedRepo.fullName : 'Tag a repo'}</span>
+                    <ChevronDown size={11} />
+                  </button>
+                  {repoMenuOpen && (
+                    <div className="absolute bottom-full left-0 mb-2 w-[270px] max-h-64 overflow-y-auto bg-cw-bg2 border border-cw-bdr rounded-xl shadow-2xl z-50">
+                      {pinnedRepo && <button onClick={() => { setPinnedRepo(null); setRepoMenuOpen(false); }} className="w-full text-left px-3 py-2 text-[11px] text-cw-txt3 hover:bg-cw-bg3 border-b border-cw-bdr">✕ Clear tag</button>}
+                      {repos.length === 0 && <div className="px-3 py-2 text-[11px] text-cw-txt3">No repos connected.</div>}
+                      {repos.map((r) => (
+                        <button key={r.id} onClick={() => { setPinnedRepo(r); setRepoMenuOpen(false); }} className={`w-full text-left px-3 py-2 text-[11px] hover:bg-cw-bg3 transition-colors flex items-center gap-2 ${pinnedRepo?.id === r.id ? 'text-cw-blue font-semibold' : 'text-cw-txt2'}`}>
+                          <RepoSourceIcon source={r.source} className="shrink-0 opacity-80" />
+                          <span className="truncate">{r.fullName}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              )}
+
+                {/* Inline Branch Selector Button & Menu */}
+                {pinnedRepo && (
+                  <div className="relative shrink-0">
+                    <button
+                      onClick={() => setBranchMenuOpen((o) => !o)}
+                      title="Branch or ref for Gordon repo actions"
+                      className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-cw-bdr/70 text-[11px] font-medium text-cw-txt2 hover:text-cw-blue hover:border-cw-blue bg-cw-bg3/50 transition-colors"
+                    >
+                      <GitBranchIcon size={12} /> <span>{selectedRef || 'default branch'}</span> <ChevronDown size={11} />
+                    </button>
+                    {branchMenuOpen && (
+                      <div className="absolute bottom-full left-0 mb-2 w-[260px] max-h-64 overflow-y-auto bg-cw-bg2 border border-cw-bdr rounded-xl shadow-2xl z-50">
+                        {branches.length === 0 && <div className="px-3 py-2 text-[11px] text-cw-txt3">No branches loaded.</div>}
+                        {branches.map((b) => (
+                          <button
+                            key={b.name}
+                            onClick={() => { setSelectedRef(b.name); setBranchMenuOpen(false); }}
+                            className={`w-full text-left px-3 py-2 text-[11px] hover:bg-cw-bg3 transition-colors flex items-center gap-2 ${selectedRef === b.name ? 'text-cw-blue font-semibold' : 'text-cw-txt2'}`}
+                          >
+                            <GitBranchIcon size={12} className="shrink-0" />
+                            <span className="truncate">{b.name}</span>
+                            {b.protected && <span className="ml-auto text-[9px] text-cw-amber">protected</span>}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Right Side Action Buttons */}
+              <div className="flex items-center gap-2 ml-auto shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setIsPlanMode((p) => !p)}
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-all flex items-center gap-1 cursor-pointer ${
+                    isPlanMode ? 'bg-cw-purple text-white border-cw-purple' : 'bg-cw-bg3 border-cw-bdr/70 text-cw-txt3 hover:text-cw-txt'
+                  }`}
+                >
+                  <FileSpreadsheet size={12} /> Plan
+                </button>
+
+                {busy ? (
+                  <button onClick={() => stop()} className="px-3.5 py-1.5 bg-cw-red/90 text-white rounded-lg text-xs font-semibold cursor-pointer flex items-center gap-1.5 hover:opacity-90 transition-opacity"><Square size={12} /> Stop</button>
+                ) : (
+                  <button onClick={() => send(input)} disabled={!input.trim()} className="px-4 py-1.5 bg-cw-purple hover:brightness-110 text-white rounded-lg text-xs font-bold cursor-pointer flex items-center gap-1.5 shadow-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed"><Send size={13} /> Send</button>
+                )}
+              </div>
             </div>
-            {messages.length > 0 && (
-              <div className="flex items-center gap-1 text-[10px] text-cw-txt3 shrink-0"><MessageSquare size={11} /><span className="max-w-[140px] truncate">{sessions.find((s) => s.id === activeSessionId)?.title ?? 'New chat'}</span></div>
-            )}
-          </div>
-          <div className="flex gap-2">
-            <input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && send(input)}
-              placeholder="Ask Gordon, or type / for commands…" disabled={busy}
-              className="flex-1 px-3 py-2 border border-cw-bdr rounded-lg text-xs bg-cw-bg2 text-cw-txt outline-none focus:border-cw-blue transition-colors disabled:opacity-60" />
-            {busy ? (
-              <button onClick={() => stop()} className="px-3.5 py-2 bg-cw-red/90 text-white border-none rounded-lg text-xs cursor-pointer flex items-center gap-1.5 hover:opacity-90 transition-opacity"><Square size={12} /> Stop</button>
-            ) : (
-              <button onClick={() => send(input)} disabled={!input.trim()} className="px-3.5 py-2 bg-cw-blue text-white border-none rounded-lg text-xs cursor-pointer flex items-center gap-1.5 hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"><Send size={13} /> Send</button>
-            )}
           </div>
           </div>
         </div>

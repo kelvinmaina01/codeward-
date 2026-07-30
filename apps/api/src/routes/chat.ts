@@ -24,6 +24,16 @@ Your capabilities are REAL:
 
 Format answers in GitHub-flavored markdown. When comparing repos, listing findings, or presenting anything with 3+ rows of structure, use a GFM table.`;
 
+const GORDON_HARNESS_SYSTEM = `
+
+Gordon harness contract:
+- If the user is ambiguous, ask one concise follow-up question instead of guessing. For repo work, clarify repo and branch/ref when that changes the result.
+- READ tools include run history, findings, trends, fix priorities, shared agent memory, source files, repo directories, branch lists, real commit diffs, live run status, and run/tool logs.
+- ACTION tools require approval cards before execution: spawn_agent, run_all_agents, create_github_issue, create_issue_from_finding, approve_and_merge, reject_fix.
+- After starting work, keep driving toward the user's goal by checking get_run_status and get_run_logs. Report run id, repo, branch/ref, commit, links, evidence, and next steps.
+- Arbitrary chat-driven code edits are not allowed unless the existing verified fixer pipeline opens a real auto-fix PR. If a finding cannot be safely verified/fixed, escalate by opening a GitHub issue with evidence.
+- Format substantial results with clear sections and GFM tables. Never claim a score, issue, PR, commit, or test result unless a tool returned it.`;
+
 async function getSessionUser(c: any) {
   const session = await auth.api.getSession({ headers: c.req.raw.headers });
   return session?.user ?? null;
@@ -65,7 +75,12 @@ function textOfMessage(msg: UIMessage): string {
  */
 const GORDON_SKILLS = [
   { id: 'scan', label: '/scan', description: 'Run a security scan on the active repo', template: 'Run a security scan on {repo} and walk me through what you find.' },
+  { id: 'full-scan', label: '/full-scan', description: 'Run all Codeward agents on the active repo', template: 'Run the full Codeward agent suite on {repo}. Show the branch/ref used, live progress, and final findings.' },
   { id: 'fix', label: '/fix', description: 'Find the highest-priority issues and offer to fix', template: 'What are the highest-priority issues in {repo} right now, and can you open fixes for the safe ones?' },
+  { id: 'branches', label: '/branches', description: 'List branches before scanning', template: 'List the branches for {repo} and tell me which branch Codeward should scan.' },
+  { id: 'diff', label: '/diff', description: 'Explain a real commit diff', template: 'Read the real latest commit diff for {repo}, explain risk, and recommend which agents should run.' },
+  { id: 'logs', label: '/logs', description: 'Inspect live run logs', template: 'Check the latest run logs for {repo} and summarize what is happening right now.' },
+  { id: 'escalate', label: '/escalate', description: 'Open GitHub issues for unresolved findings', template: 'Find unresolved high-priority findings in {repo} and open GitHub issues for anything that cannot be safely auto-fixed.' },
   { id: 'report', label: '/report', description: 'Summarize the latest run', template: 'Give me a summary of the latest run for {repo}: score, top findings by severity, and what changed.' },
   { id: 'compare', label: '/compare', description: 'Compare health across my repos', template: 'Compare the health scores across all my repositories and show them as a table, worst first.' },
   { id: 'health', label: '/health', description: 'Health trend over time', template: 'How has the code health of {repo} trended over the last 30 days?' },
@@ -209,6 +224,30 @@ chatRouter.get('/repos', async (c) => {
   return c.json({ repos: rows.map((r) => ({ ...r, source: 'github' as const })) });
 });
 
+chatRouter.get('/branches/:repoId', async (c) => {
+  const user = await getSessionUser(c);
+  if (!user) return c.json({ error: 'Unauthorized' }, 401);
+  const repoId = Number(c.req.param('repoId'));
+  if (!Number.isFinite(repoId)) return c.json({ error: 'Invalid repoId' }, 400);
+  if (!(await assertRepoAccess(user.id, repoId))) return c.json({ error: 'Forbidden' }, 403);
+  const [repo] = await db.select().from(repositories).where(eq(repositories.id, repoId));
+  if (!repo?.installationId) return c.json({ branches: [], defaultBranch: null, note: 'Repository has no GitHub installation.' });
+  try {
+    const { getInstallationOctokit } = await import('../lib/github.js');
+    const octokit = await getInstallationOctokit(repo.installationId);
+    const [repoInfo, branchList] = await Promise.all([
+      octokit.request('GET /repos/{owner}/{repo}', { owner: repo.owner, repo: repo.name }),
+      octokit.request('GET /repos/{owner}/{repo}/branches', { owner: repo.owner, repo: repo.name, per_page: 100 }),
+    ]);
+    return c.json({
+      defaultBranch: repoInfo.data.default_branch,
+      branches: branchList.data.map((b: any) => ({ name: b.name, protected: b.protected, commitSha: b.commit?.sha })),
+    });
+  } catch (e: any) {
+    return c.json({ error: `Could not load branches: ${e.message}` }, 502);
+  }
+});
+
 chatRouter.get('/sessions', async (c) => {
   const user = await getSessionUser(c);
   if (!user) return c.json({ error: 'Unauthorized' }, 401);
@@ -260,7 +299,7 @@ chatRouter.post('/', async (c) => {
   const user = await getSessionUser(c);
   if (!user) return c.json({ error: 'Unauthorized' }, 401);
 
-  const { messages, sessionId, repoId }: { messages: UIMessage[]; sessionId?: string; repoId?: number } = await c.req.json();
+  const { messages, sessionId, repoId, ref }: { messages: UIMessage[]; sessionId?: string; repoId?: number; ref?: string } = await c.req.json();
   if (!Array.isArray(messages) || messages.length === 0) return c.json({ error: 'messages required' }, 400);
 
   // Resolve or lazily create the session. A bad/foreign sessionId falls through to a fresh
@@ -277,7 +316,7 @@ chatRouter.post('/', async (c) => {
   if (typeof repoId === 'number' && (await assertRepoAccess(user.id, repoId))) {
     if (session.repoId !== repoId) await db.update(chatSessions).set({ repoId }).where(eq(chatSessions.id, session.id));
     const [repo] = await db.select().from(repositories).where(eq(repositories.id, repoId));
-    if (repo) activeRepoLine = `\n\nACTIVE REPO: the user has pinned "${repo.fullName}" (repoId ${repoId}). Default to this repoId for repo-scoped tools unless they clearly mean another.`;
+    if (repo) activeRepoLine = `\n\nACTIVE REPO: the user has pinned "${repo.fullName}" (repoId ${repoId})${ref ? ` on branch/ref "${ref}"` : ''}. Default to this repoId${ref ? ` and ref "${ref}"` : ''} for repo-scoped tools unless they clearly mean another.`;
   }
 
   // Persist the incoming user message now (not in onFinish) so even an aborted/errored
@@ -289,7 +328,7 @@ chatRouter.post('/', async (c) => {
 
   const result = streamText({
     model: getModel('orchestrator'), // gpt-4o — best tool-calling reliability
-    system: GORDON_SYSTEM + activeRepoLine,
+    system: GORDON_SYSTEM + GORDON_HARNESS_SYSTEM + activeRepoLine,
     messages: await convertToModelMessages(messages),
     tools: createGordonTools(user.id, session.id),
     stopWhen: stepCountIs(12), // real agentic loop: plan -> call tools -> observe -> answer

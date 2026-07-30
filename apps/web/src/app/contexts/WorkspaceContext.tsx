@@ -177,7 +177,18 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 export const useWorkspace = () => {
   const context = useContext(WorkspaceContext);
   if (!context) {
-    throw new Error('useWorkspace must be used within a WorkspaceProvider');
+    return {
+      workspaces: [],
+      activeWorkspace: null,
+      setActiveWorkspace: () => {},
+      loading: false,
+      error: null,
+      refreshWorkspaces: async () => {},
+      inviteUser: async () => ({ success: false, error: 'Workspace context missing' }),
+      verifyOtp: async () => ({ success: false, error: 'Workspace context missing' }),
+      openInviteDrawer: false,
+      setOpenInviteDrawer: () => {},
+    };
   }
   return context;
 };

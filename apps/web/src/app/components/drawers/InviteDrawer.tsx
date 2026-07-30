@@ -17,12 +17,10 @@ export const InviteDrawer: React.FC = () => {
     verifyOtp
   } = useWorkspace();
 
-  const [step, setStep] = useState<'invite' | 'otp'>('invite');
+  const [step, setStep] = useState<'invite' | 'success'>('invite');
   const [rows, setRows] = useState<InviteRow[]>([
     { id: '1', email: '', role: 'member' }
   ]);
-  const [otpCode, setOtpCode] = useState('');
-  const [otpEmail, setOtpEmail] = useState('');
   
   const [loading, setLoading] = useState(false);
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
@@ -34,8 +32,6 @@ export const InviteDrawer: React.FC = () => {
     setOpenInviteDrawer(false);
     setStep('invite');
     setRows([{ id: '1', email: '', role: 'member' }]);
-    setOtpCode('');
-    setOtpEmail('');
     setStatusMsg(null);
     setError(null);
   };
@@ -104,7 +100,6 @@ export const InviteDrawer: React.FC = () => {
         const res = await inviteUser(activeWorkspace.id, row.email.trim(), row.role);
         if (res.success) {
           successCount++;
-          setOtpEmail(row.email.trim());
         } else {
           lastFailError = res.error || 'Failed to send invite';
         }
@@ -112,43 +107,13 @@ export const InviteDrawer: React.FC = () => {
 
       if (successCount > 0) {
         setStatusMsg(`Successfully sent ${successCount} invitation${successCount > 1 ? 's' : ''}!`);
-        if (validRows.length === 1) {
-          setStep('otp');
-        } else {
-          setTimeout(() => handleClose(), 1800);
-        }
+        setStep('success');
       } else {
         setError(lastFailError || 'Failed to send invitations.');
         setStatusMsg(null);
       }
     } catch (err: any) {
       setError(err.message || 'An unexpected error occurred while sending invites.');
-      setStatusMsg(null);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleVerifyOtpSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!otpEmail.trim() || !otpCode.trim()) return;
-
-    try {
-      setLoading(true);
-      setError(null);
-      setStatusMsg('Verifying passcode...');
-
-      const res = await verifyOtp(otpEmail.trim(), otpCode.trim());
-
-      if (!res.success) {
-        setError(res.error || 'Invalid passcode');
-        setStatusMsg(null);
-      } else {
-        setStatusMsg('Successfully joined workspace!');
-        setTimeout(() => handleClose(), 1500);
-      }
-    } catch (err: any) {
-      setError(err.message || 'Verification error');
       setStatusMsg(null);
     } finally {
       setLoading(false);
@@ -174,7 +139,7 @@ export const InviteDrawer: React.FC = () => {
             </div>
             <div>
               <h2 className="text-base font-bold text-cw-txt">
-                {step === 'invite' ? 'Invite Team Members' : 'Verify Passcode'}
+                {step === 'invite' ? 'Invite Team Members' : 'Invitations Sent'}
               </h2>
               <p className="text-xs text-cw-txt3 mt-0.5">
                 {activeWorkspace?.name || 'Workspace'} · Assign custom roles per member
@@ -284,54 +249,25 @@ export const InviteDrawer: React.FC = () => {
               </button>
             </form>
           ) : (
-            /* Step 2: Passcode Entry Screen */
-            <form onSubmit={handleVerifyOtpSubmit} className="space-y-5">
-              <div className="text-center py-2">
-                <div className="w-12 h-12 rounded-full bg-cw-purple/10 text-cw-purple flex items-center justify-center mx-auto mb-3">
-                  <KeyRound size={24} />
+            /* Step 2: Success Screen */
+            <div className="space-y-5">
+              <div className="text-center py-6">
+                <div className="w-16 h-16 rounded-full bg-green-500/10 text-green-400 flex items-center justify-center mx-auto mb-4">
+                  <CheckCircle2 size={32} />
                 </div>
-                <h3 className="text-sm font-bold text-cw-txt">Passcode Sent</h3>
-                <p className="text-xs text-cw-txt3 mt-1">
-                  We sent a 6-digit verification passcode to <span className="font-semibold text-cw-txt">{otpEmail}</span>
+                <h3 className="text-lg font-bold text-cw-txt">Invitations Sent!</h3>
+                <p className="text-sm text-cw-txt3 mt-2 mb-6">
+                  Magic links have been sent to the requested email addresses. They will be added to the workspace as soon as they accept.
                 </p>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-cw-txt2 mb-1 text-center">
-                  6-Digit Passcode
-                </label>
-                <input
-                  type="text"
-                  required
-                  maxLength={6}
-                  placeholder="123456"
-                  value={otpCode}
-                  onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
-                  className="w-full bg-cw-bg border border-cw-bdr rounded-xl py-3 text-center text-xl font-mono tracking-[8px] font-bold text-cw-purple focus:outline-none focus:border-cw-purple"
-                />
-              </div>
-
-              <div className="flex gap-2 pt-2">
                 <button
                   type="button"
-                  onClick={() => setStep('invite')}
-                  className="flex-1 py-2.5 bg-cw-bg hover:bg-cw-bg3 border border-cw-bdr rounded-xl text-xs font-medium text-cw-txt2"
+                  onClick={handleClose}
+                  className="w-full py-3 bg-cw-purple hover:brightness-110 rounded-xl text-xs font-bold text-white transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer"
                 >
-                  Back
-                </button>
-                <button
-                  type="submit"
-                  disabled={loading || otpCode.length !== 6}
-                  className="flex-1 py-2.5 bg-cw-purple hover:brightness-110 rounded-xl text-xs font-bold text-white transition-all shadow-md flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
-                >
-                  {loading ? (
-                    <RefreshCw size={14} className="animate-spin" />
-                  ) : (
-                    'Verify & Join'
-                  )}
+                  Done
                 </button>
               </div>
-            </form>
+            </div>
           )}
 
         </div>

@@ -119,6 +119,15 @@ function timeAgo(dateStr: string): string {
 export function ConnectRepo({ user, onConnect, onSkip, activeOrg, setActiveOrg, orgs: propOrgs, theme, onCycleTheme }: Props) {
   const [repos, setRepos] = useState<Repo[]>([]);
   const [localOrgs, setLocalOrgs] = useState<string[]>([]);
+  const [currentTheme, setCurrentTheme] = useState<'dark' | 'white' | 'cream'>((theme as 'dark' | 'white' | 'cream') || 'dark');
+
+  const handleCycleTheme = () => {
+    const themes: ('dark' | 'white' | 'cream')[] = ['dark', 'white', 'cream'];
+    const nextIdx = (themes.indexOf(currentTheme) + 1) % themes.length;
+    const nextTheme = themes[nextIdx];
+    setCurrentTheme(nextTheme);
+    onCycleTheme?.();
+  };
   // Selection state
   const [selected, setSelected] = useState<string[]>([]);
   const [connecting, setConnecting] = useState(false);
@@ -500,170 +509,177 @@ export function ConnectRepo({ user, onConnect, onSkip, activeOrg, setActiveOrg, 
 
 
   return (
-    <div className={`theme-${theme || 'dark'} h-screen bg-cw-bg text-cw-txt font-sans flex flex-col overflow-hidden`}>
+    <div className={`theme-${currentTheme} h-screen bg-cw-bg text-cw-txt font-sans flex flex-col overflow-hidden`}>
       <style>{`@import url(\'https://fonts.googleapis.com/css2?family=DM+Sans:wght@700&display=swap\');`}</style>
-      {/* Header */}
-      <div className="bg-cw-bg2 border-b border-cw-bdr px-8 py-4 flex items-center justify-between shrink-0">
-        <div className="text-base font-bold tracking-tight">
-          Code<span className="text-cw-purple">ward</span>
-        </div>
-        <div className="flex items-center gap-4">
-          <button 
-            onClick={async () => {
-              await signOut();
-              window.location.reload();
-            }}
-            className="flex items-center gap-2 text-cw-txt2 hover:text-cw-txt text-[13px] font-medium transition-colors"
-          >
-            <LogOut size={16} /> Sign out
-          </button>
-          <div className="w-8 h-8 rounded-full bg-cw-purple flex items-center justify-center text-[12px] font-bold text-white overflow-hidden">
-            {user.image ? <img src={user.image} alt="Avatar" className="w-full h-full object-cover" /> : user.name.charAt(0).toUpperCase()}
+      {/* Header — Rendered only when Git account IS connected */}
+      {error !== 'No GitHub account linked' && (
+        <div className="bg-cw-bg2 border-b border-cw-bdr px-8 py-4 flex items-center justify-between shrink-0">
+          <div className="text-base font-bold tracking-tight">
+            Code<span className="text-cw-purple">ward</span>
+          </div>
+          <div className="flex items-center gap-4">
+            <button 
+              onClick={async () => {
+                await signOut();
+                window.location.reload();
+              }}
+              className="flex items-center gap-2 text-cw-txt2 hover:text-cw-txt text-[13px] font-medium transition-colors"
+            >
+              <LogOut size={16} /> Sign out
+            </button>
+            <div className="w-8 h-8 rounded-full bg-cw-purple flex items-center justify-center text-[12px] font-bold text-white overflow-hidden">
+              {user.image ? <img src={user.image} alt="Avatar" className="w-full h-full object-cover" /> : user.name.charAt(0).toUpperCase()}
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Split Content Area */}
       <div className="flex-1 flex overflow-hidden relative">
         
         {/* Main Left Content */}
         <div className="flex-1 overflow-y-auto w-full transition-all duration-300">
-          <div className="w-full max-w-[1200px] mx-auto px-4 md:px-8 pt-8 pb-32 flex flex-col items-center">
+          <div className={`w-full max-w-[1200px] mx-auto px-4 md:px-8 ${error === 'No GitHub account linked' ? 'pt-10 md:pt-14' : 'pt-8'} pb-32 flex flex-col items-center`}>
             <h1 className="text-4xl text-cw-txt mb-2 tracking-tight" style={{ fontFamily: "'DM Sans', sans-serif" }}>
               Welcome back, <span className="text-cw-purple">{firstName}</span> 👋
             </h1>
-            <p className="text-[14px] text-cw-txt2 mb-10">Connect your repositories to get started with Codeward</p>
+            <p className={`text-[14px] text-cw-txt2 ${error === 'No GitHub account linked' ? 'mb-4' : 'mb-10'}`}>Connect your repositories to get started with Codeward</p>
 
             
-            {/* Dynamic Steps Indicator */}
-            <div className="w-full flex items-center justify-center gap-3 mb-10">
-              {/* Step 1 */}
-              <div className={`flex items-center gap-2 font-semibold text-[13px] transition-colors ${currentStep >= 1 ? 'text-[#2EA043]' : 'text-cw-txt3'}`}>
-                <div className={`w-6 h-6 rounded-full border flex items-center justify-center text-[12px] transition-colors ${currentStep >= 1 ? 'border-[#2EA043]' : 'border-cw-bdr'}`}>1</div>
-                Select Repos
-              </div>
-              <div className="w-8 h-[1px] bg-cw-bdr/60" />
-              
-              {/* Step 2 */}
-              <div className={`flex items-center gap-2 font-semibold text-[13px] transition-colors ${currentStep >= 2 ? 'text-[#58A6FF]' : 'text-cw-txt3'}`}>
-                <div className={`w-6 h-6 rounded-full border flex items-center justify-center text-[12px] transition-colors ${currentStep >= 2 ? 'border-[#58A6FF]' : 'border-cw-bdr'}`}>2</div>
-                Configure Agents
-              </div>
-              <div className="w-8 h-[1px] bg-cw-bdr/60" />
-              
-              {/* Step 3 */}
-              <div className={`flex items-center gap-2 font-semibold text-[13px] transition-colors ${currentStep >= 3 ? 'text-[#F85149]' : 'text-cw-txt3'}`}>
-                <div className={`w-6 h-6 rounded-full border flex items-center justify-center text-[12px] transition-colors ${currentStep >= 3 ? 'border-[#F85149]' : 'border-cw-bdr'}`}>3</div>
-                Finish
-              </div>
-
-              {/* Skip Button */}
-              <button 
-                onClick={onSkip}
-                className="ml-4 px-3 py-1.5 text-[12px] font-medium text-cw-txt2 hover:text-cw-txt hover:bg-cw-bg3 rounded transition-colors"
-              >
-                Skip for now
-              </button>
-            </div>
-
-            {/* Permissions Modal Trigger */}
-            <button 
-              onClick={() => setShowPermissionsModal(true)}
-              className="text-cw-purple hover:underline text-[13px] font-medium mb-10 flex items-center justify-center gap-1.5"
-            >
-              <Shield size={14} /> Learn what Codeward can and cannot access
-            </button>
-
-            {/* Filters Row (Main Page) */}
-            <div className="w-full max-w-[1000px] flex flex-wrap gap-4 items-center justify-center mb-8">
-              
-              {/* Custom Workspace Dropdown */}
-              <div className="relative">
-                <button
-                  onClick={() => setShowOrgDropdown(!showOrgDropdown)}
-                  className="flex items-center gap-3 px-3 py-1.5 border border-cw-bdr bg-cw-bg rounded-lg hover:border-cw-txt3 transition-colors min-w-[200px]"
-                >
-                  <div className="text-[10px] text-cw-txt3 uppercase tracking-wider mb-[2px] leading-none absolute top-1 left-3">Workspace</div>
-                  <div className="flex items-center gap-2 mt-3 mb-1 w-full justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="w-5 h-5 rounded-full bg-cw-purple/20 text-cw-purple flex items-center justify-center text-[10px] font-bold uppercase shrink-0">
-                        {(typeof activeOrg === 'string' ? activeOrg : (activeOrg as any)?.name || '')?.charAt(0)}
-                      </div>
-                      <span className="text-[13px] font-semibold text-cw-txt truncate">
-                        {typeof activeOrg === 'string' ? activeOrg : (activeOrg as any)?.name}
-                      </span>
-                    </div>
-                    <ChevronDown size={14} className="text-cw-txt3 shrink-0" />
+            {/* Render Steps Indicator, Permissions & Filters only when Git account IS connected */}
+            {error !== 'No GitHub account linked' && (
+              <>
+                {/* Dynamic Steps Indicator */}
+                <div className="w-full flex items-center justify-center gap-3 mb-10">
+                  {/* Step 1 */}
+                  <div className={`flex items-center gap-2 font-semibold text-[13px] transition-colors ${currentStep >= 1 ? 'text-[#2EA043]' : 'text-cw-txt3'}`}>
+                    <div className={`w-6 h-6 rounded-full border flex items-center justify-center text-[12px] transition-colors ${currentStep >= 1 ? 'border-[#2EA043]' : 'border-cw-bdr'}`}>1</div>
+                    Select Repos
                   </div>
+                  <div className="w-8 h-[1px] bg-cw-bdr/60" />
+                  
+                  {/* Step 2 */}
+                  <div className={`flex items-center gap-2 font-semibold text-[13px] transition-colors ${currentStep >= 2 ? 'text-[#58A6FF]' : 'text-cw-txt3'}`}>
+                    <div className={`w-6 h-6 rounded-full border flex items-center justify-center text-[12px] transition-colors ${currentStep >= 2 ? 'border-[#58A6FF]' : 'border-cw-bdr'}`}>2</div>
+                    Configure Agents
+                  </div>
+                  <div className="w-8 h-[1px] bg-cw-bdr/60" />
+                  
+                  {/* Step 3 */}
+                  <div className={`flex items-center gap-2 font-semibold text-[13px] transition-colors ${currentStep >= 3 ? 'text-[#F85149]' : 'text-cw-txt3'}`}>
+                    <div className={`w-6 h-6 rounded-full border flex items-center justify-center text-[12px] transition-colors ${currentStep >= 3 ? 'border-[#F85149]' : 'border-cw-bdr'}`}>3</div>
+                    Finish
+                  </div>
+
+                  {/* Skip Button */}
+                  <button 
+                    onClick={onSkip}
+                    className="ml-4 px-3 py-1.5 text-[12px] font-medium text-cw-txt2 hover:text-cw-txt hover:bg-cw-bg3 rounded transition-colors"
+                  >
+                    Skip for now
+                  </button>
+                </div>
+
+                {/* Permissions Modal Trigger */}
+                <button 
+                  onClick={() => setShowPermissionsModal(true)}
+                  className="text-cw-purple hover:underline text-[13px] font-medium mb-10 flex items-center justify-center gap-1.5"
+                >
+                  <Shield size={14} /> Learn what Codeward can and cannot access
                 </button>
 
-                {showOrgDropdown && (
-                  <>
-                    <div className="fixed inset-0 z-40" onClick={() => setShowOrgDropdown(false)} />
-                    <div className="absolute top-full left-0 mt-2 w-full min-w-[220px] bg-cw-bg border border-cw-bdr rounded-lg shadow-xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2">
-                      <div className="px-3 py-2 text-[10px] font-bold text-cw-txt3 tracking-wider border-b border-cw-bdr">SWITCH WORKSPACE</div>
-                      <div className="max-h-[300px] overflow-y-auto py-1">
-                        {(propOrgs?.length ? propOrgs : localOrgs).map((orgObj, idx) => {
-                          const orgName = typeof orgObj === 'string' ? orgObj : orgObj.name;
-                          if (!orgName) return null;
-                          const isSel = activeOrg === orgName;
-                          return (
-                            <button
-                              key={orgName + idx}
-                              onClick={() => { setActiveOrg?.(orgName); setShowOrgDropdown(false); }}
-                              className={`w-full flex items-center justify-between px-3 py-2.5 hover:bg-cw-bg3 transition-colors text-left`}
-                            >
-                              <div className="flex items-center">
-                                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold uppercase shrink-0 ${isSel ? 'bg-cw-purple/20 text-cw-purple' : 'bg-cw-green/20 text-cw-green'}`}>
-                                  {orgName.charAt(0)}
-                                </div>
-                                <span className={`text-[13px] font-semibold truncate ${isSel ? 'text-cw-purple' : 'text-cw-txt'}`}>
-                                  {orgName}
-                                </span>
-                              </div>
-                              {isSel && <Check size={14} className="text-cw-purple shrink-0" />}
-                            </button>
-                          );
-                        })}
+                {/* Filters Row (Main Page) */}
+                <div className="w-full max-w-[1000px] flex flex-wrap gap-4 items-center justify-center mb-8">
+                  
+                  {/* Custom Workspace Dropdown */}
+                  <div className="relative">
+                    <button
+                      onClick={() => setShowOrgDropdown(!showOrgDropdown)}
+                      className="flex items-center gap-3 px-3 py-1.5 border border-cw-bdr bg-cw-bg rounded-lg hover:border-cw-txt3 transition-colors min-w-[200px]"
+                    >
+                      <div className="text-[10px] text-cw-txt3 uppercase tracking-wider mb-[2px] leading-none absolute top-1 left-3">Workspace</div>
+                      <div className="flex items-center gap-2 mt-3 mb-1 w-full justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="w-5 h-5 rounded-full bg-cw-purple/20 text-cw-purple flex items-center justify-center text-[10px] font-bold uppercase shrink-0">
+                            {(typeof activeOrg === 'string' ? activeOrg : (activeOrg as any)?.name || '')?.charAt(0)}
+                          </div>
+                          <span className="text-[13px] font-semibold text-cw-txt truncate">
+                            {typeof activeOrg === 'string' ? activeOrg : (activeOrg as any)?.name}
+                          </span>
+                        </div>
+                        <ChevronDown size={14} className="text-cw-txt3 shrink-0" />
                       </div>
-                    </div>
-                  </>
-                )}
-              </div>
-              
-              <div className="h-6 w-[1px] bg-cw-bdr hidden md:block" />
+                    </button>
 
-              {/* Language Filter */}
-              <select 
-                value={filterLang} 
-                onChange={e => setFilterLang(e.target.value)}
-                className="bg-cw-bg border border-cw-bdr rounded-lg text-[13px] text-cw-txt py-1.5 px-3 outline-none"
-              >
-                {languages.map(l => <option key={l} value={l}>{l === 'All' ? 'All Languages' : l}</option>)}
-              </select>
+                    {showOrgDropdown && (
+                      <>
+                        <div className="fixed inset-0 z-40" onClick={() => setShowOrgDropdown(false)} />
+                        <div className="absolute top-full left-0 mt-2 w-full min-w-[220px] bg-cw-bg border border-cw-bdr rounded-lg shadow-xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2">
+                          <div className="px-3 py-2 text-[10px] font-bold text-cw-txt3 tracking-wider border-b border-cw-bdr">SWITCH WORKSPACE</div>
+                          <div className="max-h-[300px] overflow-y-auto py-1">
+                            {(propOrgs?.length ? propOrgs : localOrgs).map((orgObj, idx) => {
+                              const orgName = typeof orgObj === 'string' ? orgObj : orgObj.name;
+                              if (!orgName) return null;
+                              const isSel = activeOrg === orgName;
+                              return (
+                                <button
+                                  key={orgName + idx}
+                                  onClick={() => { setActiveOrg?.(orgName); setShowOrgDropdown(false); }}
+                                  className={`w-full flex items-center justify-between px-3 py-2.5 hover:bg-cw-bg3 transition-colors text-left`}
+                                >
+                                  <div className="flex items-center">
+                                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold uppercase shrink-0 ${isSel ? 'bg-cw-purple/20 text-cw-purple' : 'bg-cw-green/20 text-cw-green'}`}>
+                                      {orgName.charAt(0)}
+                                    </div>
+                                    <span className={`text-[13px] font-semibold truncate ${isSel ? 'text-cw-purple' : 'text-cw-txt'}`}>
+                                      {orgName}
+                                    </span>
+                                  </div>
+                                  {isSel && <Check size={14} className="text-cw-purple shrink-0" />}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                  
+                  <div className="h-6 w-[1px] bg-cw-bdr hidden md:block" />
 
-              {/* Visibility Filter */}
-              <select 
-                value={filterVis} 
-                onChange={e => setFilterVis(e.target.value)}
-                className="bg-cw-bg border border-cw-bdr rounded-lg text-[13px] text-cw-txt py-1.5 px-3 outline-none"
-              >
-                <option value="All">All Visibility</option>
-                <option value="Public">Public</option>
-                <option value="Private">Private</option>
-              </select>
+                  {/* Language Filter */}
+                  <select 
+                    value={filterLang} 
+                    onChange={e => setFilterLang(e.target.value)}
+                    className="bg-cw-bg border border-cw-bdr rounded-lg text-[13px] text-cw-txt py-1.5 px-3 outline-none"
+                  >
+                    {languages.map(l => <option key={l} value={l}>{l === 'All' ? 'All Languages' : l}</option>)}
+                  </select>
 
-              {/* Search */}
-              <div className="relative w-full max-w-[250px]">
-                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-cw-txt3" />
-                <input
-                  value={search}
-                  onChange={e => setSearch(e.target.value)}
-                  placeholder="Search repos..."
-                  className="w-full py-1.5 pl-9 pr-3 bg-cw-bg border border-cw-bdr rounded-lg text-[13px] text-cw-txt outline-none focus:border-cw-purple transition-colors"
-                />
-              </div>
-            </div>
+                  {/* Visibility Filter */}
+                  <select 
+                    value={filterVis} 
+                    onChange={e => setFilterVis(e.target.value)}
+                    className="bg-cw-bg border border-cw-bdr rounded-lg text-[13px] text-cw-txt py-1.5 px-3 outline-none"
+                  >
+                    <option value="All">All Visibility</option>
+                    <option value="Public">Public</option>
+                    <option value="Private">Private</option>
+                  </select>
+
+                  {/* Search */}
+                  <div className="relative w-full max-w-[250px]">
+                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-cw-txt3" />
+                    <input
+                      value={search}
+                      onChange={e => setSearch(e.target.value)}
+                      placeholder="Search repos..."
+                      className="w-full py-1.5 pl-9 pr-3 bg-cw-bg border border-cw-bdr rounded-lg text-[13px] text-cw-txt outline-none focus:border-cw-purple transition-colors"
+                    />
+                  </div>
+                </div>
+              </>
+            )}
 
             {/* Main List (First 8) */}
             <div className="w-full transition-all">
@@ -824,16 +840,14 @@ export function ConnectRepo({ user, onConnect, onSkip, activeOrg, setActiveOrg, 
           </div>
         </div>
       )}
-          {/* Theme Toggle (Bottom Left) */}
-      {onCycleTheme && (
-        <button 
-          onClick={onCycleTheme} 
-          className="absolute bottom-6 left-6 w-10 h-10 rounded-full border border-cw-bdr bg-cw-bg2 text-cw-txt2 flex items-center justify-center hover:bg-cw-bg3 hover:text-cw-txt shadow-sm transition-all z-50"
-          title="Toggle Theme"
-        >
-          {themeIcons[theme || 'dark']}
-        </button>
-      )}
+      {/* Floating Theme Toggle (Top Right) */}
+      <button 
+        onClick={handleCycleTheme} 
+        className="fixed top-4 right-6 w-9 h-9 rounded-full border border-cw-bdr bg-cw-bg2 text-cw-txt2 flex items-center justify-center hover:bg-cw-bg3 hover:text-cw-txt shadow-md transition-all z-50 cursor-pointer"
+        title="Toggle Theme"
+      >
+        {themeIcons[currentTheme]}
+      </button>
     </div>
   );
 }

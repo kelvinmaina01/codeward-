@@ -184,7 +184,7 @@ integrationsRouter.get('/google/gmail/connect', async (c) => {
   if (!user) return c.json({ error: 'Unauthorized' }, 401);
 
   const clientId = process.env.GOOGLE_CLIENT_ID;
-  const redirectUri = process.env.GOOGLE_REDIRECT_URI || 'http://localhost:3001/api/integrations/google/callback';
+  const redirectUri = process.env.GOOGLE_REDIRECT_URI || 'http://localhost:3000/api/integrations/google/callback';
 
   if (!clientId) {
     return c.json({ error: 'Google Client ID not configured' }, 500);
@@ -219,7 +219,7 @@ integrationsRouter.get('/google/workspace/connect', async (c) => {
   if (!user) return c.json({ error: 'Unauthorized' }, 401);
 
   const clientId = process.env.GOOGLE_CLIENT_ID;
-  const redirectUri = process.env.GOOGLE_REDIRECT_URI || 'http://localhost:3001/api/integrations/google/callback';
+  const redirectUri = process.env.GOOGLE_REDIRECT_URI || 'http://localhost:3000/api/integrations/google/callback';
 
   if (!clientId) return c.json({ error: 'Google Client ID not configured' }, 500);
 
@@ -253,7 +253,7 @@ integrationsRouter.get('/google/calendar/connect', async (c) => {
   if (!user) return c.json({ error: 'Unauthorized' }, 401);
 
   const clientId = process.env.GOOGLE_CLIENT_ID;
-  const redirectUri = process.env.GOOGLE_REDIRECT_URI || 'http://localhost:3001/api/integrations/google/callback';
+  const redirectUri = process.env.GOOGLE_REDIRECT_URI || 'http://localhost:3000/api/integrations/google/callback';
 
   if (!clientId) return c.json({ error: 'Google Client ID not configured' }, 500);
 
@@ -302,7 +302,7 @@ integrationsRouter.get('/google/callback', async (c) => {
 
     const clientId = process.env.GOOGLE_CLIENT_ID;
     const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-    const redirectUri = process.env.GOOGLE_REDIRECT_URI || 'http://localhost:3001/api/integrations/google/callback';
+    const redirectUri = process.env.GOOGLE_REDIRECT_URI || 'http://localhost:3000/api/integrations/google/callback';
 
     // Exchange code for tokens
     const tokenRes = await fetch('https://oauth2.googleapis.com/token', {

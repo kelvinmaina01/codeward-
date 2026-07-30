@@ -16,6 +16,20 @@ function logGordonEvent(params: {
 }) {
   const repoId = typeof (params.input as any)?.repoId === 'number' ? (params.input as any).repoId : null;
   const outputStr = JSON.stringify(params.output ?? null);
+  import('../../../routes/ws.js').then(({ broadcast }) => {
+    broadcast('gordon_tool_event', {
+      sessionId: params.sessionId ?? null,
+      toolName: params.toolName,
+      repoId,
+      success: params.success,
+      requiredApproval: params.requiredApproval,
+      durationMs: params.durationMs,
+      errorText: params.errorText ?? null,
+      input: params.input,
+      outputSummary: { preview: outputStr.slice(0, 1200), truncated: outputStr.length > 1200 },
+      createdAt: new Date().toISOString(),
+    });
+  }).catch(() => {});
   db.insert(gordonEvents).values({
     userId: params.userId, sessionId: params.sessionId ?? null, toolName: params.toolName, repoId,
     input: params.input as object, outputSummary: { preview: outputStr.slice(0, 2000), truncated: outputStr.length > 2000 },

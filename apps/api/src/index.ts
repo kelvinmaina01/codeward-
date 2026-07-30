@@ -139,7 +139,7 @@ const routes = app
 
 export type AppType = typeof routes;
 
-const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 3001;
+const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 console.log(`Server is running on port ${port}`);
 
 const server = serve({

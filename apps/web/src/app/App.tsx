@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRoutes, Navigate, useNavigate, useLocation, useParams, NavLink } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import {
@@ -40,6 +40,8 @@ import { ComparePage } from './components/ComparePage';
 import { BlogsPage } from './components/BlogsPage';
 import { SingleBlogPage } from './components/SingleBlogPage';
 import { BookDemo } from './components/BookDemo';
+import { UserProfilePopover } from './components/UserProfilePopover';
+import { NotificationsPopover } from './components/NotificationsPopover';
 import { AdminLayout } from './components/admin/AdminLayout';
 import { AdminOverview } from './components/admin/AdminOverview';
 import { AdminFeed } from './components/admin/AdminFeed';
@@ -59,6 +61,7 @@ import { AdminSandbox } from './components/admin/AdminSandbox';
 import { AdminGitHubApp } from './components/admin/AdminGitHubApp';
 import { AdminAlerts } from './components/admin/AdminAlerts';
 import { AdminSettings } from './components/admin/AdminSettings';
+import { InviteAcceptPage } from './components/InviteAcceptPage';
 import { blogs } from './data/blogs';
 import { comparisons } from './data/comparisons';
 
@@ -174,6 +177,9 @@ function DashboardLayout() {
   const [activeOrg, setActiveOrg] = useState<string>('');
   const [isGlobalFeedOpen, setIsGlobalFeedOpen] = useState(false);
   const [liveFeedView, setLiveFeedView] = useState<'stream' | 'canvas'>('canvas');
+  const [userPopoverOpen, setUserPopoverOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const bellRef = useRef<HTMLButtonElement>(null);
 
   const theme = themeOrder[themeIdx];
   const cycleTheme = () => setThemeIdx(i => (i + 1) % themeOrder.length);
@@ -248,57 +254,83 @@ function DashboardLayout() {
               <div className={`px-5 pb-2 text-[10px] font-medium text-cw-txt tracking-[0.07em] uppercase whitespace-nowrap overflow-hidden transition-opacity duration-300 ${isSidebarPinned ? 'opacity-100' : 'opacity-0'}`}>
                 {group.group}
               </div>
-              {nav.map(group => (
-                <div key={group.group} className="mb-4">
-                  {group.items.map(item => (
-                    <NavLink
-                      key={item.id}
-                      to={item.path}
-                      end={item.path === '/dashboard'}
-                      className={({ isActive }) =>
-                        `group flex items-center gap-3 px-[23px] py-2.5 text-[13px] cursor-pointer relative transition-colors ${isActive ? 'text-cw-txt font-semibold' : 'text-cw-txt2 font-medium hover:bg-cw-bg3 hover:text-cw-txt'}`
-                      }
-                    >
-                      {({ isActive }) => (
-                        <>
-                          {isActive && <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-cw-blue" />}
-                          <div className={`${isActive ? 'text-cw-blue' : 'text-cw-txt3 group-hover:text-cw-txt'} shrink-0 transition-colors`}>
-                            <item.icon size={20} strokeWidth={2.5} absoluteStrokeWidth />
-                          </div>
-                          <div className={`flex items-center flex-1 whitespace-nowrap overflow-hidden transition-opacity duration-300 ${isSidebarPinned ? 'opacity-100' : 'opacity-0'}`}>
-                            {item.label}
-                            {item.beta && <span className="ml-auto text-[9px] px-[6px] py-[1px] rounded-full border border-cw-purple text-cw-purple font-semibold tracking-wide">BETA</span>}
-                            {item.badge && <span className="ml-auto text-[10px] px-[6px] py-[2px] rounded-full bg-cw-red text-white font-medium">{item.badge}</span>}
-                          </div>
-                        </>
-                      )}
-                    </NavLink>
-                  ))}
-                </div>
+              {group.items.map(item => (
+                <NavLink
+                  key={item.id}
+                  to={item.path}
+                  end={item.path === '/dashboard'}
+                  className={({ isActive }) =>
+                    `group flex items-center gap-3 px-[23px] py-2.5 text-[13px] cursor-pointer relative transition-colors ${isActive ? 'text-cw-txt font-semibold' : 'text-cw-txt2 font-medium hover:bg-cw-bg3 hover:text-cw-txt'}`
+                  }
+                >
+                  {({ isActive }) => (
+                    <>
+                      {isActive && <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-cw-blue" />}
+                      <div className={`${isActive ? 'text-cw-blue' : 'text-cw-txt3 group-hover:text-cw-txt'} shrink-0 transition-colors`}>
+                        <item.icon size={20} strokeWidth={2.5} absoluteStrokeWidth />
+                      </div>
+                      <div className={`flex items-center flex-1 whitespace-nowrap overflow-hidden transition-opacity duration-300 ${isSidebarPinned ? 'opacity-100' : 'opacity-0'}`}>
+                        {item.label}
+                        {item.beta && <span className="ml-auto text-[9px] px-[6px] py-[1px] rounded-full border border-cw-purple text-cw-purple font-semibold tracking-wide">BETA</span>}
+                        {item.badge && <span className="ml-auto text-[10px] px-[6px] py-[2px] rounded-full bg-cw-red text-white font-medium">{item.badge}</span>}
+                      </div>
+                    </>
+                  )}
+                </NavLink>
               ))}
             </div>
           ))}
         </div>
 
-        {/* Footer */}
-        <div className={`mt-auto p-4 border-t border-cw-bdr flex items-center gap-3 whitespace-nowrap overflow-hidden transition-all duration-300`}>
-          <div className="w-8 h-8 rounded-full bg-cw-blue flex items-center justify-center text-[12px] text-white font-semibold shrink-0 overflow-hidden">
-            {session?.user?.image ? <img src={session.user.image} alt="Avatar" className="w-full h-full object-cover" /> : displayUser.avatar}
-          </div>
-          <div className={`flex-1 min-w-0 transition-opacity duration-300 ${isSidebarPinned ? 'opacity-100' : 'opacity-0'}`}>
-            <div className="text-[13px] text-cw-txt font-medium">{displayUser.name}</div>
-            <div className="flex gap-2 text-[10px] text-cw-txt3 mt-0.5">
-              <button onClick={() => navigate('/terms')} className="hover:text-cw-txt transition-colors">Terms</button>
-              <button onClick={() => navigate('/privacy')} className="hover:text-cw-txt transition-colors">Privacy</button>
+        {/* Sidebar Footer with User Profile Popover & Notifications Bell Icon */}
+        <div className="mt-auto p-4 border-t border-cw-bdr relative flex items-center justify-between gap-2">
+          {userPopoverOpen && (
+            <UserProfilePopover
+              onClose={() => setUserPopoverOpen(false)}
+              onOpenThemeModal={cycleTheme}
+            />
+          )}
+
+          {/* User Profile Block */}
+          <div
+            onClick={() => setUserPopoverOpen((prev) => !prev)}
+            className="flex items-center gap-3 whitespace-nowrap overflow-hidden transition-all duration-300 cursor-pointer p-1.5 rounded-xl hover:bg-cw-bg3 flex-1 min-w-0"
+          >
+            <div className="w-8 h-8 rounded-full bg-cw-purple/20 border border-cw-purple/40 flex items-center justify-center text-[12px] text-cw-purple font-bold shrink-0 overflow-hidden shadow-sm">
+              {session?.user?.image ? <img src={session.user.image} alt="Avatar" className="w-full h-full object-cover" /> : displayUser.avatar}
+            </div>
+            <div className={`flex-1 min-w-0 transition-opacity duration-300 ${isSidebarPinned ? 'opacity-100' : 'opacity-0'}`}>
+              <div className="text-[13px] text-cw-txt font-bold flex items-center justify-between">
+                <span className="truncate">{displayUser.name}</span>
+                <span className="text-[9px] text-cw-txt3 ml-1">⇕</span>
+              </div>
+              <div className="text-[10px] text-cw-txt3 font-medium">Personal Workspace</div>
             </div>
           </div>
-          <button
-            onClick={async () => { await signOut(); navigate('/login'); }}
-            title="Sign out"
-            className={`bg-transparent border-none cursor-pointer text-cw-red p-1 hover:bg-cw-red/10 rounded transition-all duration-300 ${isSidebarPinned ? 'opacity-100' : 'opacity-0'}`}
-          >
-            <LogOut size={16} />
-          </button>
+
+          {/* Sidebar Footer Notifications Bell Icon (Matching Bell placement with anchored left edge popover) */}
+          <div className="relative">
+            {notificationsOpen && (
+              <NotificationsPopover
+                anchorRef={bellRef}
+                onClose={() => setNotificationsOpen(false)}
+              />
+            )}
+            <button
+              ref={bellRef}
+              type="button"
+              onClick={() => setNotificationsOpen((prev) => !prev)}
+              className={`w-8 h-8 rounded-xl border border-cw-bdr bg-cw-bg3 text-cw-txt hover:text-cw-purple flex items-center justify-center cursor-pointer transition-all shrink-0 relative shadow-sm ${
+                isSidebarPinned ? 'opacity-100' : 'opacity-0'
+              }`}
+              title="Notifications"
+            >
+              <Bell size={15} />
+              <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-cw-red text-white text-[8px] font-bold flex items-center justify-center shadow-sm">
+                1
+              </span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -323,7 +355,8 @@ function DashboardLayout() {
                 </div>
               )}
             </div>
-            <div className="flex gap-3 items-center pointer-events-auto">
+            <div className="flex gap-3 items-center pointer-events-auto relative">
+
               {screen === 'repos' && (
                 <button
                   onClick={() => navigate('/connect')}
@@ -354,16 +387,16 @@ function DashboardLayout() {
               </button>
               
               <div className="flex items-center ml-2 border border-cw-bdr rounded-md bg-cw-bg2 overflow-hidden">
-                <button className="px-3 py-1.5 text-cw-txt text-[13px] font-medium hover:bg-cw-bg3 transition-colors flex items-center gap-2 border-r border-cw-bdr">
+                <button onClick={() => navigate('/dashboard/agent')} className="px-3 py-1.5 text-cw-txt text-[13px] font-medium hover:bg-cw-bg3 transition-colors flex items-center gap-2 border-r border-cw-bdr">
                   <Sparkles size={14} /> Skills
                 </button>
-                <button className="px-3 py-1.5 text-cw-txt text-[13px] font-medium hover:bg-cw-bg3 transition-colors flex items-center gap-2">
+                <button onClick={() => window.open('/docs', '_blank')} className="px-3 py-1.5 text-cw-txt text-[13px] font-medium hover:bg-cw-bg3 transition-colors flex items-center gap-2">
                   <FileText size={14} /> Docs
                 </button>
               </div>
 
-              <div className="flex items-center gap-1.5 px-3 py-1.5 ml-2 rounded-md border border-cw-bdr bg-cw-bg text-[13px] font-medium text-cw-txt">
-                <BadgeCheck size={14} className="text-cw-txt3" /> Free Tier
+              <div onClick={() => navigate('/dashboard/settings')} className="flex items-center gap-1.5 px-3 py-1.5 ml-2 rounded-md border border-cw-bdr bg-cw-bg text-[13px] font-medium text-cw-txt cursor-pointer hover:bg-cw-bg2 transition-colors">
+                <BadgeCheck size={14} className="text-cw-purple" /> Free Tier
               </div>
 
             </div>
@@ -603,6 +636,10 @@ export const routes = [
   {
     path: "/book-demo",
     element: <BookDemo />
+  },
+  {
+    path: "/invite/:token",
+    element: <InviteAcceptPage />
   },
   {
     path: "*",

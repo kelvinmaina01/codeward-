@@ -217,7 +217,7 @@ export function Dashboard({ onRunClick }: Props) {
       .catch(console.error);
 
     // WebSocket connection for real-time activity feed
-    const wsUrl = import.meta.env.VITE_WS_URL || 'ws://localhost:3001/ws/feed';
+    const wsUrl = import.meta.env.VITE_WS_URL || 'ws://localhost:3000/ws/feed';
     const ws = new WebSocket(wsUrl);
 
     ws.onmessage = (event) => {

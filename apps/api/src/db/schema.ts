@@ -320,9 +320,21 @@ export const workspaceInvite = pgTable('workspace_invite', {
   workspaceId: uuid('workspace_id').notNull().references(() => workspace.id, { onDelete: 'cascade' }),
   email: varchar('email', { length: 255 }).notNull(),
   role: varchar('role', { length: 50 }).notNull().default('member'),
-  otp: varchar('otp', { length: 10 }).notNull(),
+  otp: varchar('otp', { length: 10 }), // Nullable now since we use magic links
   expiresAt: timestamp('expires_at').notNull(),
   status: varchar('status', { length: 20 }).default('pending').notNull(),
   invitedBy: text('invited_by').notNull().references(() => user.id, { onDelete: 'cascade' }),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
+
+export const workspaceAuditLog = pgTable('workspace_audit_log', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  workspaceId: uuid('workspace_id').notNull().references(() => workspace.id, { onDelete: 'cascade' }),
+  userId: text('user_id').references(() => user.id, { onDelete: 'set null' }),
+  actorName: varchar('actor_name', { length: 255 }).notNull(),
+  action: text('action').notNull(),
+  ipAddress: varchar('ip_address', { length: 45 }),
+  status: varchar('status', { length: 20 }).default('success').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
