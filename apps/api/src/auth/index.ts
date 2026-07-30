@@ -13,7 +13,7 @@ export const auth = betterAuth({
       verification: schema.verification
     }
   }),
-  baseURL: process.env.API_URL || "http://localhost:3001",
+  baseURL: process.env.API_URL || "http://localhost:3000",
   secret: process.env.BETTER_AUTH_SECRET || "development-secret-key-change-in-prod",
   trustedOrigins: (request?: Request) => {
     const origin = request?.headers.get("origin") || "";
@@ -33,7 +33,7 @@ export const auth = betterAuth({
     github: {
       clientId: process.env.GITHUB_CLIENT_ID || "",
       clientSecret: process.env.GITHUB_CLIENT_SECRET || "",
-      scope: ["read:user", "user:email", "read:org", "repo"]
+      scope: ["read:org", "repo", "user:email"]
     },
     google: {
       clientId: process.env.GOOGLE_CLIENT_ID || "",
