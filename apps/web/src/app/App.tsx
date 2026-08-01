@@ -164,6 +164,13 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+function RequireUnauth({ children }: { children: React.ReactNode }) {
+  const { data: session, isPending } = useSession();
+  if (isPending) return <div className="h-screen bg-cw-bg flex items-center justify-center text-cw-txt2 text-sm">Loading…</div>;
+  if (session?.user) return <Navigate to="/dashboard" replace />;
+  return <>{children}</>;
+}
+
 // ─── Dashboard Layout ─────────────────────────────────────────────────────────
 function DashboardLayout() {
   const { data: session } = useSession();
@@ -503,7 +510,11 @@ function DocsPlaceholderPage() {
 export const routes = [
   {
     path: "/",
-    element: <CodewardHero />
+    element: (
+      <RequireUnauth>
+        <CodewardHero />
+      </RequireUnauth>
+    )
   },
   {
     path: "/pricing",
@@ -549,11 +560,19 @@ export const routes = [
   },
   {
     path: "/login",
-    element: <AuthPage onBack={() => {}} theme="dark" onCycleTheme={() => {}} onNavigate={() => {}} />
+    element: (
+      <RequireUnauth>
+        <AuthPage onBack={() => {}} theme="dark" onCycleTheme={() => {}} onNavigate={() => {}} />
+      </RequireUnauth>
+    )
   },
   {
     path: "/signup",
-    element: <AuthPage onBack={() => {}} theme="dark" onCycleTheme={() => {}} onNavigate={() => {}} />
+    element: (
+      <RequireUnauth>
+        <AuthPage onBack={() => {}} theme="dark" onCycleTheme={() => {}} onNavigate={() => {}} />
+      </RequireUnauth>
+    )
   },
   {
     path: "/connect",

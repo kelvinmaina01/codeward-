@@ -58,7 +58,7 @@ export function AuthPage({ onBack, theme: _theme, onCycleTheme, onNavigate: _onN
     try {
       await signIn.social({
         provider,
-        callbackURL: window.location.origin + '/connect',
+        callbackURL: window.location.origin + '/dashboard',
       });
     } catch (err: unknown) {
       console.error('[Auth] OAuth sign-in failed:', err);

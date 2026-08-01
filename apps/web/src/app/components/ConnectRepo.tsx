@@ -1,9 +1,8 @@
-import { useState, useEffect } from 'react';
-import { Search, Star, Lock, Globe, Check, Loader, GitBranch, AlertCircle, RefreshCw, X, ChevronDown, Shield, FileWarning, Zap, Server, ShieldAlert, Cpu, LogOut, Clock, Sun, Moon, Circle, ArrowRight, BarChart2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Search, Loader, ShieldAlert, ArrowRight, ChevronDown, Check, Sun, Moon, Circle, Shield, FileWarning, Zap, Server, Cpu, BarChart2, Lock, GitBranch } from 'lucide-react';
 import { toast } from 'sonner';
-import { signOut } from '../../lib/auth';
 import { api } from '../../lib/api';
-import { LinkProvider } from './LinkProvider';
+import { authClient } from '../../lib/auth';
 
 interface Props {
   user: { name: string; email?: string; image?: string };
@@ -57,20 +56,8 @@ interface Repo {
   owner: string;
   auditStatus?: 'pending_audit' | 'active' | 'unconnected';
   grantedToApp?: boolean;
+  connected?: boolean;
 }
-
-const langColors: Record<string, string> = {
-  TypeScript: '#3178C6',
-  JavaScript: '#F7DF1E',
-  Python: '#3776AB',
-  Go: '#00ADD8',
-  Ruby: '#CC342D',
-  Shell: '#4EAA25',
-  Rust: '#DEA584',
-  Java: '#B07219',
-  'C#': '#178600',
-  Unknown: '#6B7280',
-};
 
 const AGENTS = [
   { id: 'security', name: 'Security Agent', desc: 'Secrets, CVEs, OWASP, SQL injection', icon: Shield, bg: 'bg-cw-red/10', border: 'border-cw-red/20', text: 'text-cw-red' },
@@ -92,79 +79,45 @@ const renderChannelIcon = (name: string) => {
   }
 };
 
-function timeAgoColor(dateStr: string) {
-  const diffMs = Date.now() - new Date(dateStr).getTime();
-  const days = Math.floor(diffMs / 86400000);
-  if (days < 1) return 'text-[#16A34A]';
-  if (days <= 7) return 'text-[#e8e8e6]';
-  return 'text-[#6B7280]';
-}
-
-function timeAgo(dateStr: string): string {
-  const now = Date.now();
-  const then = new Date(dateStr).getTime();
-  const diffMs = now - then;
-  const mins = Math.floor(diffMs / 60000);
-  if (mins < 60) return `${mins}m ago`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  if (days < 7) return `${days}d ago`;
-  const weeks = Math.floor(days / 7);
-  if (weeks < 4) return `${weeks}w ago`;
-  const months = Math.floor(days / 30);
-  return `${months}mo ago`;
-}
+const STEPS = {
+  SELECT_METHOD: 1,
+  GITLAB_AUTH: 2,
+  SELECT_REPOSITORY: 3,
+  CONFIGURE_APPLICATION: 4
+};
 
 export function ConnectRepo({ user, onConnect, onSkip, activeOrg, setActiveOrg, orgs: propOrgs, theme, onCycleTheme }: Props) {
+  const [activeStep, setActiveStep] = useState(STEPS.SELECT_METHOD);
+  const [authProvider, setAuthProvider] = useState<'github' | 'gitlab' | null>(null);
+  
+  // GitLab state form values
+  const [gitlabUrl, setGitlabUrl] = useState('https://gitlab.com');
+  const [gitlabToken, setGitlabToken] = useState('');
+
+  // Repositories state
   const [repos, setRepos] = useState<Repo[]>([]);
   const [localOrgs, setLocalOrgs] = useState<string[]>([]);
-  const [currentTheme, setCurrentTheme] = useState<'dark' | 'white' | 'cream'>((theme as 'dark' | 'white' | 'cream') || 'dark');
-
-  const handleCycleTheme = () => {
-    const themes: ('dark' | 'white' | 'cream')[] = ['dark', 'white', 'cream'];
-    const nextIdx = (themes.indexOf(currentTheme) + 1) % themes.length;
-    const nextTheme = themes[nextIdx];
-    setCurrentTheme(nextTheme);
-    onCycleTheme?.();
-  };
-  // Selection state
-  const [selected, setSelected] = useState<string[]>([]);
-  const [connecting, setConnecting] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  // Filters
-  const [search, setSearch] = useState('');
-  const [filterLang, setFilterLang] = useState('All');
-  const [filterVis, setFilterVis] = useState('All');
-
-  // UI State
-  const [showAllPanel, setShowAllPanel] = useState(false);
-  const [showPermissionsModal, setShowPermissionsModal] = useState(false);
-  const [showOrgDropdown, setShowOrgDropdown] = useState(false);
-  const [expandedRepo, setExpandedRepo] = useState<string | null>(null);
+  const [loadingRepos, setLoadingRepos] = useState(false);
+  const [repoError, setRepoError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedRepos, setSelectedRepos] = useState<string[]>([]);
   
-  // Config state per repo
+  // Theme state
+  const [currentTheme, setCurrentTheme] = useState<'dark' | 'white' | 'cream'>((theme as 'dark' | 'white' | 'cream') || 'dark');
+  const themeIcons: Record<string, React.ReactNode> = { cream: <Circle size={14} fill="#c5a882" color="#c5a882" />, dark: <Moon size={14} />, white: <Sun size={14} /> };
+  
+  // Organization UI state
+  const [showOrgDropdown, setShowOrgDropdown] = useState(false);
+
+  // Config state
   const [configs, setConfigs] = useState<Record<string, RepoConfig>>({});
+  const [connecting, setConnecting] = useState(false);
 
-  // Close panels on escape
-  useEffect(() => {
-    const handleEsc = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        setShowAllPanel(false);
-        setShowPermissionsModal(false);
-        setShowOrgDropdown(false);
-      }
-    };
-    window.addEventListener('keydown', handleEsc);
-    return () => window.removeEventListener('keydown', handleEsc);
-  }, []);
-
+  // Fetch repositories
   useEffect(() => {
     const fetchRepos = async () => {
-      setLoading(true);
-      setError(null);
+      setLoadingRepos(true);
+      setRepoError(null);
       try {
         const res = await api.api.repos.$get();
         if (!res.ok) {
@@ -172,8 +125,6 @@ export function ConnectRepo({ user, onConnect, onSkip, activeOrg, setActiveOrg, 
           throw new Error(errData.error || 'Failed to fetch repos');
         }
         const data = await res.json() as any;
-        
-        if (!res.ok) throw new Error(data.error || 'Failed to fetch repos');
         
         // Setup initial org
         const firstOrg = data.orgs[0];
@@ -187,35 +138,46 @@ export function ConnectRepo({ user, onConnect, onSkip, activeOrg, setActiveOrg, 
         if (!activeOrg && setActiveOrg) setActiveOrg(actualOrgs[0] || '');
 
         setRepos(data.repos || []);
+        
+        // If we successfully fetched repos, we are connected to GitHub, so we can jump to Step 3
+        setAuthProvider('github');
+        setActiveStep(STEPS.SELECT_REPOSITORY);
       } catch (err: any) {
-        toast.error(err.message || 'Failed to load repositories');
-        setError(err.message || 'Failed to load repositories');
+        setRepoError(err.message || 'Failed to load repositories');
+        // If "No GitHub account linked", stay on step 1
       } finally {
-        setLoading(false);
+        setLoadingRepos(false);
       }
     };
     fetchRepos();
-  }, [user.name]);
+  }, [user.name, activeOrg, setActiveOrg]);
 
-  // Derived data
-  const filteredRepos = repos.filter(r => {
-    const matchesOrg = !activeOrg || r.owner === activeOrg;
-    const matchesSearch = !search || r.name.toLowerCase().includes(search.toLowerCase()) || r.desc?.toLowerCase().includes(search.toLowerCase());
-    const matchesLang = filterLang === 'All' || r.lang === filterLang;
-    const matchesVis = filterVis === 'All' || (filterVis === 'Public' ? !r.private : r.private);
-    return matchesOrg && matchesSearch && matchesLang && matchesVis;
-  });
+  const handleCycleTheme = () => {
+    const themes: ('dark' | 'white' | 'cream')[] = ['dark', 'white', 'cream'];
+    const nextIdx = (themes.indexOf(currentTheme) + 1) % themes.length;
+    const nextTheme = themes[nextIdx];
+    setCurrentTheme(nextTheme);
+    onCycleTheme?.();
+  };
 
-  const languages = ['All', ...Array.from(new Set(repos.filter(r => !activeOrg || r.owner === activeOrg).map(r => r.lang))).filter(Boolean)];
+  const handleLinkAccount = async (provider: 'github' | 'gitlab') => {
+    try {
+      await authClient.signIn.social({
+        provider: provider,
+        callbackURL: window.location.origin + '/connect',
+      });
+    } catch (err: any) {
+      toast.error(err.message || `Failed to connect ${provider} account`);
+    }
+  };
 
-  // Actions
   const toggleRepoSelection = (full: string) => {
     const repo = repos.find(r => r.full === full);
     if (repo && repo.grantedToApp === false) {
       toast.error('You must grant the GitHub App access to this repository first.');
       return;
     }
-    setSelected(s => s.includes(full) ? s.filter(x => x !== full) : [...s, full]);
+    setSelectedRepos(s => s.includes(full) ? s.filter(x => x !== full) : [...s, full]);
   };
 
   const toggleAlert = (repoFull: string, channel: keyof RepoConfig['alerts']) => {
@@ -225,21 +187,25 @@ export function ConnectRepo({ user, onConnect, onSkip, activeOrg, setActiveOrg, 
     });
   };
 
-  const executeConnect = async (repoSubset: Repo[]) => {
+  const executeConnect = async () => {
+    if (selectedRepos.length === 0) return;
     setConnecting(true);
-    const connectToast = toast.loading(`Connecting ${repoSubset.length} repo(s)...`);
+    const connectToast = toast.loading(`Connecting ${selectedRepos.length} repo(s)...`);
     
     try {
-      const payload = repoSubset.map(r => ({
-        full: r.full,
-        name: r.name,
-        owner: r.owner,
-        desc: r.desc,
-        lang: r.lang,
-        isPrivate: r.private,
-        defaultBranch: r.defaultBranch,
-        config: configs[r.full] || DEFAULT_CONFIG
-      }));
+      const payload = selectedRepos.map(full => {
+        const r = repos.find(rp => rp.full === full)!;
+        return {
+          full: r.full,
+          name: r.name,
+          owner: r.owner,
+          desc: r.desc,
+          lang: r.lang,
+          isPrivate: r.private,
+          defaultBranch: r.defaultBranch,
+          config: configs[r.full] || DEFAULT_CONFIG
+        };
+      });
 
       const res = await api.api.repos.connect.$post({ json: { repos: payload } });
 
@@ -249,13 +215,6 @@ export function ConnectRepo({ user, onConnect, onSkip, activeOrg, setActiveOrg, 
       }
       
       toast.dismiss(connectToast);
-      
-      // Update local state to show connected
-      setRepos(prev => prev.map(r => payload.find(p => p.full === r.full) ? { ...r, connected: true } : r));
-      setSelected(s => s.filter(x => !payload.find(p => p.full === x)));
-      setExpandedRepo(null);
-      
-      payload.forEach(p => toast.success(`✅ ${p.name} connected successfully`));
       
       // Call prop callback if we successfully connected
       onConnect(payload.map(p => p.full));
@@ -268,374 +227,181 @@ export function ConnectRepo({ user, onConnect, onSkip, activeOrg, setActiveOrg, 
     }
   };
 
-  const handleInlineConnect = (repo: Repo) => {
-    executeConnect([repo]);
-  };
-
-  const handleBulkConnect = () => {
-    const selectedRepos = repos.filter(r => selected.includes(r.full));
-    executeConnect(selectedRepos);
-  };
-
-  const RepoCard = ({ repo, compact = false }: { repo: Repo, compact?: boolean }) => {
-    const sel = selected.includes(repo.full);
-    const isExpanded = expandedRepo === repo.full;
-    const config = configs[repo.full] || DEFAULT_CONFIG;
-
-    return (
-      <div className={`relative flex flex-col bg-cw-bg transition-colors duration-200 ${
-        compact 
-          ? `border ${sel || repo.connected || isExpanded ? 'border-cw-purple' : 'border-cw-bdr'} rounded-xl mb-3 ${repo.archived ? 'opacity-50 grayscale' : 'hover:border-cw-txt3'}`
-          : `border-b border-cw-bdr last:border-0 ${sel || isExpanded ? 'bg-cw-purple/5' : 'hover:bg-cw-bg3'} ${repo.archived ? 'opacity-50 grayscale' : ''}`
-      }`}>
-        {/* Main Row */}
-        <div 
-          onClick={() => {
-            if (repo.archived) return;
-            if (compact) {
-              if (repo.connected) window.location.href = `/dashboard/repos`;
-              return;
-            }
-            if (repo.connected) {
-              window.location.href = `/dashboard/repos`;
-            } else {
-              setExpandedRepo(expandedRepo === repo.full ? null : repo.full);
-            }
-          }}
-          className={
-            compact 
-              ? `p-4 md:p-5 flex items-start sm:items-center justify-between gap-4 ${!repo.archived ? 'cursor-pointer' : ''}`
-              : `p-4 flex flex-col md:flex-row md:items-center gap-4 ${!repo.archived ? 'cursor-pointer' : ''}`
-          }
-        >
-          {/* Checkbox (Always visible if needed, but here mainly for compact or left side of table) */}
-          <div 
-            className="hidden md:flex w-8 shrink-0 items-center justify-center cursor-pointer"
-            onClick={(e) => { e.stopPropagation(); if (!repo.connected) toggleRepoSelection(repo.full); }}
-          >
-            <div className={`w-[18px] h-[18px] rounded-[5px] border-[1.5px] flex items-center justify-center transition-all duration-150 ${sel || repo.connected ? 'border-cw-purple bg-cw-purple' : 'border-cw-bdr bg-cw-bg2'}`}>
-              {(sel || repo.connected) && <Check size={11} color="#fff" />}
-            </div>
-          </div>
-          
-          {/* Mobile Checkbox for compact */}
-          {compact && (
-            <div 
-              className={`md:hidden w-[18px] h-[18px] mt-0.5 rounded-[5px] border-[1.5px] flex items-center justify-center shrink-0 cursor-pointer transition-all duration-150 ${sel || repo.connected ? 'border-cw-purple bg-cw-purple' : 'border-cw-bdr bg-transparent'}`}
-              onClick={(e) => { e.stopPropagation(); if (!repo.connected) toggleRepoSelection(repo.full); }}
-            >
-              {(sel || repo.connected) && <Check size={11} color="#fff" />}
-            </div>
-          )}
-
-          {/* Table Column 1: Repository Info */}
-          <div className={`min-w-0 ${compact ? 'flex-1' : 'flex-[2] min-w-[200px]'}`}>
-            <div className="flex items-center gap-2 mb-1 flex-wrap">
-              {repo.private ? <Lock size={14} className="text-cw-amber shrink-0" /> : <Globe size={14} className="text-cw-green shrink-0" />}
-              <span className="text-[14px] font-bold text-cw-txt truncate">{repo.name}</span>
-              {repo.connected && repo.auditStatus === 'pending_audit' && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-cw-amber/10 text-cw-amber tracking-wider ml-1 flex items-center gap-1 shrink-0"><Loader size={10} className="animate-spin" /> INITIAL AUDIT RUNNING...</span>}
-              {repo.connected && repo.auditStatus === 'active' && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-cw-green/10 text-cw-green tracking-wider ml-1 flex items-center gap-1 shrink-0"><Shield size={10} /> PROTECTED</span>}
-              {repo.connected && (!repo.auditStatus || repo.auditStatus === 'unconnected') && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-cw-green/10 text-cw-green tracking-wider ml-1 shrink-0">✓ CONNECTED</span>}
-              {repo.archived && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-cw-red/10 text-cw-red tracking-wider ml-1 shrink-0">ARCHIVED</span>}
-            </div>
-            
-            <div className={`text-[12px] text-cw-txt2 mt-1 line-clamp-1 ${compact ? '' : 'pr-4'}`}>{repo.desc || 'No description provided.'}</div>
-            
-            {/* Mobile / Compact Meta tags (hidden on desktop if !compact) */}
-            <div className={`flex items-center gap-3 mt-2 flex-wrap ${!compact ? 'md:hidden' : ''}`}>
-              <div className="flex items-center gap-1.5">
-                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: langColors[repo.lang] || langColors.Unknown }} />
-                <span className="text-[11px] text-cw-txt">{repo.lang}</span>
-              </div>
-              {repo.stars > 0 && <span className="flex items-center gap-1 text-[11px] text-cw-txt"><Star size={11} className="text-cw-amber fill-cw-amber" /> {repo.stars}</span>}
-              <span className="flex items-center gap-1 text-[11px] text-cw-txt3"><Clock size={11} /> {timeAgo(repo.pushed)}</span>
-            </div>
-          </div>
-
-          {/* Table Column 2: Language (Desktop only when !compact) */}
-          {!compact && (
-            <div className="hidden md:flex flex-1 min-w-[100px] items-center gap-2">
-              <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: langColors[repo.lang] || langColors.Unknown }} />
-              <span className="text-[13px] text-cw-txt font-medium">{repo.lang}</span>
-            </div>
-          )}
-
-          {/* Table Column 3: Stats (Desktop only when !compact) */}
-          {!compact && (
-            <div className="hidden md:flex flex-1 min-w-[120px] items-center gap-3 text-[12px] text-cw-txt2">
-              {repo.stars > 0 && <span className="flex items-center gap-1" title="Stars"><Star size={13} className="text-cw-amber" /> {repo.stars}</span>}
-              {repo.forks > 0 && <span className="flex items-center gap-1" title="Forks"><GitBranch size={13} /> {repo.forks}</span>}
-              {repo.issues > 0 && <span className={`flex items-center gap-1 ${repo.issues > 10 ? 'text-cw-red' : 'text-cw-amber'}`} title="Issues"><AlertCircle size={13} /> {repo.issues}</span>}
-              {repo.stars === 0 && repo.forks === 0 && repo.issues === 0 && <span className="text-cw-txt3 opacity-50">—</span>}
-            </div>
-          )}
-
-          {/* Table Column 4: Updated (Desktop only when !compact) */}
-          {!compact && (
-            <div className="hidden md:flex flex-1 min-w-[100px] flex-col justify-center text-[12px]">
-              <span className="text-cw-txt font-medium mb-0.5">{timeAgo(repo.pushed)}</span>
-              {repo.size > 0 && <span className="text-cw-txt3">{(repo.size / 1024).toFixed(1)} MB</span>}
-            </div>
-          )}
-
-          {/* Table Column 5 / Compact Action: Actions */}
-          <div className={`shrink-0 flex items-center justify-end gap-2 ${compact ? 'pt-2 md:pt-0' : 'w-[120px]'}`}>
-            {!repo.connected && !repo.archived && (
-              <>
-                {!compact && (
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); setExpandedRepo(isExpanded ? null : repo.full); }}
-                    className="w-8 h-[30px] flex items-center justify-center bg-cw-bg2 border border-cw-bdr hover:bg-cw-bg3 text-cw-txt3 hover:text-cw-txt text-[12px] font-medium rounded-lg transition-colors"
-                  >
-                    <ChevronDown size={14} className={`transform transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
-                  </button>
-                )}
-                {repo.grantedToApp === false ? (
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); window.open(`https://github.com/apps/${import.meta.env.VITE_GITHUB_APP_NAME || 'codeward'}/installations/new`, '_blank'); }}
-                    className={`h-[30px] bg-cw-bg3 border border-cw-bdr hover:bg-cw-bg text-cw-txt font-semibold rounded-lg transition-colors flex items-center justify-center gap-2 whitespace-nowrap ${compact ? 'px-3 text-[11px]' : 'px-4 text-[12px]'}`}
-                    title="This repository has not been granted to the GitHub App. Click to configure access."
-                  >
-                    <ShieldAlert size={14} className="text-cw-amber" />
-                    <span className={compact ? 'hidden sm:inline' : ''}>Grant Access</span>
-                  </button>
-                ) : (
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); handleInlineConnect(repo); }}
-                    disabled={connecting}
-                    className={`h-[30px] bg-cw-purple hover:brightness-110 text-white font-semibold rounded-lg transition-colors flex items-center justify-center gap-2 whitespace-nowrap disabled:opacity-50 ${compact ? 'px-3 text-[11px]' : 'px-4 text-[12px]'}`}
-                  >
-                    {connecting ? <Loader size={14} className="animate-spin" /> : <GitBranch size={14} />}
-                    <span className={compact ? 'hidden sm:inline' : ''}>Connect</span>
-                  </button>
-                )}
-              </>
-            )}
-
-            {repo.connected && !repo.archived && (
-              <button 
-                onClick={(e) => { e.stopPropagation(); window.location.href = `/dashboard/repos`; }}
-                className={`h-[30px] bg-[#2EA043] hover:bg-[#2c974b] text-white font-semibold rounded-lg transition-colors flex items-center justify-center gap-1 whitespace-nowrap ${compact ? 'px-2.5 text-[11px]' : 'px-4 text-[12px]'}`}
-              >
-                Go <span className={compact ? 'hidden sm:inline' : ''}>to Repo</span>
-                <ArrowRight size={14} />
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Scope Selector Drawer (Expands below the row) */}
-        {!compact && isExpanded && !repo.connected && (
-          <div className="border-t border-cw-bdr bg-cw-bg2/50 p-5 md:pl-[4.5rem] animate-in slide-in-from-top-2 duration-200">
-            <div className="bg-cw-purple/10 border border-cw-purple/20 rounded-xl p-4 mb-6 flex gap-3">
-              <Cpu className="text-cw-purple shrink-0 mt-0.5" size={20} />
-              <div>
-                <h4 className="text-[13px] font-bold text-cw-purple mb-1">Codeward dispatches a swarm of agents</h4>
-                <p className="text-[12px] text-cw-purple/80 leading-relaxed max-w-[600px]">
-                  These specialized agents will guard <strong>{repo.name}</strong> on every pull request. They clone your code into ephemeral sandboxes to run live tests, detect vulnerabilities, and submit automated PRs. Important findings will be sent to your configured alert channels.
-                </p>
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-5">
-              {AGENTS.map(agent => {
-                return (
-                  <div 
-                    key={agent.id}
-                    className={`flex items-start gap-3 p-3 rounded-lg border ${agent.bg} ${agent.border} transition-all`}
-                  >
-                    <div className={`mt-0.5 w-[28px] h-[28px] rounded-lg flex items-center justify-center shrink-0 ${agent.bg} ${agent.text} shadow-sm`}>
-                      <agent.icon size={15} />
-                    </div>
-                    <div>
-                      <div className={`text-[12px] font-bold ${agent.text} flex items-center gap-1.5 line-clamp-1`}>
-                        {agent.name}
-                      </div>
-                      <div className="text-[11px] text-cw-txt2 mt-0.5 leading-tight line-clamp-2">{agent.desc}</div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-            
-            <div className="pt-4 border-t border-cw-bdr mb-6">
-              <h5 className="text-[12px] font-bold text-cw-txt mb-3">Alert Channels</h5>
-              <div className="flex flex-wrap gap-4">
-                {['slack', 'email', 'whatsapp', 'calendar'].map((channel) => (
-                  <label key={channel} className={`flex items-center gap-2 cursor-pointer text-[12px] text-cw-txt font-medium bg-cw-bg px-3 py-2 border rounded-lg transition-colors ${config.alerts[channel as keyof RepoConfig['alerts']] ? 'border-cw-purple shadow-sm bg-cw-purple/5' : 'border-cw-bdr hover:border-cw-txt3'}`}>
-                    <input 
-                      type="checkbox" 
-                      checked={config.alerts[channel as keyof RepoConfig['alerts']]} 
-                      onChange={() => toggleAlert(repo.full, channel as keyof RepoConfig['alerts'])} 
-                      className="accent-cw-purple hidden" 
-                    />
-                    {renderChannelIcon(channel)}
-                    <span className="capitalize">{channel}</span>
-                  </label>
-                ))}
-              </div>
-              <div className="text-[10px] text-cw-txt3 mt-2">Settings can be overridden globally in Alerts page.</div>
-            </div>
-
-            <div className="flex justify-end">
-              {repo.grantedToApp === false ? (
-                <button
-                  onClick={(e) => { e.stopPropagation(); window.open(`https://github.com/apps/${import.meta.env.VITE_GITHUB_APP_NAME || 'codeward'}/installations/new`, '_blank'); }}
-                  className="px-5 py-2 bg-cw-bg3 hover:bg-cw-bg border border-cw-bdr text-cw-txt text-[13px] font-semibold rounded-lg flex items-center gap-2 transition-colors shadow-sm"
-                >
-                  <ShieldAlert size={14} className="text-cw-amber" />
-                  Grant Access via GitHub
-                </button>
-              ) : (
-                <button
-                  onClick={(e) => { e.stopPropagation(); handleInlineConnect(repo); }}
-                  disabled={connecting}
-                  className="px-5 py-2 bg-cw-purple hover:brightness-110 text-white text-[13px] font-semibold rounded-lg flex items-center gap-2 transition-colors shadow-sm disabled:opacity-50"
-                >
-                  {connecting ? <Loader size={14} className="animate-spin" /> : <GitBranch size={14} />}
-                  Confirm Connection
-                </button>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  const currentStep = connecting ? 3 : (expandedRepo || selected.length > 0 ? 2 : 1);
-  const firstName = localOrgs[0] || user.name?.split(' ')[0] || 'User';
-  const themeIcons: Record<string, React.ReactNode> = { cream: <Circle size={14} fill="#c5a882" color="#c5a882" />, dark: <Moon size={14} />, white: <Sun size={14} /> };
-
+  const filteredRepos = repos.filter(r => {
+    const matchesOrg = !activeOrg || r.owner === activeOrg;
+    const matchesSearch = !searchQuery || r.name.toLowerCase().includes(searchQuery.toLowerCase()) || (r.desc && r.desc.toLowerCase().includes(searchQuery.toLowerCase()));
+    return matchesOrg && matchesSearch;
+  });
 
   return (
-    <div className={`theme-${currentTheme} h-screen bg-cw-bg text-cw-txt font-sans flex flex-col overflow-hidden`}>
-      <style>{`@import url(\'https://fonts.googleapis.com/css2?family=DM+Sans:wght@700&display=swap\');`}</style>
-      {/* Header — Rendered only when Git account IS connected */}
-      {error !== 'No GitHub account linked' && (
-        <div className="bg-cw-bg2 border-b border-cw-bdr px-8 py-4 flex items-center justify-between shrink-0">
-          <div className="text-base font-bold tracking-tight">
-            Code<span className="text-cw-purple">ward</span>
-          </div>
-          <div className="flex items-center gap-4">
-            <button 
-              onClick={async () => {
-                await signOut();
-                window.location.reload();
-              }}
-              className="flex items-center gap-2 text-cw-txt2 hover:text-cw-txt text-[13px] font-medium transition-colors"
-            >
-              <LogOut size={16} /> Sign out
-            </button>
-            <div className="w-8 h-8 rounded-full bg-cw-purple flex items-center justify-center text-[12px] font-bold text-white overflow-hidden">
-              {user.image ? <img src={user.image} alt="Avatar" className="w-full h-full object-cover" /> : user.name.charAt(0).toUpperCase()}
-            </div>
+    <div className={`theme-${currentTheme} min-h-screen bg-cw-bg text-cw-txt flex items-center justify-center p-6 font-sans relative`}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@700&display=swap');`}</style>
+      
+      {/* Floating Theme Toggle (Top Right) */}
+      <button 
+        onClick={handleCycleTheme} 
+        className="fixed top-4 right-6 w-9 h-9 rounded-full border border-cw-bdr bg-cw-bg2 text-cw-txt2 flex items-center justify-center hover:bg-cw-bg3 hover:text-cw-txt shadow-md transition-all z-50 cursor-pointer"
+        title="Toggle Theme"
+      >
+        {themeIcons[currentTheme]}
+      </button>
+
+      {/* Skip for now button */}
+      <button 
+        onClick={onSkip}
+        className="fixed top-4 right-20 px-4 py-2 text-[13px] font-medium text-cw-txt2 hover:text-cw-txt bg-cw-bg2 border border-cw-bdr rounded-lg hover:bg-cw-bg3 transition-colors z-50 cursor-pointer shadow-md"
+      >
+        Skip for now
+      </button>
+
+      <div className="w-full max-w-6xl grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
+        
+        {/* LEFT COLUMN: Section Descriptor */}
+        <div className="col-span-1 md:col-span-3 pt-4">
+          <h2 className="text-2xl font-bold tracking-tight text-cw-txt" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+            Connect Repositories
+          </h2>
+          <p className="text-[13px] text-cw-txt2 mt-2">
+            Link your codebase to Codeward for automated security, bloat, and code architecture tracking.
+          </p>
+          <div className="mt-8 pt-6 border-t border-slate-800/60 flex flex-col gap-3 text-[12px] text-slate-400">
+            <span className="flex items-center gap-2">
+              <Lock size={14} className="text-[#8b5cf6]" />
+              Encrypted OAuth Handshake
+            </span>
+            <span className="flex items-center gap-2">
+              <Check size={14} className="text-[#2EA043]" />
+              Granular Repo Permissions
+            </span>
+            <span className="flex items-center gap-2">
+              <Shield size={14} className="text-[#8b5cf6]" />
+              SOC2 Ready Security
+            </span>
           </div>
         </div>
-      )}
 
-      {/* Split Content Area */}
-      <div className="flex-1 flex overflow-hidden relative">
-        
-        {/* Main Left Content */}
-        <div className="flex-1 overflow-y-auto w-full transition-all duration-300">
-          <div className={`w-full max-w-[1200px] mx-auto px-4 md:px-8 ${error === 'No GitHub account linked' ? 'pt-10 md:pt-14' : 'pt-8'} pb-32 flex flex-col items-center`}>
-            <h1 className="text-4xl text-cw-txt mb-2 tracking-tight" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-              Welcome back, <span className="text-cw-purple">{firstName}</span> 👋
-            </h1>
-            <p className={`text-[14px] text-cw-txt2 ${error === 'No GitHub account linked' ? 'mb-4' : 'mb-10'}`}>Connect your repositories to get started with Codeward</p>
+        {/* CENTER COLUMN: Central Interactive Core Card Panel */}
+        <div className="col-span-1 md:col-span-6 bg-[#1a1d24] border border-[#334155] rounded-xl p-6 min-h-[460px] flex flex-col justify-between shadow-xl">
+          
+          {/* STEP 1: Select Authentication Provider */}
+          {activeStep === STEPS.SELECT_METHOD && (
+            <div className="space-y-6 flex-1 flex flex-col justify-between animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <div>
+                <h3 className="text-lg font-bold text-slate-100">Ship something new</h3>
+                <p className="text-[13px] text-slate-400 mt-1">Select your provider to link repositories to Codeward.</p>
+                
+                {repoError && repoError !== 'No GitHub account linked' && (
+                  <div className="mt-4 p-3 bg-red-900/10 border border-red-500/20 rounded-lg text-red-400 text-[13px] flex items-center gap-2">
+                    <ShieldAlert size={16} /> {repoError}
+                  </div>
+                )}
 
-            
-            {/* Render Steps Indicator, Permissions & Filters only when Git account IS connected */}
-            {error !== 'No GitHub account linked' && (
-              <>
-                {/* Dynamic Steps Indicator */}
-                <div className="w-full flex items-center justify-center gap-3 mb-10">
-                  {/* Step 1 */}
-                  <div className={`flex items-center gap-2 font-semibold text-[13px] transition-colors ${currentStep >= 1 ? 'text-[#2EA043]' : 'text-cw-txt3'}`}>
-                    <div className={`w-6 h-6 rounded-full border flex items-center justify-center text-[12px] transition-colors ${currentStep >= 1 ? 'border-[#2EA043]' : 'border-cw-bdr'}`}>1</div>
-                    Select Repos
-                  </div>
-                  <div className="w-8 h-[1px] bg-cw-bdr/60" />
-                  
-                  {/* Step 2 */}
-                  <div className={`flex items-center gap-2 font-semibold text-[13px] transition-colors ${currentStep >= 2 ? 'text-[#58A6FF]' : 'text-cw-txt3'}`}>
-                    <div className={`w-6 h-6 rounded-full border flex items-center justify-center text-[12px] transition-colors ${currentStep >= 2 ? 'border-[#58A6FF]' : 'border-cw-bdr'}`}>2</div>
-                    Configure Agents
-                  </div>
-                  <div className="w-8 h-[1px] bg-cw-bdr/60" />
-                  
-                  {/* Step 3 */}
-                  <div className={`flex items-center gap-2 font-semibold text-[13px] transition-colors ${currentStep >= 3 ? 'text-[#F85149]' : 'text-cw-txt3'}`}>
-                    <div className={`w-6 h-6 rounded-full border flex items-center justify-center text-[12px] transition-colors ${currentStep >= 3 ? 'border-[#F85149]' : 'border-cw-bdr'}`}>3</div>
-                    Finish
-                  </div>
-
-                  {/* Skip Button */}
+                <div className="grid grid-cols-2 gap-4 mt-6">
                   <button 
-                    onClick={onSkip}
-                    className="ml-4 px-3 py-1.5 text-[12px] font-medium text-cw-txt2 hover:text-cw-txt hover:bg-cw-bg3 rounded transition-colors"
+                    onClick={() => handleLinkAccount('github')}
+                    className="flex items-center justify-center gap-3 p-3 bg-slate-800/40 border border-slate-700/60 rounded-lg hover:border-[#8b5cf6] transition text-sm font-medium text-slate-200"
                   >
-                    Skip for now
+                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2A10 10 0 0 0 2 12c0 4.42 2.87 8.17 6.84 9.5.5.08.66-.23.66-.5v-1.69c-2.77.6-3.36-1.34-3.36-1.34-.46-1.16-1.11-1.47-1.11-1.47-.9-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.9 1.52 2.34 1.07 2.91.83.1-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.94 0-1.1.39-1.99 1.03-2.69-.1-.25-.45-1.27.1-2.64 0 0 .84-.27 2.75 1.02.79-.22 1.65-.33 2.5-.33.85 0 1.71.11 2.5.33 1.91-1.29 2.75-1.02 2.75-1.02.55 1.37.2 2.39.1 2.64.64.7 1.03 1.6 1.03 2.69 0 3.84-2.34 4.68-4.57 4.93.36.31.68.92.68 1.85V21c0 .27.16.59.67.5C19.14 20.16 22 16.42 22 12A10 10 0 0 0 12 2z"/></svg>
+                    Continue with GitHub
+                  </button>
+
+                  <button 
+                    onClick={() => { setAuthProvider('gitlab'); setActiveStep(STEPS.GITLAB_AUTH); }}
+                    className="flex items-center justify-center gap-3 p-3 bg-slate-800/40 border border-slate-700/60 rounded-lg hover:border-[#8b5cf6] transition text-sm font-medium text-slate-200"
+                  >
+                    <svg className="w-5 h-5 text-orange-500" viewBox="0 0 24 24" fill="currentColor"><path d="M23.953 12.485l-1.332-4.1a.732.732 0 0 0-.265-.395.722.722 0 0 0-.472-.11.716.716 0 0 0-.417.202l-3.32 3.32H5.855l-3.32-3.32a.731.731 0 0 0-.417-.202.712.712 0 0 0-.472.11.723.723 0 0 0-.265.395l-1.332 4.1a.74.74 0 0 0 .261.815l9.957 7.235a.736.736 0 0 0 .866 0l9.957-7.235a.74.74 0 0 0 .261-.815z"/></svg>
+                    Connect GitLab
                   </button>
                 </div>
+              </div>
 
-                {/* Permissions Modal Trigger */}
-                <button 
-                  onClick={() => setShowPermissionsModal(true)}
-                  className="text-cw-purple hover:underline text-[13px] font-medium mb-10 flex items-center justify-center gap-1.5"
-                >
-                  <Shield size={14} /> Learn what Codeward can and cannot access
+              <div className="text-center text-xs text-slate-500 pt-4 border-t border-slate-800/60">
+                Looking to deploy Pages? <span className="text-[#8b5cf6] hover:underline cursor-pointer">Get started</span>
+              </div>
+            </div>
+          )}
+
+          {/* STEP 2: Custom GitLab Setup Form View */}
+          {activeStep === STEPS.GITLAB_AUTH && (
+            <div className="space-y-6 flex-1 flex flex-col justify-between animate-in fade-in slide-in-from-right-2 duration-300">
+              <div>
+                <h3 className="text-lg font-bold text-slate-100">Configure GitLab Instance</h3>
+                <p className="text-[13px] text-slate-400 mt-1">Provide self-hosted or SaaS credentials to integrate with your projects.</p>
+                
+                <div className="mt-5 space-y-4">
+                  <div>
+                    <label className="block text-xs font-medium text-slate-400 mb-1.5">GitLab Instance URL</label>
+                    <input 
+                      type="text" 
+                      value={gitlabUrl}
+                      onChange={(e) => setGitlabUrl(e.target.value)}
+                      className="w-full bg-[#13151a] border border-slate-700/80 rounded-lg p-2.5 text-[13px] focus:outline-none focus:border-[#8b5cf6] transition text-slate-200" 
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-400 mb-1.5">Personal Access Token</label>
+                    <input 
+                      type="password" 
+                      placeholder="glpat-xxxxxxxxxxxx"
+                      value={gitlabToken}
+                      onChange={(e) => setGitlabToken(e.target.value)}
+                      className="w-full bg-[#13151a] border border-slate-700/80 rounded-lg p-2.5 text-[13px] focus:outline-none focus:border-[#8b5cf6] transition text-slate-200" 
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between pt-4 border-t border-slate-800/60">
+                <button onClick={() => setActiveStep(STEPS.SELECT_METHOD)} className="text-[13px] font-medium text-slate-400 hover:text-white transition">
+                  Back
                 </button>
+                <button 
+                  onClick={() => {
+                    handleLinkAccount('gitlab');
+                    setActiveStep(STEPS.SELECT_REPOSITORY);
+                  }}
+                  disabled={!gitlabToken}
+                  className="px-4 py-2 bg-[#8b5cf6] disabled:bg-[#8b5cf6]/40 disabled:text-slate-400 hover:bg-[#7c3aed] text-white rounded-lg text-[13px] font-bold transition shadow-md"
+                >
+                  Connect & Continue
+                </button>
+              </div>
+            </div>
+          )}
 
-                {/* Filters Row (Main Page) */}
-                <div className="w-full max-w-[1000px] flex flex-wrap gap-4 items-center justify-center mb-8">
-                  
-                  {/* Custom Workspace Dropdown */}
-                  <div className="relative">
+          {/* STEP 3: Search and Select Repository */}
+          {activeStep === STEPS.SELECT_REPOSITORY && (
+            <div className="space-y-4 flex-1 flex flex-col justify-between animate-in fade-in slide-in-from-right-2 duration-300">
+              <div>
+                <h3 className="text-lg font-bold text-slate-100">Select repositories</h3>
+                <p className="text-[13px] text-slate-400">Choose connected repositories to protect with Codeward agents.</p>
+                
+                <div className="flex gap-2 mt-4 relative">
+                  {/* Custom Workspace Dropdown (simplified for this UI) */}
+                  <div className="relative shrink-0">
                     <button
                       onClick={() => setShowOrgDropdown(!showOrgDropdown)}
-                      className="flex items-center gap-3 px-3 py-1.5 border border-cw-bdr bg-cw-bg rounded-lg hover:border-cw-txt3 transition-colors min-w-[200px]"
+                      className="bg-[#13151a] border border-slate-700/80 hover:border-slate-600 rounded-lg px-3 py-2 text-[13px] flex items-center gap-2 cursor-pointer text-slate-300 transition-colors h-[42px]"
                     >
-                      <div className="text-[10px] text-cw-txt3 uppercase tracking-wider mb-[2px] leading-none absolute top-1 left-3">Workspace</div>
-                      <div className="flex items-center gap-2 mt-3 mb-1 w-full justify-between">
-                        <div className="flex items-center gap-2">
-                          <div className="w-5 h-5 rounded-full bg-cw-purple/20 text-cw-purple flex items-center justify-center text-[10px] font-bold uppercase shrink-0">
-                            {(typeof activeOrg === 'string' ? activeOrg : (activeOrg as any)?.name || '')?.charAt(0)}
-                          </div>
-                          <span className="text-[13px] font-semibold text-cw-txt truncate">
-                            {typeof activeOrg === 'string' ? activeOrg : (activeOrg as any)?.name}
-                          </span>
-                        </div>
-                        <ChevronDown size={14} className="text-cw-txt3 shrink-0" />
-                      </div>
+                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2A10 10 0 0 0 2 12c0 4.42 2.87 8.17 6.84 9.5.5.08.66-.23.66-.5v-1.69c-2.77.6-3.36-1.34-3.36-1.34-.46-1.16-1.11-1.47-1.11-1.47-.9-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.9 1.52 2.34 1.07 2.91.83.1-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.94 0-1.1.39-1.99 1.03-2.69-.1-.25-.45-1.27.1-2.64 0 0 .84-.27 2.75 1.02.79-.22 1.65-.33 2.5-.33.85 0 1.71.11 2.5.33 1.91-1.29 2.75-1.02 2.75-1.02.55 1.37.2 2.39.1 2.64.64.7 1.03 1.6 1.03 2.69 0 3.84-2.34 4.68-4.57 4.93.36.31.68.92.68 1.85V21c0 .27.16.59.67.5C19.14 20.16 22 16.42 22 12A10 10 0 0 0 12 2z"/></svg>
+                      {typeof activeOrg === 'string' ? activeOrg : (activeOrg as any)?.name}
+                      <ChevronDown size={14} className="text-slate-500 ml-2" />
                     </button>
-
                     {showOrgDropdown && (
                       <>
                         <div className="fixed inset-0 z-40" onClick={() => setShowOrgDropdown(false)} />
-                        <div className="absolute top-full left-0 mt-2 w-full min-w-[220px] bg-cw-bg border border-cw-bdr rounded-lg shadow-xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2">
-                          <div className="px-3 py-2 text-[10px] font-bold text-cw-txt3 tracking-wider border-b border-cw-bdr">SWITCH WORKSPACE</div>
-                          <div className="max-h-[300px] overflow-y-auto py-1">
+                        <div className="absolute top-full left-0 mt-2 w-full min-w-[200px] bg-[#1a1d24] border border-slate-700/80 rounded-lg shadow-xl z-50 overflow-hidden">
+                          <div className="max-h-[200px] overflow-y-auto py-1">
                             {(propOrgs?.length ? propOrgs : localOrgs).map((orgObj, idx) => {
                               const orgName = typeof orgObj === 'string' ? orgObj : orgObj.name;
                               if (!orgName) return null;
-                              const isSel = activeOrg === orgName;
                               return (
                                 <button
                                   key={orgName + idx}
                                   onClick={() => { setActiveOrg?.(orgName); setShowOrgDropdown(false); }}
-                                  className={`w-full flex items-center justify-between px-3 py-2.5 hover:bg-cw-bg3 transition-colors text-left`}
+                                  className="w-full flex items-center px-4 py-2 hover:bg-[#8b5cf6]/20 transition-colors text-left text-[13px] text-slate-300"
                                 >
-                                  <div className="flex items-center">
-                                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold uppercase shrink-0 ${isSel ? 'bg-cw-purple/20 text-cw-purple' : 'bg-cw-green/20 text-cw-green'}`}>
-                                      {orgName.charAt(0)}
-                                    </div>
-                                    <span className={`text-[13px] font-semibold truncate ${isSel ? 'text-cw-purple' : 'text-cw-txt'}`}>
-                                      {orgName}
-                                    </span>
-                                  </div>
-                                  {isSel && <Check size={14} className="text-cw-purple shrink-0" />}
+                                  {orgName}
                                 </button>
                               );
                             })}
@@ -645,209 +411,195 @@ export function ConnectRepo({ user, onConnect, onSkip, activeOrg, setActiveOrg, 
                     )}
                   </div>
                   
-                  <div className="h-6 w-[1px] bg-cw-bdr hidden md:block" />
-
-                  {/* Language Filter */}
-                  <select 
-                    value={filterLang} 
-                    onChange={e => setFilterLang(e.target.value)}
-                    className="bg-cw-bg border border-cw-bdr rounded-lg text-[13px] text-cw-txt py-1.5 px-3 outline-none"
-                  >
-                    {languages.map(l => <option key={l} value={l}>{l === 'All' ? 'All Languages' : l}</option>)}
-                  </select>
-
-                  {/* Visibility Filter */}
-                  <select 
-                    value={filterVis} 
-                    onChange={e => setFilterVis(e.target.value)}
-                    className="bg-cw-bg border border-cw-bdr rounded-lg text-[13px] text-cw-txt py-1.5 px-3 outline-none"
-                  >
-                    <option value="All">All Visibility</option>
-                    <option value="Public">Public</option>
-                    <option value="Private">Private</option>
-                  </select>
-
-                  {/* Search */}
-                  <div className="relative w-full max-w-[250px]">
-                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-cw-txt3" />
-                    <input
-                      value={search}
-                      onChange={e => setSearch(e.target.value)}
-                      placeholder="Search repos..."
-                      className="w-full py-1.5 pl-9 pr-3 bg-cw-bg border border-cw-bdr rounded-lg text-[13px] text-cw-txt outline-none focus:border-cw-purple transition-colors"
+                  <div className="relative flex-1">
+                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                    <input 
+                      type="text" 
+                      placeholder="Search repositories..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full h-[42px] bg-[#13151a] border border-slate-700/80 rounded-lg pl-9 pr-3 py-2 text-[13px] focus:outline-none focus:border-[#8b5cf6] transition text-slate-200" 
                     />
                   </div>
                 </div>
-              </>
-            )}
 
-            {/* Main List (First 8) */}
-            <div className="w-full transition-all">
-              {loading ? (
-                <div className="py-20 flex justify-center"><Loader size={24} className="animate-spin text-cw-purple" /></div>
-              ) : error === 'No GitHub account linked' ? (
-                <LinkProvider />
-              ) : error ? (
-                <div className="py-10 text-cw-red flex items-center justify-center gap-2"><AlertCircle size={16} /> {error}</div>
-              ) : filteredRepos.length === 0 ? (
-                <div className="py-10 text-cw-txt3 text-center">No repositories found matching filters.</div>
-              ) : (
-                <>
-                  <div className="flex flex-col w-full border border-cw-bdr rounded-xl bg-cw-bg2 overflow-hidden shadow-sm">
-                    {/* Table Header */}
-                    <div className="hidden md:flex items-center px-4 py-3 border-b border-cw-bdr bg-cw-bg3 text-[11px] font-bold text-cw-txt3 uppercase tracking-wider">
-                      <div className="w-8 shrink-0"></div>
-                      <div className="flex-[2] min-w-[200px]">Repository</div>
-                      <div className="flex-1 min-w-[100px]">Language</div>
-                      <div className="flex-1 min-w-[120px]">Stats</div>
-                      <div className="flex-1 min-w-[100px]">Updated</div>
-                      <div className="w-[120px] text-right shrink-0">Action</div>
+                <div className="mt-3 bg-[#13151a]/60 border border-slate-800 rounded-lg divide-y divide-slate-800 max-h-[200px] overflow-y-auto custom-scrollbar">
+                  {loadingRepos ? (
+                    <div className="p-8 flex justify-center"><Loader size={20} className="animate-spin text-[#8b5cf6]" /></div>
+                  ) : filteredRepos.length === 0 ? (
+                    <div className="p-6 text-center text-[13px] text-slate-500">No repositories found.</div>
+                  ) : (
+                    filteredRepos.map((repo) => {
+                      const sel = selectedRepos.includes(repo.full);
+                      return (
+                        <div 
+                          key={repo.full} 
+                          onClick={() => {
+                            if (repo.connected) return;
+                            toggleRepoSelection(repo.full);
+                          }}
+                          className={`p-3 text-[13px] transition cursor-pointer flex justify-between items-center ${
+                            repo.connected 
+                              ? 'opacity-50 cursor-not-allowed text-slate-500' 
+                              : sel 
+                                ? 'bg-[#8b5cf6]/10 text-[#8b5cf6]' 
+                                : 'text-slate-300 hover:bg-[#8b5cf6]/10 hover:text-[#8b5cf6]'
+                          }`}
+                        >
+                          <div className="flex items-start gap-3">
+                            <div className={`mt-0.5 w-[16px] h-[16px] rounded-[4px] border-[1.5px] flex items-center justify-center transition-all shrink-0 ${sel ? 'border-[#8b5cf6] bg-[#8b5cf6]' : 'border-slate-600 bg-transparent'}`}>
+                              {sel && <Check size={10} color="#fff" />}
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="font-medium">{repo.name}</span>
+                              <div className="flex items-center gap-3 mt-1 text-[11px] text-slate-500 font-normal">
+                                {repo.lang && <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-slate-600" /> {repo.lang}</span>}
+                                {repo.stars > 0 && <span className="flex items-center gap-1" title="Stars">★ {repo.stars}</span>}
+                                {repo.forks > 0 && <span className="flex items-center gap-1" title="Forks"><GitBranch size={11} /> {repo.forks}</span>}
+                                {repo.issues > 0 && <span className="flex items-center gap-1" title="Issues"><ShieldAlert size={11} /> {repo.issues}</span>}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            {repo.connected && <span className="text-[10px] bg-[#13151a] border border-slate-700/80 px-2 py-0.5 rounded text-slate-400">Connected</span>}
+                            <span className="text-[10px] bg-slate-800 px-2 py-0.5 rounded text-slate-500">{repo.private ? 'Private' : 'Public'}</span>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between pt-4 border-t border-slate-800/60">
+                <button 
+                  onClick={() => setActiveStep(authProvider === 'gitlab' ? STEPS.GITLAB_AUTH : STEPS.SELECT_METHOD)} 
+                  className="text-[13px] font-medium text-slate-400 hover:text-white transition"
+                >
+                  Back
+                </button>
+                <button 
+                  onClick={() => setActiveStep(STEPS.CONFIGURE_APPLICATION)}
+                  disabled={selectedRepos.length === 0}
+                  className="px-5 py-2 bg-[#8b5cf6] disabled:bg-[#8b5cf6]/40 disabled:text-slate-400 hover:bg-[#7c3aed] text-white rounded-lg text-[13px] font-bold transition shadow-md flex items-center gap-2"
+                >
+                  Next <ArrowRight size={14} />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* STEP 4: Build Config Setup & Deployment Action */}
+          {activeStep === STEPS.CONFIGURE_APPLICATION && (
+            <div className="space-y-6 flex-1 flex flex-col justify-between animate-in fade-in slide-in-from-right-2 duration-300">
+              <div>
+                <h3 className="text-lg font-bold text-slate-100">Set up your application</h3>
+                <p className="text-[13px] text-slate-400 mt-1">Configure your Codeward agents and alert channels for the selected repositories.</p>
+                
+                <div className="mt-5 mb-3 bg-[#13151a] border border-slate-700/80 rounded-lg px-4 py-3 flex items-center gap-2 text-[13px] text-slate-300">
+                  <span className="w-2 h-2 rounded-full bg-green-400 shrink-0"></span>
+                  Configuring <strong className="text-white ml-1">{selectedRepos.length}</strong> repositor{selectedRepos.length === 1 ? 'y' : 'ies'}
+                </div>
+
+                <div className="space-y-5 mt-4 max-h-[220px] overflow-y-auto pr-2 custom-scrollbar">
+                  {/* Alert Channels Configuration */}
+                  <div>
+                    <label className="block text-[12px] font-bold text-slate-400 mb-2 uppercase tracking-wider">Alert Channels</label>
+                    <div className="flex flex-wrap gap-2">
+                      {['slack', 'email', 'whatsapp', 'calendar'].map((channel) => {
+                        // Using global config check via selectedRepos[0] or default
+                        const firstRepo = selectedRepos[0];
+                        const conf = configs[firstRepo] || DEFAULT_CONFIG;
+                        const isEnabled = conf.alerts[channel as keyof RepoConfig['alerts']];
+                        return (
+                          <label key={channel} className={`flex items-center gap-2 cursor-pointer text-[12px] font-medium bg-[#13151a] px-3 py-2 border rounded-lg transition-colors ${isEnabled ? 'border-[#8b5cf6] bg-[#8b5cf6]/10 text-white' : 'border-slate-700/80 text-slate-400 hover:border-slate-600'}`}>
+                            <input 
+                              type="checkbox" 
+                              checked={isEnabled}
+                              onChange={() => {
+                                // Apply to all selected
+                                selectedRepos.forEach(repoFull => toggleAlert(repoFull, channel as keyof RepoConfig['alerts']));
+                              }} 
+                              className="hidden" 
+                            />
+                            {renderChannelIcon(channel)}
+                            <span className="capitalize">{channel}</span>
+                          </label>
+                        );
+                      })}
                     </div>
-                    {/* Table Body */}
-                    <div className="flex flex-col bg-cw-bg">
-                      {filteredRepos.slice(0, 8).map(repo => (
-                        <RepoCard key={repo.full} repo={repo} />
+                  </div>
+
+                  {/* Agents Configuration */}
+                  <div>
+                    <label className="block text-[12px] font-bold text-slate-400 mb-2 uppercase tracking-wider">Active Agents</label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {AGENTS.map(agent => (
+                        <div 
+                          key={agent.id}
+                          className={`flex items-start gap-3 p-2.5 rounded-lg border bg-[#13151a] border-slate-700/80 transition-all`}
+                        >
+                          <div className={`mt-0.5 w-[24px] h-[24px] rounded-md flex items-center justify-center shrink-0 ${agent.bg} ${agent.text}`}>
+                            <agent.icon size={12} />
+                          </div>
+                          <div>
+                            <div className="text-[12px] font-bold text-slate-200 line-clamp-1">{agent.name}</div>
+                            <div className="text-[11px] text-slate-500 mt-0.5 leading-tight line-clamp-1">{agent.desc}</div>
+                          </div>
+                        </div>
                       ))}
                     </div>
                   </div>
-                  
-                  {filteredRepos.length > 8 && (
-                    <div className="mt-8 flex justify-center">
-                      <button 
-                        onClick={() => setShowAllPanel(true)}
-                        className={`px-6 py-2.5 bg-cw-bg2 hover:brightness-110 border border-cw-bdr text-cw-txt rounded-full text-[13px] font-semibold transition-colors shadow-sm flex items-center gap-2 ${showAllPanel ? 'hidden' : ''}`}
-                      >
-                        View all {filteredRepos.length} repos →
-                      </button>
-                    </div>
-                  )}
-                  
-                  <div className="mt-12 text-center">
-                    <button onClick={onSkip} className="text-cw-txt3 hover:text-cw-txt text-[13px] transition-colors underline decoration-cw-bdr underline-offset-4">
-                      Not ready? Skip for now — you can connect repos anytime from Settings.
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Slide-out Panel (Flex Sibling) */}
-        <div 
-          className={`shrink-0 h-full bg-cw-bg2 border-l border-cw-bdr flex flex-col transition-[width,min-width,opacity] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${showAllPanel ? 'w-[480px] min-w-[320px] lg:w-[480px] md:w-[380px] opacity-100' : 'w-0 min-w-0 opacity-0 overflow-hidden border-none'}`}
-        >
-          {showAllPanel && (
-            <>
-              <div className="px-6 py-5 border-b border-cw-bdr flex items-center justify-between bg-cw-bg shrink-0">
-                <div className="min-w-0 pr-4">
-                  <h2 className="text-[16px] font-bold text-cw-txt truncate">All Repositories ({filteredRepos.length})</h2>
-                  <p className="text-[12px] text-cw-txt2 truncate">Click a repo to configure it</p>
                 </div>
-                <button onClick={() => setShowAllPanel(false)} className="w-8 h-8 shrink-0 rounded hover:bg-cw-bg3 flex items-center justify-center text-cw-txt3 hover:text-cw-txt transition-colors">
-                  <X size={18} />
+              </div>
+
+              <div className="flex items-center justify-between pt-4 border-t border-slate-800/60">
+                <button onClick={() => setActiveStep(STEPS.SELECT_REPOSITORY)} className="text-[13px] font-medium text-slate-400 hover:text-white transition">
+                  Back
+                </button>
+                <button 
+                  onClick={executeConnect}
+                  disabled={connecting}
+                  className="px-5 py-2 bg-[#8b5cf6] disabled:bg-[#8b5cf6]/40 disabled:text-slate-400 hover:bg-[#7c3aed] text-white rounded-lg text-[13px] font-bold transition shadow-lg tracking-wide flex items-center gap-2"
+                >
+                  {connecting ? <Loader size={14} className="animate-spin" /> : <Shield size={14} />}
+                  Connect & Protect
                 </button>
               </div>
-
-              {/* Panel Repo List */}
-              <div className="flex-1 overflow-y-auto p-4 bg-cw-bg">
-                {filteredRepos.map(repo => (
-                  <div 
-                    key={repo.full}
-                    onClick={() => {
-                      if (repo.connected) {
-                        window.location.href = `/dashboard/repos`;
-                      } else if (!repo.archived) {
-                        setShowAllPanel(false);
-                        setExpandedRepo(repo.full);
-                        setSelected([]);
-                      }
-                    }}
-                    className="cursor-pointer"
-                  >
-                    <RepoCard repo={repo} compact={true} />
-                  </div>
-                ))}
-              </div>
-            </>
+            </div>
           )}
+
         </div>
+
+        {/* RIGHT COLUMN: Static Stepper Side Progress List */}
+        <div className="col-span-1 md:col-span-3 pt-4 md:pl-4 md:border-l border-slate-800/50 space-y-5 hidden md:block">
+          <StepIndicator label="Select a method" active={activeStep === STEPS.SELECT_METHOD} done={activeStep > STEPS.SELECT_METHOD} />
+          {authProvider === 'gitlab' && <StepIndicator label="Authenticate provider" active={activeStep === STEPS.GITLAB_AUTH} done={activeStep > STEPS.GITLAB_AUTH} />}
+          <StepIndicator label="Select repositories" active={activeStep === STEPS.SELECT_REPOSITORY} done={activeStep > STEPS.SELECT_REPOSITORY} />
+          <StepIndicator label="Configure & Connect" active={activeStep === STEPS.CONFIGURE_APPLICATION} done={activeStep > STEPS.CONFIGURE_APPLICATION} />
+        </div>
+
       </div>
+    </div>
+  );
+}
 
-      {/* Floating Bottom Bar for Bulk Connect */}
-      {selected.length > 0 && (
-        <div className="fixed bottom-8 left-[calc(50vw)] -translate-x-1/2 w-[calc(100%-4rem)] max-w-[800px] bg-cw-bg2 border border-cw-bdr rounded-xl px-6 py-4 flex items-center justify-between shadow-2xl animate-in slide-in-from-bottom-8 z-50">
-          <div className="flex flex-col">
-            <div className="text-[15px] text-cw-txt font-bold">
-              {selected.length} repo{selected.length > 1 ? 's' : ''} selected
-            </div>
-            <div className="text-[12px] text-cw-txt3 mt-0.5">Free tier: up to 2 repositories</div>
-          </div>
-          <div className="flex items-center">
-            <button onClick={() => setSelected([])} className="px-5 py-2.5 border border-cw-bdr bg-cw-bg hover:bg-cw-bg3 text-cw-txt3 hover:text-cw-txt text-[13px] font-semibold rounded-lg transition-colors">
-              Skip for now
-            </button>
-            <button
-              onClick={handleBulkConnect}
-              disabled={connecting}
-              className="px-6 py-2.5 bg-cw-purple hover:brightness-110 text-white text-[13px] font-semibold rounded-lg flex items-center gap-2 transition-colors shadow-lg disabled:opacity-50"
-            >
-              {connecting ? <Loader size={14} className="animate-spin" /> : <GitBranch size={14} />}
-              Connect {selected.length} repo{selected.length > 1 ? 's' : ''}
-            </button>
-          </div>
+// Side Helper Subcomponent for Stepper Tracker UI Item
+function StepIndicator({ label, active, done }: { label: string, active: boolean, done: boolean }) {
+  return (
+    <div className="flex items-center gap-3">
+      {done ? (
+        <div className="w-3.5 h-3.5 rounded-full bg-[#13151a] border border-slate-600 flex items-center justify-center shrink-0">
+          <Check size={8} className="text-slate-400" />
         </div>
+      ) : active ? (
+        <div className="w-3.5 h-3.5 rounded-full bg-[#8b5cf6] ring-4 ring-[#8b5cf6]/20 shrink-0" />
+      ) : (
+        <div className="w-3.5 h-3.5 rounded-full border-2 border-slate-700 shrink-0" />
       )}
-
-      {/* Permissions Modal */}
-      {showPermissionsModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-200 p-4" onClick={() => setShowPermissionsModal(false)}>
-          <div className="w-full max-w-[600px] bg-cw-bg2 border border-cw-bdr rounded-xl overflow-hidden shadow-2xl flex flex-col" onClick={e => e.stopPropagation()}>
-            <div className="bg-cw-bg3 px-6 py-4 border-b border-cw-bdr flex items-center justify-between">
-              <div className="flex items-center gap-3 text-[14px] font-semibold text-cw-txt">
-                <Shield size={18} className="text-cw-green" /> What Codeward accesses
-              </div>
-              <button onClick={() => setShowPermissionsModal(false)} className="text-cw-txt3 hover:text-cw-txt transition-colors">
-                <X size={18} />
-              </button>
-            </div>
-            <div className="p-6 flex flex-col gap-6 text-[13px]">
-              <div className="flex flex-col gap-4">
-                <div className="flex items-start gap-3">
-                  <Check size={18} className="text-cw-green shrink-0 mt-0.5" />
-                  <div><span className="text-cw-txt font-medium text-[14px]">Read your code</span> <div className="text-cw-txt2 mt-1">To analyse diffs, run security scanners, and find tech debt. We never store copies of your codebase permanently.</div></div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <Check size={18} className="text-cw-green shrink-0 mt-0.5" />
-                  <div><span className="text-cw-txt font-medium text-[14px]">Write check runs</span> <div className="text-cw-txt2 mt-1">To post pass/fail status directly on your Pull Requests before they get merged.</div></div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <Check size={18} className="text-cw-green shrink-0 mt-0.5" />
-                  <div><span className="text-cw-txt font-medium text-[14px]">Write PR comments</span> <div className="text-cw-txt2 mt-1">To post in-line code findings, fix suggestions, and feedback directly to developers.</div></div>
-                </div>
-              </div>
-              <div className="bg-cw-bg3 p-4 rounded-lg border border-cw-bdr">
-                <div className="text-cw-txt font-medium mb-3 flex items-center gap-2 text-[14px]">
-                  <X size={18} className="text-cw-red" /> We NEVER:
-                </div>
-                <ul className="text-cw-txt2 space-y-2 list-none p-0 m-0">
-                  <li className="flex items-center gap-2"><X size={14} className="text-cw-red opacity-70"/> Push code directly to your branches</li>
-                  <li className="flex items-center gap-2"><X size={14} className="text-cw-red opacity-70"/> Access environment variables or CI secrets</li>
-                  <li className="flex items-center gap-2"><X size={14} className="text-cw-red opacity-70"/> Trigger or modify your deployments</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-      {/* Floating Theme Toggle (Top Right) */}
-      <button 
-        onClick={handleCycleTheme} 
-        className="fixed top-4 right-6 w-9 h-9 rounded-full border border-cw-bdr bg-cw-bg2 text-cw-txt2 flex items-center justify-center hover:bg-cw-bg3 hover:text-cw-txt shadow-md transition-all z-50 cursor-pointer"
-        title="Toggle Theme"
-      >
-        {themeIcons[currentTheme]}
-      </button>
+      <span className={`text-[13px] font-medium ${active ? 'text-[#8b5cf6] font-bold' : done ? 'text-slate-400' : 'text-slate-600'}`}>
+        {label}
+      </span>
     </div>
   );
 }
