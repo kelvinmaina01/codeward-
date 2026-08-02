@@ -59,6 +59,17 @@ function deadlineLabel(deadlineAt: string | null): string | null {
   return h > 0 ? `auto-merges in ${h}h ${m}m` : `auto-merges in ${m}m`;
 }
 
+function timeAgo(dateStr: string | null): string {
+  if (!dateStr) return '';
+  const ms = Date.now() - new Date(dateStr).getTime();
+  const m = Math.floor(ms / 60000);
+  if (m < 1) return 'just now';
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  return `${Math.floor(h / 24)}d ago`;
+}
+
 const RUN_STATUS_STYLE: Record<string, string> = {
   completed: 'bg-cw-green text-white',
   running: 'bg-cw-blue text-white',
@@ -154,6 +165,7 @@ export function Dashboard({ onRunClick }: Props) {
   const [activityFeed, setActivityFeed] = useState<ActivityEvent[]>(DEFAULT_MOCK_ACTIVITIES);
   const [recentRuns, setRecentRuns] = useState<RecentRun[]>([]);
   const [loadingRuns, setLoadingRuns] = useState(true);
+  const [alerts, setAlerts] = useState<any[]>([]);
   const [approvals, setApprovals] = useState<PendingApproval[]>([]);
   const [actingOn, setActingOn] = useState<number | null>(null);
   const [repoFilter, setRepoFilter] = useState<string>('All');
@@ -195,6 +207,13 @@ export function Dashboard({ onRunClick }: Props) {
       })
       .catch(console.error)
       .finally(() => setLoadingRuns(false));
+
+    fetch(`${API_URL}/api/alerts`, { credentials: 'include' })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.alerts) setAlerts(data.alerts);
+      })
+      .catch(console.error);
 
     loadApprovals();
     const approvalsPoll = setInterval(loadApprovals, 30_000);
@@ -516,68 +535,49 @@ export function Dashboard({ onRunClick }: Props) {
             </div>
 
             <div className="flex flex-col gap-3">
-              {/* Alert 1 */}
-              <div className="p-3.5 border border-cw-bdr bg-cw-bg/50 rounded-lg flex items-start gap-3 hover:border-cw-red/40 transition-colors">
-                <div className="w-8 h-8 rounded-lg bg-cw-red/15 border border-cw-red/30 flex items-center justify-center text-cw-red shrink-0 mt-0.5">
-                  <Key size={15} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="text-[13px] font-bold text-cw-txt truncate">API key exposed</div>
-                    <div className="text-[10px] text-cw-txt3 shrink-0">2m ago</div>
+              {alerts.length === 0 ? (
+                <div className="text-[12px] text-cw-txt3 text-center py-4">No high priority alerts currently.</div>
+              ) : alerts.slice(0, 3).map((alert, i) => {
+                const isCritical = alert.severity === 'CRITICAL';
+                const isHigh = alert.severity === 'HIGH';
+                
+                const hoverColor = isCritical ? 'hover:border-cw-red/40' : (isHigh ? 'hover:border-cw-amber/40' : 'hover:border-cw-blue/40');
+                const iconBgColor = isCritical ? 'bg-cw-red/15 border-cw-red/30 text-cw-red' : (isHigh ? 'bg-cw-amber/15 border-cw-amber/30 text-cw-amber' : 'bg-cw-blue/15 border-cw-blue/30 text-cw-blue');
+                const titleColor = isCritical ? 'text-cw-red' : (isHigh ? 'text-cw-amber' : 'text-cw-txt');
+                const actionColor = isCritical ? 'text-cw-red' : 'text-cw-blue';
+                const actionText = isCritical ? 'Resolve now \u2192' : (alert.kind === 'escalation' ? 'View issue \u2192' : 'View suggested fix \u2192');
+                const Icon = isCritical ? Key : (isHigh ? AlertTriangle : undefined);
+                
+                return (
+                  <div key={alert.id || i} className={`p-3.5 border border-cw-bdr bg-cw-bg/50 rounded-lg flex items-start gap-3 transition-colors ${hoverColor}`}>
+                    <div className={`w-8 h-8 rounded-lg border flex items-center justify-center shrink-0 mt-0.5 ${iconBgColor}`}>
+                      {Icon ? <Icon size={15} /> : <div className="w-3 h-3 rounded-full bg-cw-blue" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className={`text-[13px] font-bold truncate ${titleColor}`}>{alert.title}</div>
+                        <div className="text-[10px] text-cw-txt3 shrink-0">{timeAgo(alert.createdAt)}</div>
+                      </div>
+                      <div className="text-[11px] text-cw-txt2 mt-0.5">
+                        {alert.description}
+                      </div>
+                      <div className="mt-2 flex items-center justify-between">
+                        <button 
+                          onClick={() => navigate('/dashboard/alerts')}
+                          className={`text-[11px] font-semibold hover:underline flex items-center gap-1 bg-transparent border-none p-0 cursor-pointer ${actionColor}`}
+                        >
+                          {actionText}
+                        </button>
+                        {alert.source && (
+                          <div className="text-[10px] text-cw-txt3 font-medium">
+                            {alert.severity !== 'INFO' ? `${alert.severity.charAt(0).toUpperCase() + alert.severity.slice(1).toLowerCase()} · ` : ''}{alert.source}
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                  <div className="text-[11px] text-cw-txt2 mt-0.5">
-                    Stripe key hardcoded in payments-api config.js:14
-                  </div>
-                  <button 
-                    onClick={() => navigate('/dashboard/security')}
-                    className="mt-2 text-[11px] font-semibold text-cw-red hover:underline flex items-center gap-1 bg-transparent border-none p-0 cursor-pointer"
-                  >
-                    Resolve now &rarr;
-                  </button>
-                </div>
-              </div>
-
-              {/* Alert 2 */}
-              <div className="p-3.5 border border-cw-bdr bg-cw-bg/50 rounded-lg flex items-start gap-3 hover:border-cw-amber/40 transition-colors">
-                <div className="w-8 h-8 rounded-lg bg-cw-amber/15 border border-cw-amber/30 flex items-center justify-center text-cw-amber shrink-0 mt-0.5">
-                  <AlertTriangle size={15} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="text-[13px] font-bold text-cw-amber truncate">RLS missing on users table</div>
-                    <div className="text-[10px] text-cw-txt3 shrink-0">14m ago</div>
-                  </div>
-                  <div className="text-[11px] text-cw-txt2 mt-0.5">
-                    Supabase policy not set · any auth user can query all rows
-                  </div>
-                  <button 
-                    onClick={() => navigate('/dashboard/security')}
-                    className="mt-2 text-[11px] font-semibold text-cw-blue hover:underline flex items-center gap-1 bg-transparent border-none p-0 cursor-pointer"
-                  >
-                    View suggested fix &rarr;
-                  </button>
-                </div>
-              </div>
-
-              {/* Alert 3 */}
-              <div className="p-3.5 border border-cw-bdr bg-cw-bg/50 rounded-lg flex items-start gap-3 hover:border-cw-blue/40 transition-colors">
-                <div className="w-8 h-8 rounded-lg bg-cw-blue/15 border border-cw-blue/30 flex items-center justify-center text-cw-blue shrink-0 mt-0.5">
-                  <div className="w-3 h-3 rounded-full bg-cw-blue" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="text-[13px] font-bold text-cw-txt truncate">N+1 on /api/users</div>
-                    <div className="text-[10px] text-cw-txt3 shrink-0">1h ago</div>
-                  </div>
-                  <div className="text-[11px] text-cw-txt2 mt-0.5">
-                    1 query per row · JOIN fix estimated -40% latency
-                  </div>
-                  <div className="mt-2 text-[10px] text-cw-txt3 font-medium">
-                    Medium · Architecture Agent
-                  </div>
-                </div>
-              </div>
+                );
+              })}
             </div>
           </div>
         </div>
@@ -690,49 +690,39 @@ export function Dashboard({ onRunClick }: Props) {
         <div className="bg-cw-bg2 border border-cw-bdr rounded-lg p-5">
           <div className="text-[11px] font-semibold tracking-wider text-cw-txt3 mb-5">ACTIVE RUNS</div>
           <div className="flex flex-col gap-4">
-            <div className="flex justify-between items-center">
-              <div className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-cw-amber" />
-                <span className="text-[13px] font-medium text-cw-txt">my-api</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-[11px] text-cw-txt2">commit 3fa2c1 - 2m 14s</span>
-                <span className="px-2 py-0.5 rounded bg-cw-amber/10 text-cw-amber border border-cw-amber/20 text-[10px] font-bold">Running</span>
-              </div>
-            </div>
-            
-            <div className="flex justify-between items-center">
-              <div className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-cw-green" />
-                <span className="text-[13px] font-medium text-cw-txt">frontend</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-[11px] text-cw-txt2">4m ago</span>
-                <span className="px-2 py-0.5 rounded bg-cw-green/10 text-cw-green border border-cw-green/20 text-[10px] font-bold">94/100</span>
-              </div>
-            </div>
-            
-            <div className="flex justify-between items-center">
-              <div className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-cw-green" />
-                <span className="text-[13px] font-medium text-cw-txt">auth-service</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-[11px] text-cw-txt2">1h ago</span>
-                <span className="px-2 py-0.5 rounded bg-cw-green/10 text-cw-green border border-cw-green/20 text-[10px] font-bold">91/100</span>
-              </div>
-            </div>
-            
-            <div className="flex justify-between items-center">
-              <div className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-cw-red" />
-                <span className="text-[13px] font-medium text-cw-txt">payments-api</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-[11px] text-cw-txt2">3h ago</span>
-                <span className="px-2 py-0.5 rounded bg-cw-red/10 text-cw-red border border-cw-red/20 text-[10px] font-bold">Blocked</span>
-              </div>
-            </div>
+              {filteredRuns.length === 0 ? (
+                <div className="text-[12px] text-cw-txt3 text-center py-4">No active or recent runs.</div>
+              ) : filteredRuns.slice(0, 4).map((run) => {
+                const isRunning = run.status === 'running' || run.status === 'queued';
+                const isFailed = run.status === 'failed' || run.status === 'agent_failed';
+                
+                const dotColor = isRunning ? 'bg-cw-amber' : (isFailed ? 'bg-cw-red' : 'bg-cw-green');
+                const badgeStyle = isRunning 
+                  ? 'bg-cw-amber/10 text-cw-amber border-cw-amber/20' 
+                  : (isFailed ? 'bg-cw-red/10 text-cw-red border-cw-red/20' : 'bg-cw-green/10 text-cw-green border-cw-green/20');
+                
+                let badgeText = '';
+                if (isRunning) badgeText = 'Running';
+                else if (isFailed) badgeText = 'Blocked';
+                else badgeText = run.overallScore != null ? `${run.overallScore}/100` : 'Pass';
+
+                return (
+                  <div key={run.runId} className="flex justify-between items-center group cursor-pointer hover:bg-cw-bg3/40 -mx-2 px-2 py-1 rounded transition-colors" onClick={() => onRunClick?.(run.repoId, run.runId)}>
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className={`w-1.5 h-1.5 rounded-full ${dotColor} shrink-0`} />
+                      <span className="text-[13px] font-medium text-cw-txt truncate group-hover:underline">{run.repoFullName}</span>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-[11px] text-cw-txt2 hidden sm:inline-block">
+                        {isRunning ? `commit ${run.commitSha.substring(0, 6)} - ` : ''}{timeAgo(run.createdAt)}
+                      </span>
+                      <span className={`px-2 py-0.5 rounded border text-[10px] font-bold min-w-[50px] text-center ${badgeStyle}`}>
+                        {badgeText}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
           </div>
         </div>
 
