@@ -174,16 +174,30 @@ reportsRouter.get('/recent', async (c) => {
     .limit(limit);
 
   const repoById = new Map(accessibleRepos.map((r) => [r.id, r]));
-  return c.json({
-    runs: recentRuns.map((r) => ({
+  const fifteenMinutesAgo = Date.now() - 15 * 60 * 1000;
+
+  const reconciledRuns = recentRuns.map((r) => {
+    const createdMs = r.createdAt ? new Date(r.createdAt).getTime() : Date.now();
+    const isStale = (r.status === 'running' || r.status === 'queued') && createdMs < fifteenMinutesAgo;
+
+    let derivedStatus = r.status;
+    if (isStale) {
+      derivedStatus = r.score != null ? 'completed' : 'failed';
+    }
+
+    return {
       runId: r.id,
       repoId: r.repoId,
       repoFullName: r.repoId != null ? repoById.get(r.repoId)?.fullName ?? 'unknown' : 'unknown',
       commitSha: r.commitSha,
-      status: r.status,
+      status: derivedStatus,
       overallScore: r.score,
       createdAt: r.createdAt,
-    })),
+    };
+  });
+
+  return c.json({
+    runs: reconciledRuns,
   });
 });
 

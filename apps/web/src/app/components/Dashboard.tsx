@@ -162,6 +162,28 @@ export function Dashboard({ onRunClick }: Props) {
     interventions: 18
   });
 
+  const [healthStats, setHealthStats] = useState<{
+    codebaseHealth: number;
+    grade: string;
+    debtThisWeek: {
+      duplicateFunctions: number;
+      deadCodeLines: number;
+      securityIssues: number;
+      nPlusOneQueries: number;
+      aiEraIssues: number;
+    };
+  }>({
+    codebaseHealth: 77,
+    grade: 'Grade B',
+    debtThisWeek: {
+      duplicateFunctions: -18,
+      deadCodeLines: -247,
+      securityIssues: -3,
+      nPlusOneQueries: -6,
+      aiEraIssues: -2,
+    },
+  });
+
   const [activityFeed, setActivityFeed] = useState<ActivityEvent[]>(DEFAULT_MOCK_ACTIVITIES);
   const [recentRuns, setRecentRuns] = useState<RecentRun[]>([]);
   const [loadingRuns, setLoadingRuns] = useState(true);
@@ -226,16 +248,23 @@ export function Dashboard({ onRunClick }: Props) {
       .then(data => {
         if (!('error' in data)) {
           setStats({
-            repositoriesProtected: data.repositoriesProtected || 10,
-            runsToday: data.runsToday || 14,
-            debtRemoved: data.debtRemoved || 1346,
-            interventions: data.interventions || 18
+            repositoriesProtected: data.repositoriesProtected || 0,
+            runsToday: data.runsToday || 0,
+            debtRemoved: data.debtRemoved || 0,
+            interventions: data.interventions || 0
           });
+          if (data.codebaseHealth != null) {
+            setHealthStats({
+              codebaseHealth: data.codebaseHealth,
+              grade: data.grade || 'Grade B',
+              debtThisWeek: data.debtThisWeek || healthStats.debtThisWeek,
+            });
+          }
         }
       })
       .catch(console.error);
 
-    // WebSocket connection for real-time activity feed
+    // WebSocket connection for real-time activity feed & active runs
     const wsUrl = import.meta.env.VITE_WS_URL || 'ws://localhost:3000/ws/feed';
     const ws = new WebSocket(wsUrl);
 
@@ -243,7 +272,7 @@ export function Dashboard({ onRunClick }: Props) {
       try {
         const data = JSON.parse(event.data);
         if (data.type === 'agent_active' || data.type === 'agent_completed' || data.type === 'agent_failed') {
-          const { repo, sha, agent, score, error } = data.payload;
+          const { repo, sha, agent, score, error, runId } = data.payload;
           
           let text = '';
           let icon = Bot;
@@ -273,6 +302,40 @@ export function Dashboard({ onRunClick }: Props) {
             text,
             time: 'Just now',
             icon,
+            color,
+            dotEmoji
+          };
+
+          setActivityFeed((prev) => [newEvent, ...prev].slice(0, 10));
+
+          // Real-time update to Active Runs state
+          if (runId && repo) {
+            setRecentRuns((prev) => {
+              const status = data.type === 'agent_active' ? 'running' : (data.type === 'agent_completed' ? 'completed' : 'failed');
+              const idx = prev.findIndex((r) => r.runId === runId);
+              const updatedRun: RecentRun = {
+                runId,
+                repoId: prev[idx]?.repoId ?? 0,
+                repoFullName: repo,
+                commitSha: sha || 'baseline',
+                status,
+                overallScore: score ?? prev[idx]?.overallScore ?? null,
+                createdAt: prev[idx]?.createdAt ?? new Date().toISOString(),
+              };
+
+              if (idx >= 0) {
+                const next = [...prev];
+                next[idx] = updatedRun;
+                return next;
+              }
+              return [updatedRun, ...prev].slice(0, 20);
+            });
+          }
+        }
+      } catch (e) {
+        console.error('Error parsing WS message', e);
+      }
+    };
             color,
             dotEmoji
           };
@@ -347,12 +410,12 @@ export function Dashboard({ onRunClick }: Props) {
 
       {/* Row 4: 2 Original 30-Day Area Charts */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Platform Health Chart */}
+        {/* Codebase Health Chart */}
         <div className="bg-cw-bg2 border border-cw-bdr rounded-lg p-5 flex flex-col relative h-[240px]">
           <div className="flex justify-between items-start mb-2">
             <div>
-              <div className="text-[11px] font-semibold tracking-wider text-cw-txt3 mb-1">PLATFORM HEALTH — 30 DAYS</div>
-              <div className="text-4xl font-medium text-cw-green">77%</div>
+              <div className="text-[11px] font-semibold tracking-wider text-cw-txt3 mb-1">CODEBASE HEALTH — 30 DAYS</div>
+              <div className="text-4xl font-medium text-cw-green">{healthStats.codebaseHealth}%</div>
             </div>
             <span className="text-[11px] text-cw-txt2">trend active</span>
           </div>
@@ -582,12 +645,12 @@ export function Dashboard({ onRunClick }: Props) {
           </div>
         </div>
 
-        {/* Platform Health Card (Exact design from user screenshot: 77 Ring & DEBT THIS WEEK progress bars) */}
+        {/* Codebase Health Card */}
         <div className="bg-cw-bg2 border border-cw-bdr rounded-xl p-5 flex flex-col justify-between shadow-sm">
           <div>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-[13px] font-semibold text-cw-txt flex items-center gap-2">
-                <span className="text-[15px]">🏅</span> Platform health
+                <span className="text-[15px]">🏅</span> Codebase health
               </h2>
               <button 
                 onClick={() => navigate('/dashboard/cert')}
@@ -600,13 +663,13 @@ export function Dashboard({ onRunClick }: Props) {
             {/* Score Ring Header */}
             <div className="flex items-center gap-4 mb-5">
               <div className="relative w-16 h-16 rounded-full border-[3.5px] border-cw-green flex items-center justify-center shrink-0 bg-cw-green/5 shadow-inner">
-                <span className="text-xl font-bold text-cw-green">77</span>
+                <span className="text-xl font-bold text-cw-green">{healthStats.codebaseHealth}</span>
               </div>
               <div>
-                <div className="text-2xl font-bold text-cw-green">77 / 100</div>
-                <div className="text-[11px] text-cw-txt3">30-day platform avg across all connected repos</div>
+                <div className="text-2xl font-bold text-cw-green">{healthStats.codebaseHealth} / 100</div>
+                <div className="text-[11px] text-cw-txt3">30-day codebase avg across all connected repos</div>
                 <span className="inline-block mt-1.5 px-2 py-0.5 rounded bg-cw-green/15 border border-cw-green/30 text-cw-green text-[10px] font-bold">
-                  Grade B
+                  {healthStats.grade}
                 </span>
               </div>
             </div>
@@ -616,11 +679,11 @@ export function Dashboard({ onRunClick }: Props) {
               <div className="text-[10px] font-bold tracking-wider text-cw-txt3 uppercase mb-3">DEBT THIS WEEK</div>
               <div className="flex flex-col gap-3">
                 {[
-                  { label: 'Duplicate functions', color: 'bg-cw-red', val: '-18', width: '65%' },
-                  { label: 'Dead code lines', color: 'bg-cw-amber', val: '-247', width: '92%' },
-                  { label: 'Security issues', color: 'bg-cw-red', val: '-3 crit', width: '30%' },
-                  { label: 'N+1 queries', color: 'bg-cw-blue', val: '-6', width: '50%' },
-                  { label: 'AI-era issues', color: 'bg-cw-green', val: '-2', width: '25%' },
+                  { label: 'Duplicate functions', color: 'bg-cw-red', val: `${healthStats.debtThisWeek.duplicateFunctions}`, width: '65%' },
+                  { label: 'Dead code lines', color: 'bg-cw-amber', val: `${healthStats.debtThisWeek.deadCodeLines}`, width: '92%' },
+                  { label: 'Security issues', color: 'bg-cw-red', val: `${healthStats.debtThisWeek.securityIssues} crit`, width: '30%' },
+                  { label: 'N+1 queries', color: 'bg-cw-blue', val: `${healthStats.debtThisWeek.nPlusOneQueries}`, width: '50%' },
+                  { label: 'AI-era issues', color: 'bg-cw-green', val: `${healthStats.debtThisWeek.aiEraIssues}`, width: '25%' },
                 ].map((item) => (
                   <div key={item.label} className="flex items-center gap-3 text-[11px]">
                     <span className={`w-2.5 h-2.5 rounded-full ${item.color} shrink-0`} />
