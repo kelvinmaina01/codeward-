@@ -360,7 +360,7 @@ function DashboardLayout() {
         <div className="flex-1 flex flex-col min-w-0 bg-cw-bg relative">
           {/* Topbar */}
           <div className={`flex items-center justify-between transition-all duration-300 ${screen === 'agent' ? 'absolute top-0 left-0 right-0 z-30 px-5 h-[52px] pointer-events-none' : 'px-8 h-[80px] border-b border-cw-bdr bg-cw-bg shrink-0'}`}>
-            <div className="flex items-center gap-5">
+            <div className="flex items-center gap-3 sm:gap-4 shrink-0 min-w-0">
               <button
                 onClick={() => setIsSidebarPinned(!isSidebarPinned)}
                 className="w-9 h-9 rounded-md border border-cw-bdr bg-cw-bg2 text-cw-txt flex items-center justify-center cursor-pointer hover:bg-cw-bg3 transition-colors shrink-0 pointer-events-auto shadow-sm"
@@ -368,8 +368,8 @@ function DashboardLayout() {
                 <Menu size={18} />
               </button>
               {screen !== 'agent' && (
-                <div>
-                  <h1 className="text-[22px] font-bold text-cw-txt tracking-tight leading-none flex items-center gap-2">
+                <div className="shrink-0 min-w-0">
+                  <h1 className="text-[16px] sm:text-[18px] md:text-[20px] font-bold text-cw-txt tracking-tight leading-none flex items-center gap-2 whitespace-nowrap shrink-0">
                     {topbar.title}
                   </h1>
                 </div>
