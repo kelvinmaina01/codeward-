@@ -8,6 +8,15 @@ import {
 import { API_URL } from '../../lib/api';
 import { RepoSelector } from './RepoSelector';
 
+const CodewardMascot = ({ size = 10, className = '' }: { size?: number, className?: string }) => (
+  <img 
+    src="https://avatars.githubusercontent.com/in/4029840?s=41&u=2d62d6d33d7b1197056c93741230d09bd6859d15&v=4" 
+    alt="Codeward" 
+    style={{ width: size, height: size }}
+    className={`rounded-sm object-cover animate-[pulse_3s_ease-in-out_infinite] ${className}`}
+  />
+);
+
 type RunStatus = 'queued' | 'running' | 'completed' | 'failed' | 'agent_failed';
 type AgentStatus = 'completed' | 'failed' | 'skipped' | 'running' | 'queued';
 type Gate = 'PASS' | 'WARN' | 'BLOCK' | null;
@@ -388,7 +397,7 @@ function DiffDrawer({ repoId, sha, commitAuthorName, onClose }: { repoId: number
                   <span className="text-cw-txt2">{diff.files.length} file{diff.files.length === 1 ? '' : 's'} changed</span>
                   {commitAuthorName?.toLowerCase().includes('codeward') ? (
                     <span className="px-2 py-0.5 rounded bg-cw-purple/10 border border-cw-purple/30 text-cw-purple font-semibold flex items-center gap-1.5">
-                      <Bot size={11} /> Codeward Generated
+                      <CodewardMascot size={11} /> Codeward Generated
                     </span>
                   ) : (
                     <span className="px-2 py-0.5 rounded bg-cw-bg3 border border-cw-bdr text-cw-txt2 flex items-center gap-1.5 truncate max-w-[200px]">
@@ -582,22 +591,26 @@ function CommitRow({ commit, isLast, repoId, onOpenReport, onOpenDiff }: { commi
                   {run?.isIncremental && run.changedFileCount != null && <span className="px-1.5 py-0.5 rounded bg-cw-bg3 border border-cw-bdr text-[9px] font-medium">Incremental · {run.changedFileCount} file{run.changedFileCount !== 1 ? 's' : ''}</span>}
                   {!run && (
                     <span className="px-1.5 py-0.5 rounded bg-cw-bg3 border border-cw-bdr text-[9px] font-medium text-cw-txt3 flex items-center gap-1">
-                      <Bot size={10} /> No Codeward Activity
+                      <CodewardMascot size={10} className="opacity-50 grayscale" /> No Codeward Activity
                     </span>
                   )}
                   {run && run.agents.length > 0 && (
                     <span className="px-1.5 py-0.5 rounded bg-cw-purple/10 border border-cw-purple/30 text-[9px] font-bold text-cw-purple flex items-center gap-1 ml-1" title="Codeward Activity">
-                      <Bot size={10} /> Codeward
+                      <CodewardMascot size={10} /> Codeward
                     </span>
                   )}
                   {run && run.agents.length > 0 && (
-                    <span className="flex items-center gap-1.5 ml-1" title="Agents Activity">
+                    <span className="flex items-center gap-1.5 ml-1">
                       {run.agents.map((a) => (
-                        <div 
-                          key={a.id} 
-                          className={`w-2 h-2 rounded-full ${a.status !== 'skipped' ? (a.score != null && a.score < 80 ? 'bg-cw-amber' : 'bg-cw-green') : 'bg-cw-bg3 border border-cw-bdr'}`} 
-                          title={`${a.name}: ${a.status !== 'skipped' ? 'Ran' : 'Skipped'}`}
-                        />
+                        <div key={a.id} className="relative group flex items-center justify-center">
+                          <div 
+                            className={`w-2 h-2 rounded-full ${a.status !== 'skipped' ? (a.score != null && a.score < 80 ? 'bg-cw-amber' : 'bg-cw-green') : 'bg-cw-bg3 border border-cw-bdr'}`} 
+                          />
+                          {/* Tooltip */}
+                          <div className="absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 px-2 py-1 bg-cw-bg2 border border-cw-bdr text-cw-txt text-[10px] rounded shadow-lg opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 transition-opacity">
+                            {a.name} ({a.status !== 'skipped' ? 'Ran' : 'Skipped'})
+                          </div>
+                        </div>
                       ))}
                     </span>
                   )}
@@ -623,7 +636,7 @@ function CommitRow({ commit, isLast, repoId, onOpenReport, onOpenDiff }: { commi
           {expanded && run && (
             <div className="border-t border-cw-bdr">
               <div className="px-4 py-2.5 bg-cw-bg flex items-center gap-4 text-[11px] border-b border-cw-bdr flex-wrap">
-                <Bot size={12} className="text-cw-purple shrink-0" />
+                <CodewardMascot size={12} className="shrink-0" />
                 <span className="text-cw-txt3">Orchestrator decision</span>
                 <span className="text-cw-txt2"><span className="font-semibold text-cw-txt">{run.agentsRun}</span> agents ran · <span className="text-cw-txt3">{run.agentsSkipped} skipped</span>{run.changedFileCount != null && ` · ${run.changedFileCount} files in scope`}</span>
                 {run.completedAt && <span className="ml-auto text-cw-txt3">Completed {timeAgo(run.completedAt)}</span>}
