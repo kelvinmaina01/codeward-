@@ -289,23 +289,8 @@ export function LiveFeed({ viewMode }: LiveFeedProps) {
             </div>
           </div>
 
-          {/* Full Height Terminal Display with 17px Sharp Rounded Corners */}
-          <div className="flex-1 overflow-hidden rounded-[17px] border border-cw-bdr bg-cw-log-bg flex flex-col shadow-inner">
-            {/* Terminal Window Header Bar */}
-            <div className="px-4 py-2 bg-cw-bg3/60 border-b border-cw-bdr/60 flex items-center justify-between shrink-0">
-              <div className="flex items-center gap-2">
-                <div className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-cw-red/60 inline-block" />
-                  <span className="w-2.5 h-2.5 rounded-full bg-cw-amber/60 inline-block" />
-                  <span className="w-2.5 h-2.5 rounded-full bg-cw-green/60 inline-block" />
-                </div>
-                <span className="text-[11px] font-mono text-cw-txt3 ml-2 flex items-center gap-1.5">
-                  <TerminalIcon size={12} className="text-cw-purple" />
-                  codeward-live-stream.log
-                </span>
-              </div>
-            </div>
-
+          {/* Full Height Terminal Display with Sharp Edges */}
+          <div className="flex-1 overflow-hidden rounded-none border border-cw-bdr bg-cw-log-bg flex flex-col shadow-inner">
             {/* Terminal Body */}
             <div className="flex-1 overflow-y-auto px-4 py-3 font-mono text-[11px] leading-[1.75] select-text">
               {loading ? (

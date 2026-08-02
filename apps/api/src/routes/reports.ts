@@ -328,7 +328,8 @@ reportsRouter.get('/livefeed-logs', async (c) => {
       const meta = (t.reportMeta as any) ?? {};
       const tools = meta.toolsExecuted ?? [];
       for (let i = 0; i < tools.length; i++) {
-        const toolName = tools[i];
+        const rawTool = tools[i];
+        const toolName = typeof rawTool === 'object' && rawTool !== null ? (rawTool.name || rawTool.tool || rawTool.id || JSON.stringify(rawTool)) : String(rawTool);
         reconstructedLogs.push({
           id: `task-tool-${t.id}-${i}`,
           runId: r.id,
