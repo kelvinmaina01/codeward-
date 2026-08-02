@@ -289,8 +289,8 @@ export function LiveFeed({ viewMode }: LiveFeedProps) {
             </div>
           </div>
 
-          {/* Full Height Terminal Display */}
-          <div className="flex-1 overflow-hidden rounded-xl border border-cw-bdr bg-cw-log-bg flex flex-col shadow-inner">
+          {/* Full Height Terminal Display with 17px Sharp Rounded Corners */}
+          <div className="flex-1 overflow-hidden rounded-[17px] border border-cw-bdr bg-cw-log-bg flex flex-col shadow-inner">
             {/* Terminal Window Header Bar */}
             <div className="px-4 py-2 bg-cw-bg3/60 border-b border-cw-bdr/60 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-2">
@@ -303,10 +303,6 @@ export function LiveFeed({ viewMode }: LiveFeedProps) {
                   <TerminalIcon size={12} className="text-cw-purple" />
                   codeward-live-stream.log
                 </span>
-              </div>
-              <div className="text-[10px] font-mono text-cw-txt3 flex items-center gap-3">
-                <span>Format: <code className="text-cw-purple">HH:mm:ss.SSS</code></span>
-                <span>{logs.length} lines</span>
               </div>
             </div>
 

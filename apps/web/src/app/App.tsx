@@ -386,18 +386,18 @@ function DashboardLayout() {
                 </button>
               )}
               {screen === 'livefeed' && (
-                <div className="flex items-center gap-2 mr-2">
+                <div className="flex items-center bg-cw-bg2 border border-cw-bdr p-0.5 rounded-lg mr-2 whitespace-nowrap shrink-0">
                   <button
                     onClick={() => setLiveFeedView('stream')}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md border text-[12px] font-medium transition-colors ${liveFeedView === 'stream' ? 'bg-cw-bg2 border-cw-bdr text-cw-txt shadow-sm' : 'border-transparent text-cw-txt2 hover:text-cw-txt hover:bg-cw-bg2/50'}`}
+                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold transition-colors whitespace-nowrap ${liveFeedView === 'stream' ? 'bg-cw-purple text-white shadow-sm' : 'text-cw-txt3 hover:text-cw-txt'}`}
                   >
-                    <TerminalSquare size={14} /> Stream
+                    <TerminalSquare size={13} /> Stream
                   </button>
                   <button
                     onClick={() => setLiveFeedView('canvas')}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md border text-[12px] font-medium transition-colors ${liveFeedView === 'canvas' ? 'bg-cw-bg2 border-cw-bdr text-cw-txt shadow-sm' : 'border-transparent text-cw-txt2 hover:text-cw-txt hover:bg-cw-bg2/50'}`}
+                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold transition-colors whitespace-nowrap ${liveFeedView === 'canvas' ? 'bg-cw-purple text-white shadow-sm' : 'text-cw-txt3 hover:text-cw-txt'}`}
                   >
-                    <LayoutGrid size={14} /> Agent Canvas
+                    <LayoutGrid size={13} /> Agent Canvas
                   </button>
                 </div>
               )}
