@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { WS_URL } from '../../lib/api';
 import { AgentCanvas } from './AgentCanvas';
-import { Bot, Cpu, Terminal, LayoutGrid, CheckCircle2, AlertTriangle, ShieldCheck, Radio, Sparkles } from 'lucide-react';
+import { Bot, Cpu, Terminal, LayoutGrid, CheckCircle2, AlertTriangle, ShieldCheck, Radio, Sparkles, TrendingDown, Activity, Layers, Scale, Database, MessageSquare } from 'lucide-react';
 
 const clsColor: Record<string, string> = {
   ok: 'text-cw-green',
@@ -43,6 +43,20 @@ const AGENT_LABELS: Record<string, string> = {
   orchestrator_phase1: 'Ingestion Orchestrator',
   orchestrator_phase2: 'Dispatch Orchestrator',
   orchestrator_phase3: 'Decision Orchestrator',
+};
+
+const getAgentIcon = (agent: string) => {
+  switch (agent) {
+    case 'security': return <ShieldCheck size={16} />;
+    case 'bloat': return <TrendingDown size={16} />;
+    case 'broken_code': return <Activity size={16} />;
+    case 'architecture': return <Layers size={16} />;
+    case 'compliance': return <Scale size={16} />;
+    case 'data_dx': return <Database size={16} />;
+    case 'ai_era': return <Bot size={16} />;
+    case 'chat': return <MessageSquare size={16} />;
+    default: return <Cpu size={16} />;
+  }
 };
 
 const STEP_PROGRESS: Record<string, number> = {
@@ -234,7 +248,7 @@ export function LiveFeed({ viewMode }: LiveFeedProps) {
                               <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border ${
                                 isErr ? 'bg-cw-red/10 border-cw-red/30 text-cw-red' : isDone ? 'bg-cw-green/10 border-cw-green/30 text-cw-green' : 'bg-cw-purple/10 border-cw-purple/30 text-cw-purple'
                               }`}>
-                                <Cpu size={16} />
+                                {getAgentIcon(card.agent)}
                               </div>
                               <div className="min-w-0">
                                 <div className="text-[13px] font-bold text-cw-txt truncate">{agentName}</div>

@@ -36,6 +36,7 @@ import { WorkspaceProvider } from './contexts/WorkspaceContext';
 import { WorkspaceSwitcher } from './components/WorkspaceSwitcher';
 import { TeamDrawer } from './components/drawers/TeamDrawer';
 import { InviteDrawer } from './components/drawers/InviteDrawer';
+import { HelpDrawer } from './components/HelpDrawer';
 import { ComparePage } from './components/ComparePage';
 import { BlogsPage } from './components/BlogsPage';
 import { SingleBlogPage } from './components/SingleBlogPage';
@@ -186,7 +187,20 @@ function DashboardLayout() {
   const [liveFeedView, setLiveFeedView] = useState<'stream' | 'canvas'>('canvas');
   const [userPopoverOpen, setUserPopoverOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [isHelpDrawerOpen, setIsHelpDrawerOpen] = useState(false);
   const bellRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      if (e.key.toLowerCase() === 'h' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        e.preventDefault();
+        setIsHelpDrawerOpen(prev => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const theme = themeOrder[themeIdx];
   const cycleTheme = () => setThemeIdx(i => (i + 1) % themeOrder.length);
@@ -355,10 +369,9 @@ function DashboardLayout() {
               </button>
               {screen !== 'agent' && (
                 <div>
-                  <h1 className="text-[22px] font-bold text-cw-txt tracking-tight leading-none mb-1.5 flex items-center gap-2">
+                  <h1 className="text-[22px] font-bold text-cw-txt tracking-tight leading-none flex items-center gap-2">
                     {topbar.title}
                   </h1>
-                  <div className="text-[13px] text-cw-txt2">{topbar.sub}</div>
                 </div>
               )}
             </div>
@@ -389,22 +402,29 @@ function DashboardLayout() {
                 </div>
               )}
               <div className="flex-1" />
-              <button onClick={() => setIsGlobalFeedOpen(true)} className="px-4 py-2 rounded-md border border-cw-bdr bg-cw-bg2 text-cw-txt text-[13px] font-medium hover:bg-cw-bg3 transition-colors flex items-center gap-2">
+              <button onClick={() => setIsGlobalFeedOpen(true)} className="px-4 py-2 rounded-md border border-cw-bdr bg-cw-bg2 text-cw-txt text-[13px] font-medium hover:bg-cw-bg3 transition-colors flex items-center gap-2 whitespace-nowrap shrink-0">
                 <Globe size={14} /> Global feed
               </button>
               
-              <div className="flex items-center ml-2 border border-cw-bdr rounded-md bg-cw-bg2 overflow-hidden">
-                <button onClick={() => navigate('/dashboard/agent')} className="px-3 py-1.5 text-cw-txt text-[13px] font-medium hover:bg-cw-bg3 transition-colors flex items-center gap-2 border-r border-cw-bdr">
+              <div className="flex items-center ml-2 border border-cw-bdr rounded-md bg-cw-bg2 overflow-hidden shrink-0">
+                <button onClick={() => navigate('/dashboard/agent')} className="px-3 py-1.5 text-cw-txt text-[13px] font-medium hover:bg-cw-bg3 transition-colors flex items-center gap-2 border-r border-cw-bdr whitespace-nowrap">
                   <Sparkles size={14} /> Skills
                 </button>
-                <button onClick={() => window.open('/docs', '_blank')} className="px-3 py-1.5 text-cw-txt text-[13px] font-medium hover:bg-cw-bg3 transition-colors flex items-center gap-2">
+                <button onClick={() => window.open('/docs', '_blank')} className="px-3 py-1.5 text-cw-txt text-[13px] font-medium hover:bg-cw-bg3 transition-colors flex items-center gap-2 whitespace-nowrap">
                   <FileText size={14} /> Docs
                 </button>
               </div>
 
-              <div onClick={() => navigate('/dashboard/settings')} className="flex items-center gap-1.5 px-3 py-1.5 ml-2 rounded-md border border-cw-bdr bg-cw-bg text-[13px] font-medium text-cw-txt cursor-pointer hover:bg-cw-bg2 transition-colors">
+              <div onClick={() => navigate('/dashboard/settings')} className="flex items-center gap-1.5 px-3 py-1.5 ml-2 rounded-md border border-cw-bdr bg-cw-bg text-[13px] font-medium text-cw-txt cursor-pointer hover:bg-cw-bg2 transition-colors whitespace-nowrap shrink-0">
                 <BadgeCheck size={14} className="text-cw-purple" /> Free Tier
               </div>
+
+              <button 
+                onClick={() => setIsHelpDrawerOpen(true)}
+                className="flex items-center gap-2 ml-2 px-3 py-1.5 rounded-md border border-cw-bdr bg-cw-bg2 hover:bg-cw-bg3 text-cw-txt font-medium text-[13px] transition whitespace-nowrap shrink-0"
+              >
+                Need help? <span className="text-[10px] bg-cw-bg px-1.5 py-0.5 rounded border border-cw-bdr text-cw-txt2 font-mono shrink-0">H</span>
+              </button>
 
             </div>
           </div>
@@ -420,6 +440,8 @@ function DashboardLayout() {
             <RunDetail repoId={runDetailTarget.repoId} runId={runDetailTarget.runId} onBack={() => setRunDetailTarget(null)} />
           </div>
         )}
+
+        <HelpDrawer isOpen={isHelpDrawerOpen} onClose={() => setIsHelpDrawerOpen(false)} />
 
         {/* GLOBAL FEED DRAWER */}
         {isGlobalFeedOpen && (

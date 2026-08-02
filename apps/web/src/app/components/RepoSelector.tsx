@@ -7,6 +7,31 @@ export interface RepoOption {
   provider?: 'github' | 'gitlab' | 'bitbucket';
 }
 
+function RepoIcon({ fullName, provider, size = 14, className = '' }: { fullName?: string; provider?: string; size?: number; className?: string }) {
+  const [error, setError] = useState(false);
+  
+  if (!fullName || fullName === 'All') {
+    return <Github size={size} className={className} />;
+  }
+
+  if (!error) {
+    const owner = fullName.split('/')[0];
+    const src = provider === 'gitlab' ? `https://gitlab.com/${owner}.png` : `https://github.com/${owner}.png`;
+    return (
+      <img 
+        src={src} 
+        alt={owner}
+        width={size}
+        height={size}
+        className={`rounded-full shrink-0 object-cover ${className}`}
+        onError={() => setError(true)}
+      />
+    );
+  }
+
+  return <Github size={size} className={className} />;
+}
+
 interface RepoSelectorProps {
   options: RepoOption[];
   value: number | string;
@@ -52,7 +77,7 @@ export function RepoSelector({
         onClick={() => setOpen((o) => !o)}
         className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-cw-bg2 border border-cw-bdr hover:border-cw-purple/50 text-cw-txt text-[11px] font-mono transition-all duration-150 shadow-sm group active:scale-98"
       >
-        <Github size={13} className="text-cw-purple shrink-0 group-hover:scale-110 transition-transform" />
+        <RepoIcon fullName={isAllSelected ? 'All' : selected?.fullName} provider={selected?.provider} size={14} className="text-cw-purple shrink-0 group-hover:scale-110 transition-transform" />
         <span className="truncate max-w-[210px] font-semibold">
           {isAllSelected ? allOptionLabel : selected ? selected.fullName : placeholder}
         </span>
@@ -89,7 +114,7 @@ export function RepoSelector({
                 }`}
               >
                 <div className="flex items-center gap-2 truncate">
-                  <Github size={13} className="text-cw-purple" />
+                  <Github size={14} className="text-cw-purple" />
                   <span className="truncate">{allOptionLabel}</span>
                 </div>
                 {isAllSelected && <Check size={13} className="text-cw-purple shrink-0" />}
@@ -114,8 +139,8 @@ export function RepoSelector({
                       isSelected ? 'bg-cw-purple/15 text-cw-purple font-bold' : 'text-cw-txt hover:bg-cw-bg3 hover:text-white'
                     }`}
                   >
-                    <div className="flex items-center gap-2 truncate">
-                      <Github size={13} className={isSelected ? 'text-cw-purple' : 'text-cw-txt3'} />
+                    <div className="flex items-center gap-2.5 truncate">
+                      <RepoIcon fullName={r.fullName} provider={r.provider} size={14} className={isSelected ? 'text-cw-purple ring-1 ring-cw-purple/20' : 'text-cw-txt3'} />
                       <span className="truncate">{r.fullName}</span>
                     </div>
                     {isSelected && <Check size={13} className="text-cw-purple shrink-0" />}

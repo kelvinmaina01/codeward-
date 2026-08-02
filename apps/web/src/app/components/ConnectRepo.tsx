@@ -79,6 +79,21 @@ const renderChannelIcon = (name: string) => {
   }
 };
 
+const getRelativeTime = (dateString: string) => {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  const diffInSeconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
+  
+  const formatter = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
+  
+  if (diffInSeconds < 60) return formatter.format(-diffInSeconds, 'second');
+  if (diffInSeconds < 3600) return formatter.format(-Math.floor(diffInSeconds / 60), 'minute');
+  if (diffInSeconds < 86400) return formatter.format(-Math.floor(diffInSeconds / 3600), 'hour');
+  if (diffInSeconds < 2592000) return formatter.format(-Math.floor(diffInSeconds / 86400), 'day');
+  if (diffInSeconds < 31536000) return formatter.format(-Math.floor(diffInSeconds / 2592000), 'month');
+  return formatter.format(-Math.floor(diffInSeconds / 31536000), 'year');
+};
+
 const STEPS = {
   SELECT_METHOD: 1,
   GITLAB_AUTH: 2,
@@ -254,7 +269,7 @@ export function ConnectRepo({ user, onConnect, onSkip, activeOrg, setActiveOrg, 
         Skip for now
       </button>
 
-      <div className="w-full max-w-6xl grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
+      <div className="w-full max-w-6xl grid grid-cols-1 md:grid-cols-12 gap-6 md:gap-8 items-start">
         
         {/* LEFT COLUMN: Section Descriptor */}
         <div className="col-span-1 md:col-span-3 pt-4">
@@ -264,31 +279,31 @@ export function ConnectRepo({ user, onConnect, onSkip, activeOrg, setActiveOrg, 
           <p className="text-[13px] text-cw-txt2 mt-2">
             Link your codebase to Codeward for automated security, bloat, and code architecture tracking.
           </p>
-          <div className="mt-8 pt-6 border-t border-slate-800/60 flex flex-col gap-3 text-[12px] text-slate-400">
+          <div className="mt-8 pt-6 border-t border-cw-bdr flex flex-col gap-3 text-[12px] text-cw-txt2">
             <span className="flex items-center gap-2">
-              <Lock size={14} className="text-[#8b5cf6]" />
+              <Lock size={14} className="text-cw-purple" />
               Encrypted OAuth Handshake
             </span>
             <span className="flex items-center gap-2">
-              <Check size={14} className="text-[#2EA043]" />
+              <Check size={14} className="text-cw-green" />
               Granular Repo Permissions
             </span>
             <span className="flex items-center gap-2">
-              <Shield size={14} className="text-[#8b5cf6]" />
+              <Shield size={14} className="text-cw-purple" />
               SOC2 Ready Security
             </span>
           </div>
         </div>
 
         {/* CENTER COLUMN: Central Interactive Core Card Panel */}
-        <div className="col-span-1 md:col-span-6 bg-[#1a1d24] border border-[#334155] rounded-xl p-6 min-h-[460px] flex flex-col justify-between shadow-xl">
+        <div className="col-span-1 md:col-span-6 bg-cw-bg2 border border-cw-bdr rounded-xl p-4 sm:p-6 min-h-[460px] flex flex-col justify-between shadow-xl w-full max-w-full overflow-hidden">
           
           {/* STEP 1: Select Authentication Provider */}
           {activeStep === STEPS.SELECT_METHOD && (
             <div className="space-y-6 flex-1 flex flex-col justify-between animate-in fade-in slide-in-from-bottom-2 duration-300">
               <div>
-                <h3 className="text-lg font-bold text-slate-100">Ship something new</h3>
-                <p className="text-[13px] text-slate-400 mt-1">Select your provider to link repositories to Codeward.</p>
+                <h3 className="text-lg font-bold text-cw-txt">Ship something new</h3>
+                <p className="text-[13px] text-cw-txt2 mt-1">Select your provider to link repositories to Codeward.</p>
                 
                 {repoError && repoError !== 'No GitHub account linked' && (
                   <div className="mt-4 p-3 bg-red-900/10 border border-red-500/20 rounded-lg text-red-400 text-[13px] flex items-center gap-2">
@@ -299,7 +314,7 @@ export function ConnectRepo({ user, onConnect, onSkip, activeOrg, setActiveOrg, 
                 <div className="grid grid-cols-2 gap-4 mt-6">
                   <button 
                     onClick={() => handleLinkAccount('github')}
-                    className="flex items-center justify-center gap-3 p-3 bg-slate-800/40 border border-slate-700/60 rounded-lg hover:border-[#8b5cf6] transition text-sm font-medium text-slate-200"
+                    className="flex items-center justify-center gap-3 p-3 bg-cw-bg3 border border-cw-bdr rounded-lg hover:border-cw-purple transition text-sm font-medium text-cw-txt"
                   >
                     <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2A10 10 0 0 0 2 12c0 4.42 2.87 8.17 6.84 9.5.5.08.66-.23.66-.5v-1.69c-2.77.6-3.36-1.34-3.36-1.34-.46-1.16-1.11-1.47-1.11-1.47-.9-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.9 1.52 2.34 1.07 2.91.83.1-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.94 0-1.1.39-1.99 1.03-2.69-.1-.25-.45-1.27.1-2.64 0 0 .84-.27 2.75 1.02.79-.22 1.65-.33 2.5-.33.85 0 1.71.11 2.5.33 1.91-1.29 2.75-1.02 2.75-1.02.55 1.37.2 2.39.1 2.64.64.7 1.03 1.6 1.03 2.69 0 3.84-2.34 4.68-4.57 4.93.36.31.68.92.68 1.85V21c0 .27.16.59.67.5C19.14 20.16 22 16.42 22 12A10 10 0 0 0 12 2z"/></svg>
                     Continue with GitHub
@@ -307,16 +322,18 @@ export function ConnectRepo({ user, onConnect, onSkip, activeOrg, setActiveOrg, 
 
                   <button 
                     onClick={() => { setAuthProvider('gitlab'); setActiveStep(STEPS.GITLAB_AUTH); }}
-                    className="flex items-center justify-center gap-3 p-3 bg-slate-800/40 border border-slate-700/60 rounded-lg hover:border-[#8b5cf6] transition text-sm font-medium text-slate-200"
+                    className="flex items-center justify-center gap-3 p-3 bg-cw-bg3 border border-cw-bdr rounded-lg hover:border-cw-purple transition text-sm font-medium text-cw-txt"
                   >
-                    <svg className="w-5 h-5 text-orange-500" viewBox="0 0 24 24" fill="currentColor"><path d="M23.953 12.485l-1.332-4.1a.732.732 0 0 0-.265-.395.722.722 0 0 0-.472-.11.716.716 0 0 0-.417.202l-3.32 3.32H5.855l-3.32-3.32a.731.731 0 0 0-.417-.202.712.712 0 0 0-.472.11.723.723 0 0 0-.265.395l-1.332 4.1a.74.74 0 0 0 .261.815l9.957 7.235a.736.736 0 0 0 .866 0l9.957-7.235a.74.74 0 0 0 .261-.815z"/></svg>
-                    Connect GitLab
+                    <svg className="w-5 h-5 shrink-0" viewBox="0 0 380 380" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path fill="#E24329" d="M269.41 127.31l-29.35-90.31a10.66 10.66 0 0 0-20.26 0l-29.8 90.31h139.69a10.67 10.67 0 0 0-20.28 0z" />
+                      <path fill="#FC6D26" d="M190 351.46l89.6-275.82h-139.7l50.1 275.82z" />
+                      <path fill="#FCA326" d="M370.47 186.23l-90.87 165.23-89.6-275.82 120.47-5.06a10.65 10.65 0 0 1 10.29 13.62l49.71 102.03z" />
+                      <path fill="#E24329" d="M110.59 127.31l29.35-90.31a10.66 10.66 0 0 1 20.26 0l29.8 90.31H50.31a10.67 10.67 0 0 1 20.28 0z" />
+                      <path fill="#FCA326" d="M9.53 186.23l90.87 165.23 89.6-275.82L69.53 70.58a10.65 10.65 0 0 0-10.29 13.62L9.53 186.23z" />
+                    </svg>
+                    Continue with GitLab
                   </button>
                 </div>
-              </div>
-
-              <div className="text-center text-xs text-slate-500 pt-4 border-t border-slate-800/60">
-                Looking to deploy Pages? <span className="text-[#8b5cf6] hover:underline cursor-pointer">Get started</span>
               </div>
             </div>
           )}
@@ -325,34 +342,34 @@ export function ConnectRepo({ user, onConnect, onSkip, activeOrg, setActiveOrg, 
           {activeStep === STEPS.GITLAB_AUTH && (
             <div className="space-y-6 flex-1 flex flex-col justify-between animate-in fade-in slide-in-from-right-2 duration-300">
               <div>
-                <h3 className="text-lg font-bold text-slate-100">Configure GitLab Instance</h3>
-                <p className="text-[13px] text-slate-400 mt-1">Provide self-hosted or SaaS credentials to integrate with your projects.</p>
+                <h3 className="text-lg font-bold text-cw-txt">Configure GitLab Instance</h3>
+                <p className="text-[13px] text-cw-txt2 mt-1">Provide self-hosted or SaaS credentials to integrate with your projects.</p>
                 
                 <div className="mt-5 space-y-4">
                   <div>
-                    <label className="block text-xs font-medium text-slate-400 mb-1.5">GitLab Instance URL</label>
+                    <label className="block text-xs font-medium text-cw-txt2 mb-1.5">GitLab Instance URL</label>
                     <input 
                       type="text" 
                       value={gitlabUrl}
                       onChange={(e) => setGitlabUrl(e.target.value)}
-                      className="w-full bg-[#13151a] border border-slate-700/80 rounded-lg p-2.5 text-[13px] focus:outline-none focus:border-[#8b5cf6] transition text-slate-200" 
+                      className="w-full bg-cw-bg border border-cw-bdr rounded-lg p-2.5 text-[13px] focus:outline-none focus:border-cw-purple transition text-cw-txt" 
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-slate-400 mb-1.5">Personal Access Token</label>
+                    <label className="block text-xs font-medium text-cw-txt2 mb-1.5">Personal Access Token</label>
                     <input 
                       type="password" 
                       placeholder="glpat-xxxxxxxxxxxx"
                       value={gitlabToken}
                       onChange={(e) => setGitlabToken(e.target.value)}
-                      className="w-full bg-[#13151a] border border-slate-700/80 rounded-lg p-2.5 text-[13px] focus:outline-none focus:border-[#8b5cf6] transition text-slate-200" 
+                      className="w-full bg-cw-bg border border-cw-bdr rounded-lg p-2.5 text-[13px] focus:outline-none focus:border-cw-purple transition text-cw-txt" 
                     />
                   </div>
                 </div>
               </div>
 
-              <div className="flex items-center justify-between pt-4 border-t border-slate-800/60">
-                <button onClick={() => setActiveStep(STEPS.SELECT_METHOD)} className="text-[13px] font-medium text-slate-400 hover:text-white transition">
+              <div className="flex items-center justify-between pt-4 border-t border-cw-bdr">
+                <button onClick={() => setActiveStep(STEPS.SELECT_METHOD)} className="text-[13px] font-medium text-cw-txt2 hover:text-cw-txt transition">
                   Back
                 </button>
                 <button 
@@ -361,7 +378,7 @@ export function ConnectRepo({ user, onConnect, onSkip, activeOrg, setActiveOrg, 
                     setActiveStep(STEPS.SELECT_REPOSITORY);
                   }}
                   disabled={!gitlabToken}
-                  className="px-4 py-2 bg-[#8b5cf6] disabled:bg-[#8b5cf6]/40 disabled:text-slate-400 hover:bg-[#7c3aed] text-white rounded-lg text-[13px] font-bold transition shadow-md"
+                  className="px-4 py-2 bg-cw-purple disabled:bg-cw-purple/40 disabled:text-cw-txt2 hover:bg-cw-purple/80 text-cw-txt rounded-lg text-[13px] font-bold transition shadow-md"
                 >
                   Connect & Continue
                 </button>
@@ -373,24 +390,24 @@ export function ConnectRepo({ user, onConnect, onSkip, activeOrg, setActiveOrg, 
           {activeStep === STEPS.SELECT_REPOSITORY && (
             <div className="space-y-4 flex-1 flex flex-col justify-between animate-in fade-in slide-in-from-right-2 duration-300">
               <div>
-                <h3 className="text-lg font-bold text-slate-100">Select repositories</h3>
-                <p className="text-[13px] text-slate-400">Choose connected repositories to protect with Codeward agents.</p>
+                <h3 className="text-lg font-bold text-cw-txt">Select repositories</h3>
+                <p className="text-[13px] text-cw-txt2">Choose connected repositories to protect with Codeward agents.</p>
                 
                 <div className="flex gap-2 mt-4 relative">
                   {/* Custom Workspace Dropdown (simplified for this UI) */}
                   <div className="relative shrink-0">
                     <button
                       onClick={() => setShowOrgDropdown(!showOrgDropdown)}
-                      className="bg-[#13151a] border border-slate-700/80 hover:border-slate-600 rounded-lg px-3 py-2 text-[13px] flex items-center gap-2 cursor-pointer text-slate-300 transition-colors h-[42px]"
+                      className="bg-cw-bg border border-cw-bdr hover:border-cw-bdr rounded-lg px-3 py-2 text-[13px] flex items-center gap-2 cursor-pointer text-cw-txt2 transition-colors h-[42px]"
                     >
                       <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2A10 10 0 0 0 2 12c0 4.42 2.87 8.17 6.84 9.5.5.08.66-.23.66-.5v-1.69c-2.77.6-3.36-1.34-3.36-1.34-.46-1.16-1.11-1.47-1.11-1.47-.9-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.9 1.52 2.34 1.07 2.91.83.1-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.94 0-1.1.39-1.99 1.03-2.69-.1-.25-.45-1.27.1-2.64 0 0 .84-.27 2.75 1.02.79-.22 1.65-.33 2.5-.33.85 0 1.71.11 2.5.33 1.91-1.29 2.75-1.02 2.75-1.02.55 1.37.2 2.39.1 2.64.64.7 1.03 1.6 1.03 2.69 0 3.84-2.34 4.68-4.57 4.93.36.31.68.92.68 1.85V21c0 .27.16.59.67.5C19.14 20.16 22 16.42 22 12A10 10 0 0 0 12 2z"/></svg>
                       {typeof activeOrg === 'string' ? activeOrg : (activeOrg as any)?.name}
-                      <ChevronDown size={14} className="text-slate-500 ml-2" />
+                      <ChevronDown size={14} className="text-cw-txt3 ml-2" />
                     </button>
                     {showOrgDropdown && (
                       <>
                         <div className="fixed inset-0 z-40" onClick={() => setShowOrgDropdown(false)} />
-                        <div className="absolute top-full left-0 mt-2 w-full min-w-[200px] bg-[#1a1d24] border border-slate-700/80 rounded-lg shadow-xl z-50 overflow-hidden">
+                        <div className="absolute top-full left-0 mt-2 w-full min-w-[200px] bg-cw-bg2 border border-cw-bdr rounded-lg shadow-xl z-50 overflow-hidden">
                           <div className="max-h-[200px] overflow-y-auto py-1">
                             {(propOrgs?.length ? propOrgs : localOrgs).map((orgObj, idx) => {
                               const orgName = typeof orgObj === 'string' ? orgObj : orgObj.name;
@@ -399,7 +416,7 @@ export function ConnectRepo({ user, onConnect, onSkip, activeOrg, setActiveOrg, 
                                 <button
                                   key={orgName + idx}
                                   onClick={() => { setActiveOrg?.(orgName); setShowOrgDropdown(false); }}
-                                  className="w-full flex items-center px-4 py-2 hover:bg-[#8b5cf6]/20 transition-colors text-left text-[13px] text-slate-300"
+                                  className="w-full flex items-center px-4 py-2 hover:bg-cw-purple/20 transition-colors text-left text-[13px] text-cw-txt2"
                                 >
                                   {orgName}
                                 </button>
@@ -412,22 +429,22 @@ export function ConnectRepo({ user, onConnect, onSkip, activeOrg, setActiveOrg, 
                   </div>
                   
                   <div className="relative flex-1">
-                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-cw-txt3" />
                     <input 
                       type="text" 
                       placeholder="Search repositories..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full h-[42px] bg-[#13151a] border border-slate-700/80 rounded-lg pl-9 pr-3 py-2 text-[13px] focus:outline-none focus:border-[#8b5cf6] transition text-slate-200" 
+                      className="w-full h-[42px] bg-cw-bg border border-cw-bdr rounded-lg pl-9 pr-3 py-2 text-[13px] focus:outline-none focus:border-cw-purple transition text-cw-txt" 
                     />
                   </div>
                 </div>
 
-                <div className="mt-3 bg-[#13151a]/60 border border-slate-800 rounded-lg divide-y divide-slate-800 max-h-[200px] overflow-y-auto custom-scrollbar">
+                <div className="mt-3 bg-cw-log-bg border border-cw-bdr rounded-lg divide-y divide-cw-bdr max-h-[200px] overflow-y-auto custom-scrollbar">
                   {loadingRepos ? (
-                    <div className="p-8 flex justify-center"><Loader size={20} className="animate-spin text-[#8b5cf6]" /></div>
+                    <div className="p-8 flex justify-center"><Loader size={20} className="animate-spin text-cw-purple" /></div>
                   ) : filteredRepos.length === 0 ? (
-                    <div className="p-6 text-center text-[13px] text-slate-500">No repositories found.</div>
+                    <div className="p-6 text-center text-[13px] text-cw-txt3">No repositories found.</div>
                   ) : (
                     filteredRepos.map((repo) => {
                       const sel = selectedRepos.includes(repo.full);
@@ -438,22 +455,26 @@ export function ConnectRepo({ user, onConnect, onSkip, activeOrg, setActiveOrg, 
                             if (repo.connected) return;
                             toggleRepoSelection(repo.full);
                           }}
-                          className={`p-3 text-[13px] transition cursor-pointer flex justify-between items-center ${
+                          className={`p-3 text-[13px] transition flex justify-between items-center ${
                             repo.connected 
-                              ? 'opacity-50 cursor-not-allowed text-slate-500' 
+                              ? 'cursor-not-allowed text-cw-txt3 bg-cw-bg/50' 
                               : sel 
-                                ? 'bg-[#8b5cf6]/10 text-[#8b5cf6]' 
-                                : 'text-slate-300 hover:bg-[#8b5cf6]/10 hover:text-[#8b5cf6]'
+                                ? 'cursor-pointer bg-cw-purple/10 text-cw-purple' 
+                                : 'cursor-pointer text-cw-txt2 hover:bg-cw-purple/10 hover:text-cw-purple'
                           }`}
                         >
                           <div className="flex items-start gap-3">
-                            <div className={`mt-0.5 w-[16px] h-[16px] rounded-[4px] border-[1.5px] flex items-center justify-center transition-all shrink-0 ${sel ? 'border-[#8b5cf6] bg-[#8b5cf6]' : 'border-slate-600 bg-transparent'}`}>
-                              {sel && <Check size={10} color="#fff" />}
+                            <div className={`mt-0.5 w-[16px] h-[16px] rounded-[4px] border-[1.5px] flex items-center justify-center transition-all shrink-0 ${sel ? 'border-cw-purple bg-cw-purple' : 'border-cw-bdr bg-transparent'}`}>
+                              {sel && <Check size={10} color="currentColor" />}
                             </div>
-                            <div className="flex flex-col">
-                              <span className="font-medium">{repo.name}</span>
-                              <div className="flex items-center gap-3 mt-1 text-[11px] text-slate-500 font-normal">
+                            <div className="flex flex-col min-w-0 overflow-hidden">
+                              <div className="flex items-center gap-2">
+                                <img src={`https://github.com/${repo.owner}.png`} alt={repo.owner} className="w-4 h-4 rounded-full bg-cw-bg shrink-0" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                                <span className="font-medium truncate">{repo.name}</span>
+                              </div>
+                              <div className="flex items-center gap-3 mt-1 text-[11px] text-cw-txt2 font-normal flex-wrap">
                                 {repo.lang && <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-slate-600" /> {repo.lang}</span>}
+                                {repo.pushed && <span className="flex items-center gap-1 text-cw-txt3">Updated {getRelativeTime(repo.pushed)}</span>}
                                 {repo.stars > 0 && <span className="flex items-center gap-1" title="Stars">★ {repo.stars}</span>}
                                 {repo.forks > 0 && <span className="flex items-center gap-1" title="Forks"><GitBranch size={11} /> {repo.forks}</span>}
                                 {repo.issues > 0 && <span className="flex items-center gap-1" title="Issues"><ShieldAlert size={11} /> {repo.issues}</span>}
@@ -461,8 +482,8 @@ export function ConnectRepo({ user, onConnect, onSkip, activeOrg, setActiveOrg, 
                             </div>
                           </div>
                           <div className="flex items-center gap-2 shrink-0">
-                            {repo.connected && <span className="text-[10px] bg-[#13151a] border border-slate-700/80 px-2 py-0.5 rounded text-slate-400">Connected</span>}
-                            <span className="text-[10px] bg-slate-800 px-2 py-0.5 rounded text-slate-500">{repo.private ? 'Private' : 'Public'}</span>
+                            {repo.connected && <span className="text-[10px] bg-cw-bg border border-cw-bdr px-2 py-0.5 rounded text-cw-txt2">Connected</span>}
+                            <span className={`text-[10px] px-2 py-0.5 rounded ${repo.private ? 'bg-cw-purple/20 text-cw-purple' : 'bg-cw-green/20 text-cw-green'}`}>{repo.private ? 'Private' : 'Public'}</span>
                           </div>
                         </div>
                       );
@@ -471,17 +492,17 @@ export function ConnectRepo({ user, onConnect, onSkip, activeOrg, setActiveOrg, 
                 </div>
               </div>
 
-              <div className="flex items-center justify-between pt-4 border-t border-slate-800/60">
+              <div className="flex items-center justify-between pt-4 border-t border-cw-bdr">
                 <button 
                   onClick={() => setActiveStep(authProvider === 'gitlab' ? STEPS.GITLAB_AUTH : STEPS.SELECT_METHOD)} 
-                  className="text-[13px] font-medium text-slate-400 hover:text-white transition"
+                  className="text-[13px] font-medium text-cw-txt2 hover:text-cw-txt transition"
                 >
                   Back
                 </button>
                 <button 
                   onClick={() => setActiveStep(STEPS.CONFIGURE_APPLICATION)}
                   disabled={selectedRepos.length === 0}
-                  className="px-5 py-2 bg-[#8b5cf6] disabled:bg-[#8b5cf6]/40 disabled:text-slate-400 hover:bg-[#7c3aed] text-white rounded-lg text-[13px] font-bold transition shadow-md flex items-center gap-2"
+                  className="px-5 py-2 bg-cw-purple disabled:bg-cw-purple/40 disabled:text-cw-txt2 hover:bg-cw-purple/80 text-cw-txt rounded-lg text-[13px] font-bold transition shadow-md flex items-center gap-2"
                 >
                   Next <ArrowRight size={14} />
                 </button>
@@ -493,18 +514,18 @@ export function ConnectRepo({ user, onConnect, onSkip, activeOrg, setActiveOrg, 
           {activeStep === STEPS.CONFIGURE_APPLICATION && (
             <div className="space-y-6 flex-1 flex flex-col justify-between animate-in fade-in slide-in-from-right-2 duration-300">
               <div>
-                <h3 className="text-lg font-bold text-slate-100">Set up your application</h3>
-                <p className="text-[13px] text-slate-400 mt-1">Configure your Codeward agents and alert channels for the selected repositories.</p>
+                <h3 className="text-lg font-bold text-cw-txt">Set up your application</h3>
+                <p className="text-[13px] text-cw-txt2 mt-1">Configure your Codeward agents and alert channels for the selected repositories.</p>
                 
-                <div className="mt-5 mb-3 bg-[#13151a] border border-slate-700/80 rounded-lg px-4 py-3 flex items-center gap-2 text-[13px] text-slate-300">
+                <div className="mt-5 mb-3 bg-cw-bg border border-cw-bdr rounded-lg px-4 py-3 flex items-center gap-2 text-[13px] text-cw-txt2">
                   <span className="w-2 h-2 rounded-full bg-green-400 shrink-0"></span>
-                  Configuring <strong className="text-white ml-1">{selectedRepos.length}</strong> repositor{selectedRepos.length === 1 ? 'y' : 'ies'}
+                  Configuring <strong className="text-cw-txt ml-1">{selectedRepos.length}</strong> repositor{selectedRepos.length === 1 ? 'y' : 'ies'}
                 </div>
 
                 <div className="space-y-5 mt-4 max-h-[220px] overflow-y-auto pr-2 custom-scrollbar">
                   {/* Alert Channels Configuration */}
                   <div>
-                    <label className="block text-[12px] font-bold text-slate-400 mb-2 uppercase tracking-wider">Alert Channels</label>
+                    <label className="block text-[12px] font-bold text-cw-txt2 mb-2 uppercase tracking-wider">Alert Channels</label>
                     <div className="flex flex-wrap gap-2">
                       {['slack', 'email', 'whatsapp', 'calendar'].map((channel) => {
                         // Using global config check via selectedRepos[0] or default
@@ -512,7 +533,7 @@ export function ConnectRepo({ user, onConnect, onSkip, activeOrg, setActiveOrg, 
                         const conf = configs[firstRepo] || DEFAULT_CONFIG;
                         const isEnabled = conf.alerts[channel as keyof RepoConfig['alerts']];
                         return (
-                          <label key={channel} className={`flex items-center gap-2 cursor-pointer text-[12px] font-medium bg-[#13151a] px-3 py-2 border rounded-lg transition-colors ${isEnabled ? 'border-[#8b5cf6] bg-[#8b5cf6]/10 text-white' : 'border-slate-700/80 text-slate-400 hover:border-slate-600'}`}>
+                          <label key={channel} className={`flex items-center gap-2 cursor-pointer text-[12px] font-medium bg-cw-bg px-3 py-2 border rounded-lg transition-colors ${isEnabled ? 'border-cw-purple bg-cw-purple/10 text-cw-txt' : 'border-cw-bdr text-cw-txt2 hover:border-cw-bdr'}`}>
                             <input 
                               type="checkbox" 
                               checked={isEnabled}
@@ -532,19 +553,19 @@ export function ConnectRepo({ user, onConnect, onSkip, activeOrg, setActiveOrg, 
 
                   {/* Agents Configuration */}
                   <div>
-                    <label className="block text-[12px] font-bold text-slate-400 mb-2 uppercase tracking-wider">Active Agents</label>
+                    <label className="block text-[12px] font-bold text-cw-txt2 mb-2 uppercase tracking-wider">Active Agents</label>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       {AGENTS.map(agent => (
                         <div 
                           key={agent.id}
-                          className={`flex items-start gap-3 p-2.5 rounded-lg border bg-[#13151a] border-slate-700/80 transition-all`}
+                          className={`flex items-start gap-3 p-2.5 rounded-lg border bg-cw-bg border-cw-bdr transition-all`}
                         >
                           <div className={`mt-0.5 w-[24px] h-[24px] rounded-md flex items-center justify-center shrink-0 ${agent.bg} ${agent.text}`}>
                             <agent.icon size={12} />
                           </div>
                           <div>
-                            <div className="text-[12px] font-bold text-slate-200 line-clamp-1">{agent.name}</div>
-                            <div className="text-[11px] text-slate-500 mt-0.5 leading-tight line-clamp-1">{agent.desc}</div>
+                            <div className="text-[12px] font-bold text-cw-txt line-clamp-1">{agent.name}</div>
+                            <div className="text-[11px] text-cw-txt3 mt-0.5 leading-tight line-clamp-1">{agent.desc}</div>
                           </div>
                         </div>
                       ))}
@@ -553,14 +574,14 @@ export function ConnectRepo({ user, onConnect, onSkip, activeOrg, setActiveOrg, 
                 </div>
               </div>
 
-              <div className="flex items-center justify-between pt-4 border-t border-slate-800/60">
-                <button onClick={() => setActiveStep(STEPS.SELECT_REPOSITORY)} className="text-[13px] font-medium text-slate-400 hover:text-white transition">
+              <div className="flex items-center justify-between pt-4 border-t border-cw-bdr">
+                <button onClick={() => setActiveStep(STEPS.SELECT_REPOSITORY)} className="text-[13px] font-medium text-cw-txt2 hover:text-cw-txt transition">
                   Back
                 </button>
                 <button 
                   onClick={executeConnect}
                   disabled={connecting}
-                  className="px-5 py-2 bg-[#8b5cf6] disabled:bg-[#8b5cf6]/40 disabled:text-slate-400 hover:bg-[#7c3aed] text-white rounded-lg text-[13px] font-bold transition shadow-lg tracking-wide flex items-center gap-2"
+                  className="px-5 py-2 bg-cw-purple disabled:bg-cw-purple/40 disabled:text-cw-txt2 hover:bg-cw-purple/80 text-cw-txt rounded-lg text-[13px] font-bold transition shadow-lg tracking-wide flex items-center gap-2"
                 >
                   {connecting ? <Loader size={14} className="animate-spin" /> : <Shield size={14} />}
                   Connect & Protect
@@ -572,7 +593,7 @@ export function ConnectRepo({ user, onConnect, onSkip, activeOrg, setActiveOrg, 
         </div>
 
         {/* RIGHT COLUMN: Static Stepper Side Progress List */}
-        <div className="col-span-1 md:col-span-3 pt-4 md:pl-4 md:border-l border-slate-800/50 space-y-5 hidden md:block">
+        <div className="col-span-1 md:col-span-3 pt-4 md:pl-4 md:border-l border-cw-bdr space-y-5 hidden md:block">
           <StepIndicator label="Select a method" active={activeStep === STEPS.SELECT_METHOD} done={activeStep > STEPS.SELECT_METHOD} />
           {authProvider === 'gitlab' && <StepIndicator label="Authenticate provider" active={activeStep === STEPS.GITLAB_AUTH} done={activeStep > STEPS.GITLAB_AUTH} />}
           <StepIndicator label="Select repositories" active={activeStep === STEPS.SELECT_REPOSITORY} done={activeStep > STEPS.SELECT_REPOSITORY} />
@@ -589,15 +610,15 @@ function StepIndicator({ label, active, done }: { label: string, active: boolean
   return (
     <div className="flex items-center gap-3">
       {done ? (
-        <div className="w-3.5 h-3.5 rounded-full bg-[#13151a] border border-slate-600 flex items-center justify-center shrink-0">
-          <Check size={8} className="text-slate-400" />
+        <div className="w-3.5 h-3.5 rounded-full bg-cw-bg border border-cw-bdr flex items-center justify-center shrink-0">
+          <Check size={8} className="text-cw-txt2" />
         </div>
       ) : active ? (
-        <div className="w-3.5 h-3.5 rounded-full bg-[#8b5cf6] ring-4 ring-[#8b5cf6]/20 shrink-0" />
+        <div className="w-3.5 h-3.5 rounded-full bg-cw-purple ring-4 ring-cw-purple/20 shrink-0" />
       ) : (
-        <div className="w-3.5 h-3.5 rounded-full border-2 border-slate-700 shrink-0" />
+        <div className="w-3.5 h-3.5 rounded-full border-2 border-cw-bdr shrink-0" />
       )}
-      <span className={`text-[13px] font-medium ${active ? 'text-[#8b5cf6] font-bold' : done ? 'text-slate-400' : 'text-slate-600'}`}>
+      <span className={`text-[13px] font-medium ${active ? 'text-cw-purple font-bold' : done ? 'text-cw-txt2' : 'text-cw-txt3'}`}>
         {label}
       </span>
     </div>

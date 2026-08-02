@@ -1,9 +1,9 @@
 import { useEffect, useState, useRef } from 'react';
 import {
   AlertCircle, AlertTriangle, ArrowLeft, Bot, Bug, CheckCircle2, ChevronDown,
-  ChevronRight, ExternalLink, FileText, GitCommit, GitPullRequest, Github,
+  ChevronRight, ExternalLink, FileText, GitCommit, GitPullRequest, Github, Gitlab,
   GitBranch, Info, Layers, Loader2, Lock, RefreshCw, ShieldCheck, Sparkles, Wrench, XCircle,
-  Zap, Filter, Check,
+  Zap, Filter, Check, TrendingDown, Activity, Scale, Database, MessageSquare,
 } from 'lucide-react';
 import { API_URL } from '../../lib/api';
 import { RepoSelector } from './RepoSelector';
@@ -112,6 +112,7 @@ interface Commit {
   date: string | null;
   htmlUrl: string | null;
   branch: string;
+  repoId?: number;
   run: CommitRun | null;
 }
 
@@ -141,12 +142,13 @@ interface Props {
 
 const AGENT_ICONS: Record<string, React.ReactNode> = {
   security: <ShieldCheck size={13} />,
-  bloat: <Zap size={13} />,
-  broken_code: <Bug size={13} />,
+  bloat: <TrendingDown size={13} />,
+  broken_code: <Activity size={13} />,
   architecture: <Layers size={13} />,
-  compliance: <FileText size={13} />,
-  data_dx: <Bot size={13} />,
-  ai_era: <Sparkles size={13} />,
+  compliance: <Scale size={13} />,
+  data_dx: <Database size={13} />,
+  ai_era: <Bot size={13} />,
+  chat: <MessageSquare size={13} />
 };
 
 const GATE_STYLES: Record<string, string> = {
@@ -254,18 +256,16 @@ function ReportDrawer({ repoId, runId, onClose }: { repoId: number; runId: numbe
   }, [repoId, runId]);
 
   return (
-    <>
-      <div className="fixed inset-0 bg-black/60 z-40 animate-in fade-in duration-200" onClick={onClose} />
-      <div className="fixed inset-y-0 right-0 w-[640px] max-w-[calc(100vw-2rem)] bg-cw-bg2 border-l border-cw-bdr z-50 shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-right duration-200">
-        {/* Header */}
-        <div className="px-6 py-4 border-b border-cw-bdr bg-cw-bg3/60 flex items-center justify-between shrink-0">
-          <div>
-            <h2 className="text-[16px] font-bold text-cw-txt">Full Agent Analysis Report</h2>
-            <div className="text-[11px] text-cw-txt3 mt-0.5">Run #{runId} · Detailed breakdown across all autonomous sub-agents</div>
+    <div className="flex-1 flex flex-col h-full overflow-hidden">
+      {/* Header */}
+      <div className="px-4 py-3 border-b border-cw-bdr bg-cw-bg3/60 flex items-start justify-between gap-2 shrink-0">
+          <div className="min-w-0">
+            <h2 className="text-[14px] font-bold text-cw-txt truncate">Full Agent Analysis Report</h2>
+            <div className="text-[11px] text-cw-txt3 mt-0.5 truncate">Run #{runId} · Detailed breakdown across all autonomous sub-agents</div>
           </div>
           <button
             onClick={onClose}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-cw-bdr bg-cw-bg text-cw-txt2 hover:text-cw-txt hover:bg-cw-bg3 text-[11px] font-medium transition-colors"
+            className="flex items-center shrink-0 gap-1.5 px-2.5 py-1.5 rounded-lg border border-cw-bdr bg-cw-bg text-cw-txt2 hover:text-cw-txt hover:bg-cw-bg3 text-[11px] font-medium transition-colors"
           >
             Collapse <ChevronRight size={13} />
           </button>
@@ -303,8 +303,8 @@ function ReportDrawer({ repoId, runId, onClose }: { repoId: number; runId: numbe
               {/* Escalated Issues */}
               {report.escalation && report.escalation.issues.length > 0 && (
                 <div className="p-4 rounded-xl border border-cw-red/30 bg-cw-red/5 space-y-2">
-                  <div className="flex items-center gap-2 text-xs font-bold text-cw-red uppercase tracking-wide">
-                    <AlertTriangle size={14} /> Escalated GitHub Issues
+                  <div className="flex items-center gap-2 font-bold text-[13px] text-cw-red uppercase tracking-wide">
+                    <AlertTriangle size={14} /> Escalated Issues
                   </div>
                   <div className="space-y-1.5">
                     {report.escalation.issues.map((issue) => (
@@ -331,11 +331,10 @@ function ReportDrawer({ repoId, runId, onClose }: { repoId: number; runId: numbe
           )}
         </div>
       </div>
-    </>
   );
 }
 
-function DiffDrawer({ repoId, sha, onClose }: { repoId: number; sha: string; onClose: () => void }) {
+function DiffDrawer({ repoId, sha, commitAuthorName, onClose }: { repoId: number; sha: string; commitAuthorName: string | null; onClose: () => void }) {
   const [diff, setDiff] = useState<CommitDiff | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -358,18 +357,16 @@ function DiffDrawer({ repoId, sha, onClose }: { repoId: number; sha: string; onC
   }, [repoId, sha]);
 
   return (
-    <>
-      <div className="fixed inset-0 bg-black/60 z-40 animate-in fade-in duration-200" onClick={onClose} />
-      <div className="fixed inset-y-0 right-0 w-[640px] max-w-[calc(100vw-2rem)] bg-cw-bg2 border-l border-cw-bdr z-50 shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-right duration-200">
-        {/* Header */}
-        <div className="px-6 py-4 border-b border-cw-bdr bg-cw-bg3/60 flex items-center justify-between shrink-0">
-          <div>
-            <h2 className="text-[16px] font-bold text-cw-txt">Commit Diff</h2>
-            <div className="text-[11px] font-mono text-cw-txt3 mt-0.5">Commit {shortSha(sha)}</div>
+    <div className="flex-1 flex flex-col h-full overflow-hidden">
+      {/* Header */}
+      <div className="px-4 py-3 border-b border-cw-bdr bg-cw-bg3/60 flex items-start justify-between gap-2 shrink-0">
+          <div className="min-w-0">
+            <h2 className="text-[14px] font-bold text-cw-txt truncate">Commit Diff</h2>
+            <div className="text-[11px] font-mono text-cw-txt3 mt-0.5 truncate">Commit {shortSha(sha)}</div>
           </div>
           <button
             onClick={onClose}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-cw-bdr bg-cw-bg text-cw-txt2 hover:text-cw-txt hover:bg-cw-bg3 text-[11px] font-medium transition-colors"
+            className="flex items-center shrink-0 gap-1.5 px-2.5 py-1.5 rounded-lg border border-cw-bdr bg-cw-bg text-cw-txt2 hover:text-cw-txt hover:bg-cw-bg3 text-[11px] font-medium transition-colors"
           >
             Collapse <ChevronRight size={13} />
           </button>
@@ -387,13 +384,24 @@ function DiffDrawer({ repoId, sha, onClose }: { repoId: number; sha: string; onC
             <>
               {/* Summary Bar */}
               <div className="p-3.5 rounded-xl border border-cw-bdr bg-cw-bg flex items-center justify-between text-xs font-mono">
-                <span className="text-cw-txt2">{diff.files.length} file{diff.files.length === 1 ? '' : 's'} changed</span>
+                <div className="flex items-center gap-3">
+                  <span className="text-cw-txt2">{diff.files.length} file{diff.files.length === 1 ? '' : 's'} changed</span>
+                  {commitAuthorName?.toLowerCase().includes('codeward') ? (
+                    <span className="px-2 py-0.5 rounded bg-cw-purple/10 border border-cw-purple/30 text-cw-purple font-semibold flex items-center gap-1.5">
+                      <Bot size={11} /> Codeward Generated
+                    </span>
+                  ) : (
+                    <span className="px-2 py-0.5 rounded bg-cw-bg3 border border-cw-bdr text-cw-txt2 flex items-center gap-1.5 truncate max-w-[200px]">
+                      <User size={11} /> User Generated: {commitAuthorName ?? 'Unknown'}
+                    </span>
+                  )}
+                </div>
                 <div className="flex items-center gap-2">
                   <span className="px-2 py-0.5 rounded bg-cw-green/10 text-cw-green font-bold">+{diff.stats?.additions ?? diff.files.reduce((n, f) => n + f.additions, 0)}</span>
                   <span className="px-2 py-0.5 rounded bg-cw-red/10 text-cw-red font-bold">-{diff.stats?.deletions ?? diff.files.reduce((n, f) => n + f.deletions, 0)}</span>
                   {diff.htmlUrl && (
-                    <a href={diff.htmlUrl} target="_blank" rel="noreferrer" className="px-2 py-0.5 rounded bg-cw-bg3 text-cw-blue hover:underline flex items-center gap-1">
-                      GitHub <ExternalLink size={10} />
+                    <a href={diff.htmlUrl} target="_blank" rel="noreferrer" className="px-2 py-0.5 rounded bg-cw-bg3 text-cw-blue hover:underline flex items-center gap-1.5">
+                      {diff.htmlUrl.includes('gitlab') ? <><Gitlab size={12} /> GitLab</> : <><Github size={12} /> GitHub</>} <ExternalLink size={10} />
                     </a>
                   )}
                 </div>
@@ -445,7 +453,6 @@ function DiffDrawer({ repoId, sha, onClose }: { repoId: number; sha: string; onC
           )}
         </div>
       </div>
-    </>
   );
 }
 
@@ -476,7 +483,7 @@ function AgentReportCard({ agent }: { agent: AgentReport }) {
           {summary && <div className="px-3 py-2 text-[12px] text-cw-txt2 border-b border-cw-bdr">{summary}</div>}
           {agent.autoFixPR?.opened && (
             <a href={agent.autoFixPR.htmlUrl} target="_blank" rel="noreferrer" className="px-3 py-2 text-[11px] text-cw-green bg-cw-green/5 hover:bg-cw-green/10 border-b border-cw-bdr flex items-center gap-2 no-underline">
-              <Github size={12} /> Auto-fix PR #{agent.autoFixPR.pullRequestNumber} · {agent.autoFixPR.fixedCount} fix{agent.autoFixPR.fixedCount === 1 ? '' : 'es'}
+              {agent.autoFixPR.htmlUrl?.includes('gitlab') ? <Gitlab size={12} /> : <Github size={12} />} Auto-fix PR #{agent.autoFixPR.pullRequestNumber} · {agent.autoFixPR.fixedCount} fix{agent.autoFixPR.fixedCount === 1 ? '' : 'es'}
               <ExternalLink size={10} className="ml-auto" />
             </a>
           )}
@@ -542,10 +549,8 @@ function AgentReportCard({ agent }: { agent: AgentReport }) {
   );
 }
 
-function CommitRow({ commit, isLast, repoId }: { commit: Commit; isLast: boolean; repoId: number }) {
+function CommitRow({ commit, isLast, repoId, onOpenReport, onOpenDiff }: { commit: Commit; isLast: boolean; repoId: number; onOpenReport: () => void; onOpenDiff: () => void }) {
   const [expanded, setExpanded] = useState(false);
-  const [reportOpen, setReportOpen] = useState(false);
-  const [diffOpen, setDiffOpen] = useState(false);
   const run = commit.run;
   const scoreColor = run?.score == null ? 'text-cw-txt3' : run.score >= 80 ? 'text-cw-green' : run.score >= 60 ? 'text-cw-amber' : 'text-cw-red';
   const canOpenReport = !!run && ['completed', 'failed', 'agent_failed'].includes(run.status);
@@ -570,23 +575,39 @@ function CommitRow({ commit, isLast, repoId }: { commit: Commit; isLast: boolean
                 {run?.status === 'running' && <span className="shrink-0 flex items-center gap-1 px-2 py-0.5 rounded bg-cw-blue/10 border border-cw-blue/30 text-cw-blue text-[9px] font-bold uppercase"><Loader2 size={8} className="animate-spin" /> Running</span>}
               </div>
               <div className="flex items-center gap-3 mt-1.5 flex-wrap text-[11px] text-cw-txt3">
-                <a href={commit.htmlUrl ?? '#'} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="font-mono text-cw-blue hover:underline flex items-center gap-1"><GitCommit size={10} />{shortSha(commit.sha)}</a>
+                <a href={commit.htmlUrl ?? '#'} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="font-mono text-cw-blue hover:underline flex items-center gap-1.5">{commit.htmlUrl?.includes('gitlab') ? <Gitlab size={11} /> : <Github size={11} />} {shortSha(commit.sha)}</a>
                 <span>{commit.authorName ?? 'Unknown author'}</span>
                 <span>{timeAgo(commit.date)}</span>
                 <span className="flex items-center gap-1"><Lock size={10} /> {commit.branch ?? 'main'}</span>
-                {run?.isIncremental && run.changedFileCount != null && <span className="px-1.5 py-0.5 rounded bg-cw-bg3 border border-cw-bdr text-[9px] font-medium">Incremental · {run.changedFileCount} file{run.changedFileCount !== 1 ? 's' : ''}</span>}
+                  {run?.isIncremental && run.changedFileCount != null && <span className="px-1.5 py-0.5 rounded bg-cw-bg3 border border-cw-bdr text-[9px] font-medium">Incremental · {run.changedFileCount} file{run.changedFileCount !== 1 ? 's' : ''}</span>}
+                  {!run && (
+                    <span className="px-1.5 py-0.5 rounded bg-cw-bg3 border border-cw-bdr text-[9px] font-medium text-cw-txt3 flex items-center gap-1">
+                      <Bot size={10} /> No Codeward activity
+                    </span>
+                  )}
+                  {run && run.agents.length > 0 && (
+                    <span className="flex items-center gap-1.5 ml-1" title="Agents Activity">
+                      {run.agents.map((a) => (
+                        <div 
+                          key={a.id} 
+                          className={`w-2 h-2 rounded-full ${a.status !== 'skipped' ? (a.score != null && a.score < 80 ? 'bg-cw-amber' : 'bg-cw-green') : 'bg-cw-bg3 border border-cw-bdr'}`} 
+                          title={`${a.name}: ${a.status !== 'skipped' ? 'Ran' : 'Skipped'}`}
+                        />
+                      ))}
+                    </span>
+                  )}
+                </div>
               </div>
-            </div>
             <div className="flex items-center gap-3 shrink-0 ml-2">
               {run?.score != null && <span className={`text-[18px] font-bold tabular-nums ${scoreColor}`}>{run.score}<span className="text-[11px] font-normal text-cw-txt3">/100</span></span>}
               {commit.htmlUrl && (
-                <button onClick={(e) => { e.stopPropagation(); setDiffOpen(true); }}
+                <button onClick={(e) => { e.stopPropagation(); onOpenDiff(); }}
                   className="px-3 py-1.5 text-[11px] font-semibold border rounded-lg transition-colors flex items-center gap-1.5 whitespace-nowrap text-cw-txt2 border-cw-bdr bg-cw-bg hover:bg-cw-bg3 hover:text-cw-txt">
                   View diff <ChevronRight size={11} />
                 </button>
               )}
               {canOpenReport && (
-                <button onClick={(e) => { e.stopPropagation(); setReportOpen(true); }}
+                <button onClick={(e) => { e.stopPropagation(); onOpenReport(); }}
                   className="px-3 py-1.5 text-[11px] font-semibold border rounded-lg transition-colors flex items-center gap-1.5 whitespace-nowrap text-cw-purple border-cw-purple/30 bg-cw-purple/10 hover:bg-cw-purple/20">
                   Full report <ChevronRight size={11} />
                 </button>
@@ -616,16 +637,13 @@ function CommitRow({ commit, isLast, repoId }: { commit: Commit; isLast: boolean
         </div>
       </div>
 
-      {/* Side-Pull Drawers for View Diff and Full Report */}
-      {reportOpen && run && <ReportDrawer repoId={repoId} runId={run.id} onClose={() => setReportOpen(false)} />}
-      {diffOpen && <DiffDrawer repoId={repoId} sha={commit.sha} onClose={() => setDiffOpen(false)} />}
     </div>
   );
 }
 
 export function CommitHistory({ repoId: initialRepoId, repoFullName: initialRepoFullName = 'Repository', onBack }: Props) {
   const [repoList, setRepoList] = useState<{ id: number; fullName: string }[]>([]);
-  const [activeRepoId, setActiveRepoId] = useState<number | null>(initialRepoId ?? null);
+  const [activeRepoId, setActiveRepoId] = useState<number | 'All' | null>(initialRepoId ?? null);
   const [commits, setCommits] = useState<Commit[]>([]);
   const [resolvedRepoName, setResolvedRepoName] = useState(initialRepoFullName);
   const [branches, setBranches] = useState<string[]>([]);
@@ -636,6 +654,9 @@ export function CommitHistory({ repoId: initialRepoId, repoFullName: initialRepo
   const [activeFilter, setActiveFilter] = useState<'PASS' | 'WARN' | 'BLOCK' | 'RUNNING' | 'SKIPPED' | null>(null);
   const [filterOpen, setFilterOpen] = useState(false);
   const filterRef = useRef<HTMLDivElement>(null);
+  
+  const [activeReport, setActiveReport] = useState<{ runId: number; repoId: number } | null>(null);
+  const [activeDiff, setActiveDiff] = useState<{ sha: string; repoId: number } | null>(null);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -666,9 +687,10 @@ export function CommitHistory({ repoId: initialRepoId, repoFullName: initialRepo
     setLoading(true);
     setError(null);
     const params = new URLSearchParams();
-    if (branch) params.set('branch', branch);
+    if (branch && targetRepoId !== 'All') params.set('branch', branch);
     const query = params.toString();
-    fetch(`${API_URL}/api/reports/${targetRepoId}/commits${query ? `?${query}` : ''}`, { credentials: 'include' })
+    const endpoint = targetRepoId === 'All' ? `/api/reports/all/commits` : `/api/reports/${targetRepoId}/commits`;
+    fetch(`${API_URL}${endpoint}${query ? `?${query}` : ''}`, { credentials: 'include' })
       .then(async (res) => {
         const data = await res.json();
         if (!res.ok) throw new Error(data?.error || `Request failed (${res.status})`);
@@ -705,48 +727,47 @@ export function CommitHistory({ repoId: initialRepoId, repoFullName: initialRepo
     <div className="flex h-full overflow-hidden bg-cw-bg">
       <div className="flex flex-col min-w-0 flex-1 transition-all duration-300">
         {/* Unbundled Single-Level Control Bar */}
-        <div className="px-6 py-3 border-b border-cw-bdr bg-cw-bg shrink-0 flex items-center justify-between gap-4 flex-wrap">
-          <div className="flex items-center gap-3 flex-wrap">
+        <div className="px-4 py-2 border-b border-cw-bdr bg-cw-bg shrink-0 flex items-center justify-between gap-2 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap">
             {onBack && (
               <button onClick={onBack} className="w-7 h-7 rounded-full border border-cw-bdr bg-cw-bg2 flex items-center justify-center text-cw-txt3 hover:text-cw-txt hover:bg-cw-bg3 transition-colors shrink-0">
                 <ArrowLeft size={14} />
               </button>
             )}
 
-            {/* Repo selector dropdown with GitHub logo and search */}
             <RepoSelector
               options={repoList}
               value={activeRepoId ?? ''}
+              showAllOption
               onChange={(val, name) => {
-                const id = Number(val);
-                setActiveRepoId(id);
+                setActiveRepoId(val === 'All' ? 'All' : Number(val));
                 setResolvedRepoName(name);
               }}
               placeholder="Select repository"
             />
 
-            {/* Branch selector dropdown */}
-            <div className="flex items-center gap-2 text-[11px] text-cw-txt bg-cw-bg2 border border-cw-bdr px-2.5 py-1 rounded-lg">
-              <GitBranch size={12} className="text-cw-blue shrink-0" />
-              <select
-                value={selectedBranch || defaultBranch || 'main'}
-                onChange={(e) => {
-                  setSelectedBranch(e.target.value);
-                  loadCommits(activeRepoId, e.target.value);
-                }}
-                disabled={!activeRepoId || loading}
-                className="bg-transparent text-cw-txt font-mono text-[11px] outline-none max-w-[160px]"
-                title="Filter commits by branch"
-              >
-                {(branches.length > 0 ? branches : [selectedBranch || 'main', 'dev', 'staging'].filter((v, i, a) => a.indexOf(v) === i)).map((branch) => (
-                  <option key={branch} value={branch}>{branch}{branch === defaultBranch ? ' (default)' : ''}</option>
-                ))}
-              </select>
-            </div>
+            {activeRepoId !== 'All' && branches.length > 0 && (
+              <div className="flex items-center gap-2 text-[11px] text-cw-txt bg-cw-bg2 border border-cw-bdr px-2.5 py-1 rounded-lg">
+                <GitBranch size={12} className="text-cw-blue shrink-0" />
+                <select
+                  value={selectedBranch || defaultBranch || 'main'}
+                  onChange={(e) => {
+                    setSelectedBranch(e.target.value);
+                    loadCommits(activeRepoId, e.target.value);
+                  }}
+                  disabled={!activeRepoId || loading}
+                  className="bg-transparent text-cw-txt font-mono text-[11px] outline-none max-w-[160px]"
+                  title="Filter commits by branch"
+                >
+                  {(branches.length > 0 ? branches : [selectedBranch || 'main', 'dev', 'staging'].filter((v, i, a) => a.indexOf(v) === i)).map((branch) => (
+                    <option key={branch} value={branch}>{branch}{branch === defaultBranch ? ' (default)' : ''}</option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             <div className="h-4 w-px bg-cw-bdr/60 mx-1 hidden sm:block" />
 
-            {/* Collapsible Gate Filter Popover */}
             <div ref={filterRef} className="relative inline-block text-left">
               <button
                 type="button"
@@ -844,10 +865,24 @@ export function CommitHistory({ repoId: initialRepoId, repoFullName: initialRepo
                 <div className="text-[12px] text-cw-txt3 mt-1">Once GitHub returns commits or Codeward records runs, they will appear here.</div>
               </div>
             ) : filteredCommits.map((commit, i) => (
-              <CommitRow key={`${commit.sha}-${commit.run?.id ?? 'no-run'}`} commit={commit} isLast={i === filteredCommits.length - 1} repoId={activeRepoId!} />
+              <CommitRow 
+                key={`${commit.sha}-${commit.run?.id ?? 'no-run'}`} 
+                commit={commit} 
+                isLast={i === filteredCommits.length - 1} 
+                repoId={activeRepoId!} 
+                onOpenReport={() => { setActiveReport({ runId: commit.run!.id, repoId: commit.repoId ?? activeRepoId as number }); setActiveDiff(null); }}
+                onOpenDiff={() => { setActiveDiff({ sha: commit.sha, repoId: commit.repoId ?? activeRepoId as number }); setActiveReport(null); }}
+              />
             ))}
           </div>
         </div>
+      </div>
+
+      <div className={`shrink-0 h-full bg-cw-bg2 border-l border-cw-bdr flex flex-col transition-[width,min-width,opacity] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${activeReport != null ? 'w-[450px] min-w-[340px] md:w-[380px] lg:w-[450px] opacity-100' : 'w-0 min-w-0 opacity-0 overflow-hidden border-none'}`}>
+        {activeReport != null && <ReportDrawer repoId={activeReport.repoId} runId={activeReport.runId} onClose={() => setActiveReport(null)} />}
+      </div>
+      <div className={`shrink-0 h-full bg-cw-bg2 border-l border-cw-bdr flex flex-col transition-[width,min-width,opacity] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${activeDiff != null ? 'w-[500px] min-w-[340px] md:w-[420px] lg:w-[500px] opacity-100' : 'w-0 min-w-0 opacity-0 overflow-hidden border-none'}`}>
+        {activeDiff != null && <DiffDrawer repoId={activeDiff.repoId} sha={activeDiff.sha} commitAuthorName={commits.find(c => c.sha === activeDiff.sha)?.authorName ?? null} onClose={() => setActiveDiff(null)} />}
       </div>
     </div>
   );
