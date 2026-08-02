@@ -359,84 +359,85 @@ function DashboardLayout() {
       <div className="flex-1 flex overflow-hidden">
         <div className="flex-1 flex flex-col min-w-0 bg-cw-bg relative">
           {/* Topbar */}
-          <div className={`flex items-center justify-between transition-all duration-300 ${screen === 'agent' ? 'absolute top-0 left-0 right-0 z-30 px-5 h-[52px] pointer-events-none' : 'px-8 h-[80px] border-b border-cw-bdr bg-cw-bg shrink-0'}`}>
-            <div className="flex items-center gap-3 sm:gap-4 shrink-0 min-w-0">
+          <div className={`flex items-center justify-between gap-2 transition-all duration-300 ${screen === 'agent' ? 'absolute top-0 left-0 right-0 z-30 px-4 sm:px-5 h-[52px] pointer-events-none' : 'px-4 sm:px-8 h-[64px] sm:h-[80px] border-b border-cw-bdr bg-cw-bg shrink-0'}`}>
+            <div className="flex items-center gap-2 sm:gap-4 shrink-0 min-w-0">
               <button
                 onClick={() => setIsSidebarPinned(!isSidebarPinned)}
-                className="w-9 h-9 rounded-md border border-cw-bdr bg-cw-bg2 text-cw-txt flex items-center justify-center cursor-pointer hover:bg-cw-bg3 transition-colors shrink-0 pointer-events-auto shadow-sm"
+                className="w-8 h-8 sm:w-9 sm:h-9 rounded-md border border-cw-bdr bg-cw-bg2 text-cw-txt flex items-center justify-center cursor-pointer hover:bg-cw-bg3 transition-colors shrink-0 pointer-events-auto shadow-sm"
               >
                 <Menu size={18} />
               </button>
               {screen !== 'agent' && (
                 <div className="shrink-0 min-w-0">
-                  <h1 className="text-[16px] sm:text-[18px] md:text-[20px] font-bold text-cw-txt tracking-tight leading-none flex items-center gap-2 whitespace-nowrap shrink-0">
+                  <h1 className="text-[15px] sm:text-[18px] md:text-[20px] font-bold text-cw-txt tracking-tight leading-none flex items-center gap-2 whitespace-nowrap shrink-0">
                     {topbar.title}
                   </h1>
                 </div>
               )}
             </div>
-            <div className="flex gap-3 items-center pointer-events-auto relative">
 
+            <div className="flex items-center gap-1.5 sm:gap-3 pointer-events-auto relative overflow-x-auto no-scrollbar shrink-0">
               {screen === 'repos' && (
                 <button
                   onClick={() => navigate('/connect')}
-                  className="px-4 py-2 rounded-md bg-cw-purple hover:brightness-110 text-white text-[13px] font-medium transition-colors flex items-center gap-2 shadow-sm mr-2"
+                  className="px-3 sm:px-4 py-1.5 sm:py-2 rounded-md bg-cw-purple hover:brightness-110 text-white text-[12px] sm:text-[13px] font-medium transition-colors flex items-center gap-1.5 shadow-sm whitespace-nowrap shrink-0"
                 >
-                  <Plus size={14} /> Connect new repo
+                  <Plus size={14} /> <span className="hidden sm:inline">Connect new repo</span><span className="sm:hidden">Connect</span>
                 </button>
               )}
               {screen === 'livefeed' && (
-                <div className="inline-flex items-center gap-1 bg-cw-bg2 border border-cw-bdr p-1 rounded-xl shrink-0 whitespace-nowrap mr-2 shadow-sm">
+                <div className="inline-flex items-center gap-1 bg-cw-bg2 border border-cw-bdr p-1 rounded-xl shrink-0 whitespace-nowrap shadow-sm">
                   <button
                     type="button"
                     onClick={() => setLiveFeedView('stream')}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold transition-all shrink-0 whitespace-nowrap cursor-pointer ${
+                    className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[11px] sm:text-[12px] font-semibold transition-all shrink-0 whitespace-nowrap cursor-pointer ${
                       liveFeedView === 'stream'
                         ? 'bg-cw-purple text-white shadow-md'
                         : 'text-cw-txt2 hover:text-cw-txt hover:bg-cw-bg3/50'
                     }`}
                   >
-                    <TerminalSquare size={14} className="shrink-0" />
+                    <TerminalSquare size={13} className="shrink-0" />
                     <span className="whitespace-nowrap font-semibold">Stream</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setLiveFeedView('canvas')}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold transition-all shrink-0 whitespace-nowrap cursor-pointer ${
+                    className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[11px] sm:text-[12px] font-semibold transition-all shrink-0 whitespace-nowrap cursor-pointer ${
                       liveFeedView === 'canvas'
                         ? 'bg-cw-purple text-white shadow-md'
                         : 'text-cw-txt2 hover:text-cw-txt hover:bg-cw-bg3/50'
                     }`}
                   >
-                    <LayoutGrid size={14} className="shrink-0" />
+                    <LayoutGrid size={13} className="shrink-0" />
                     <span className="whitespace-nowrap font-semibold">Agent Canvas</span>
                   </button>
                 </div>
               )}
-              <div className="flex-1" />
-              <button onClick={() => setIsGlobalFeedOpen(true)} className="px-4 py-2 rounded-md border border-cw-bdr bg-cw-bg2 text-cw-txt text-[13px] font-medium hover:bg-cw-bg3 transition-colors flex items-center gap-2 whitespace-nowrap shrink-0">
-                <Globe size={14} /> Global feed
+
+              <button onClick={() => setIsGlobalFeedOpen(true)} className="px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-md border border-cw-bdr bg-cw-bg2 text-cw-txt text-[12px] sm:text-[13px] font-medium hover:bg-cw-bg3 transition-colors flex items-center gap-1.5 whitespace-nowrap shrink-0">
+                <Globe size={14} /> <span className="hidden sm:inline">Global feed</span>
               </button>
               
-              <div className="flex items-center ml-2 border border-cw-bdr rounded-md bg-cw-bg2 overflow-hidden shrink-0">
-                <button onClick={() => navigate('/dashboard/agent')} className="px-3 py-1.5 text-cw-txt text-[13px] font-medium hover:bg-cw-bg3 transition-colors flex items-center gap-2 border-r border-cw-bdr whitespace-nowrap">
-                  <Sparkles size={14} /> Skills
+              <div className="flex items-center border border-cw-bdr rounded-md bg-cw-bg2 overflow-hidden shrink-0">
+                <button onClick={() => navigate('/dashboard/agent')} className="px-2.5 sm:px-3 py-1.5 text-cw-txt text-[12px] sm:text-[13px] font-medium hover:bg-cw-bg3 transition-colors flex items-center gap-1.5 border-r border-cw-bdr whitespace-nowrap">
+                  <Sparkles size={14} /> <span className="hidden sm:inline">Skills</span>
                 </button>
-                <button onClick={() => window.open('/docs', '_blank')} className="px-3 py-1.5 text-cw-txt text-[13px] font-medium hover:bg-cw-bg3 transition-colors flex items-center gap-2 whitespace-nowrap">
-                  <FileText size={14} /> Docs
+                <button onClick={() => window.open('/docs', '_blank')} className="px-2.5 sm:px-3 py-1.5 text-cw-txt text-[12px] sm:text-[13px] font-medium hover:bg-cw-bg3 transition-colors flex items-center gap-1.5 whitespace-nowrap">
+                  <FileText size={14} /> <span className="hidden sm:inline">Docs</span>
                 </button>
               </div>
 
-              <div onClick={() => navigate('/dashboard/settings')} className="flex items-center gap-1.5 px-3 py-1.5 ml-2 rounded-md border border-cw-bdr bg-cw-bg text-[13px] font-medium text-cw-txt cursor-pointer hover:bg-cw-bg2 transition-colors whitespace-nowrap shrink-0">
+              <div onClick={() => navigate('/dashboard/settings')} className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-cw-bdr bg-cw-bg text-[13px] font-medium text-cw-txt cursor-pointer hover:bg-cw-bg2 transition-colors whitespace-nowrap shrink-0">
                 <BadgeCheck size={14} className="text-cw-purple" /> Free Tier
               </div>
 
               <button 
                 onClick={() => setIsHelpDrawerOpen(true)}
-                className="flex items-center gap-2 ml-2 px-3 py-1.5 rounded-md border border-cw-bdr bg-cw-bg2 hover:bg-cw-bg3 text-cw-txt font-medium text-[13px] transition whitespace-nowrap shrink-0"
+                className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-md border border-cw-bdr bg-cw-bg2 hover:bg-cw-bg3 text-cw-txt font-medium text-[13px] transition whitespace-nowrap shrink-0"
               >
                 Need help? <span className="text-[10px] bg-cw-bg px-1.5 py-0.5 rounded border border-cw-bdr text-cw-txt2 font-mono shrink-0">H</span>
               </button>
+            </div>
 
             </div>
           </div>
