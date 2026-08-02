@@ -336,16 +336,6 @@ export function Dashboard({ onRunClick }: Props) {
         console.error('Error parsing WS message', e);
       }
     };
-            color,
-            dotEmoji
-          };
-
-          setActivityFeed((prev) => [newEvent, ...prev].slice(0, 10));
-        }
-      } catch (e) {
-        console.error('Error parsing WS message', e);
-      }
-    };
 
     return () => {
       if (ws.readyState === WebSocket.CONNECTING) {
