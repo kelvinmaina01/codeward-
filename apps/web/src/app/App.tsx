@@ -386,18 +386,30 @@ function DashboardLayout() {
                 </button>
               )}
               {screen === 'livefeed' && (
-                <div className="flex items-center bg-cw-bg2 border border-cw-bdr p-0.5 rounded-lg mr-2 whitespace-nowrap shrink-0">
+                <div className="inline-flex items-center gap-1 bg-cw-bg2 border border-cw-bdr p-1 rounded-xl shrink-0 whitespace-nowrap mr-2 shadow-sm">
                   <button
+                    type="button"
                     onClick={() => setLiveFeedView('stream')}
-                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold transition-colors whitespace-nowrap ${liveFeedView === 'stream' ? 'bg-cw-purple text-white shadow-sm' : 'text-cw-txt3 hover:text-cw-txt'}`}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold transition-all shrink-0 whitespace-nowrap cursor-pointer ${
+                      liveFeedView === 'stream'
+                        ? 'bg-cw-purple text-white shadow-md'
+                        : 'text-cw-txt2 hover:text-cw-txt hover:bg-cw-bg3/50'
+                    }`}
                   >
-                    <TerminalSquare size={13} /> Stream
+                    <TerminalSquare size={14} className="shrink-0" />
+                    <span className="whitespace-nowrap font-semibold">Stream</span>
                   </button>
                   <button
+                    type="button"
                     onClick={() => setLiveFeedView('canvas')}
-                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold transition-colors whitespace-nowrap ${liveFeedView === 'canvas' ? 'bg-cw-purple text-white shadow-sm' : 'text-cw-txt3 hover:text-cw-txt'}`}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold transition-all shrink-0 whitespace-nowrap cursor-pointer ${
+                      liveFeedView === 'canvas'
+                        ? 'bg-cw-purple text-white shadow-md'
+                        : 'text-cw-txt2 hover:text-cw-txt hover:bg-cw-bg3/50'
+                    }`}
                   >
-                    <LayoutGrid size={13} /> Agent Canvas
+                    <LayoutGrid size={14} className="shrink-0" />
+                    <span className="whitespace-nowrap font-semibold">Agent Canvas</span>
                   </button>
                 </div>
               )}
