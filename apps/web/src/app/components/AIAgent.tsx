@@ -633,7 +633,25 @@ export function AIAgent() {
 
   useEffect(() => {
     refreshSessions();
-    fetch(`${API_URL}/api/chat/repos`, { credentials: 'include' }).then((r) => r.ok ? r.json() : { repos: [] }).then((d) => setRepos(d.repos ?? [])).catch(() => {});
+    fetch(`${API_URL}/api/chat/repos`, { credentials: 'include' })
+      .then((r) => (r.ok ? r.json() : { repos: [] }))
+      .then((d) => {
+        const repoList = d.repos ?? [];
+        setRepos(repoList);
+
+        const explainPrompt = sessionStorage.getItem('cw_gordon_explain_prompt');
+        const repoTag = sessionStorage.getItem('cw_gordon_repo_tag');
+        if (explainPrompt) {
+          sessionStorage.removeItem('cw_gordon_explain_prompt');
+          sessionStorage.removeItem('cw_gordon_repo_tag');
+          setInput(explainPrompt);
+          if (repoTag && repoList.length > 0) {
+            const matched = repoList.find((r: Repo) => r.fullName === repoTag);
+            if (matched) setPinnedRepo(matched);
+          }
+        }
+      })
+      .catch(() => {});
     fetch(`${API_URL}/api/chat/skills`, { credentials: 'include' }).then((r) => r.ok ? r.json() : { skills: [] }).then((d) => setSkills(d.skills ?? [])).catch(() => {});
     fetch(`${API_URL}/api/chat/suggestions`, { credentials: 'include' })
       .then((r) => r.ok ? r.json() : { suggestions: [] })

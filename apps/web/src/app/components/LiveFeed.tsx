@@ -1,165 +1,175 @@
 import { useEffect, useRef, useState } from 'react';
-import { WS_URL } from '../../lib/api';
+import { useNavigate } from 'react-router-dom';
+import { API_URL, WS_URL } from '../../lib/api';
 import { AgentCanvas } from './AgentCanvas';
-import { Bot, Cpu, Terminal, LayoutGrid, CheckCircle2, AlertTriangle, ShieldCheck, Radio, Sparkles, TrendingDown, Activity, Layers, Scale, Database, MessageSquare } from 'lucide-react';
+import { RepoSelector } from './RepoSelector';
+import { 
+  Bot, Radio, Download, Copy, Check, Terminal as TerminalIcon, Sparkles, Filter, RefreshCw 
+} from 'lucide-react';
+import { toast } from 'sonner';
 
 const clsColor: Record<string, string> = {
-  ok: 'text-cw-green',
-  err: 'text-cw-red',
-  inf: 'text-cw-blue',
-  warn: 'text-cw-amber',
-  plain: 'text-cw-txt3',
+  ok: 'text-cw-green font-medium',
+  err: 'text-cw-red font-medium',
+  inf: 'text-cw-blue font-medium',
+  warn: 'text-cw-amber font-medium',
+  plain: 'text-cw-txt2',
 };
 
-type LogEntry = {
-  ts: string;
-  cls: string;
-  text: string;
-  cursor?: boolean;
-};
-
-interface AgentCardState {
-  id: string;
-  agent: string;
-  repo: string;
-  sha: string;
-  status: string;
-  step: 'init' | 'cloned' | 'scanning' | 'autofix' | 'done' | 'error';
-  score?: number | null;
-  findingsCount?: number;
-  error?: string;
-  updatedAt: string;
-}
-
-const AGENT_LABELS: Record<string, string> = {
-  bloat: 'Bloat Agent',
-  security: 'Security Agent',
-  guardian: 'Guardian Agent',
-  architecture: 'Architecture Agent',
-  compliance: 'Compliance Agent',
-  data_dx: 'Data & DX Agent',
-  ai_era: 'AI-Era Agent',
-  broken_code: 'Broken Code Agent',
-  orchestrator_phase1: 'Ingestion Orchestrator',
-  orchestrator_phase2: 'Dispatch Orchestrator',
-  orchestrator_phase3: 'Decision Orchestrator',
-};
-
-const getAgentIcon = (agent: string) => {
-  switch (agent) {
-    case 'security': return <ShieldCheck size={16} />;
-    case 'bloat': return <TrendingDown size={16} />;
-    case 'broken_code': return <Activity size={16} />;
-    case 'architecture': return <Layers size={16} />;
-    case 'compliance': return <Scale size={16} />;
-    case 'data_dx': return <Database size={16} />;
-    case 'ai_era': return <Bot size={16} />;
-    case 'chat': return <MessageSquare size={16} />;
-    default: return <Cpu size={16} />;
-  }
-};
-
-const STEP_PROGRESS: Record<string, number> = {
-  init: 20,
-  cloned: 45,
-  scanning: 75,
-  autofix: 90,
-  done: 100,
-  error: 100,
+export type LogItem = {
+  id?: string;
+  runId?: number;
+  repoId?: number;
+  repoFullName?: string;
+  agent?: string;
+  logType?: 'build' | 'run' | 'system';
+  level: string;
+  tsMs: number;
+  message: string;
+  meta?: any;
 };
 
 interface LiveFeedProps {
   viewMode: 'stream' | 'canvas';
 }
 
+function formatMillisTimestamp(tsMs: number): string {
+  const d = new Date(tsMs);
+  const h = String(d.getHours()).padStart(2, '0');
+  const m = String(d.getMinutes()).padStart(2, '0');
+  const s = String(d.getSeconds()).padStart(2, '0');
+  const ms = String(d.getMilliseconds()).padStart(3, '0');
+  return `${h}:${m}:${s}.${ms}`;
+}
+
 export function LiveFeed({ viewMode }: LiveFeedProps) {
+  const navigate = useNavigate();
   const bottomRef = useRef<HTMLDivElement>(null);
-  const [logs, setLogs] = useState<LogEntry[]>([]);
-  const [streamDisplay, setStreamDisplay] = useState<'cards' | 'terminal'>('cards');
-  const [cardEvents, setCardEvents] = useState<AgentCardState[]>([]);
-  const cardsMap = useRef<Map<string, AgentCardState>>(new Map());
+  const [logs, setLogs] = useState<LogItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [repoFilter, setRepoFilter] = useState<string>('All');
+  const [repoList, setRepoList] = useState<{ id: number; fullName: string }[]>([]);
+  const [copied, setCopied] = useState(false);
+  const [isLiveScanning, setIsLiveScanning] = useState(false);
+
+  // Load connected repositories
+  useEffect(() => {
+    fetch(`${API_URL}/api/chat/repos`, { credentials: 'include' })
+      .then((r) => (r.ok ? r.json() : { repos: [] }))
+      .then((d) => setRepoList(d.repos ?? []))
+      .catch(() => {});
+  }, []);
+
+  // Fetch persistent logs from Postgres API
+  const loadPersistentLogs = (repoIdFilter: string) => {
+    setLoading(true);
+    const queryParam = repoIdFilter !== 'All' ? `?repoId=${repoIdFilter}` : '';
+    fetch(`${API_URL}/api/reports/livefeed-logs${queryParam}`, { credentials: 'include' })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.logs && Array.isArray(data.logs)) {
+          setLogs(data.logs);
+          localStorage.setItem('cw_livefeed_cache', JSON.stringify(data.logs.slice(-200)));
+        }
+      })
+      .catch((e) => {
+        console.error('Failed to load livefeed logs from server:', e);
+        // Client fallback from localStorage
+        const cached = localStorage.getItem('cw_livefeed_cache');
+        if (cached) {
+          try { setLogs(JSON.parse(cached)); } catch {}
+        }
+      })
+      .finally(() => setLoading(false));
+  };
 
   useEffect(() => {
-    if (viewMode === 'stream' && streamDisplay === 'terminal') {
+    loadPersistentLogs(repoFilter);
+  }, [repoFilter]);
+
+  // Scroll to bottom on new log entries
+  useEffect(() => {
+    if (viewMode === 'stream') {
       bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [logs, viewMode, streamDisplay]);
+  }, [logs, viewMode]);
 
+  // Live WebSocket Connection
   useEffect(() => {
     const ws = new WebSocket(`${WS_URL}/ws/feed`);
 
     ws.onopen = () => {
-      setLogs((prev) => [
-        ...prev,
-        {
-          ts: new Date().toISOString().split('T')[1].slice(0, 8),
-          cls: 'inf',
-          text: 'Connected to live Codeward agent stream...',
-        },
-      ]);
+      setIsLiveScanning(true);
+      setLogs((prev) => {
+        const hasWelcome = prev.some((l) => l.message.includes('Connected to live Codeward agent stream'));
+        if (hasWelcome) return prev;
+        return [
+          ...prev,
+          {
+            id: `sys-${Date.now()}`,
+            level: 'inf',
+            tsMs: Date.now(),
+            message: '[system] Connected to live Codeward agent execution stream...',
+            logType: 'system',
+          },
+        ];
+      });
     };
 
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-        const time = new Date().toISOString().split('T')[1].slice(0, 8);
+        const tsMs = data.payload?.tsMs || Date.now();
 
         if (data.type === 'agent_active' || data.type === 'agent_completed' || data.type === 'agent_failed') {
-          const { repo, sha, agent, status, score, error, step, findingsCount } = data.payload;
+          const { repo, sha, agent, status, score, error, findingsCount, runId, step } = data.payload;
 
-          // Update raw terminal log
-          if (data.type === 'agent_active') {
-            setLogs((prev) => [
-              ...prev,
-              {
-                ts: time,
-                cls: 'plain',
-                text: `[${repo}] [${(sha || '').slice(0, 7)}] ${agent}: ${status || 'active'}...`,
-              },
-            ]);
-          } else if (data.type === 'agent_completed') {
-            setLogs((prev) => [
-              ...prev,
-              {
-                ts: time,
-                cls: 'ok',
-                text: `[${repo}] [${(sha || '').slice(0, 7)}] ${agent} finished (Score: ${score}/100, Findings: ${findingsCount ?? 0})`,
-              },
-            ]);
-          } else if (data.type === 'agent_failed') {
-            setLogs((prev) => [
-              ...prev,
-              {
-                ts: time,
-                cls: 'err',
-                text: `[${repo}] [${(sha || '').slice(0, 7)}] ${agent} FAILED: ${error}`,
-              },
-            ]);
+          // Check repo filter matching
+          if (repoFilter !== 'All') {
+            const selectedRepo = repoList.find((r) => String(r.id) === repoFilter);
+            if (selectedRepo && repo && selectedRepo.fullName !== repo) {
+              return; // Skip logs for non-selected repos
+            }
           }
 
-          // Update card state
-          const key = `${repo}-${sha}-${agent}`;
-          const currentStep = step ?? (data.type === 'agent_completed' ? 'done' : data.type === 'agent_failed' ? 'error' : 'scanning');
+          let level = 'plain';
+          let message = '';
 
-          const cardState: AgentCardState = {
-            id: key,
+          if (data.type === 'agent_active') {
+            level = step === 'scanning' ? 'inf' : (step === 'autofix' ? 'warn' : 'plain');
+            message = `[${repo}] [${(sha || '').slice(0, 7)}] ${agent}: ${status || 'active'}...`;
+          } else if (data.type === 'agent_completed') {
+            level = 'ok';
+            message = `[${repo}] [${(sha || '').slice(0, 7)}] ${agent} finished (Score: ${score}/100, Findings: ${findingsCount ?? 0})`;
+          } else if (data.type === 'agent_failed') {
+            level = 'err';
+            message = `[${repo}] [${(sha || '').slice(0, 7)}] ${agent} FAILED: ${error}`;
+          }
+
+          const newLog: LogItem = {
+            id: `ws-${Date.now()}-${Math.random()}`,
+            runId,
+            repoFullName: repo,
             agent,
-            repo,
-            sha: sha ?? '',
-            status: status || (data.type === 'agent_completed' ? 'Completed' : 'Running'),
-            step: currentStep,
-            score,
-            findingsCount,
-            error,
-            updatedAt: time,
+            level,
+            tsMs,
+            message,
+            meta: { step, score, findingsCount, error },
           };
 
-          cardsMap.current.set(key, cardState);
-          setCardEvents(Array.from(cardsMap.current.values()).reverse());
+          setLogs((prev) => {
+            const next = [...prev, newLog];
+            localStorage.setItem('cw_livefeed_cache', JSON.stringify(next.slice(-200)));
+            return next;
+          });
         }
       } catch (err) {
         console.error('Failed to parse WS message:', err);
       }
+    };
+
+    ws.onclose = () => {
+      setIsLiveScanning(false);
     };
 
     return () => {
@@ -169,166 +179,181 @@ export function LiveFeed({ viewMode }: LiveFeedProps) {
         try { ws.close(); } catch {}
       }
     };
-  }, []);
+  }, [repoFilter, repoList]);
+
+  // Actions: Copy, Download, Explain Logs
+  const handleCopyLog = () => {
+    if (logs.length === 0) return;
+    const textToCopy = logs.map((l) => `${formatMillisTimestamp(l.tsMs)}  ${l.message}`).join('\n');
+    navigator.clipboard.writeText(textToCopy);
+    setCopied(true);
+    toast.success('Build and execution logs copied to clipboard!');
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleDownloadLog = () => {
+    if (logs.length === 0) return;
+    const textToDownload = logs.map((l) => `${formatMillisTimestamp(l.tsMs)}  ${l.message}`).join('\n');
+    const blob = new Blob([textToDownload], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    const dateStr = new Date().toISOString().slice(0, 10);
+    const filterName = repoFilter !== 'All' ? repoList.find((r) => String(r.id) === repoFilter)?.fullName.replace('/', '-') || 'repo' : 'all-repos';
+    link.download = `codeward-${filterName}-${dateStr}.log`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toast.success('Log file downloaded!');
+  };
+
+  const handleExplainLogs = () => {
+    if (logs.length === 0) return;
+    const recentLogsSnippet = logs.slice(-40).map((l) => `${formatMillisTimestamp(l.tsMs)}  ${l.message}`).join('\n');
+    const activeRepoName = repoFilter !== 'All' ? repoList.find((r) => String(r.id) === repoFilter)?.fullName : (logs[logs.length - 1]?.repoFullName || undefined);
+
+    sessionStorage.setItem(
+      'cw_gordon_explain_prompt',
+      `Please analyze these execution and build logs, explain what happened, check the sandboxes and agent memory for root causes or findings:\n\n\`\`\`\n${recentLogsSnippet}\n\`\`\``
+    );
+    if (activeRepoName) {
+      sessionStorage.setItem('cw_gordon_repo_tag', activeRepoName);
+    }
+    toast.info('Opening Gordon AI to analyze run logs...');
+    navigate('/dashboard/agent');
+  };
 
   return (
-    <div className="flex-1 flex flex-col h-full overflow-hidden">
+    <div className="flex-1 flex flex-col h-full overflow-hidden bg-cw-bg text-cw-txt">
       {viewMode === 'canvas' ? (
         <AgentCanvas />
       ) : (
-        <div className="flex-1 flex flex-col h-full overflow-hidden px-6 py-4 bg-cw-bg">
-          {/* View toggle header */}
-          <div className="flex items-center justify-between mb-4 pb-3 border-b border-cw-bdr/50 shrink-0">
+        <div className="flex-1 flex flex-col h-full overflow-hidden px-6 py-4">
+          
+          {/* Header Bar with Repo Filter & Terminal Action Controls */}
+          <div className="flex items-center justify-between gap-4 mb-4 pb-3 border-b border-cw-bdr/50 shrink-0 flex-wrap">
             <div>
               <div className="text-[14px] font-bold text-cw-txt flex items-center gap-2">
                 Live Agent Execution Feed
-                {cardEvents.some((c) => c.step !== 'done' && c.step !== 'error') && (
+                {isLiveScanning && (
                   <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-cw-purple/20 text-cw-purple border border-cw-purple/30 animate-pulse">
-                    <Radio size={10} /> Live scanning
+                    <Radio size={10} /> Live streaming
                   </span>
                 )}
               </div>
-              <div className="text-[11px] text-cw-txt3 mt-0.5">Real-time sandbox containers, tool steps, and agent findings as they run.</div>
+              <div className="text-[11px] text-cw-txt3 mt-0.5">
+                Real-time sublogs, AST container steps, tool execution, and persistent run logs.
+              </div>
             </div>
 
-            <div className="flex items-center gap-1.5 bg-cw-bg2 border border-cw-bdr p-1 rounded-lg">
-              <button
-                onClick={() => setStreamDisplay('cards')}
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors ${
-                  streamDisplay === 'cards' ? 'bg-cw-purple text-white' : 'text-cw-txt3 hover:text-cw-txt'
-                }`}
-              >
-                <LayoutGrid size={13} /> Cards
-              </button>
-              <button
-                onClick={() => setStreamDisplay('terminal')}
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors ${
-                  streamDisplay === 'terminal' ? 'bg-cw-purple text-white' : 'text-cw-txt3 hover:text-cw-txt'
-                }`}
-              >
-                <Terminal size={13} /> Terminal
-              </button>
+            {/* Filter & Terminal Actions Bar */}
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <RepoSelector
+                options={repoList}
+                value={repoFilter}
+                onChange={(val) => setRepoFilter(val)}
+                showAllOption={true}
+                allOptionLabel="All connected repositories"
+              />
+
+              {/* Terminal Action Buttons (Cloudflare-style) */}
+              <div className="flex items-center rounded-lg border border-cw-bdr bg-cw-bg2 overflow-hidden">
+                <button
+                  onClick={handleDownloadLog}
+                  title="Download full log file"
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold text-cw-txt2 hover:text-cw-txt hover:bg-cw-bg3 transition-colors border-r border-cw-bdr cursor-pointer"
+                >
+                  <Download size={13} />
+                  <span>Download log</span>
+                </button>
+
+                <button
+                  onClick={handleCopyLog}
+                  title="Copy log text to clipboard"
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold text-cw-txt2 hover:text-cw-txt hover:bg-cw-bg3 transition-colors border-r border-cw-bdr cursor-pointer"
+                >
+                  {copied ? <Check size={13} className="text-cw-green" /> : <Copy size={13} />}
+                  <span>{copied ? 'Copied!' : 'Copy run log'}</span>
+                </button>
+
+                <button
+                  onClick={handleExplainLogs}
+                  title="Ask Gordon AI to analyze sandbox state, memory, and logs"
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold text-cw-purple hover:bg-cw-purple/10 transition-colors cursor-pointer"
+                >
+                  <Sparkles size={13} />
+                  <span>Explain logs</span>
+                </button>
+              </div>
             </div>
           </div>
 
-          {streamDisplay === 'cards' ? (
-            <div className="flex-1 overflow-y-auto pr-1">
-              {cardEvents.length === 0 ? (
-                <div className="py-20 text-center text-cw-txt3 flex flex-col items-center gap-3">
-                  <div className="w-12 h-12 rounded-2xl bg-cw-bg2 border border-cw-bdr flex items-center justify-center text-cw-purple">
-                    <Bot size={24} />
-                  </div>
-                  <div className="text-[14px] font-medium text-cw-txt2">No active agent streams yet</div>
-                  <div className="text-[12px] text-cw-txt3 max-w-sm">
-                    Connect a repository or trigger a scan to see real-time agent execution cards, sandbox container steps, and live scores.
+          {/* Full Height Terminal Display */}
+          <div className="flex-1 overflow-hidden rounded-xl border border-cw-bdr bg-cw-log-bg flex flex-col shadow-inner">
+            {/* Terminal Window Header Bar */}
+            <div className="px-4 py-2 bg-cw-bg3/60 border-b border-cw-bdr/60 flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-cw-red/60 inline-block" />
+                  <span className="w-2.5 h-2.5 rounded-full bg-cw-amber/60 inline-block" />
+                  <span className="w-2.5 h-2.5 rounded-full bg-cw-green/60 inline-block" />
+                </div>
+                <span className="text-[11px] font-mono text-cw-txt3 ml-2 flex items-center gap-1.5">
+                  <TerminalIcon size={12} className="text-cw-purple" />
+                  codeward-live-stream.log
+                </span>
+              </div>
+              <div className="text-[10px] font-mono text-cw-txt3 flex items-center gap-3">
+                <span>Format: <code className="text-cw-purple">HH:mm:ss.SSS</code></span>
+                <span>{logs.length} lines</span>
+              </div>
+            </div>
+
+            {/* Terminal Body */}
+            <div className="flex-1 overflow-y-auto px-4 py-3 font-mono text-[11px] leading-[1.75] select-text">
+              {loading ? (
+                <div className="py-12 text-center text-cw-txt3 flex items-center justify-center gap-2">
+                  <RefreshCw size={14} className="animate-spin text-cw-purple" />
+                  <span>Loading persistent execution logs from server...</span>
+                </div>
+              ) : logs.length === 0 ? (
+                <div className="py-16 text-center text-cw-txt3 flex flex-col items-center gap-2">
+                  <Bot size={28} className="text-cw-txt3/40" />
+                  <div>No run logs captured for this filter yet.</div>
+                  <div className="text-[10px] text-cw-txt3/60">
+                    Connect a repository or push a commit to trigger a live agent scan.
                   </div>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pb-8">
-                  {cardEvents.map((card) => {
-                    const isDone = card.step === 'done';
-                    const isErr = card.step === 'error';
-                    const pct = STEP_PROGRESS[card.step] ?? 50;
-                    const agentName = AGENT_LABELS[card.agent] ?? card.agent;
+                logs.map((l, i) => {
+                  const tsFormatted = formatMillisTimestamp(l.tsMs);
+                  const isSublog = l.message.startsWith('  ├─') || l.message.startsWith('  └─') || l.meta?.levelDepth === 1;
 
-                    return (
-                      <div
-                        key={card.id}
-                        className={`bg-cw-bg2 border rounded-xl p-4 flex flex-col justify-between transition-all duration-200 ${
-                          isErr
-                            ? 'border-cw-red/40 bg-cw-red/[0.03]'
-                            : isDone
-                            ? 'border-cw-green/30 bg-cw-green/[0.02]'
-                            : 'border-cw-purple/40 bg-cw-purple/[0.03]'
-                        }`}
-                      >
-                        <div>
-                          <div className="flex items-start justify-between gap-2 mb-3">
-                            <div className="flex items-center gap-2 min-w-0">
-                              <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border ${
-                                isErr ? 'bg-cw-red/10 border-cw-red/30 text-cw-red' : isDone ? 'bg-cw-green/10 border-cw-green/30 text-cw-green' : 'bg-cw-purple/10 border-cw-purple/30 text-cw-purple'
-                              }`}>
-                                {getAgentIcon(card.agent)}
-                              </div>
-                              <div className="min-w-0">
-                                <div className="text-[13px] font-bold text-cw-txt truncate">{agentName}</div>
-                                <div className="text-[10px] text-cw-txt3 font-mono truncate">{card.repo}</div>
-                              </div>
-                            </div>
-                            <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full shrink-0 ${
-                              isErr
-                                ? 'bg-cw-red/20 text-cw-red'
-                                : isDone
-                                ? 'bg-cw-green/20 text-cw-green'
-                                : 'bg-cw-purple/20 text-cw-purple animate-pulse'
-                            }`}>
-                              {card.status}
-                            </span>
-                          </div>
+                  return (
+                    <div 
+                      key={l.id || i} 
+                      className={`flex items-start gap-3 group hover:bg-white/[0.02] px-1 py-[1px] rounded transition-colors ${
+                        isSublog ? 'pl-4' : ''
+                      }`}
+                    >
+                      {/* Millisecond precision timestamp */}
+                      <span className="text-cw-txt3 shrink-0 select-none opacity-70 group-hover:opacity-100 font-mono text-[10px] pt-[1px]">
+                        {tsFormatted}
+                      </span>
 
-                          <div className="text-[11px] text-cw-txt3 flex items-center justify-between mb-3 font-mono">
-                            <span>Commit: <span className="text-cw-txt2">{card.sha.slice(0, 7)}</span></span>
-                            <span>{card.updatedAt}</span>
-                          </div>
-
-                          {/* Step Progress Bar */}
-                          {!isDone && !isErr && (
-                            <div className="mb-3">
-                              <div className="flex justify-between text-[10px] text-cw-txt3 mb-1">
-                                <span>Sandbox Step</span>
-                                <span>{pct}%</span>
-                              </div>
-                              <div className="w-full bg-cw-bg3 h-1.5 rounded-full overflow-hidden">
-                                <div
-                                  className="bg-cw-purple h-full transition-all duration-300 rounded-full"
-                                  style={{ width: `${pct}%` }}
-                                />
-                              </div>
-                            </div>
-                          )}
-
-                          {isErr && card.error && (
-                            <div className="p-2.5 rounded-lg bg-cw-red/10 border border-cw-red/20 text-[11px] text-cw-red flex items-start gap-2 mb-2">
-                              <AlertTriangle size={14} className="shrink-0 mt-0.5" />
-                              <span className="break-words">{card.error}</span>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Footer Status / Score */}
-                        <div className="pt-3 border-t border-cw-bdr/50 flex items-center justify-between text-[11px] mt-2">
-                          <span className="text-cw-txt3">
-                            {isDone ? `${card.findingsCount ?? 0} findings detected` : 'Analysis running in sandbox'}
-                          </span>
-                          {isDone && card.score != null && (
-                            <span className="font-bold text-cw-green px-2 py-0.5 rounded bg-cw-green/10 border border-cw-green/25">
-                              Score: {card.score}/100
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                      {/* Log text content */}
+                      <span className={`break-words flex-1 ${clsColor[l.level] || 'text-cw-txt2'}`}>
+                        {l.message}
+                      </span>
+                    </div>
+                  );
+                })
               )}
+              <div ref={bottomRef} />
             </div>
-          ) : (
-            <div className="flex-1 overflow-y-auto">
-              <div className="bg-cw-log-bg rounded-lg px-4 py-3 font-mono text-[11px] leading-[1.7] overflow-y-auto h-full border border-cw-bdr">
-                {logs.map((l, i) => (
-                  <div key={i} className="flex gap-2.5 mb-[1px]">
-                    <span className="text-cw-txt3 shrink-0">{l.ts}</span>
-                    <span className={clsColor[l.cls] || 'text-cw-txt2'}>
-                      {l.text}
-                      {l.cursor && <span className="inline-block w-[7px] h-[11px] bg-cw-txt2 rounded-[1px] align-middle ml-1 animate-[blink_0.8s_infinite]" />}
-                    </span>
-                  </div>
-                ))}
-                <div ref={bottomRef} />
-              </div>
-              <style>{`@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}`}</style>
-            </div>
-          )}
+          </div>
+
         </div>
       )}
     </div>

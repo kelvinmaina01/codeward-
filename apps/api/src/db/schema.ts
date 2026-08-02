@@ -1,4 +1,4 @@
-import { pgTable, serial, text, varchar, timestamp, integer, boolean, jsonb, real, uuid } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, varchar, timestamp, integer, boolean, jsonb, real, uuid, bigint } from "drizzle-orm/pg-core";
 
 export interface Finding {
   severity: "info" | "low" | "medium" | "high" | "critical";
@@ -337,4 +337,18 @@ export const workspaceAuditLog = pgTable('workspace_audit_log', {
   status: varchar('status', { length: 20 }).default('success').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
+
+export const runLogs = pgTable('run_logs', {
+  id: serial('id').primaryKey(),
+  runId: integer('run_id').references(() => runs.id, { onDelete: 'cascade' }),
+  repoId: integer('repo_id').references(() => repositories.id, { onDelete: 'cascade' }),
+  agent: varchar('agent', { length: 100 }).notNull().default('system'),
+  logType: varchar('log_type', { length: 50 }).notNull().default('run'), // 'build' | 'run' | 'system'
+  level: varchar('level', { length: 20 }).notNull().default('plain'), // 'ok' | 'err' | 'inf' | 'warn' | 'plain'
+  tsMs: bigint('ts_ms', { mode: 'number' }).notNull(), // epoch millisecond timestamp
+  message: text('message').notNull(),
+  meta: jsonb('meta'), // extra structured attributes (exitCode, toolName, etc.)
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
 
