@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import {
   AlertCircle, AlertTriangle, ArrowLeft, Bot, Bug, CheckCircle2, ChevronDown,
   ChevronRight, ExternalLink, FileText, GitCommit, GitPullRequest, Github, Gitlab,
-  GitBranch, Info, Layers, Loader2, Lock, RefreshCw, ShieldCheck, Sparkles, Wrench, XCircle,
+  GitBranch, Info, Layers, Loader2, Lock, RefreshCw, ShieldCheck, Sparkles, User, Wrench, XCircle,
   Zap, Filter, Check, TrendingDown, Activity, Scale, Database, MessageSquare,
 } from 'lucide-react';
 import { API_URL } from '../../lib/api';
@@ -582,7 +582,12 @@ function CommitRow({ commit, isLast, repoId, onOpenReport, onOpenDiff }: { commi
                   {run?.isIncremental && run.changedFileCount != null && <span className="px-1.5 py-0.5 rounded bg-cw-bg3 border border-cw-bdr text-[9px] font-medium">Incremental · {run.changedFileCount} file{run.changedFileCount !== 1 ? 's' : ''}</span>}
                   {!run && (
                     <span className="px-1.5 py-0.5 rounded bg-cw-bg3 border border-cw-bdr text-[9px] font-medium text-cw-txt3 flex items-center gap-1">
-                      <Bot size={10} /> No Codeward activity
+                      <Bot size={10} /> No Codeward Activity
+                    </span>
+                  )}
+                  {run && run.agents.length > 0 && (
+                    <span className="px-1.5 py-0.5 rounded bg-cw-purple/10 border border-cw-purple/30 text-[9px] font-bold text-cw-purple flex items-center gap-1 ml-1" title="Codeward Activity">
+                      <Bot size={10} /> Codeward
                     </span>
                   )}
                   {run && run.agents.length > 0 && (

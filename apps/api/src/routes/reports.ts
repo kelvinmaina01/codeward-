@@ -19,7 +19,7 @@ const AGENT_DISPLAY_NAMES: Record<string, string> = {
 };
 
 const SEVERITY_ORDER: Record<string, number> = { critical: 0, CRITICAL: 0, high: 1, HIGH: 1, medium: 2, MEDIUM: 2, low: 3, LOW: 3, info: 4, INFO: 4 };
-const COMMIT_AGENT_IDS = ['security', 'bloat', 'broken_code', 'architecture', 'compliance', 'data_dx', 'ai_era'];
+const COMMIT_AGENT_IDS = ['security', 'bloat', 'broken_code', 'architecture', 'compliance', 'data_dx', 'ai_era', 'chat'];
 
 function normalizeGate(gate: unknown, status: string, score: number | null): 'PASS' | 'WARN' | 'BLOCK' | null {
   const raw = String(gate ?? '').toUpperCase();
