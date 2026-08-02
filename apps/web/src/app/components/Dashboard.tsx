@@ -3,8 +3,20 @@ import {
   ShieldAlert, Bot, Monitor, Blocks, Key, GitMerge, X as XIcon, 
   TrendingUp, Plus, ChevronRight, AlertTriangle, Award, CheckCircle2, 
   GitPullRequest, Scissors, Cpu, Layers, Shield, Zap, ExternalLink, Radio,
-  Activity
+  Activity, ArrowRight
 } from 'lucide-react';
+
+function getAgentIdFromText(text: string): string {
+  const lower = text.toLowerCase();
+  if (lower.includes('security')) return 'security';
+  if (lower.includes('guardian')) return 'guardian';
+  if (lower.includes('bloat')) return 'bloat';
+  if (lower.includes('broken code') || lower.includes('broken_code')) return 'broken_code';
+  if (lower.includes('architecture') || lower.includes('n+1')) return 'architecture';
+  if (lower.includes('compliance')) return 'compliance';
+  if (lower.includes('data dx') || lower.includes('data_dx')) return 'data_dx';
+  return 'orchestrator';
+}
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { mockHealthData, mockDebtData } from '../../lib/mockAgentData';
@@ -711,29 +723,51 @@ export function Dashboard({ onRunClick }: Props) {
         </div>
 
         <div className="flex flex-col gap-2.5">
-          {activityFeed.map((item) => (
-            <div 
-              key={item.id} 
-              className="p-3.5 rounded-lg border border-cw-bdr/60 bg-cw-bg/40 hover:bg-cw-bg3/60 transition-all flex items-start gap-3 group"
-            >
-              <div className="text-[16px] shrink-0 leading-none mt-0.5">
-                {item.dotEmoji || '🤖'}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between gap-3 flex-wrap">
-                  <div className="text-[13px] font-medium text-cw-txt leading-snug">
-                    {item.text}
-                    {item.highlightText && (
-                      <span className={`ml-2 inline-block px-2 py-0.5 rounded text-[10px] font-semibold border ${item.badgeStyle || 'bg-cw-bg3 text-cw-txt border-cw-bdr'}`}>
-                        {item.highlightText}
-                      </span>
-                    )}
+          {activityFeed.map((item) => {
+            const agentId = getAgentIdFromText(item.text);
+            return (
+              <div 
+                key={item.id} 
+                onClick={() => {
+                  sessionStorage.setItem('cw_target_agent_id', agentId);
+                  navigate('/dashboard/livefeed');
+                }}
+                className="p-3.5 rounded-lg border border-cw-bdr/60 bg-cw-bg/40 hover:bg-cw-bg3/60 transition-all flex items-center justify-between gap-3 group cursor-pointer"
+              >
+                <div className="flex items-start gap-3 min-w-0 flex-1">
+                  <div className="text-[16px] shrink-0 leading-none mt-0.5">
+                    {item.dotEmoji || '🤖'}
                   </div>
-                  <span className="text-[11px] text-cw-txt3 shrink-0">{item.time}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[13px] font-medium text-cw-txt leading-snug">
+                      {item.text}
+                      {item.highlightText && (
+                        <span className={`ml-2 inline-block px-2 py-0.5 rounded text-[10px] font-semibold border ${item.badgeStyle || 'bg-cw-bg3 text-cw-txt border-cw-bdr'}`}>
+                          {item.highlightText}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 shrink-0">
+                  <span className="text-[11px] text-cw-txt3 whitespace-nowrap">{item.time}</span>
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      sessionStorage.setItem('cw_target_agent_id', agentId);
+                      navigate('/dashboard/livefeed');
+                    }}
+                    title={`Open ${agentId} in Agent Canvas`}
+                    className="flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-md bg-cw-purple/10 text-cw-purple border border-cw-purple/30 hover:bg-cw-purple hover:text-white transition-all shadow-sm shrink-0 whitespace-nowrap cursor-pointer"
+                  >
+                    <span>Canvas</span>
+                    <ArrowRight size={12} />
+                  </button>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 

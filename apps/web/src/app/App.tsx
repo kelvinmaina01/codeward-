@@ -208,6 +208,12 @@ function DashboardLayout() {
   const screen = pathToScreen(location.pathname);
 
   useEffect(() => {
+    if (screen === 'livefeed' && sessionStorage.getItem('cw_target_agent_id')) {
+      setLiveFeedView('canvas');
+    }
+  }, [location.pathname]);
+
+  useEffect(() => {
     if (session?.user && globalOrgs.length === 0) {
       fetch(`${API_URL}/api/repos/connected`, { credentials: 'include' })
         .then(async res => {

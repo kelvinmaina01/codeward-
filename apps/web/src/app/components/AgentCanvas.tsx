@@ -13,6 +13,17 @@ export function AgentCanvas() {
 
   // Auto-scroll logs
   useEffect(() => {
+    const targetAgentId = sessionStorage.getItem('cw_target_agent_id');
+    if (targetAgentId) {
+      const exists = agentCanvasData.some((a) => a.id === targetAgentId);
+      if (exists) {
+        setActiveAgentId(targetAgentId);
+      }
+      sessionStorage.removeItem('cw_target_agent_id');
+    }
+  }, []);
+
+  useEffect(() => {
     if (activeTab === 'logs' && logsEndRef.current) {
       logsEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
