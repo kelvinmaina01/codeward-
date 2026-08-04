@@ -43,6 +43,34 @@
       "when": 1783451681830,
       "tag": "0005_gordon_chat_persistence",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1783494917448,
+      "tag": "0006_backfill_merge_approvals_demo_leads",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1783497725437,
+      "tag": "0007_gordon_events_telemetry",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1783500983745,
+      "tag": "0008_backfill_agent_tasks_run_id_fk",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1783794885057,
+      "tag": "0009_peaceful_power_man",
+      "breakpoints": true
     }
   ]
 }

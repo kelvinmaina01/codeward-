@@ -37,6 +37,7 @@ import { dataDxAgent } from '../definitions/data_dx.agent.js';
 import { aiEraAgent } from '../definitions/ai_era.agent.js';
 import { guardianAgent } from '../definitions/guardian.agent.js';
 import { chatAgent } from '../definitions/chat.agent.js';
+import { broadcast } from '../../routes/ws.js';
 
 dotenv.config();
 
@@ -175,8 +176,11 @@ export const agentWorker = new Worker('agent-jobs', async (job: Job<AgentJobData
       }
     }
 
+    broadcast('agent_active', { repo: repoFullName, sha: commitSHA, agent: agentId, status: 'Initializing container...', step: 'init', runId });
+
     sandbox = createSandbox();
     await sandbox.init(`https://github.com/${repoFullName}.git`, commitSHA, {}, installationToken);
+    broadcast('agent_active', { repo: repoFullName, sha: commitSHA, agent: agentId, status: 'Cloned & Sandboxed', step: 'cloned', runId });
 
     // -----------------------------------------------------------------------
     // 3. Build the tools
@@ -229,6 +233,7 @@ Use these EXACT values for any tool parameter named runId/repoId — never inven
     // -----------------------------------------------------------------------
     // 5. Execute via the provider
     // -----------------------------------------------------------------------
+    broadcast('agent_active', { repo: repoFullName, sha: commitSHA, agent: agentId, status: 'Running AST & Security Checks...', step: 'scanning', runId });
     const provider = getProvider(providerName);
     const result = await provider.execute(config);
 
@@ -244,6 +249,7 @@ Use these EXACT values for any tool parameter named runId/repoId — never inven
     // trust to auto-fix. repoForClone was already loaded above for the clone token.
     const autoFixAllowed = repoForClone?.autoFixEnabled !== false;
     if (autoFixAllowed && AUTO_FIX_ELIGIBLE_AGENTS.has(agentId) && result.status !== 'error' && result.findings.length > 0 && runRow?.repoId != null) {
+      broadcast('agent_active', { repo: repoFullName, sha: commitSHA, agent: agentId, status: 'Generating Auto-Fix PR...', step: 'autofix', runId });
       try {
         const { openFixPR } = await import('../fixer/fixer.service.js');
         const outcome = await openFixPR({
@@ -441,12 +447,14 @@ Use these EXACT values for any tool parameter named runId/repoId — never inven
       .where(eq(agentTasks.id, taskId));
 
     console.log(`[AgentWorker] ${agentId} completed: score=${result.score}, findings=${result.findings.length}, duration=${result.duration}ms`);
+    broadcast('agent_completed', { repo: repoFullName, sha: commitSHA, agent: agentId, status: 'Completed', score: result.score, findingsCount: result.findings.length, step: 'done', runId });
 
     return result;
 
   } catch (error) {
     const err = error as Error;
     console.error(`[AgentWorker] ${agentId} failed:`, err.message);
+    broadcast('agent_failed', { repo: repoFullName, sha: commitSHA, agent: agentId, status: 'Failed', error: err.message, step: 'error', runId });
 
     // Mark as failed in the database
     await db.update(agentTasks)
@@ -472,8 +480,6 @@ Use these EXACT values for any tool parameter named runId/repoId — never inven
 // ---------------------------------------------------------------------------
 // Event Logging & Real-time Broadcast
 // ---------------------------------------------------------------------------
-
-import { broadcast } from '../../routes/ws.js';
 
 agentWorker.on('active', (job) => {
   broadcast('agent_active', {

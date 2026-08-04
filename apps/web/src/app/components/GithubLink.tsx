@@ -26,12 +26,20 @@ export function githubFileUrl(repoFullName: string, file: string, line?: number 
   return line != null ? `${base}#L${line}` : base;
 }
 
-/** A "view on GitHub" link with the octocat logo — the standard CTA across the app. */
-export function GithubLink({ href, label, className = '' }: { href: string; label: string; className?: string }) {
+export function PlatformIcon({ url, size = 12, className = '' }: { url?: string | null; size?: number; className?: string }) {
+  if (url?.includes('gitlab')) return <GitlabIcon size={size} className={className} />;
+  return <GithubIcon size={size} className={className} />;
+}
+
+/** A "view on GitHub/GitLab" link with the correct logo — the standard CTA across the app. */
+export function GithubLink({ href, label, className = '' }: { href: string; label?: string; className?: string }) {
+  const isGitlab = href.includes('gitlab');
+  const text = label || (isGitlab ? 'Open on GitLab' : 'Open on GitHub');
+  
   return (
     <a href={href} target="_blank" rel="noreferrer" className={`inline-flex items-center gap-1.5 no-underline ${className}`}>
-      <GithubIcon size={13} />
-      {label}
+      <PlatformIcon url={href} size={13} />
+      {text}
       <svg viewBox="0 0 24 24" width={10} height={10} fill="none" stroke="currentColor" strokeWidth={2} className="opacity-60"><path d="M7 17L17 7M17 7H8M17 7v9" /></svg>
     </a>
   );

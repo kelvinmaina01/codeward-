@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Loader, AlertCircle, ShieldAlert, Activity, LayoutTemplate, TrendingDown, Bot, Scale, Database, MessageSquare, CheckCircle2, Download, X as XIcon, ClipboardList, Wrench } from 'lucide-react';
+import { Loader, AlertCircle, ShieldAlert, Activity, LayoutTemplate, TrendingDown, Bot, Scale, Database, MessageSquare, CheckCircle2, Download, X as XIcon, ClipboardList, Wrench, ShieldCheck, Layers } from 'lucide-react';
 import { API_URL } from '../../lib/api';
-import { GithubIcon, GithubLink, githubFileUrl, extractFilePaths } from './GithubLink';
+import { GithubIcon, GithubLink, PlatformIcon, githubFileUrl, extractFilePaths } from './GithubLink';
+import { RepoSelector } from './RepoSelector';
 
 interface RealAlert {
   id: string;
@@ -21,9 +22,9 @@ interface RealAlert {
 
 // Real Codeward agent sources -> debt categories (all 8 dispatchable agents).
 const CATEGORY_META: { key: string; label: string; icon: any; color: string }[] = [
-  { key: 'Security Agent', label: 'Security debt', icon: ShieldAlert, color: 'text-cw-red' },
+  { key: 'Security Agent', label: 'Security debt', icon: ShieldCheck, color: 'text-cw-red' },
   { key: 'Broken Code Agent', label: 'Broken code', icon: Activity, color: 'text-cw-amber' },
-  { key: 'Architecture Agent', label: 'Architecture', icon: LayoutTemplate, color: 'text-cw-blue' },
+  { key: 'Architecture Agent', label: 'Architecture', icon: Layers, color: 'text-cw-blue' },
   { key: 'Bloat Agent', label: 'Bloat', icon: TrendingDown, color: 'text-cw-green' },
   { key: 'Compliance Agent', label: 'Compliance', icon: Scale, color: 'text-cw-purple' },
   { key: 'Data & DX Agent', label: 'Data & DX', icon: Database, color: 'text-cw-teal' },
@@ -118,15 +119,16 @@ export function DebtReport() {
           </div>
           <div className="flex items-center gap-2.5">
             {allFindings.length > 0 && (
-              <select
+              <RepoSelector
+                options={[
+                  ...(orgOptions.length > 1 ? orgOptions.map(o => ({ id: o, fullName: `${o} (org)` })) : []),
+                  ...repoOptions.filter(r => r !== 'All').map(r => ({ id: r, fullName: r }))
+                ]}
                 value={repoFilter}
-                onChange={(e) => setRepoFilter(e.target.value)}
-                className="bg-cw-bg2 border border-cw-bdr rounded-lg text-[12px] text-cw-txt py-2 px-3 outline-none focus:border-cw-purple max-w-[220px]"
-              >
-                <option value="All">All repos & orgs</option>
-                {orgOptions.length > 1 && <optgroup label="Organizations">{orgOptions.map((o) => <option key={`org-${o}`} value={o}>{o} (org)</option>)}</optgroup>}
-                <optgroup label="Repositories">{repoOptions.filter((r) => r !== 'All').map((r) => <option key={r} value={r}>{r}</option>)}</optgroup>
-              </select>
+                showAllOption
+                allOptionLabel="All repos & orgs"
+                onChange={(val, name) => setRepoFilter(String(val))}
+              />
             )}
             <button
               onClick={() => downloadReport(findings, fixesOpened)}
@@ -140,22 +142,22 @@ export function DebtReport() {
 
         <div className="p-6">
           {/* KPI strip — real counts */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+          <div className="grid grid-cols-2 lg:grid-cols-4 w-full gap-3 mb-6">
             {[
               { label: 'Open items', val: findings.length, color: 'text-cw-purple' },
               { label: 'Critical', val: findings.filter((f) => f.severity === 'CRITICAL').length, color: 'text-cw-red' },
               { label: 'High', val: findings.filter((f) => f.severity === 'HIGH').length, color: 'text-cw-amber' },
               { label: 'Auto-fix PRs', val: fixesOpened, color: 'text-cw-green' },
             ].map((k) => (
-              <div key={k.label} className="bg-cw-bg2 border border-cw-bdr rounded-xl p-4">
-                <div className={`text-[24px] font-bold ${k.color}`}>{k.val}</div>
-                <div className="text-[12px] text-cw-txt2 mt-0.5">{k.label}</div>
+              <div key={k.label} className="bg-cw-bg2 border border-cw-bdr rounded-xl p-4 w-full min-w-0 flex flex-col">
+                <div className={`text-[20px] sm:text-[24px] font-bold truncate ${k.color}`}>{k.val}</div>
+                <div className="text-[11px] sm:text-[12px] text-cw-txt2 mt-0.5 truncate">{k.label}</div>
               </div>
             ))}
           </div>
 
           {/* Real category cards — all 8 agents */}
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3 mb-6">
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 w-full gap-3 mb-6">
             {CATEGORY_META.map((cat) => {
               const count = byCategory(cat.key).length;
               const active = activeCategory === cat.key;
@@ -163,11 +165,11 @@ export function DebtReport() {
                 <button
                   key={cat.key}
                   onClick={() => setActiveCategory(active ? null : cat.key)}
-                  className={`bg-cw-bg2 rounded-xl p-3 text-left border transition-all ${active ? 'border-cw-purple' : 'border-cw-bdr hover:border-cw-txt3'}`}
+                  className={`bg-cw-bg2 rounded-xl p-3 text-left border transition-all ${active ? 'border-cw-purple' : 'border-cw-bdr hover:border-cw-txt3'} min-w-0 w-full flex flex-col items-start`}
                 >
-                  <cat.icon size={16} className={`${cat.color} mb-2`} />
-                  <div className="text-[12px] font-semibold text-cw-txt leading-tight">{cat.label}</div>
-                  <div className="text-[11px] text-cw-txt3 mt-0.5">{count} open</div>
+                  <cat.icon size={16} className={`${cat.color} mb-2 shrink-0`} />
+                  <div className="text-[11px] sm:text-[12px] font-semibold text-cw-txt leading-tight truncate w-full" title={cat.label}>{cat.label}</div>
+                  <div className="text-[10px] sm:text-[11px] text-cw-txt3 mt-0.5 truncate w-full">{count} open</div>
                 </button>
               );
             })}
@@ -240,7 +242,7 @@ export function DebtReport() {
                 <div className="rounded-xl border border-cw-blue/25 bg-cw-blue/5 p-3 mb-3">
                   <div className="text-[10px] font-bold text-cw-blue uppercase tracking-wide mb-1.5">Where it was found</div>
                   <a href={githubFileUrl(selected.repo, selected.file, selected.line)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-[12px] text-cw-txt font-mono no-underline hover:underline">
-                    <GithubIcon size={13} /> {selected.file}{selected.line != null ? `:${selected.line}` : ''}
+                    <PlatformIcon url={githubFileUrl(selected.repo, selected.file, selected.line)} size={13} /> {selected.file}{selected.line != null ? `:${selected.line}` : ''}
                   </a>
                 </div>
               )}
@@ -257,7 +259,7 @@ export function DebtReport() {
                         <div className="text-[10px] text-cw-txt3 mb-0.5">{paths.length} file{paths.length === 1 ? '' : 's'} — open the exact location:</div>
                         {paths.map((p) => (
                           <a key={p} href={githubFileUrl(selected.repo, p)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-[11px] text-cw-blue font-mono no-underline hover:underline truncate">
-                            <GithubIcon size={11} className="shrink-0" /> {p}
+                            <PlatformIcon url={githubFileUrl(selected.repo, p)} size={11} className="shrink-0" /> {p}
                           </a>
                         ))}
                       </div>
@@ -275,7 +277,7 @@ export function DebtReport() {
               )}
 
               {selected.htmlUrl && (
-                <GithubLink href={selected.htmlUrl} label="Open on GitHub" className="px-4 py-2 bg-cw-purple hover:brightness-110 text-white text-[12px] font-semibold rounded-lg mt-1" />
+                <GithubLink href={selected.htmlUrl} className="px-4 py-2 bg-cw-purple hover:brightness-110 text-white text-[12px] font-semibold rounded-lg mt-1" />
               )}
             </div>
           </>

@@ -1,8 +1,10 @@
 import React, { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router";
-import Confetti from 'react-confetti';
-import { ArchitectureFlow } from './ArchitectureFlow';
+import { useNavigate } from "react-router-dom";
+import { Helmet } from 'react-helmet-async';
 import { blogs } from '../data/blogs';
+import { FooterTrustBadges } from './FooterTrustBadges';
+import { NewsletterForm } from './NewsletterForm';
+import { useSession } from '../../lib/auth';
 
 // ============================================================
 // Codeward Hero Section — Self-contained single-file component
@@ -336,9 +338,14 @@ function ParticleField({ centered = false }: { centered?: boolean }) {
 
       raf = requestAnimationFrame(render);
     };
-    render();
+
+    // Delay start of loop to free main thread during initial load/hydration
+    const startTimeout = setTimeout(() => {
+      render();
+    }, 400);
 
     return () => {
+      clearTimeout(startTimeout);
       cancelAnimationFrame(raf);
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("resize", resize);
@@ -355,10 +362,11 @@ function ParticleField({ centered = false }: { centered?: boolean }) {
 }
 
 function TypingText() {
-  const [text, setText] = useState("");
   const fullText = "Ship AI code\nwithout the technical\ndebt";
+  const [text, setText] = useState(fullText); // Start with fullText to match server-side render
   
   useEffect(() => {
+    setText("");
     let i = 0;
     const interval = setInterval(() => {
       setText(fullText.slice(0, i + 1));
@@ -377,18 +385,19 @@ function TypingText() {
 }
 
 function MissionTypingText() {
-  const [text, setText] = useState("");
   const normalText = "Codeward is your autonomous\ncode quality platform, without\n";
   const highlightedText = "the technical debt";
-  const totalLength = normalText.length + highlightedText.length;
+  const fullText = normalText + highlightedText;
+  const [text, setText] = useState(fullText); // Match server-side render
+  const totalLength = fullText.length;
 
   useEffect(() => {
+    setText("");
     let i = 0;
-    // Start after a short delay so it triggers when user scrolls down
     const timeout = setTimeout(() => {
       const interval = setInterval(() => {
         i++;
-        setText((normalText + highlightedText).slice(0, i));
+        setText(fullText.slice(0, i));
         if (i >= totalLength) clearInterval(interval);
       }, 55);
       return () => clearInterval(interval);
@@ -676,35 +685,87 @@ function VideoPlayer() {
 
 export default function CodewardHero() {
   const navigate = useNavigate();
-  const [showConfetti, setShowConfetti] = useState(false);
-  const footerRef = useRef<HTMLElement>(null);
-  const [windowSize, setWindowSize] = useState({ width: 0, height: 0 });
-
-  useEffect(() => {
-    setWindowSize({ width: window.innerWidth, height: window.innerHeight });
-    const handleResize = () => setWindowSize({ width: window.innerWidth, height: window.innerHeight });
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(entries => {
-      if (entries[0].isIntersecting) {
-        setShowConfetti(true);
-      }
-    }, { threshold: 0.1 });
-    
-    if (footerRef.current) observer.observe(footerRef.current);
-    return () => {
-      if (footerRef.current) observer.unobserve(footerRef.current);
-    };
-  }, []);
+  const { data: session } = useSession();
 
   return (
     <div className="h-screen overflow-y-auto overflow-x-hidden bg-[#05060a]">
+      <Helmet>
+        <title>Codeward | Autonomous AI Code Quality & Refactoring Platform</title>
+        <meta name="description" content="Catch bugs, security vulnerabilities, and code bloat before production. Codeward spins up secure Firecracker sandboxes, tests your code, and pushes fixes automatically." />
+        <link rel="canonical" href="https://codeward.cloud/" />
+        <script type="application/ld+json">
+          {JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Organization",
+            "name": "Codeward",
+            "url": "https://codeward.cloud",
+            "logo": "https://i.ibb.co/0jxSNrnp/codewrdlogo-png-removebg-preview.png",
+            "sameAs": [
+              "https://github.com/codeward-ai",
+              "https://twitter.com/codeward_ai",
+              "https://linkedin.com/company/codeward"
+            ]
+          })}
+        </script>
+        <script type="application/ld+json">
+          {JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "SoftwareApplication",
+            "name": "Codeward",
+            "operatingSystem": "All",
+            "applicationCategory": "DeveloperApplication",
+            "offers": {
+              "@type": "Offer",
+              "price": "29.00",
+              "priceCurrency": "USD"
+            }
+          })}
+        </script>
+        <script type="application/ld+json">
+          {JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "FAQPage",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "Is this just another CodeRabbit?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "No. While tools like CodeRabbit focus heavily on PR summaries and superficial code review comments, Codeward is an active participant in your codebase. We don't just leave comments—our autonomous agents actively write the code, generate the fixes, and manage your technical debt directly."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "How does Codeward integrate with my existing CI/CD?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Codeward connects directly to your GitHub, GitLab, or Bitbucket repositories. It listens for pull requests and branch updates, running its analysis and patching autonomously without disrupting your existing pipelines."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Is my source code secure?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Absolutely. We run all analysis in isolated, ephemeral sandboxes. Your code is never used to train public models, and our infrastructure is SOC2 compliant, ensuring military-grade security for your intellectual property."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Can Codeward automatically fix the issues it finds?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes! Our Self-healing Patches feature doesn't just point out errors; it generates ready-to-merge pull requests with verified fixes for vulnerabilities, test failures, and legacy technical debt."
+                }
+              }
+            ]
+          })}
+        </script>
+      </Helmet>
       <section className="relative min-h-screen overflow-hidden bg-[#05060a] text-white">
         <style>
         {`
+          @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap');
           /* Additional styles can go here */
         `}
       </style>
@@ -1013,39 +1074,48 @@ export default function CodewardHero() {
           </h1>
 
           <p className="mt-6 max-w-xl text-base text-white/60 md:text-lg">
-            Codeward sits between your developers and production. Every push is
-            sandboxed, stress-tested, refactored against your existing codebase,
-            and rolled back instantly if anything breaks.
+            Codeward is an autonomous AI code review platform for engineering teams that runs specialized review agents automatically on every pull request.
           </p>
 
           <div className="mt-10 flex flex-wrap gap-4">
-            <button
-              onClick={() => navigate('/signup')}
-              className="rounded-full bg-white px-10 py-4 text-sm font-semibold text-black transition-all hover:bg-white/90 shadow-lg shadow-white/10 hover:scale-105 active:scale-95 duration-300 flex items-center gap-2"
-            >
-              <svg className="w-5 h-5 text-[#8B5CF6]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
-              </svg>
-              Start your 14 days trial &rarr;
-            </button>
-            <button
-              onClick={() => navigate('/login')}
-              className="group rounded-full bg-[#8B5CF6] px-8 py-3 text-sm font-semibold text-white transition-all hover:bg-green-500 hover:scale-105 active:scale-95 duration-300 flex items-center gap-4"
-            >
-              <div className="flex -space-x-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white shadow-sm ring-2 ring-[#8B5CF6] group-hover:ring-green-500 transition-colors">
-                  <svg className="h-5 w-5 text-black" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
+            {session?.user ? (
+              <button
+                onClick={() => navigate('/dashboard')}
+                className="rounded-full bg-[#8B5CF6] px-10 py-4 text-sm font-semibold text-white transition-all hover:bg-green-500 shadow-lg hover:scale-105 active:scale-95 duration-300 flex items-center gap-2"
+              >
+                Back to app &rarr;
+              </button>
+            ) : (
+              <>
+                <button
+                  onClick={() => navigate('/signup')}
+                  className="rounded-full bg-white px-10 py-4 text-sm font-semibold text-black transition-all hover:bg-white/90 shadow-lg shadow-white/10 hover:scale-105 active:scale-95 duration-300 flex items-center gap-2"
+                >
+                  <svg className="w-5 h-5 text-[#8B5CF6]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
                   </svg>
-                </div>
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white shadow-sm ring-2 ring-[#8B5CF6] group-hover:ring-green-500 transition-colors">
-                  <svg className="h-5 w-5 text-[#FC6D26]" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M23.955 13.587l-1.342-4.135-2.664-8.189c-.135-.423-.73-.423-.867 0L16.418 9.45H7.582L4.919 1.263c-.137-.423-.733-.423-.868 0L1.387 9.452.045 13.587c-.173.535.034 1.127.487 1.458l11.468 8.337 11.468-8.337c.453-.331.66-.923.487-1.458z" />
-                  </svg>
-                </div>
-              </div>
-              <span className="mr-2">Connect repo &rarr;</span>
-            </button>
+                  Start your 14 days trial &rarr;
+                </button>
+                <button
+                  onClick={() => navigate('/login')}
+                  className="group rounded-full bg-[#8B5CF6] px-8 py-3 text-sm font-semibold text-white transition-all hover:bg-green-500 hover:scale-105 active:scale-95 duration-300 flex items-center gap-4"
+                >
+                  <div className="flex -space-x-2">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white shadow-sm ring-2 ring-[#8B5CF6] group-hover:ring-green-500 transition-colors">
+                      <svg className="h-5 w-5 text-black" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
+                      </svg>
+                    </div>
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white shadow-sm ring-2 ring-[#8B5CF6] group-hover:ring-green-500 transition-colors">
+                      <svg className="h-5 w-5 text-[#FC6D26]" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M23.955 13.587l-1.342-4.135-2.664-8.189c-.135-.423-.73-.423-.867 0L16.418 9.45H7.582L4.919 1.263c-.137-.423-.733-.423-.868 0L1.387 9.452.045 13.587c-.173.535.034 1.127.487 1.458l11.468 8.337 11.468-8.337c.453-.331.66-.923.487-1.458z" />
+                      </svg>
+                    </div>
+                  </div>
+                  Login
+                </button>
+              </>
+            )}
           </div>
 
           <div className="mt-10 flex flex-wrap items-center gap-8 text-sm font-medium text-white/80">
@@ -1071,24 +1141,14 @@ export default function CodewardHero() {
           </div>
         </div>
 
-        {/* Product Hunt Badges */}
-        <div className="absolute bottom-8 right-8 md:bottom-12 md:right-14 flex flex-col gap-4 sm:flex-row sm:gap-6 opacity-90 hover:opacity-100 transition-opacity">
 
-          <a href="#" target="_blank" rel="noopener noreferrer" className="transition-transform hover:scale-105">
-            <img 
-              src="https://i.ibb.co/jPgJJdTs/developer-tools-badge.png" 
-              alt="Product Hunt - Developer Tools" 
-              className="h-[50px] w-auto drop-shadow-xl" 
-            />
-          </a>
-        </div>
       </section>
       </section>
 
       {/* Video Demo Section */}
       <section className="relative bg-[#05060a] py-20 md:py-24 px-8 md:px-14 overflow-hidden perspective-[1000px]">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(139,92,246,0.15)_0%,_transparent_50%)] mix-blend-screen pointer-events-none" />
-        <div className="mx-auto max-w-[1300px] relative z-10">
+        <div className="mx-auto max-w-[700px] relative z-10">
           <VideoPlayer />
         </div>
       </section>
@@ -1103,113 +1163,113 @@ export default function CodewardHero() {
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-8">
             
             {/* AI */}
-            <fieldset className="border border-white/10 rounded-2xl px-8 pb-10 pt-6 bg-white/5 backdrop-blur-sm transition-transform hover:-translate-y-1">
-              <legend className="px-3 mx-auto">
-                <span className="relative inline-block px-3 py-1">
+            <fieldset className="border border-white/10 rounded-xl px-4 pb-5 pt-3 bg-white/5 backdrop-blur-sm transition-transform hover:-translate-y-1">
+              <legend className="px-2 mx-auto">
+                <span className="relative inline-block px-2 py-0.5">
                   <span className="absolute inset-0 bg-[#00F700] transform -skew-x-12 rounded-sm rotate-1" />
-                  <span className="relative text-xs font-bold text-black uppercase tracking-widest drop-shadow-md">AI</span>
+                  <span className="relative text-[10px] font-bold text-black uppercase tracking-widest drop-shadow-md">AI</span>
                 </span>
               </legend>
-              <div className="grid grid-cols-2 gap-x-4 gap-y-10 mt-6">
-                <div className="flex items-center gap-4">
-                  <img src="https://www.google.com/s2/favicons?domain=openai.com&sz=128" alt="OpenAI" className="h-8 w-8 shrink-0 object-contain drop-shadow-md" />
-                  <span className="text-white/90 text-base font-semibold tracking-wide truncate">OpenAI</span>
+              <div className="grid grid-cols-2 gap-x-3 gap-y-4 mt-3">
+                <div className="flex items-center gap-2">
+                  <img src="https://www.google.com/s2/favicons?domain=openai.com&sz=128" alt="OpenAI" className="h-5 w-5 shrink-0 object-contain drop-shadow-md" />
+                  <span className="text-white/90 text-sm font-semibold tracking-wide truncate">OpenAI</span>
                 </div>
-                <div className="flex items-center gap-4">
-                  <img src="https://www.google.com/s2/favicons?domain=anthropic.com&sz=128" alt="Anthropic" className="h-8 w-8 shrink-0 object-contain drop-shadow-md" />
-                  <span className="text-white/90 text-base font-semibold tracking-wide truncate">Anthropic</span>
+                <div className="flex items-center gap-2">
+                  <img src="https://www.google.com/s2/favicons?domain=anthropic.com&sz=128" alt="Anthropic" className="h-5 w-5 shrink-0 object-contain drop-shadow-md" />
+                  <span className="text-white/90 text-sm font-semibold tracking-wide truncate">Anthropic</span>
                 </div>
-                <div className="flex items-center gap-4">
-                  <img src="https://www.google.com/s2/favicons?domain=huggingface.co&sz=128" alt="HuggingFace" className="h-8 w-8 shrink-0 object-contain drop-shadow-md" />
-                  <span className="text-white/90 text-base font-semibold tracking-wide truncate">HuggingFace</span>
+                <div className="flex items-center gap-2">
+                  <img src="https://www.google.com/s2/favicons?domain=huggingface.co&sz=128" alt="HuggingFace" className="h-5 w-5 shrink-0 object-contain drop-shadow-md" />
+                  <span className="text-white/90 text-sm font-semibold tracking-wide truncate">HuggingFace</span>
                 </div>
-                <div className="flex items-center gap-4">
-                  <img src="https://www.google.com/s2/favicons?domain=mistral.ai&sz=128" alt="Mistral AI" className="h-8 w-8 shrink-0 object-contain drop-shadow-md" />
-                  <span className="text-white/90 text-base font-semibold tracking-wide truncate">Mistral AI</span>
+                <div className="flex items-center gap-2">
+                  <img src="https://www.google.com/s2/favicons?domain=mistral.ai&sz=128" alt="Mistral AI" className="h-5 w-5 shrink-0 object-contain drop-shadow-md" />
+                  <span className="text-white/90 text-sm font-semibold tracking-wide truncate">Mistral AI</span>
                 </div>
               </div>
             </fieldset>
 
             {/* Enterprise */}
-            <fieldset className="border border-white/10 rounded-2xl px-8 pb-10 pt-6 bg-white/5 backdrop-blur-sm transition-transform hover:-translate-y-1">
-              <legend className="px-3 mx-auto">
-                <span className="relative inline-block px-3 py-1">
+            <fieldset className="border border-white/10 rounded-xl px-4 pb-5 pt-3 bg-white/5 backdrop-blur-sm transition-transform hover:-translate-y-1">
+              <legend className="px-2 mx-auto">
+                <span className="relative inline-block px-2 py-0.5">
                   <span className="absolute inset-0 bg-[#00F700] transform -skew-x-12 rounded-sm -rotate-1" />
-                  <span className="relative text-xs font-bold text-black uppercase tracking-widest drop-shadow-md">Enterprise</span>
+                  <span className="relative text-[10px] font-bold text-black uppercase tracking-widest drop-shadow-md">Enterprise</span>
                 </span>
               </legend>
-              <div className="grid grid-cols-2 gap-x-4 gap-y-10 mt-6">
-                <div className="flex items-center gap-4">
-                  <img src="https://www.google.com/s2/favicons?domain=microsoft.com&sz=128" alt="Microsoft" className="h-8 w-8 shrink-0 object-contain drop-shadow-md" />
-                  <span className="text-white/90 text-base font-semibold tracking-wide truncate">Microsoft</span>
+              <div className="grid grid-cols-2 gap-x-3 gap-y-4 mt-3">
+                <div className="flex items-center gap-2">
+                  <img src="https://www.google.com/s2/favicons?domain=microsoft.com&sz=128" alt="Microsoft" className="h-5 w-5 shrink-0 object-contain drop-shadow-md" />
+                  <span className="text-white/90 text-sm font-semibold tracking-wide truncate">Microsoft</span>
                 </div>
-                <div className="flex items-center gap-4">
-                  <img src="https://www.google.com/s2/favicons?domain=google.com&sz=128" alt="Google" className="h-8 w-8 shrink-0 object-contain drop-shadow-md" />
-                  <span className="text-white/90 text-base font-semibold tracking-wide truncate">Google</span>
+                <div className="flex items-center gap-2">
+                  <img src="https://www.google.com/s2/favicons?domain=google.com&sz=128" alt="Google" className="h-5 w-5 shrink-0 object-contain drop-shadow-md" />
+                  <span className="text-white/90 text-sm font-semibold tracking-wide truncate">Google</span>
                 </div>
-                <div className="flex items-center gap-4">
-                  <img src="https://www.google.com/s2/favicons?domain=paypal.com&sz=128" alt="PayPal" className="h-8 w-8 shrink-0 object-contain drop-shadow-md" />
-                  <span className="text-white/90 text-base font-semibold tracking-wide truncate">PayPal</span>
+                <div className="flex items-center gap-2">
+                  <img src="https://www.google.com/s2/favicons?domain=paypal.com&sz=128" alt="PayPal" className="h-5 w-5 shrink-0 object-contain drop-shadow-md" />
+                  <span className="text-white/90 text-sm font-semibold tracking-wide truncate">PayPal</span>
                 </div>
-                <div className="flex items-center gap-4">
-                  <img src="https://www.google.com/s2/favicons?domain=vercel.com&sz=128" alt="Vercel" className="h-8 w-8 shrink-0 object-contain drop-shadow-md" />
-                  <span className="text-white/90 text-base font-semibold tracking-wide truncate">Vercel</span>
+                <div className="flex items-center gap-2">
+                  <img src="https://www.google.com/s2/favicons?domain=vercel.com&sz=128" alt="Vercel" className="h-5 w-5 shrink-0 object-contain drop-shadow-md" />
+                  <span className="text-white/90 text-sm font-semibold tracking-wide truncate">Vercel</span>
                 </div>
               </div>
             </fieldset>
 
             {/* IoT/Infrastructure */}
-            <fieldset className="border border-white/10 rounded-2xl px-8 pb-10 pt-6 bg-white/5 backdrop-blur-sm transition-transform hover:-translate-y-1">
-              <legend className="px-3 mx-auto">
-                <span className="relative inline-block px-3 py-1">
+            <fieldset className="border border-white/10 rounded-xl px-4 pb-5 pt-3 bg-white/5 backdrop-blur-sm transition-transform hover:-translate-y-1">
+              <legend className="px-2 mx-auto">
+                <span className="relative inline-block px-2 py-0.5">
                   <span className="absolute inset-0 bg-[#00F700] transform skew-x-12 rounded-sm rotate-2" />
-                  <span className="relative text-xs font-bold text-black uppercase tracking-widest drop-shadow-md">IoT/Infrastructure</span>
+                  <span className="relative text-[10px] font-bold text-black uppercase tracking-widest drop-shadow-md">IoT/Infrastructure</span>
                 </span>
               </legend>
-              <div className="grid grid-cols-2 gap-x-4 gap-y-10 mt-6">
-                <div className="flex items-center gap-4">
-                  <img src="https://www.google.com/s2/favicons?domain=aws.amazon.com&sz=128" alt="AWS" className="h-8 w-8 shrink-0 object-contain drop-shadow-md" />
-                  <span className="text-white/90 text-base font-semibold tracking-wide truncate">AWS</span>
+              <div className="grid grid-cols-2 gap-x-3 gap-y-4 mt-3">
+                <div className="flex items-center gap-2">
+                  <img src="https://www.google.com/s2/favicons?domain=aws.amazon.com&sz=128" alt="AWS" className="h-5 w-5 shrink-0 object-contain drop-shadow-md" />
+                  <span className="text-white/90 text-sm font-semibold tracking-wide truncate">AWS</span>
                 </div>
-                <div className="flex items-center gap-4">
-                  <img src="https://www.google.com/s2/favicons?domain=cloudflare.com&sz=128" alt="Cloudflare" className="h-8 w-8 shrink-0 object-contain drop-shadow-md" />
-                  <span className="text-white/90 text-base font-semibold tracking-wide truncate">Cloudflare</span>
+                <div className="flex items-center gap-2">
+                  <img src="https://www.google.com/s2/favicons?domain=cloudflare.com&sz=128" alt="Cloudflare" className="h-5 w-5 shrink-0 object-contain drop-shadow-md" />
+                  <span className="text-white/90 text-sm font-semibold tracking-wide truncate">Cloudflare</span>
                 </div>
-                <div className="flex items-center gap-4">
-                  <img src="https://www.google.com/s2/favicons?domain=safaricom.co.ke&sz=128" alt="Safaricom" className="h-8 w-8 shrink-0 object-contain drop-shadow-md" />
-                  <span className="text-white/90 text-base font-semibold tracking-wide truncate">Safaricom</span>
+                <div className="flex items-center gap-2">
+                  <img src="https://www.google.com/s2/favicons?domain=safaricom.co.ke&sz=128" alt="Safaricom" className="h-5 w-5 shrink-0 object-contain drop-shadow-md" />
+                  <span className="text-white/90 text-sm font-semibold tracking-wide truncate">Safaricom</span>
                 </div>
-                <div className="flex items-center gap-4">
-                  <img src="https://www.google.com/s2/favicons?domain=docker.com&sz=128" alt="Docker" className="h-8 w-8 shrink-0 object-contain drop-shadow-md" />
-                  <span className="text-white/90 text-base font-semibold tracking-wide truncate">Docker</span>
+                <div className="flex items-center gap-2">
+                  <img src="https://www.google.com/s2/favicons?domain=docker.com&sz=128" alt="Docker" className="h-5 w-5 shrink-0 object-contain drop-shadow-md" />
+                  <span className="text-white/90 text-sm font-semibold tracking-wide truncate">Docker</span>
                 </div>
               </div>
             </fieldset>
 
             {/* Finance */}
-            <fieldset className="border border-white/10 rounded-2xl px-8 pb-10 pt-6 bg-white/5 backdrop-blur-sm transition-transform hover:-translate-y-1">
-              <legend className="px-3 mx-auto">
-                <span className="relative inline-block px-3 py-1">
+            <fieldset className="border border-white/10 rounded-xl px-4 pb-5 pt-3 bg-white/5 backdrop-blur-sm transition-transform hover:-translate-y-1">
+              <legend className="px-2 mx-auto">
+                <span className="relative inline-block px-2 py-0.5">
                   <span className="absolute inset-0 bg-[#00F700] transform -skew-x-6 rounded-sm -rotate-2" />
-                  <span className="relative text-xs font-bold text-black uppercase tracking-widest drop-shadow-md">Finance</span>
+                  <span className="relative text-[10px] font-bold text-black uppercase tracking-widest drop-shadow-md">Finance</span>
                 </span>
               </legend>
-              <div className="grid grid-cols-2 gap-x-4 gap-y-10 mt-6">
-                <div className="flex items-center gap-4">
-                  <img src="https://www.google.com/s2/favicons?domain=stripe.com&sz=128" alt="Stripe" className="h-8 w-8 shrink-0 object-contain drop-shadow-md" />
-                  <span className="text-white/90 text-base font-semibold tracking-wide truncate">Stripe</span>
+              <div className="grid grid-cols-2 gap-x-3 gap-y-4 mt-3">
+                <div className="flex items-center gap-2">
+                  <img src="https://www.google.com/s2/favicons?domain=stripe.com&sz=128" alt="Stripe" className="h-5 w-5 shrink-0 object-contain drop-shadow-md" />
+                  <span className="text-white/90 text-sm font-semibold tracking-wide truncate">Stripe</span>
                 </div>
-                <div className="flex items-center gap-4">
-                  <img src="https://www.google.com/s2/favicons?domain=plaid.com&sz=128" alt="Plaid" className="h-8 w-8 shrink-0 object-contain drop-shadow-md" />
-                  <span className="text-white/90 text-base font-semibold tracking-wide truncate">Plaid</span>
+                <div className="flex items-center gap-2">
+                  <img src="https://www.google.com/s2/favicons?domain=plaid.com&sz=128" alt="Plaid" className="h-5 w-5 shrink-0 object-contain drop-shadow-md" />
+                  <span className="text-white/90 text-sm font-semibold tracking-wide truncate">Plaid</span>
                 </div>
-                <div className="flex items-center gap-4">
-                  <img src="https://www.google.com/s2/favicons?domain=flutterwave.com&sz=128" alt="Flutterwave" className="h-8 w-8 shrink-0 object-contain drop-shadow-md" />
-                  <span className="text-white/90 text-base font-semibold tracking-wide truncate">Flutterwave</span>
+                <div className="flex items-center gap-2">
+                  <img src="https://www.google.com/s2/favicons?domain=flutterwave.com&sz=128" alt="Flutterwave" className="h-5 w-5 shrink-0 object-contain drop-shadow-md" />
+                  <span className="text-white/90 text-sm font-semibold tracking-wide truncate">Flutterwave</span>
                 </div>
-                <div className="flex items-center gap-4">
-                  <img src="https://www.google.com/s2/favicons?domain=paystack.com&sz=128" alt="Paystack" className="h-8 w-8 shrink-0 object-contain drop-shadow-md" />
-                  <span className="text-white/90 text-base font-semibold tracking-wide truncate">Paystack</span>
+                <div className="flex items-center gap-2">
+                  <img src="https://www.google.com/s2/favicons?domain=paystack.com&sz=128" alt="Paystack" className="h-5 w-5 shrink-0 object-contain drop-shadow-md" />
+                  <span className="text-white/90 text-sm font-semibold tracking-wide truncate">Paystack</span>
                 </div>
               </div>
             </fieldset>
@@ -1399,11 +1459,8 @@ export default function CodewardHero() {
       </section>
 
       {/* Ã¢â€â‚¬Ã¢â€â‚¬ Flow / Architecture Section Ã¢â€â‚¬Ã¢â€â‚¬ */}
-      <section className="w-full bg-[#000000] relative py-12 px-6 md:px-12 select-none">
-        <div className="max-w-[1500px] mx-auto rounded-[15px] overflow-hidden shadow-2xl">
-          <ArchitectureFlow />
-        </div>
-      </section>
+
+
 
       {/* Ã¢â€â‚¬Ã¢â€â‚¬ Testimonials Section Ã¢â€â‚¬Ã¢â€â‚¬ */}
       <TestimonialsSection />
@@ -1502,35 +1559,26 @@ export default function CodewardHero() {
 
       {/* ─── Footer Section ─── */}
       <div className="px-4 md:px-8 pb-4 md:pb-8 bg-[#05060a]">
-        <footer ref={footerRef} className="relative bg-[#C3DBFF] rounded-[16px] pt-20 md:pt-24 pb-8 px-8 md:px-14 overflow-hidden shadow-2xl">
-          {showConfetti && (
-            <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 50 }}>
-              <Confetti width={windowSize.width} height={windowSize.height} recycle={false} numberOfPieces={400} />
-            </div>
-          )}
+        <footer className="relative bg-[#C3DBFF] rounded-[16px] pt-20 md:pt-24 pb-8 px-8 md:px-14 overflow-hidden shadow-2xl">
           {/* Fabric Gradient Overlay */}
           <div className="absolute inset-0 bg-gradient-to-tr from-white/40 via-transparent to-black/5 mix-blend-overlay pointer-events-none" />
           
           <div className="mx-auto max-w-[1500px] relative z-10">
-            {/* Huge Logo/Text Graphic */}
-            <div className="w-full flex justify-center mb-20 md:mb-24 select-none pointer-events-none overflow-hidden">
-              <h2 className="text-[12vw] md:text-[10vw] font-black tracking-tighter leading-none opacity-90 drop-shadow-xl lowercase flex items-center justify-center">
-                <FadeInSection direction="left" delay={200}>
-                  <span className="text-black inline-block">code</span>
-                </FadeInSection>
-                <FadeInSection direction="right" delay={200}>
-                  <span className="text-[#49007D] inline-block">ward</span>
-                </FadeInSection>
-              </h2>
-            </div>
 
-            {/* Mission & Contact */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-8 mb-20">
-              <p className="text-black/80 text-base md:text-lg font-medium max-w-sm leading-relaxed">
+
+            {/* Mission, Trust Badges & Contact */}
+            <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-8 mb-16 pb-10 border-b border-black/10">
+              <p className="text-black/80 text-base md:text-lg font-medium max-w-xs leading-relaxed shrink-0">
                 Codeward builds, tests, and optimizes your codebase.<br />
                 Automatically.
               </p>
-              <a href="mailto:hello@codeward.ai" className="text-black hover:text-[#8B5CF6] transition-colors text-base md:text-lg font-bold flex items-center gap-2 group">
+              
+              {/* Trust & Security Badges (ISO 27001, GDPR, CCPA, HIPAA, SSL, 99% Accuracy) */}
+              <div className="my-2 xl:my-0">
+                <FooterTrustBadges />
+              </div>
+
+              <a href="mailto:hello@codeward.ai" className="text-black hover:text-[#8B5CF6] transition-colors text-base md:text-lg font-bold flex items-center gap-2 group shrink-0">
                 <span className="group-hover:translate-x-1 transition-transform">→</span> hello@codeward.ai
               </a>
             </div>
@@ -1593,16 +1641,7 @@ export default function CodewardHero() {
           </div>
 
           {/* Newsletter Block */}
-          <div className="mb-16 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8 bg-white/50 backdrop-blur-sm p-8 md:p-10 rounded-3xl border border-black/10 shadow-sm">
-            <div className="max-w-lg">
-              <h4 className="text-black text-2xl font-black mb-3 tracking-tight">Subscribe to our newsletter</h4>
-              <p className="text-black/60 text-base font-medium">Get the latest updates on autonomous engineering, product releases, and technical debt management delivered to your inbox.</p>
-            </div>
-            <div className="flex items-center bg-white rounded-full p-1.5 pl-5 shadow-sm w-full lg:w-[450px] border border-black/10 shrink-0">
-              <input type="email" placeholder="Enter your email address" className="flex-1 bg-transparent text-sm text-black outline-none placeholder:text-black/40 font-medium" />
-              <button className="bg-black text-white px-7 py-3 rounded-full text-sm font-bold hover:bg-black/80 transition-colors shrink-0 shadow-md">Start for free &rarr;</button>
-            </div>
-          </div>
+          <NewsletterForm />
 
           {/* Bottom Bar */}
           <div className="flex flex-col md:flex-row justify-between items-center gap-6 pt-8 border-t border-black/10 text-black/50 text-sm font-semibold">

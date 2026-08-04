@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router';
+import { useNavigate } from 'react-router-dom';
 import { BotIcon, TaskDone01Icon, GitPullRequestIcon, CircleArrowReload01Icon, StarsIcon, Sun01Icon, Moon01Icon, CircleIcon } from 'hugeicons-react';
 import { CheckCircle } from 'lucide-react';
 import { signIn } from '../../lib/auth';
@@ -58,7 +58,7 @@ export function AuthPage({ onBack, theme: _theme, onCycleTheme, onNavigate: _onN
     try {
       await signIn.social({
         provider,
-        callbackURL: window.location.origin + '/connect',
+        callbackURL: window.location.origin + '/dashboard',
       });
     } catch (err: unknown) {
       console.error('[Auth] OAuth sign-in failed:', err);

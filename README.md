@@ -575,7 +575,7 @@ npm run db:seed
 npm run dev
 
 # Or start services individually
-npm run dev:api      # Hono.js API on :3001
+npm run dev:api      # Hono.js API on :3000
 npm run dev:worker   # BullMQ job processor
 npm run dev:web      # Vite React on :3000
 ```
@@ -584,7 +584,7 @@ To test the full webhook flow locally, use [smee.io](https://smee.io) or ngrok t
 
 ```bash
 npm install -g smee-client
-smee -u https://smee.io/your-channel-id -t http://localhost:3001/api/webhooks/github
+smee -u https://smee.io/your-channel-id -t http://localhost:3000/api/webhooks/github
 ```
 
 ---

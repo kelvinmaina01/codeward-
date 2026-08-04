@@ -19,6 +19,28 @@ const AGENT_DISPLAY_NAMES: Record<string, string> = {
 };
 
 const SEVERITY_ORDER: Record<string, number> = { critical: 0, CRITICAL: 0, high: 1, HIGH: 1, medium: 2, MEDIUM: 2, low: 3, LOW: 3, info: 4, INFO: 4 };
+const COMMIT_AGENT_IDS = ['security', 'bloat', 'broken_code', 'architecture', 'compliance', 'data_dx', 'ai_era'];
+
+function normalizeGate(gate: unknown, status: string, score: number | null): 'PASS' | 'WARN' | 'BLOCK' | null {
+  const raw = String(gate ?? '').toUpperCase();
+  if (raw === 'PASS' || raw === 'WARN' || raw === 'BLOCK') return raw;
+  if (status === 'failed' || status === 'agent_failed') return 'BLOCK';
+  if (score == null) return null;
+  if (score < 60) return 'BLOCK';
+  if (score < 85) return 'WARN';
+  return 'PASS';
+}
+
+function inferSkippedReason(agentId: string, changedFiles: string[]): string {
+  if (changedFiles.length === 0) return 'No files in incremental scope';
+  const lower = changedFiles.map((f) => f.toLowerCase());
+  if (agentId === 'architecture') return lower.some((f) => /src\/|app\/|packages\/|services\/|lib\//.test(f)) ? 'No structural changes selected' : 'No architecture files changed';
+  if (agentId === 'compliance') return lower.some((f) => /auth|billing|payment|privacy|policy|config|infra|env/.test(f)) ? 'No compliance checks selected' : `Scope: ${changedFiles.length} files (no config/infra)`;
+  if (agentId === 'data_dx') return lower.some((f) => /schema|migration|db|sql|query|model/.test(f)) ? 'No data checks selected' : 'No DB schema changes detected';
+  if (agentId === 'ai_era') return lower.some((f) => /ai|llm|openai|anthropic|prompt|rag|embedding/.test(f)) ? 'No AI checks selected' : 'No AI patterns in scope';
+  if (agentId === 'broken_code') return 'No high-risk patterns detected';
+  return 'Skipped by orchestrator for this scope';
+}
 
 /** Real ownership check — same pattern as reposRouter: user owns the repo directly, or via an org they're a member of. */
 async function userCanAccessRepo(userId: string, repoId: number): Promise<boolean> {
@@ -199,6 +221,49 @@ reportsRouter.get('/:repoId/runs/:runId', async (c) => {
   return c.json(report);
 });
 
+/** GET /api/reports/:repoId/commits/:sha/diff — real per-file GitHub commit diff. */
+reportsRouter.get('/:repoId/commits/:sha/diff', async (c) => {
+  const session = await auth.api.getSession({ headers: c.req.raw.headers });
+  if (!session) return c.json({ error: 'Unauthorized' }, 401);
+
+  const repoId = Number(c.req.param('repoId'));
+  const sha = c.req.param('sha');
+  if (!Number.isFinite(repoId) || !/^[a-f0-9]{7,40}$/i.test(sha)) return c.json({ error: 'Invalid repoId or commit sha' }, 400);
+  if (!(await userCanAccessRepo(session.user.id, repoId))) return c.json({ error: 'Forbidden' }, 403);
+
+  const [repo] = await db.select().from(schema.repositories).where(eq(schema.repositories.id, repoId));
+  if (!repo) return c.json({ error: 'Repository not found' }, 404);
+  if (!repo.installationId) return c.json({ error: 'This repository has no GitHub installation, so Codeward cannot fetch the real commit diff.' }, 409);
+
+  try {
+    const { getInstallationOctokit } = await import('../lib/github.js');
+    const octokit = await getInstallationOctokit(repo.installationId);
+    const res: any = await octokit.request('GET /repos/{owner}/{repo}/commits/{ref}', {
+      owner: repo.owner,
+      repo: repo.name,
+      ref: sha,
+    });
+    return c.json({
+      sha: res.data.sha,
+      htmlUrl: res.data.html_url,
+      stats: res.data.stats ?? null,
+      files: (res.data.files ?? []).map((f: any) => ({
+        filename: f.filename,
+        status: f.status,
+        additions: f.additions,
+        deletions: f.deletions,
+        changes: f.changes,
+        patch: f.patch ?? null,
+        blobUrl: f.blob_url ?? null,
+        rawUrl: f.raw_url ?? null,
+      })),
+    });
+  } catch (err: any) {
+    if (err?.status === 404) return c.json({ error: 'Commit not found on GitHub for this repository.' }, 404);
+    return c.json({ error: `Real GitHub commit diff fetch failed: ${err.message}` }, 502);
+  }
+});
+
 /** GET /api/reports/:repoId/history — lightweight list of past runs for a trend view (no full findings payload). */
 reportsRouter.get('/:repoId/history', async (c) => {
   const session = await auth.api.getSession({ headers: c.req.raw.headers });
@@ -217,4 +282,376 @@ reportsRouter.get('/:repoId/history', async (c) => {
   return c.json({
     runs: runsList.map((r) => ({ runId: r.id, commitSha: r.commitSha, status: r.status, overallScore: r.score, createdAt: r.createdAt })),
   });
+});
+
+/**
+ * GET /api/reports/all/commits
+ *
+ * Fetches the latest commits from GitHub across ALL connected repos for the user,
+ * then overlays each commit with the corresponding Codeward run status.
+ */
+reportsRouter.get('/all/commits', async (c) => {
+  const session = await auth.api.getSession({ headers: c.req.raw.headers });
+  if (!session) return c.json({ error: 'Unauthorized' }, 401);
+
+  const userOrgs = await db.select({ orgId: schema.organizationMember.orgId })
+    .from(schema.organizationMember)
+    .where(eq(schema.organizationMember.userId, session.user.id));
+  const orgIds = userOrgs.map((o) => o.orgId);
+
+  const accessConditions = [eq(schema.repositories.userId, session.user.id)];
+  if (orgIds.length > 0) accessConditions.push(inArray(schema.repositories.orgId, orgIds));
+  const repos = await db.select().from(schema.repositories).where(or(...accessConditions));
+
+  if (repos.length === 0) return c.json({ commits: [], repoFullName: 'All Repositories', defaultBranch: null, selectedBranch: '', branches: [] });
+
+  let allGithubCommits: any[] = [];
+  
+  try {
+    const { getInstallationOctokit } = await import('../lib/github.js');
+    
+    // Group repos by installationId to avoid re-authenticating the same octokit unnecessarily
+    const byInstallation = new Map<number, typeof repos>();
+    for (const repo of repos) {
+      if (!repo.installationId) continue;
+      const arr = byInstallation.get(repo.installationId) ?? [];
+      arr.push(repo);
+      byInstallation.set(repo.installationId, arr);
+    }
+
+    const commitPromises: Promise<any[]>[] = [];
+
+    for (const [installationId, instRepos] of byInstallation.entries()) {
+      const octokit = await getInstallationOctokit(installationId);
+      for (const repo of instRepos) {
+        commitPromises.push((async () => {
+          try {
+            // Only fetch from the configured default branch (limit 15 per repo to avoid massive payload/limits)
+            const configuredDefaultBranch = (repo.config as any)?.defaultBranch ?? 'main';
+            const res = await octokit.request('GET /repos/{owner}/{repo}/commits', {
+              owner: repo.owner,
+              repo: repo.name,
+              sha: configuredDefaultBranch,
+              per_page: 15,
+            });
+            // Attach repo context to each commit for the frontend
+            return res.data.map((c: any) => ({ ...c, _repoId: repo.id, _repoFullName: repo.fullName }));
+          } catch (e) {
+            return []; // Fail gracefully for individual repos
+          }
+        })());
+      }
+    }
+
+    const results = await Promise.all(commitPromises);
+    allGithubCommits = results.flat();
+    
+    // Sort by date descending and truncate to 50
+    allGithubCommits.sort((a, b) => {
+      const dateA = new Date(a.commit?.author?.date || 0).getTime();
+      const dateB = new Date(b.commit?.author?.date || 0).getTime();
+      return dateB - dateA;
+    });
+    allGithubCommits = allGithubCommits.slice(0, 50);
+
+  } catch (err) {
+    console.error(`[commits] Error fetching across all repos:`, err);
+  }
+
+  const repoIds = repos.map((r) => r.id);
+  const runsList = await db.select().from(schema.runs)
+    .where(inArray(schema.runs.repoId, repoIds))
+    .orderBy(desc(schema.runs.createdAt))
+    .limit(300);
+
+  const runIds = runsList.map((r) => r.id);
+  const taskRows = runIds.length > 0
+    ? await db.select().from(schema.agentTasks).where(inArray(schema.agentTasks.runId, runIds))
+    : [];
+    
+  const tasksByRunId = new Map<number, typeof schema.agentTasks.$inferSelect[]>();
+  for (const task of taskRows) {
+    const existing = tasksByRunId.get(task.runId) ?? [];
+    existing.push(task);
+    tasksByRunId.set(task.runId, existing);
+  }
+
+  const buildCommitRun = (run: typeof schema.runs.$inferSelect) => {
+    const scope = run.scope as any;
+    const changedFiles = Array.isArray(scope?.changedFiles) ? scope.changedFiles as string[] : [];
+    const tasks = tasksByRunId.get(run.id) ?? [];
+    const agentTasks = tasks.filter((t) => !t.agentId.startsWith('orchestrator'));
+    const orchestrator = tasks.find((t) => t.agentId === 'orchestrator_phase3');
+    const gateDecision = normalizeGate((orchestrator?.reportMeta as any)?.gateDecision, run.status, run.score);
+    const completedDates = tasks.map((t) => t.completedAt).filter((d): d is Date => !!d);
+    const completedAt = completedDates.length > 0 ? new Date(Math.max(...completedDates.map((d) => d.getTime()))) : null;
+    const byAgent = new Map(agentTasks.map((t) => [t.agentId, t]));
+    const agents = COMMIT_AGENT_IDS.map((agentId) => {
+      const task = byAgent.get(agentId);
+      const meta = (task?.reportMeta as any) ?? {};
+      const autoFixPR = meta.autoFixPR?.opened
+        ? { number: meta.autoFixPR.pullRequestNumber, url: meta.autoFixPR.htmlUrl }
+        : null;
+      return task
+        ? {
+            id: agentId,
+            name: AGENT_DISPLAY_NAMES[agentId]?.replace(' Agent', '') ?? agentId,
+            status: task.status,
+            score: task.score,
+            gate: normalizeGate(meta.gateDecision, task.status, task.score),
+            findings: task.findingsCount ?? (Array.isArray(task.findings) ? task.findings.length : 0),
+            durationMs: task.duration,
+            autoFixPR,
+          }
+        : {
+            id: agentId,
+            name: AGENT_DISPLAY_NAMES[agentId]?.replace(' Agent', '') ?? agentId,
+            status: 'skipped',
+            score: null,
+            gate: null,
+            findings: 0,
+            durationMs: null,
+            autoFixPR: null,
+            skippedReason: inferSkippedReason(agentId, changedFiles),
+          };
+    });
+    const agentsRun = agents.filter((a) => a.status !== 'skipped').length;
+    return {
+      id: run.id,
+      status: run.status,
+      score: run.score,
+      isIncremental: !!scope?.incremental,
+      changedFileCount: changedFiles.length || null,
+      changedFiles,
+      agentsRun,
+      agentsSkipped: agents.length - agentsRun,
+      gateDecision,
+      agents,
+      createdAt: run.createdAt,
+      completedAt,
+    };
+  };
+
+  const runMap = new Map<string, typeof runsList[0]>();
+  for (const r of runsList) {
+    const key = `${r.repoId}-${r.commitSha}`;
+    const existing = runMap.get(key);
+    if (!existing || (r.createdAt && existing.createdAt && r.createdAt > existing.createdAt)) {
+      runMap.set(key, r);
+    }
+  }
+
+  if (allGithubCommits.length > 0) {
+    const merged = allGithubCommits.map((ghc: any) => {
+      const run = runMap.get(`${ghc._repoId}-${ghc.sha}`) ?? null;
+      return {
+        sha: ghc.sha,
+        message: ghc.commit.message,
+        authorName: ghc.commit.author?.name ?? ghc.author?.login ?? 'Unknown',
+        authorAvatar: ghc.author?.avatar_url ?? null,
+        date: ghc.commit.author?.date ?? null,
+        htmlUrl: ghc.html_url,
+        branch: 'main', // Hardcoded as we fetch from default branches
+        repoId: ghc._repoId,
+        repoFullName: ghc._repoFullName,
+        run: run ? buildCommitRun(run) : null,
+      };
+    });
+    return c.json({ commits: merged, repoFullName: 'All Repositories', defaultBranch: null, selectedBranch: '', branches: [] });
+  }
+
+  // DB-only fallback
+  const fallback = runsList.map((r) => {
+    const repo = repos.find(rp => rp.id === r.repoId);
+    return {
+      sha: r.commitSha,
+      message: null,
+      authorName: null,
+      authorAvatar: null,
+      date: r.createdAt,
+      htmlUrl: null,
+      branch: 'main',
+      repoId: r.repoId,
+      repoFullName: repo?.fullName ?? 'unknown',
+      run: buildCommitRun(r),
+    };
+  });
+  return c.json({ commits: fallback, repoFullName: 'All Repositories', defaultBranch: null, selectedBranch: '', branches: [] });
+});
+
+/**
+ * GET /api/reports/:repoId/commits
+ *
+ * Fetches the latest 30 commits from GitHub for a connected repo, then overlays each
+ * commit with the corresponding Codeward run status from our database. This is the
+ * data backbone for the Commit History transparency page.
+ *
+ * The orchestrator decides which agents run for each push (it may skip agents if the diff
+ * is narrow), so each run row in our DB tells us whether it was incremental or comprehensive.
+ * The per-agent breakdown is fetched on demand by the side-pull (GET /runs/:runId).
+ */
+reportsRouter.get('/:repoId/commits', async (c) => {
+  const session = await auth.api.getSession({ headers: c.req.raw.headers });
+  if (!session) return c.json({ error: 'Unauthorized' }, 401);
+
+  const repoId = Number(c.req.param('repoId'));
+  if (!Number.isFinite(repoId)) return c.json({ error: 'Invalid repoId' }, 400);
+  if (!(await userCanAccessRepo(session.user.id, repoId))) return c.json({ error: 'Forbidden' }, 403);
+
+  const [repo] = await db.select().from(schema.repositories).where(eq(schema.repositories.id, repoId));
+  if (!repo) return c.json({ error: 'Repository not found' }, 404);
+
+  const configuredDefaultBranch = (repo.config as any)?.defaultBranch ?? 'main';
+  const requestedBranch = c.req.query('branch')?.trim() || '';
+  let defaultBranch = configuredDefaultBranch;
+  let selectedBranch = requestedBranch || configuredDefaultBranch;
+  let branches: string[] = [];
+
+  // If there is no installationId yet (repo just connected, not fully active) we can still
+  // return any runs we have in the DB so the page is not empty.
+  let githubCommits: any[] = [];
+  if (repo.installationId) {
+    try {
+      const { getInstallationOctokit } = await import('../lib/github.js');
+      const octokit = await getInstallationOctokit(repo.installationId);
+      const [repoInfo, branchList] = await Promise.all([
+        octokit.request('GET /repos/{owner}/{repo}', {
+          owner: repo.owner,
+          repo: repo.name,
+        }),
+        octokit.request('GET /repos/{owner}/{repo}/branches', {
+          owner: repo.owner,
+          repo: repo.name,
+          per_page: 100,
+        }),
+      ]);
+      defaultBranch = repoInfo.data.default_branch || configuredDefaultBranch;
+      branches = branchList.data.map((branch: any) => branch.name).filter(Boolean);
+      selectedBranch = requestedBranch || defaultBranch;
+
+      const res = await octokit.request('GET /repos/{owner}/{repo}/commits', {
+        owner: repo.owner,
+        repo: repo.name,
+        sha: selectedBranch,
+        per_page: 30,
+      });
+      githubCommits = res.data;
+    } catch (err: any) {
+      console.error(`[commits] GitHub API error for ${repo.fullName}:`, err.message);
+      // Don't hard-fail — fall through to DB-only mode below
+    }
+  }
+
+  // Fetch all runs for this repo from our DB
+  const runsList = await db.select().from(schema.runs)
+    .where(eq(schema.runs.repoId, repoId))
+    .orderBy(desc(schema.runs.createdAt))
+    .limit(100);
+
+  const runIds = runsList.map((r) => r.id);
+  const taskRows = runIds.length > 0
+    ? await db.select().from(schema.agentTasks).where(inArray(schema.agentTasks.runId, runIds))
+    : [];
+  const tasksByRunId = new Map<number, typeof schema.agentTasks.$inferSelect[]>();
+  for (const task of taskRows) {
+    const existing = tasksByRunId.get(task.runId) ?? [];
+    existing.push(task);
+    tasksByRunId.set(task.runId, existing);
+  }
+
+  const buildCommitRun = (run: typeof schema.runs.$inferSelect) => {
+    const scope = run.scope as any;
+    const changedFiles = Array.isArray(scope?.changedFiles) ? scope.changedFiles as string[] : [];
+    const tasks = tasksByRunId.get(run.id) ?? [];
+    const agentTasks = tasks.filter((t) => !t.agentId.startsWith('orchestrator'));
+    const orchestrator = tasks.find((t) => t.agentId === 'orchestrator_phase3');
+    const gateDecision = normalizeGate((orchestrator?.reportMeta as any)?.gateDecision, run.status, run.score);
+    const completedDates = tasks.map((t) => t.completedAt).filter((d): d is Date => !!d);
+    const completedAt = completedDates.length > 0 ? new Date(Math.max(...completedDates.map((d) => d.getTime()))) : null;
+    const byAgent = new Map(agentTasks.map((t) => [t.agentId, t]));
+    const agents = COMMIT_AGENT_IDS.map((agentId) => {
+      const task = byAgent.get(agentId);
+      const meta = (task?.reportMeta as any) ?? {};
+      const autoFixPR = meta.autoFixPR?.opened
+        ? { number: meta.autoFixPR.pullRequestNumber, url: meta.autoFixPR.htmlUrl }
+        : null;
+      return task
+        ? {
+            id: agentId,
+            name: AGENT_DISPLAY_NAMES[agentId]?.replace(' Agent', '') ?? agentId,
+            status: task.status,
+            score: task.score,
+            gate: normalizeGate(meta.gateDecision, task.status, task.score),
+            findings: task.findingsCount ?? (Array.isArray(task.findings) ? task.findings.length : 0),
+            durationMs: task.duration,
+            autoFixPR,
+          }
+        : {
+            id: agentId,
+            name: AGENT_DISPLAY_NAMES[agentId]?.replace(' Agent', '') ?? agentId,
+            status: 'skipped',
+            score: null,
+            gate: null,
+            findings: 0,
+            durationMs: null,
+            autoFixPR: null,
+            skippedReason: inferSkippedReason(agentId, changedFiles),
+          };
+    });
+    const agentsRun = agents.filter((a) => a.status !== 'skipped').length;
+    return {
+      id: run.id,
+      status: run.status,
+      score: run.score,
+      isIncremental: !!scope?.incremental,
+      changedFileCount: changedFiles.length || null,
+      changedFiles,
+      agentsRun,
+      agentsSkipped: agents.length - agentsRun,
+      gateDecision,
+      agents,
+      createdAt: run.createdAt,
+      completedAt,
+    };
+  };
+
+  // Build SHA → latest run map (a SHA can theoretically appear twice if a webhook fires twice)
+  const runMap = new Map<string, typeof runsList[0]>();
+  for (const r of runsList) {
+    const existing = runMap.get(r.commitSha);
+    if (!existing || (r.createdAt && existing.createdAt && r.createdAt > existing.createdAt)) {
+      runMap.set(r.commitSha, r);
+    }
+  }
+
+  // If GitHub gave us commits, merge them with our run data
+  if (githubCommits.length > 0) {
+    const merged = githubCommits.map((ghc: any) => {
+      const run = runMap.get(ghc.sha) ?? null;
+      return {
+        sha: ghc.sha,
+        message: ghc.commit.message,
+        authorName: ghc.commit.author?.name ?? ghc.author?.login ?? 'Unknown',
+        authorAvatar: ghc.author?.avatar_url ?? null,
+        date: ghc.commit.author?.date ?? null,
+        htmlUrl: ghc.html_url,
+        branch: selectedBranch,
+        run: run ? buildCommitRun(run) : null,
+      };
+    });
+    return c.json({ commits: merged, repoFullName: repo.fullName, defaultBranch, selectedBranch, branches });
+  }
+
+  // DB-only fallback: surface our runs as pseudo-commit entries when GitHub is unavailable
+  const fallback = runsList.map((r) => ({
+    sha: r.commitSha,
+    message: null,
+    authorName: null,
+    authorAvatar: null,
+    date: r.createdAt,
+    htmlUrl: null,
+    branch: selectedBranch,
+    run: buildCommitRun(r),
+  }));
+  return c.json({ commits: fallback, repoFullName: repo.fullName, defaultBranch, selectedBranch, branches });
 });

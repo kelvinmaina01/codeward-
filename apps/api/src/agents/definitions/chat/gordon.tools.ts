@@ -1,8 +1,65 @@
 import { tool } from 'ai';
 import { z } from 'zod';
 import { db } from '../../../db/index.js';
-import { runs, agentTasks, repositories, organizationMember, mergeApprovals, agentMemory } from '../../../db/schema.js';
+import { runs, agentTasks, repositories, organizationMember, mergeApprovals, agentMemory, gordonEvents } from '../../../db/schema.js';
 import { eq, and, desc, gte, inArray } from 'drizzle-orm';
+
+/**
+ * Fire-and-forget telemetry for one tool call. Never awaited by the caller and never throws
+ * into it — a logging failure must not break the chat. repoId is pulled from the input when
+ * present (every repo-scoped tool names it `repoId`) purely for cheap per-repo analytics;
+ * output is capped so a huge file read doesn't bloat the table.
+ */
+function logGordonEvent(params: {
+  userId: string; sessionId: string | undefined; toolName: string; input: unknown;
+  output: unknown; success: boolean; errorText?: string; requiredApproval: boolean; durationMs: number;
+}) {
+  const repoId = typeof (params.input as any)?.repoId === 'number' ? (params.input as any).repoId : null;
+  const outputStr = JSON.stringify(params.output ?? null);
+  import('../../../routes/ws.js').then(({ broadcast }) => {
+    broadcast('gordon_tool_event', {
+      sessionId: params.sessionId ?? null,
+      toolName: params.toolName,
+      repoId,
+      success: params.success,
+      requiredApproval: params.requiredApproval,
+      durationMs: params.durationMs,
+      errorText: params.errorText ?? null,
+      input: params.input,
+      outputSummary: { preview: outputStr.slice(0, 1200), truncated: outputStr.length > 1200 },
+      createdAt: new Date().toISOString(),
+    });
+  }).catch(() => {});
+  db.insert(gordonEvents).values({
+    userId: params.userId, sessionId: params.sessionId ?? null, toolName: params.toolName, repoId,
+    input: params.input as object, outputSummary: { preview: outputStr.slice(0, 2000), truncated: outputStr.length > 2000 },
+    success: params.success, errorText: params.errorText ?? null,
+    requiredApproval: params.requiredApproval, durationMs: params.durationMs,
+  }).catch((e) => console.error('[Gordon telemetry] insert failed (non-fatal):', (e as Error).message));
+}
+
+/** Wraps every tool's execute() with timing + outcome logging, preserving schema/approval flags. */
+function withTelemetry<T extends Record<string, any>>(tools: T, userId: string, sessionId: string | undefined): T {
+  const wrapped: Record<string, any> = {};
+  for (const [name, def] of Object.entries(tools)) {
+    const originalExecute = def.execute;
+    wrapped[name] = {
+      ...def,
+      execute: async (input: unknown, options: unknown) => {
+        const t0 = Date.now();
+        try {
+          const output = await originalExecute(input, options);
+          logGordonEvent({ userId, sessionId, toolName: name, input, output, success: true, requiredApproval: !!def.needsApproval, durationMs: Date.now() - t0 });
+          return output;
+        } catch (e) {
+          logGordonEvent({ userId, sessionId, toolName: name, input, output: null, success: false, errorText: (e as Error).message, requiredApproval: !!def.needsApproval, durationMs: Date.now() - t0 });
+          throw e;
+        }
+      },
+    };
+  }
+  return wrapped as T;
+}
 
 /**
  * Gordon's Phase-0 toolset: REAL, DB-backed, and auth-scoped to the signed-in user.
@@ -30,9 +87,27 @@ export async function assertRepoAccess(userId: string, repoId: number): Promise<
 }
 
 const SEVERITY_RANK: Record<string, number> = { CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 3, INFO: 4 };
+const ANALYSIS_AGENTS = ['security', 'bloat', 'broken_code', 'architecture', 'ai_era', 'compliance'] as const;
 
-export function createGordonTools(userId: string) {
-  return {
+async function resolveRepoRef(repoId: number, ref?: string) {
+  const { resolveOctokit } = await import('../guardian/guardian.tools.js');
+  const ctx = await resolveOctokit(String(repoId));
+  if ('error' in ctx) return { error: ctx.error } as const;
+  try {
+    const info: any = await ctx.octokit.request('GET /repos/{owner}/{repo}', { owner: ctx.owner, repo: ctx.repo });
+    const selectedRef = ref || info.data.default_branch;
+    const refInfo: any = await ctx.octokit.request('GET /repos/{owner}/{repo}/git/ref/{ref}', {
+      owner: ctx.owner, repo: ctx.repo, ref: `heads/${selectedRef}`,
+    });
+    return { ctx, defaultBranch: info.data.default_branch, selectedRef, sha: refInfo.data.object.sha } as const;
+  } catch (e: any) {
+    if (ref && /^[a-f0-9]{7,40}$/i.test(ref)) return { ctx, defaultBranch: null, selectedRef: ref, sha: ref } as const;
+    return { error: `Could not resolve ${ref ? `ref '${ref}'` : 'default branch'}: ${e.message}` } as const;
+  }
+}
+
+export function createGordonTools(userId: string, sessionId?: string) {
+  const tools = {
     list_repositories: tool({
       description: "List the repositories this user can see, each with its latest run's score, status and date. Call this first when the user hasn't named a specific repo, so you can resolve which repo they mean and use the numeric repoId in later tools.",
       inputSchema: z.object({}),
@@ -171,6 +246,36 @@ export function createGordonTools(userId: string) {
       },
     }),
 
+    get_run_logs: tool({
+      description: 'Read live run/task logs and tool summaries for a run. Use while the user is waiting so Gordon can report real progress instead of asking them to babysit the job.',
+      inputSchema: z.object({ runId: z.number() }),
+      execute: async ({ runId }) => {
+        const [run] = await db.select().from(runs).where(eq(runs.id, runId));
+        if (!run) return { error: `No run #${runId}.` };
+        if (!run.repoId || !(await assertRepoAccess(userId, run.repoId))) return { error: 'You do not have access to that run.' };
+        const tasks = await db.select().from(agentTasks).where(eq(agentTasks.runId, runId));
+        return {
+          runId,
+          status: run.status,
+          commitSha: run.commitSha,
+          rawLogs: run.rawLogs ? run.rawLogs.slice(-12000) : null,
+          rawLogsTruncated: !!run.rawLogs && run.rawLogs.length > 12000,
+          tasks: tasks.map((t) => ({
+            agentId: t.agentId,
+            status: t.status,
+            score: t.score,
+            findingsCount: t.findingsCount ?? (Array.isArray(t.findings) ? t.findings.length : 0),
+            startedAt: t.startedAt,
+            completedAt: t.completedAt,
+            durationMs: t.duration,
+            error: t.error,
+            toolsExecuted: ((t.reportMeta as any)?.toolsExecuted ?? []).slice(0, 20),
+            summary: (t.reportMeta as any)?.summary ?? null,
+          })),
+        };
+      },
+    }),
+
     read_repo_file: tool({
       description: "Read a file's real contents from a repo via the GitHub API (default branch unless a ref is given). Use to show or reason about actual source code.",
       inputSchema: z.object({ repoId: z.number(), filePath: z.string(), ref: z.string().optional() }),
@@ -206,6 +311,58 @@ export function createGordonTools(userId: string) {
           return { path: path ?? '', entries: items.map((i: any) => ({ name: i.name, type: i.type, size: i.size })) };
         } catch (e: any) {
           return { error: `Could not list ${path}: ${e.status ?? ''} ${e.message}` };
+        }
+      },
+    }),
+
+    list_branches: tool({
+      description: 'List real GitHub branches for a repo. Use before branch-specific scans or when the user is confused about which branch is being analyzed.',
+      inputSchema: z.object({ repoId: z.number() }),
+      execute: async ({ repoId }) => {
+        if (!(await assertRepoAccess(userId, repoId))) return { error: 'You do not have access to that repository.' };
+        const { resolveOctokit } = await import('../guardian/guardian.tools.js');
+        const ctx = await resolveOctokit(String(repoId));
+        if ('error' in ctx) return { error: ctx.error };
+        const [repoInfo, branchList] = await Promise.all([
+          ctx.octokit.request('GET /repos/{owner}/{repo}', { owner: ctx.owner, repo: ctx.repo }),
+          ctx.octokit.request('GET /repos/{owner}/{repo}/branches', { owner: ctx.owner, repo: ctx.repo, per_page: 100 }),
+        ]);
+        return {
+          defaultBranch: repoInfo.data.default_branch,
+          branches: branchList.data.map((b: any) => ({ name: b.name, protected: b.protected, commitSha: b.commit?.sha })),
+        };
+      },
+    }),
+
+    get_commit_diff: tool({
+      description: 'Read the real GitHub commit diff for a commit/ref. Use when explaining exactly what changed before recommending action.',
+      inputSchema: z.object({ repoId: z.number(), ref: z.string() }),
+      execute: async ({ repoId, ref }) => {
+        if (!(await assertRepoAccess(userId, repoId))) return { error: 'You do not have access to that repository.' };
+        const { resolveOctokit } = await import('../guardian/guardian.tools.js');
+        const ctx = await resolveOctokit(String(repoId));
+        if ('error' in ctx) return { error: ctx.error };
+        try {
+          const res: any = await ctx.octokit.request('GET /repos/{owner}/{repo}/commits/{ref}', {
+            owner: ctx.owner, repo: ctx.repo, ref,
+          });
+          return {
+            sha: res.data.sha,
+            htmlUrl: res.data.html_url,
+            message: res.data.commit?.message,
+            stats: res.data.stats,
+            files: (res.data.files ?? []).map((f: any) => ({
+              filename: f.filename,
+              status: f.status,
+              additions: f.additions,
+              deletions: f.deletions,
+              changes: f.changes,
+              patch: f.patch ? f.patch.slice(0, 8000) : null,
+              patchTruncated: !!f.patch && f.patch.length > 8000,
+            })),
+          };
+        } catch (e: any) {
+          return { error: `Could not fetch commit diff for ${ref}: ${e.message}` };
         }
       },
     }),
@@ -246,26 +403,108 @@ export function createGordonTools(userId: string) {
       inputSchema: z.object({
         agentType: z.enum(['security', 'bloat', 'broken_code', 'architecture', 'ai_era', 'compliance']),
         repoId: z.number(),
+        ref: z.string().optional().describe('Branch name or commit SHA. Defaults to the repository default branch.'),
       }),
       needsApproval: true,
-      execute: async ({ agentType, repoId }) => {
+      execute: async ({ agentType, repoId, ref }) => {
         if (!(await assertRepoAccess(userId, repoId))) return { error: 'You do not have access to that repository.' };
-        const { resolveOctokit } = await import('../guardian/guardian.tools.js');
-        const ctx = await resolveOctokit(String(repoId));
-        if ('error' in ctx) return { error: `Cannot reach GitHub for this repo: ${ctx.error}` };
-        let sha: string;
-        try {
-          const info: any = await ctx.octokit.request('GET /repos/{owner}/{repo}', { owner: ctx.owner, repo: ctx.repo });
-          const ref: any = await ctx.octokit.request('GET /repos/{owner}/{repo}/git/ref/{ref}', { owner: ctx.owner, repo: ctx.repo, ref: `heads/${info.data.default_branch}` });
-          sha = ref.data.object.sha;
-        } catch (e: any) {
-          return { error: `Could not resolve the default-branch head: ${e.message}` };
-        }
-        const fullName = `${ctx.owner}/${ctx.repo}`;
+        const resolved = await resolveRepoRef(repoId, ref);
+        if ('error' in resolved) return { error: resolved.error };
+        const fullName = `${resolved.ctx.owner}/${resolved.ctx.repo}`;
+        const sha = resolved.sha;
         const [run] = await db.insert(runs).values({ repoId, commitSha: sha, status: 'queued' }).returning();
         const { agentQueue } = await import('../../queue/agent.queue.js');
         const job = await agentQueue.add(`agent-${agentType}`, { agentId: agentType, commitSHA: sha, repoFullName: fullName, runId: run.id });
         return { spawned: true, runId: run.id, jobId: job.id, agentType, repo: fullName, commitSha: sha.slice(0, 7), note: 'Running in a real sandbox — call get_run_status to follow progress.' };
+      },
+    }),
+
+    run_all_agents: tool({
+      description: 'Run the full Codeward analysis suite on a repo/ref by queuing all analysis agents in real sandboxes. Requires user approval.',
+      inputSchema: z.object({
+        repoId: z.number(),
+        ref: z.string().optional().describe('Branch name or commit SHA. Defaults to the repository default branch.'),
+      }),
+      needsApproval: true,
+      execute: async ({ repoId, ref }) => {
+        if (!(await assertRepoAccess(userId, repoId))) return { error: 'You do not have access to that repository.' };
+        const resolved = await resolveRepoRef(repoId, ref);
+        if ('error' in resolved) return { error: resolved.error };
+        const fullName = `${resolved.ctx.owner}/${resolved.ctx.repo}`;
+        const [run] = await db.insert(runs).values({ repoId, commitSha: resolved.sha, status: 'queued' }).returning();
+        const { agentQueue } = await import('../../queue/agent.queue.js');
+        const jobs = [];
+        for (const agentType of ANALYSIS_AGENTS) {
+          const [existing] = await db.select().from(agentTasks).where(and(eq(agentTasks.runId, run.id), eq(agentTasks.agentId, agentType)));
+          if (!existing) await db.insert(agentTasks).values({ runId: run.id, agentId: agentType, status: 'queued', provider: 'openai' });
+          const job = await agentQueue.add(`agent-${agentType}`, { agentId: agentType, commitSHA: resolved.sha, repoFullName: fullName, runId: run.id });
+          jobs.push({ agentType, jobId: job.id });
+        }
+        return {
+          spawned: true,
+          runId: run.id,
+          repo: fullName,
+          ref: resolved.selectedRef,
+          commitSha: resolved.sha.slice(0, 7),
+          agents: jobs,
+          next: ['Report progress with get_run_status.', 'Read logs with get_run_logs.', 'Verified eligible findings may open auto-fix PRs via the existing worker.'],
+        };
+      },
+    }),
+
+    create_github_issue: tool({
+      description: 'Create a real GitHub issue for a verified problem or escalation. Requires user approval. Use when Gordon cannot safely fix something or the user asks to open an issue.',
+      inputSchema: z.object({
+        repoId: z.number(),
+        title: z.string(),
+        body: z.string(),
+        labels: z.array(z.string()).optional().default(['codeward', 'gordon']),
+      }),
+      needsApproval: true,
+      execute: async ({ repoId, title, body, labels }) => {
+        if (!(await assertRepoAccess(userId, repoId))) return { error: 'You do not have access to that repository.' };
+        const { createGuardianTools } = await import('../guardian/guardian.tools.js');
+        const tools = createGuardianTools({} as any);
+        const res: any = await tools.create_issue.execute({ repoId: String(repoId), title, body, labels, assignees: [] });
+        return res.success ? { created: true, issueNumber: res.issueNumber, htmlUrl: res.htmlUrl } : res;
+      },
+    }),
+
+    create_issue_from_finding: tool({
+      description: 'Create a real GitHub issue from a stored Codeward finding. Requires user approval. Use when a finding is real but cannot be auto-fixed safely.',
+      inputSchema: z.object({
+        runId: z.number(),
+        agentId: z.string(),
+        findingId: z.string(),
+        extraContext: z.string().optional(),
+      }),
+      needsApproval: true,
+      execute: async ({ runId, agentId, findingId, extraContext }) => {
+        const [run] = await db.select().from(runs).where(eq(runs.id, runId));
+        if (!run?.repoId || !(await assertRepoAccess(userId, run.repoId))) return { error: 'You do not have access to that run.' };
+        const [task] = await db.select().from(agentTasks).where(and(eq(agentTasks.runId, runId), eq(agentTasks.agentId, agentId)));
+        const finding = ((task?.findings as any[] | null) ?? []).find((f) => String(f.id) === String(findingId));
+        if (!finding) return { error: `No finding ${findingId} in run ${runId} / ${agentId}.` };
+        const title = `[Codeward] ${String(finding.severity ?? 'Finding').toUpperCase()}: ${finding.title ?? finding.category ?? findingId}`.slice(0, 250);
+        const body = [
+          `Codeward finding from run #${runId} (${agentId}).`,
+          '',
+          `**Severity:** ${finding.severity ?? 'unknown'}`,
+          finding.category ? `**Category:** ${finding.category}` : null,
+          finding.file ? `**Location:** \`${finding.file}${finding.line != null ? `:${finding.line}` : ''}\`` : null,
+          finding.toolName ? `**Tool:** \`${finding.toolName}\`` : null,
+          '',
+          '### Evidence',
+          finding.rawEvidence ?? finding.description ?? 'No additional evidence stored.',
+          '',
+          finding.suggestedFix ? `### Suggested fix\n${finding.suggestedFix}\n` : null,
+          extraContext ? `### Gordon context\n${extraContext}` : null,
+        ].filter(Boolean).join('\n');
+        const { createGuardianTools } = await import('../guardian/guardian.tools.js');
+        const tools = createGuardianTools({} as any);
+        const labels = ['codeward', 'gordon', `severity:${String(finding.severity ?? 'unknown').toLowerCase()}`];
+        const res: any = await tools.create_issue.execute({ repoId: String(run.repoId), title, body, labels, assignees: [] });
+        return res.success ? { created: true, issueNumber: res.issueNumber, htmlUrl: res.htmlUrl, source: { runId, agentId, findingId } } : res;
       },
     }),
 
@@ -297,4 +536,5 @@ export function createGordonTools(userId: string) {
       },
     }),
   };
+  return withTelemetry(tools, userId, sessionId);
 }

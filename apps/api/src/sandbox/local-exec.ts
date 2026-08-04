@@ -64,7 +64,18 @@ export class LocalExecSandbox implements SandboxHandle {
       // report false "nothing found" results instead of actually running. The production
       // sandbox is a real Linux container (real /bin/sh), so forcing bash here on Windows dev
       // machines makes local behavior match production instead of adding a second bug.
-      const shellOverride = process.platform === 'win32' ? { shell: 'bash.exe' } : {};
+      let winShell: string | undefined = undefined;
+      if (process.platform === 'win32') {
+        const { createRequire } = await import('module');
+        const req = createRequire(import.meta.url);
+        const fsMod = req('fs');
+        if (fsMod.existsSync('C:\\Program Files\\Git\\bin\\bash.exe')) {
+          winShell = 'C:\\Program Files\\Git\\bin\\bash.exe';
+        } else if (fsMod.existsSync('C:\\Program Files\\Git\\usr\\bin\\bash.exe')) {
+          winShell = 'C:\\Program Files\\Git\\usr\\bin\\bash.exe';
+        }
+      }
+      const shellOverride = winShell ? { shell: winShell } : {};
       const { stdout, stderr } = await execAsync(command, { cwd: this.workDir, maxBuffer: 1024 * 1024 * 100, ...shellOverride });
       return { exitCode: 0, stdout, stderr };
     } catch (err: any) {

@@ -1,0 +1,52 @@
+# Codeward — Autonomous AI Code Quality & Refactoring Platform
+
+Codeward is an autonomous AI developer platform that acts as a member of your engineering team. Instead of just reviewing pull requests and leaving comments, Codeward spins up isolated, secure sandbox environments (Firecracker microVMs in <125ms), runs tests, refactors the code to eliminate technical debt, and pushes fixing commits directly to your branch.
+
+- **Domain:** [https://codeward.cloud](https://codeward.cloud)
+- **Target Audience:** Engineering teams, technical leads, and enterprise architecture groups seeking to scale code review velocity and eliminate code smells.
+- **Repository Integration:** GitHub, GitLab, and Bitbucket.
+
+---
+
+## Core Product Architecture: The 8 Specialized Agents
+
+Codeward utilizes a multi-agent system coordinated by a central Orchestrator. When a pull request is created, the agents analyze the changes in parallel:
+
+1. **Orchestrator Agent:** Coordinates the workspace analysis, schedules domain-specific agent tasks, resolves conflicts between findings, and makes final gate decisions (approving or blocking the merge).
+2. **PR Review / Refactor Agent:** Deeply analyzes codebase structure using Abstract Syntax Trees (AST) to identify architectural flaws. It doesn't just comment—it generates self-healing patches and refactors code.
+3. **Security Agent:** Performs 18 security checks, scans for OWASP vulnerabilities, searches for leaked secrets or API keys, and checks third-party packages.
+4. **Bloat Agent:** Scan for redundant code, duplicated logic blocks, and dead imports to ensure maintainability and high code GPA.
+5. **Broken Code Agent:** Spins up tests in isolated, ephemeral sandboxes to isolate flaky tests, compile errors, and verify functional correctness.
+6. **Architecture Agent:** Analyzes database queries for performance bottlenecks (like N+1 queries) and runs load testing simulations (e.g., k6).
+7. **AI-Era Agent:** Checks for prompt injection vectors, RAG drift vulnerabilities, and security concerns specific to LLM-integrated software.
+
+---
+
+## Platform Comparisons (VS Competitors)
+
+Codeward addresses different parts of the developer lifecycle compared to traditional or inline AI tools:
+
+| Competitor | Codeward Focus | Competitor Focus | Strategy / Verdict |
+| :--- | :--- | :--- | :--- |
+| **CodeRabbit** | Executes fixes, runs code in dynamic Firecracker sandboxes, and auto-commits patches. | Summarizes code diffs and leaves line-by-line comments. | CodeRabbit is a hyper-vigilant reviewer; Codeward is an autonomous engineer. |
+| **Greptile** | REST-based active refactoring, dynamic tests, and security patches. | Conversational search/Q&A engine for codebase dependencies. | Greptile maps/explains the code; Codeward actively updates it. |
+| **GitHub Copilot** | Pipeline automation, global repository health dashboards, and multi-file reviews. | Autocompletes lines of code inline inside the IDE as you type. | Use Copilot to type faster; use Codeward to guarantee pipeline quality. |
+| **Cursor** | Autonomous cloud reviews, team-wide PR testing, and debt tracking. | Local development environment (IDE) with inline AI edits. | Write code in Cursor, then let Codeward secure and verify it on merge. |
+| **SonarQube** | Generates fixing commits, reasons about business logic, and runs tests. | Measures static rulesets, smells, and compiles health dashboards. | SonarQube reports the debt; Codeward pays the debt off. |
+| **Snyk** | Evaluates proprietary application logic and runs dynamic DAST-like sandbox penetration tests. | Scans packages and manifest files for known package CVEs. | Protect packages with Snyk, secure custom logic with Codeward. |
+
+---
+
+## Pricing Tiers
+
+- **Free Tier:** Includes 1 connected repository, basic review feedback, and 5 sandbox runs per month.
+- **Pro Tier ($29/user/month):** Unlimited repositories, prioritized multi-agent reviews, unlimited sandboxes, and automatic self-healing commits.
+- **Enterprise (Custom):** Self-hosted Firecracker runner coordination, custom security policies, dedicated support, and SLA guarantees.
+
+---
+
+## Contact & Resources
+
+- **Main site:** [https://codeward.cloud](https://codeward.cloud)
+- **Documentation:** [https://codeward.cloud/docs](https://codeward.cloud/docs)
+- **Book a Demo:** [https://codeward.cloud/book-demo](https://codeward.cloud/book-demo)

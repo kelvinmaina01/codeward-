@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
-import { Routes, Route, Navigate, useNavigate, useLocation, NavLink } from 'react-router';
+import { useState, useEffect, useRef } from 'react';
+import { useRoutes, Navigate, useNavigate, useLocation, useParams, NavLink } from 'react-router-dom';
+import { HelmetProvider } from 'react-helmet-async';
 import {
   LayoutDashboard, Radio, GitCompare, ShieldAlert, BarChart3,
   Bot, Monitor, Clock, GitFork, Award, Settings as SettingsIcon,
@@ -25,15 +26,23 @@ import { Integrations } from './components/Integrations';
 import { Alerts } from './components/Alerts';
 import { IssuesAndPRs } from './components/IssuesAndPRs';
 import { RunDetail } from './components/RunDetail';
+import { CommitHistory } from './components/CommitHistory';
 import { LegalPage } from './components/legal/LegalPage';
 import { useSession, signOut } from '../lib/auth';
 import { Toaster } from 'sonner';
 import { API_URL } from '../lib/api';
 import CodewardHero from './components/LandingHero';
+import { WorkspaceProvider } from './contexts/WorkspaceContext';
+import { WorkspaceSwitcher } from './components/WorkspaceSwitcher';
+import { TeamDrawer } from './components/drawers/TeamDrawer';
+import { InviteDrawer } from './components/drawers/InviteDrawer';
+import { HelpDrawer } from './components/HelpDrawer';
 import { ComparePage } from './components/ComparePage';
 import { BlogsPage } from './components/BlogsPage';
 import { SingleBlogPage } from './components/SingleBlogPage';
 import { BookDemo } from './components/BookDemo';
+import { UserProfilePopover } from './components/UserProfilePopover';
+import { NotificationsPopover } from './components/NotificationsPopover';
 import { AdminLayout } from './components/admin/AdminLayout';
 import { AdminOverview } from './components/admin/AdminOverview';
 import { AdminFeed } from './components/admin/AdminFeed';
@@ -53,6 +62,9 @@ import { AdminSandbox } from './components/admin/AdminSandbox';
 import { AdminGitHubApp } from './components/admin/AdminGitHubApp';
 import { AdminAlerts } from './components/admin/AdminAlerts';
 import { AdminSettings } from './components/admin/AdminSettings';
+import { InviteAcceptPage } from './components/InviteAcceptPage';
+import { blogs } from './data/blogs';
+import { comparisons } from './data/comparisons';
 
 function AdminPlaceholder({ title }: { title: string }) {
   return (
@@ -73,7 +85,7 @@ const themeIcons: Record<Theme, React.ReactNode> = {
   white: <Sun size={14} />,
 };
 
-interface NavItem { id: Screen; label: string; dot: 'g'|'a'|'r'|'b'|'p'|''; badge?: number; icon: LucideIcon; path: string; }
+interface NavItem { id: Screen; label: string; dot: 'g'|'a'|'r'|'b'|'p'|''; badge?: number; beta?: boolean; icon: LucideIcon; path: string; }
 interface NavGroup { group: string; items: NavItem[] }
 
 const nav: NavGroup[] = [
@@ -84,12 +96,13 @@ const nav: NavGroup[] = [
   ]},
   { group: 'Analysis', items: [
     { id: 'diff', label: 'Diff viewer', dot: 'b', icon: GitCompare, path: '/dashboard/diff' },
+    { id: 'commits', label: 'Commit History', dot: 'p', icon: GitFork, path: '/dashboard/commits' },
     { id: 'issuesprs', label: 'Issues & PRs', dot: 'p', icon: GitPullRequest, path: '/dashboard/issues-prs' },
     { id: 'security', label: 'Security', dot: 'r', badge: 3, icon: ShieldAlert, path: '/dashboard/security' },
     { id: 'debt', label: 'Debt report', dot: 'a', icon: BarChart3, path: '/dashboard/debt' },
   ]},
   { group: 'AI Agent', items: [
-    { id: 'agent', label: 'Gordon', dot: 'p', icon: GordonIcon as unknown as LucideIcon, path: '/dashboard/agent' },
+    { id: 'agent', label: 'Gordon', dot: 'p', beta: true, icon: GordonIcon as unknown as LucideIcon, path: '/dashboard/agent' },
   ]},
   { group: 'Deploy', items: [
     { id: 'staging', label: 'Staging', dot: 'a', icon: Monitor, path: '/dashboard/staging' },
@@ -103,39 +116,45 @@ const nav: NavGroup[] = [
   ]},
 ];
 
-const topbarConfig: Record<Screen, { title: string; sub: string }> = {
-  dashboard: { title: 'Dashboard', sub: 'acme-corp · 4 repos guarded · all systems normal' },
-  livefeed:  { title: 'Live run feed', sub: 'my-api · commit 3fa2c1 · running now' },
-  diff:      { title: 'Diff viewer', sub: 'my-api · commit 3fa2c1 · 3 files changed by agent' },
-  security:  { title: 'Security panel', sub: '3 critical · 2 high · 1 medium · last scan 4 min ago' },
-  debt:      { title: 'Debt report', sub: 'my-api · all categories · this month' },
+const topbarConfig: Partial<Record<string, { title: string; sub: string }>> = {
+  dashboard: { title: 'Dashboard', sub: 'Overview of connected repositories' },
+  livefeed:  { title: 'Live run feed', sub: 'Real-time analysis runs' },
+  diff:      { title: 'Diff viewer', sub: 'Inspect agent-modified files' },
+  security:  { title: 'Security panel', sub: 'Vulnerabilities and security health' },
+  debt:      { title: 'Debt report', sub: 'Codebase health and technical debt' },
   agent:     { title: 'Gordon', sub: 'Your principal-engineer agent — answers from real run data, not guesses' },
-  staging:   { title: 'Staging', sub: '1 deployment awaiting approval' },
-  history:   { title: 'Audit Log', sub: 'All autonomous interventions and checks · last 30 days' },
-  repos:     { title: 'Repositories', sub: '4 repos · health score last 30 days' },
-  cert:      { title: 'Health certificate', sub: 'shareable · updates on every scan' },
-  settings:  { title: 'Settings', sub: 'acme-corp · my-api · trust & automation' },
+  staging:   { title: 'Staging', sub: 'Deployments awaiting approval' },
+  history:   { title: 'Audit Log', sub: 'Autonomous interventions and checks' },
+  repos:     { title: 'Repositories', sub: 'Connected GitHub repositories' },
+  cert:      { title: 'Health certificate', sub: 'Shareable health status' },
+  settings:  { title: 'Settings', sub: 'Manage your Codeward preferences' },
   integrations: { title: 'Integrations', sub: 'Connect external tools and MCP servers' },
-  alerts:    { title: 'Alerts center', sub: 'acme-corp · active incidents & notifications' },
-  issuesprs: { title: 'Issues & PRs', sub: 'Real escalated issues and pull requests across your repos' },
+  alerts:    { title: 'Alerts center', sub: 'Active incidents & notifications' },
+  issuesprs: { title: 'Issues & PRs', sub: 'Escalated issues and pull requests across your repos' },
+  commits:   { title: 'Commit History', sub: 'Agent activity per commit' },
 };
 
 // Map URL paths to screen IDs
-const pathToScreen: Record<string, Screen> = {
-  '/dashboard': 'dashboard',
-  '/dashboard/alerts': 'alerts',
-  '/dashboard/livefeed': 'livefeed',
-  '/dashboard/diff': 'diff',
-  '/dashboard/issues-prs': 'issuesprs',
-  '/dashboard/security': 'security',
-  '/dashboard/debt': 'debt',
-  '/dashboard/agent': 'agent',
-  '/dashboard/staging': 'staging',
-  '/dashboard/history': 'history',
-  '/dashboard/repos': 'repos',
-  '/dashboard/cert': 'cert',
-  '/dashboard/settings': 'settings',
-  '/dashboard/integrations': 'integrations',
+const pathToScreen = (pathname: string): string => {
+  if (pathname.match(/^\/dashboard\/repos\/\d+\/commits/)) return 'commits';
+  if (pathname === '/dashboard/commits') return 'commits';
+  const exact: Record<string, string> = {
+    '/dashboard': 'dashboard',
+    '/dashboard/alerts': 'alerts',
+    '/dashboard/livefeed': 'livefeed',
+    '/dashboard/diff': 'diff',
+    '/dashboard/issues-prs': 'issuesprs',
+    '/dashboard/security': 'security',
+    '/dashboard/debt': 'debt',
+    '/dashboard/agent': 'agent',
+    '/dashboard/staging': 'staging',
+    '/dashboard/history': 'history',
+    '/dashboard/repos': 'repos',
+    '/dashboard/cert': 'cert',
+    '/dashboard/settings': 'settings',
+    '/dashboard/integrations': 'integrations',
+  };
+  return exact[pathname] ?? 'dashboard';
 };
 
 // ─── Auth Guard ───────────────────────────────────────────────────────────────
@@ -143,6 +162,13 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
   const { data: session, isPending } = useSession();
   if (isPending) return <div className="h-screen bg-cw-bg flex items-center justify-center text-cw-txt2 text-sm">Loading…</div>;
   if (!session?.user) return <Navigate to="/login" replace />;
+  return <>{children}</>;
+}
+
+function RequireUnauth({ children }: { children: React.ReactNode }) {
+  const { data: session, isPending } = useSession();
+  if (isPending) return <div className="h-screen bg-cw-bg flex items-center justify-center text-cw-txt2 text-sm">Loading…</div>;
+  if (session?.user) return <Navigate to="/dashboard" replace />;
   return <>{children}</>;
 }
 
@@ -159,11 +185,27 @@ function DashboardLayout() {
   const [activeOrg, setActiveOrg] = useState<string>('');
   const [isGlobalFeedOpen, setIsGlobalFeedOpen] = useState(false);
   const [liveFeedView, setLiveFeedView] = useState<'stream' | 'canvas'>('canvas');
+  const [userPopoverOpen, setUserPopoverOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [isHelpDrawerOpen, setIsHelpDrawerOpen] = useState(false);
+  const bellRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      if (e.key.toLowerCase() === 'h' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        e.preventDefault();
+        setIsHelpDrawerOpen(prev => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const theme = themeOrder[themeIdx];
   const cycleTheme = () => setThemeIdx(i => (i + 1) % themeOrder.length);
 
-  const screen: Screen = pathToScreen[location.pathname] ?? 'dashboard';
+  const screen = pathToScreen(location.pathname);
 
   useEffect(() => {
     if (session?.user && globalOrgs.length === 0) {
@@ -189,9 +231,16 @@ function DashboardLayout() {
     ? { name: session.user.name, avatar: session.user.image ? null : session.user.name.charAt(0).toUpperCase() }
     : { name: 'Admin Manager', avatar: 'AM' };
 
-  const topbar = topbarConfig[screen];
+  const topbar = topbarConfig[screen] ?? { title: 'Codeward', sub: '' };
 
   const renderScreen = () => {
+    // Commits page — accessible from sidebar (/dashboard/commits) or per-repo (/dashboard/repos/:id/commits)
+    const commitsMatch = location.pathname.match(/^\/dashboard\/repos\/(\d+)\/commits/);
+    if (commitsMatch || screen === 'commits') {
+      const repoId = commitsMatch ? Number(commitsMatch[1]) : undefined;
+      return <CommitHistory repoId={repoId} repoFullName={commitsMatch ? undefined : 'Global feed'} onBack={() => navigate(commitsMatch ? '/dashboard/repos' : '/dashboard')} />;
+    }
+
     switch (screen) {
       case 'dashboard':    return <Dashboard onRunClick={(repoId, runId) => setRunDetailTarget({ repoId, runId })} />;
       case 'livefeed':     return <LiveFeed viewMode={liveFeedView} />;
@@ -200,7 +249,7 @@ function DashboardLayout() {
       case 'security':     return <Security />;
       case 'debt':         return <DebtReport />;
       case 'agent':        return <AIAgent />;
-      case 'staging':      return <Staging />;
+      case 'staging':      return <Staging onRunClick={(repoId, runId) => setRunDetailTarget({ repoId, runId })} />;
       case 'history':      return <DeployHistory onRunClick={(repoId, runId) => setRunDetailTarget({ repoId, runId })} />;
       case 'repos':        return <Repositories activeOrg={activeOrg} />;
       case 'cert':         return <Certificate />;
@@ -216,30 +265,7 @@ function DashboardLayout() {
       <div className={`${isSidebarPinned ? 'w-[240px]' : 'w-0'} bg-cw-bg2 border-r border-cw-bdr flex flex-col overflow-x-hidden overflow-y-auto transition-[width] duration-300 ease-in-out z-20 shrink-0`}>
         {/* Workspace Switcher */}
         <div className={`h-[60px] px-4 flex items-center border-b border-cw-bdr shrink-0 transition-opacity duration-300 ${isSidebarPinned ? 'opacity-100' : 'opacity-0 overflow-hidden border-0'}`}>
-          <div className="relative w-full">
-            <button className="w-full flex items-center justify-between px-3 py-2 rounded-md bg-cw-bg border border-cw-bdr hover:bg-cw-bg3 transition-colors text-left overflow-hidden">
-              <div className="flex items-center gap-2 truncate">
-                <div className="w-5 h-5 rounded bg-cw-purple flex items-center justify-center text-white font-bold text-[10px] shrink-0 uppercase">
-                  {(typeof activeOrg === 'string' ? activeOrg : (activeOrg as any)?.name || displayUser.name)?.charAt(0)}
-                </div>
-                <span className="text-[12px] font-semibold text-cw-txt truncate">
-                  {typeof activeOrg === 'string' ? activeOrg : (activeOrg as any)?.name || displayUser.name}
-                </span>
-              </div>
-              <ChevronDown size={14} className="text-cw-txt3 shrink-0 ml-2" />
-            </button>
-            <select
-              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-              value={activeOrg}
-              onChange={(e) => setActiveOrg(e.target.value)}
-            >
-              {globalOrgs.map((orgObj, i) => {
-                const orgName = typeof orgObj === 'string' ? orgObj : (orgObj as any).name;
-                if (!orgName) return null;
-                return <option key={orgName + i} value={orgName}>{orgName}</option>;
-              })}
-            </select>
-          </div>
+          <WorkspaceSwitcher />
         </div>
 
         {/* Nav */}
@@ -266,6 +292,7 @@ function DashboardLayout() {
                       </div>
                       <div className={`flex items-center flex-1 whitespace-nowrap overflow-hidden transition-opacity duration-300 ${isSidebarPinned ? 'opacity-100' : 'opacity-0'}`}>
                         {item.label}
+                        {item.beta && <span className="ml-auto text-[9px] px-[6px] py-[1px] rounded-full border border-cw-purple text-cw-purple font-semibold tracking-wide">BETA</span>}
                         {item.badge && <span className="ml-auto text-[10px] px-[6px] py-[2px] rounded-full bg-cw-red text-white font-medium">{item.badge}</span>}
                       </div>
                     </>
@@ -276,46 +303,80 @@ function DashboardLayout() {
           ))}
         </div>
 
-        {/* Footer */}
-        <div className={`mt-auto p-4 border-t border-cw-bdr flex items-center gap-3 whitespace-nowrap overflow-hidden transition-all duration-300`}>
-          <div className="w-8 h-8 rounded-full bg-cw-blue flex items-center justify-center text-[12px] text-white font-semibold shrink-0 overflow-hidden">
-            {session?.user?.image ? <img src={session.user.image} alt="Avatar" className="w-full h-full object-cover" /> : displayUser.avatar}
-          </div>
-          <div className={`flex-1 min-w-0 transition-opacity duration-300 ${isSidebarPinned ? 'opacity-100' : 'opacity-0'}`}>
-            <div className="text-[13px] text-cw-txt font-medium">{displayUser.name}</div>
-            <div className="flex gap-2 text-[10px] text-cw-txt3 mt-0.5">
-              <button onClick={() => navigate('/terms')} className="hover:text-cw-txt transition-colors">Terms</button>
-              <button onClick={() => navigate('/privacy')} className="hover:text-cw-txt transition-colors">Privacy</button>
+        {/* Sidebar Footer with User Profile Popover & Notifications Bell Icon */}
+        <div className="mt-auto p-4 border-t border-cw-bdr relative flex items-center justify-between gap-2">
+          {userPopoverOpen && (
+            <UserProfilePopover
+              onClose={() => setUserPopoverOpen(false)}
+              onOpenThemeModal={cycleTheme}
+            />
+          )}
+
+          {/* User Profile Block */}
+          <div
+            onClick={() => setUserPopoverOpen((prev) => !prev)}
+            className="flex items-center gap-3 whitespace-nowrap overflow-hidden transition-all duration-300 cursor-pointer p-1.5 rounded-xl hover:bg-cw-bg3 flex-1 min-w-0"
+          >
+            <div className="w-8 h-8 rounded-full bg-cw-purple/20 border border-cw-purple/40 flex items-center justify-center text-[12px] text-cw-purple font-bold shrink-0 overflow-hidden shadow-sm">
+              {session?.user?.image ? <img src={session.user.image} alt="Avatar" className="w-full h-full object-cover" /> : displayUser.avatar}
+            </div>
+            <div className={`flex-1 min-w-0 transition-opacity duration-300 ${isSidebarPinned ? 'opacity-100' : 'opacity-0'}`}>
+              <div className="text-[13px] text-cw-txt font-bold flex items-center justify-between">
+                <span className="truncate">{displayUser.name}</span>
+                <span className="text-[9px] text-cw-txt3 ml-1">⇕</span>
+              </div>
+              <div className="text-[10px] text-cw-txt3 font-medium">Personal Workspace</div>
             </div>
           </div>
-          <button
-            onClick={async () => { await signOut(); navigate('/login'); }}
-            title="Sign out"
-            className={`bg-transparent border-none cursor-pointer text-cw-red p-1 hover:bg-cw-red/10 rounded transition-all duration-300 ${isSidebarPinned ? 'opacity-100' : 'opacity-0'}`}
-          >
-            <LogOut size={16} />
-          </button>
+
+          {/* Sidebar Footer Notifications Bell Icon (Matching Bell placement with anchored left edge popover) */}
+          <div className="relative">
+            {notificationsOpen && (
+              <NotificationsPopover
+                anchorRef={bellRef}
+                onClose={() => setNotificationsOpen(false)}
+              />
+            )}
+            <button
+              ref={bellRef}
+              type="button"
+              onClick={() => setNotificationsOpen((prev) => !prev)}
+              className={`w-8 h-8 rounded-xl border border-cw-bdr bg-cw-bg3 text-cw-txt hover:text-cw-purple flex items-center justify-center cursor-pointer transition-all shrink-0 relative shadow-sm ${
+                isSidebarPinned ? 'opacity-100' : 'opacity-0'
+              }`}
+              title="Notifications"
+            >
+              <Bell size={15} />
+              <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-cw-red text-white text-[8px] font-bold flex items-center justify-center shadow-sm">
+                1
+              </span>
+            </button>
+          </div>
         </div>
       </div>
 
       {/* MAIN CONTAINER */}
       <div className="flex-1 flex overflow-hidden">
-        <div className="flex-1 flex flex-col min-w-0 bg-cw-bg">
+        <div className="flex-1 flex flex-col min-w-0 bg-cw-bg relative">
           {/* Topbar */}
-          <div className="px-8 h-[80px] border-b border-cw-bdr flex items-center justify-between bg-cw-bg shrink-0 transition-all duration-300">
+          <div className={`flex items-center justify-between transition-all duration-300 ${screen === 'agent' ? 'absolute top-0 left-0 right-0 z-30 px-5 h-[52px] pointer-events-none' : 'px-8 h-[80px] border-b border-cw-bdr bg-cw-bg shrink-0'}`}>
             <div className="flex items-center gap-5">
               <button
                 onClick={() => setIsSidebarPinned(!isSidebarPinned)}
-                className="w-9 h-9 rounded-md border border-cw-bdr bg-cw-bg2 text-cw-txt flex items-center justify-center cursor-pointer hover:bg-cw-bg3 transition-colors shrink-0"
+                className="w-9 h-9 rounded-md border border-cw-bdr bg-cw-bg2 text-cw-txt flex items-center justify-center cursor-pointer hover:bg-cw-bg3 transition-colors shrink-0 pointer-events-auto shadow-sm"
               >
                 <Menu size={18} />
               </button>
-              <div>
-                <h1 className="text-[22px] font-bold text-cw-txt tracking-tight leading-none mb-1.5">{topbar.title}</h1>
-                <div className="text-[13px] text-cw-txt2">{topbar.sub}</div>
-              </div>
+              {screen !== 'agent' && (
+                <div>
+                  <h1 className="text-[22px] font-bold text-cw-txt tracking-tight leading-none flex items-center gap-2">
+                    {topbar.title}
+                  </h1>
+                </div>
+              )}
             </div>
-            <div className="flex gap-3 items-center">
+            <div className="flex gap-3 items-center pointer-events-auto relative">
+
               {screen === 'repos' && (
                 <button
                   onClick={() => navigate('/connect')}
@@ -341,33 +402,34 @@ function DashboardLayout() {
                 </div>
               )}
               <div className="flex-1" />
-              <button onClick={() => setIsGlobalFeedOpen(true)} className="px-4 py-2 rounded-md border border-cw-bdr bg-cw-bg2 text-cw-txt text-[13px] font-medium hover:bg-cw-bg3 transition-colors flex items-center gap-2">
+              <button onClick={() => setIsGlobalFeedOpen(true)} className="px-4 py-2 rounded-md border border-cw-bdr bg-cw-bg2 text-cw-txt text-[13px] font-medium hover:bg-cw-bg3 transition-colors flex items-center gap-2 whitespace-nowrap shrink-0">
                 <Globe size={14} /> Global feed
               </button>
               
-              <div className="flex items-center ml-2 border border-cw-bdr rounded-md bg-cw-bg2 overflow-hidden">
-                <button className="px-3 py-1.5 text-cw-txt text-[13px] font-medium hover:bg-cw-bg3 transition-colors flex items-center gap-2 border-r border-cw-bdr">
+              <div className="flex items-center ml-2 border border-cw-bdr rounded-md bg-cw-bg2 overflow-hidden shrink-0">
+                <button onClick={() => navigate('/dashboard/agent')} className="px-3 py-1.5 text-cw-txt text-[13px] font-medium hover:bg-cw-bg3 transition-colors flex items-center gap-2 border-r border-cw-bdr whitespace-nowrap">
                   <Sparkles size={14} /> Skills
                 </button>
-                <button className="px-3 py-1.5 text-cw-txt text-[13px] font-medium hover:bg-cw-bg3 transition-colors flex items-center gap-2">
+                <button onClick={() => window.open('/docs', '_blank')} className="px-3 py-1.5 text-cw-txt text-[13px] font-medium hover:bg-cw-bg3 transition-colors flex items-center gap-2 whitespace-nowrap">
                   <FileText size={14} /> Docs
                 </button>
               </div>
 
-              <div className="flex items-center gap-1.5 px-3 py-1.5 ml-2 rounded-md border border-cw-bdr bg-cw-bg text-[13px] font-medium text-cw-txt">
-                <BadgeCheck size={14} className="text-cw-txt3" /> Free Tier
+              <div onClick={() => navigate('/dashboard/settings')} className="flex items-center gap-1.5 px-3 py-1.5 ml-2 rounded-md border border-cw-bdr bg-cw-bg text-[13px] font-medium text-cw-txt cursor-pointer hover:bg-cw-bg2 transition-colors whitespace-nowrap shrink-0">
+                <BadgeCheck size={14} className="text-cw-purple" /> Free Tier
               </div>
 
-              <button
-                onClick={cycleTheme}
-                className="w-9 h-9 rounded-full border border-cw-bdr bg-cw-bg2 text-cw-txt2 flex items-center justify-center hover:bg-cw-bg3 transition-colors ml-2"
+              <button 
+                onClick={() => setIsHelpDrawerOpen(true)}
+                className="flex items-center gap-2 ml-2 px-3 py-1.5 rounded-md border border-cw-bdr bg-cw-bg2 hover:bg-cw-bg3 text-cw-txt font-medium text-[13px] transition whitespace-nowrap shrink-0"
               >
-                {themeIcons[theme]}
+                Need help? <span className="text-[10px] bg-cw-bg px-1.5 py-0.5 rounded border border-cw-bdr text-cw-txt2 font-mono shrink-0">H</span>
               </button>
+
             </div>
           </div>
 
-          <div className="flex-1 overflow-hidden flex flex-col">
+          <div className={`flex-1 overflow-hidden flex flex-col ${screen === 'agent' ? 'pt-[52px]' : ''}`}>
             {renderScreen()}
           </div>
         </div>
@@ -378,6 +440,8 @@ function DashboardLayout() {
             <RunDetail repoId={runDetailTarget.repoId} runId={runDetailTarget.runId} onBack={() => setRunDetailTarget(null)} />
           </div>
         )}
+
+        <HelpDrawer isOpen={isHelpDrawerOpen} onClose={() => setIsHelpDrawerOpen(false)} />
 
         {/* GLOBAL FEED DRAWER */}
         {isGlobalFeedOpen && (
@@ -434,59 +498,6 @@ function DashboardLayout() {
   );
 }
 
-// ─── Root App ─────────────────────────────────────────────────────────────────
-export default function App() {
-  const { data: session, isPending } = useSession();
-
-  if (isPending) return <div className="h-screen bg-[#05060a] flex items-center justify-center text-white/50 text-sm">Loading…</div>;
-
-  return (
-    <Routes>
-      <Route path="/" element={<CodewardHero />} />
-      <Route path="/login" element={<AuthPage onBack={() => {}} theme="dark" onCycleTheme={() => {}} onNavigate={() => {}} />} />
-      <Route path="/signup" element={<AuthPage onBack={() => {}} theme="dark" onCycleTheme={() => {}} onNavigate={() => {}} />} />
-      <Route path="/connect" element={
-        <RequireAuth>
-          <ConnectRepoWrapper />
-        </RequireAuth>
-      } />
-      <Route path="/terms" element={<LegalPage type="terms" onBack={() => {}} theme="dark" onCycleTheme={() => {}} themeIcon={<Moon size={14} />} />} />
-      <Route path="/privacy" element={<LegalPage type="privacy" onBack={() => {}} theme="dark" onCycleTheme={() => {}} themeIcon={<Moon size={14} />} />} />
-      <Route path="/dashboard/*" element={
-        <RequireAuth>
-          <DashboardLayout />
-        </RequireAuth>
-      } />
-      <Route path="/admin" element={<AdminLayout />}>
-        <Route index element={<AdminOverview />} />
-        <Route path="feed" element={<AdminFeed />} />
-        <Route path="runs" element={<AdminRuns />} />
-        <Route path="repos" element={<AdminRepos />} />
-        <Route path="security" element={<AdminSecurity />} />
-        <Route path="bloat" element={<AdminBloat />} />
-        <Route path="broken" element={<AdminBroken />} />
-        <Route path="architecture" element={<AdminArchitecture />} />
-        <Route path="agents" element={<AdminAgents />} />
-        <Route path="revenue" element={<AdminRevenue />} />
-        <Route path="customers" element={<AdminCustomers />} />
-        <Route path="growth" element={<AdminGrowth />} />
-        <Route path="billing" element={<AdminBilling />} />
-        <Route path="sandbox" element={<AdminSandbox />} />
-        <Route path="github" element={<AdminGitHubApp />} />
-        <Route path="alerts" element={<AdminAlerts />} />
-        <Route path="settings" element={<AdminSettings />} />
-        <Route path="*" element={<AdminOverview />} />
-      </Route>
-      <Route path="/compare/:competitorId" element={<ComparePage />} />
-      <Route path="/blogs" element={<BlogsPage />} />
-      <Route path="/blogs/:slug" element={<SingleBlogPage />} />
-      <Route path="/book-demo" element={<BookDemo />} />
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
-  );
-}
-
-// Wrapper for ConnectRepo that supplies the session user and navigate
 function ConnectRepoWrapper() {
   const { data: session } = useSession();
   const navigate = useNavigate();
@@ -505,5 +516,190 @@ function ConnectRepoWrapper() {
       theme="dark"
       onCycleTheme={() => {}}
     />
+  );
+}
+
+function DocsPlaceholderPage() {
+  return (
+    <div className="min-h-screen bg-[#05060a] text-white flex flex-col items-center justify-center font-['DM_Sans'] p-6">
+      <h1 className="text-4xl font-bold mb-4">Documentation</h1>
+      <p className="text-white/60 mb-6">Learn how to connect, analyze, and automate reviews for your repositories.</p>
+      <a href="/" className="px-6 py-2.5 bg-white text-black font-semibold rounded-full hover:bg-gray-100 transition-colors">Return home</a>
+    </div>
+  );
+}
+
+export const routes = [
+  {
+    path: "/",
+    element: (
+      <RequireUnauth>
+        <CodewardHero />
+      </RequireUnauth>
+    )
+  },
+  {
+    path: "/pricing",
+    element: <CodewardHero />
+  },
+  {
+    path: "/agents/:agentId",
+    element: <CodewardHero />,
+    getStaticPaths: () => [
+      "/agents/security",
+      "/agents/bloat",
+      "/agents/broken-code",
+      "/agents/architecture",
+      "/agents/ai-era",
+      "/agents/orchestrator"
+    ]
+  },
+  {
+    path: "/solutions/:solutionId",
+    element: <CodewardHero />,
+    getStaticPaths: () => [
+      "/solutions/ci-cd-shield",
+      "/solutions/tech-debt",
+      "/solutions/compliance",
+      "/solutions/secrets",
+      "/solutions/flaky-tests",
+      "/solutions/enterprise"
+    ]
+  },
+  {
+    path: "/docs",
+    element: <DocsPlaceholderPage />
+  },
+  {
+    path: "/docs/*",
+    element: <DocsPlaceholderPage />,
+    getStaticPaths: () => [
+      "/docs/intro",
+      "/docs/setup",
+      "/docs/agents",
+      "/docs/security"
+    ]
+  },
+  {
+    path: "/login",
+    element: (
+      <RequireUnauth>
+        <AuthPage onBack={() => {}} theme="dark" onCycleTheme={() => {}} onNavigate={() => {}} />
+      </RequireUnauth>
+    )
+  },
+  {
+    path: "/signup",
+    element: (
+      <RequireUnauth>
+        <AuthPage onBack={() => {}} theme="dark" onCycleTheme={() => {}} onNavigate={() => {}} />
+      </RequireUnauth>
+    )
+  },
+  {
+    path: "/connect",
+    element: (
+      <RequireAuth>
+        <ConnectRepoWrapper />
+      </RequireAuth>
+    )
+  },
+  {
+    path: "/terms",
+    element: <LegalPage type="terms" onBack={() => {}} theme="dark" onCycleTheme={() => {}} themeIcon={<Moon size={14} />} />
+  },
+  {
+    path: "/privacy",
+    element: <LegalPage type="privacy" onBack={() => {}} theme="dark" onCycleTheme={() => {}} themeIcon={<Moon size={14} />} />
+  },
+  {
+    path: "/dashboard/commits",
+    element: (
+      <RequireAuth>
+        <DashboardLayout />
+      </RequireAuth>
+    )
+  },
+  {
+    path: "/dashboard/*",
+    element: (
+      <RequireAuth>
+        <DashboardLayout />
+      </RequireAuth>
+    )
+  },
+  {
+    path: "/dashboard/repos/:repoId/commits",
+    element: (
+      <RequireAuth>
+        <DashboardLayout />
+      </RequireAuth>
+    )
+  },
+  {
+    path: "/admin",
+    element: <AdminLayout />,
+    children: [
+      { index: true, element: <AdminOverview /> },
+      { path: "feed", element: <AdminFeed /> },
+      { path: "runs", element: <AdminRuns /> },
+      { path: "repos", element: <AdminRepos /> },
+      { path: "security", element: <AdminSecurity /> },
+      { path: "bloat", element: <AdminBloat /> },
+      { path: "broken", element: <AdminBroken /> },
+      { path: "architecture", element: <AdminArchitecture /> },
+      { path: "agents", element: <AdminAgents /> },
+      { path: "revenue", element: <AdminRevenue /> },
+      { path: "customers", element: <AdminCustomers /> },
+      { path: "growth", element: <AdminGrowth /> },
+      { path: "billing", element: <AdminBilling /> },
+      { path: "sandbox", element: <AdminSandbox /> },
+      { path: "github", element: <AdminGitHubApp /> },
+      { path: "alerts", element: <AdminAlerts /> },
+      { path: "settings", element: <AdminSettings /> },
+      { path: "*", element: <AdminOverview /> }
+    ]
+  },
+  {
+    path: "/compare/:competitorId",
+    element: <ComparePage />,
+    getStaticPaths: () => Object.keys(comparisons).map(key => `/compare/${key}`)
+  },
+  {
+    path: "/blogs",
+    element: <BlogsPage />
+  },
+  {
+    path: "/blogs/:slug",
+    element: <SingleBlogPage />,
+    getStaticPaths: () => blogs.map(b => `/blogs/${b.slug}`)
+  },
+  {
+    path: "/book-demo",
+    element: <BookDemo />
+  },
+  {
+    path: "/invite/:token",
+    element: <InviteAcceptPage />
+  },
+  {
+    path: "*",
+    element: <Navigate to="/" replace />
+  }
+];
+
+import { CookieConsent } from './components/CookieConsent';
+
+export default function App() {
+  const element = useRoutes(routes);
+  return (
+    <HelmetProvider>
+      <WorkspaceProvider>
+        {element}
+        <CookieConsent />
+        <TeamDrawer />
+        <InviteDrawer />
+      </WorkspaceProvider>
+    </HelmetProvider>
   );
 }

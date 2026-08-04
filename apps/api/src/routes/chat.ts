@@ -1,10 +1,10 @@
 import { Hono } from 'hono';
 import { streamText, generateText, convertToModelMessages, stepCountIs, type UIMessage } from 'ai';
-import { eq, and, desc, inArray } from 'drizzle-orm';
+import { eq, and, desc, inArray, count } from 'drizzle-orm';
 import { getModel } from '../providers/model.provider.js';
 import { auth } from '../auth/index.js';
 import { db } from '../db/index.js';
-import { chatSessions, chatMessages, repositories } from '../db/schema.js';
+import { chatSessions, chatMessages, repositories, runs, mergeApprovals, gordonEvents } from '../db/schema.js';
 import { createGordonTools, accessibleRepoIds, assertRepoAccess } from '../agents/definitions/chat/gordon.tools.js';
 
 export const chatRouter = new Hono();
@@ -23,6 +23,16 @@ Your capabilities are REAL:
 - ACT (these require the user to approve a card before they run — never claim you did them until the tool returns success): spawn_agent runs an analysis agent in a real sandbox; approve_and_merge / reject_fix act on real pending auto-fix PRs. After spawning an agent, tell the user it's running and offer to follow progress with get_run_status. If an action tool returns an error, report it honestly.
 
 Format answers in GitHub-flavored markdown. When comparing repos, listing findings, or presenting anything with 3+ rows of structure, use a GFM table.`;
+
+const GORDON_HARNESS_SYSTEM = `
+
+Gordon harness contract:
+- If the user is ambiguous, ask one concise follow-up question instead of guessing. For repo work, clarify repo and branch/ref when that changes the result.
+- READ tools include run history, findings, trends, fix priorities, shared agent memory, source files, repo directories, branch lists, real commit diffs, live run status, and run/tool logs.
+- ACTION tools require approval cards before execution: spawn_agent, run_all_agents, create_github_issue, create_issue_from_finding, approve_and_merge, reject_fix.
+- After starting work, keep driving toward the user's goal by checking get_run_status and get_run_logs. Report run id, repo, branch/ref, commit, links, evidence, and next steps.
+- Arbitrary chat-driven code edits are not allowed unless the existing verified fixer pipeline opens a real auto-fix PR. If a finding cannot be safely verified/fixed, escalate by opening a GitHub issue with evidence.
+- Format substantial results with clear sections and GFM tables. Never claim a score, issue, PR, commit, or test result unless a tool returned it.`;
 
 async function getSessionUser(c: any) {
   const session = await auth.api.getSession({ headers: c.req.raw.headers });
@@ -65,7 +75,12 @@ function textOfMessage(msg: UIMessage): string {
  */
 const GORDON_SKILLS = [
   { id: 'scan', label: '/scan', description: 'Run a security scan on the active repo', template: 'Run a security scan on {repo} and walk me through what you find.' },
+  { id: 'full-scan', label: '/full-scan', description: 'Run all Codeward agents on the active repo', template: 'Run the full Codeward agent suite on {repo}. Show the branch/ref used, live progress, and final findings.' },
   { id: 'fix', label: '/fix', description: 'Find the highest-priority issues and offer to fix', template: 'What are the highest-priority issues in {repo} right now, and can you open fixes for the safe ones?' },
+  { id: 'branches', label: '/branches', description: 'List branches before scanning', template: 'List the branches for {repo} and tell me which branch Codeward should scan.' },
+  { id: 'diff', label: '/diff', description: 'Explain a real commit diff', template: 'Read the real latest commit diff for {repo}, explain risk, and recommend which agents should run.' },
+  { id: 'logs', label: '/logs', description: 'Inspect live run logs', template: 'Check the latest run logs for {repo} and summarize what is happening right now.' },
+  { id: 'escalate', label: '/escalate', description: 'Open GitHub issues for unresolved findings', template: 'Find unresolved high-priority findings in {repo} and open GitHub issues for anything that cannot be safely auto-fixed.' },
   { id: 'report', label: '/report', description: 'Summarize the latest run', template: 'Give me a summary of the latest run for {repo}: score, top findings by severity, and what changed.' },
   { id: 'compare', label: '/compare', description: 'Compare health across my repos', template: 'Compare the health scores across all my repositories and show them as a table, worst first.' },
   { id: 'health', label: '/health', description: 'Health trend over time', template: 'How has the code health of {repo} trended over the last 30 days?' },
@@ -78,6 +93,124 @@ chatRouter.get('/skills', async (c) => {
   return c.json({ skills: GORDON_SKILLS });
 });
 
+/**
+ * Dynamic suggested prompts — NOT hardcoded. Computed from the user's REAL activity: pending
+ * approvals, lowest-health repo, never-scanned repos, most-recent run, and cross-repo compare.
+ * Each suggestion carries an `icon` key the client maps to a hugeicon. Only suggestions backed
+ * by real data are returned, best/most-actionable first; falls back to safe generic prompts
+ * only when the account has literally no repos yet.
+ */
+chatRouter.get('/suggestions', async (c) => {
+  const user = await getSessionUser(c);
+  if (!user) return c.json({ error: 'Unauthorized' }, 401);
+  const ids = await accessibleRepoIds(user.id);
+  if (ids.length === 0) {
+    return c.json({ suggestions: [
+      { id: 'connect', icon: 'connect', title: 'Connect your first repository', subtitle: 'Gordon works from your real repos', prompt: 'How do I connect a repository to Codeward so you can analyze it?' },
+      { id: 'what', icon: 'info', title: 'What can you do?', subtitle: 'See Gordon’s real capabilities', prompt: 'What can you actually do for me, and what data do you work from?' },
+    ] });
+  }
+
+  const repos = await db.select().from(repositories).where(inArray(repositories.id, ids));
+  const byId = new Map(repos.map((r) => [r.id, r]));
+
+  // Latest run per repo (one query, then reduce in JS).
+  const latestByRepo = new Map<number, { score: number | null; status: string; at: Date | null }>();
+  for (const r of repos) {
+    const [latest] = await db.select().from(runs).where(eq(runs.repoId, r.id)).orderBy(desc(runs.createdAt)).limit(1);
+    if (latest) latestByRepo.set(r.id, { score: latest.score, status: latest.status, at: latest.createdAt });
+  }
+
+  const pending = await db.select({ id: mergeApprovals.id }).from(mergeApprovals)
+    .where(and(inArray(mergeApprovals.repoId, ids), eq(mergeApprovals.status, 'pending')));
+
+  const suggestions: Array<{ id: string; icon: string; title: string; subtitle: string; prompt: string }> = [];
+
+  // 1) Pending approvals — highest-value action.
+  if (pending.length > 0) {
+    suggestions.push({ id: 'approvals', icon: 'approvals',
+      title: `Review ${pending.length} auto-fix PR${pending.length === 1 ? '' : 's'} waiting`,
+      subtitle: 'Approve or reject Codeward’s fixes', prompt: 'Show me the Codeward auto-fix PRs waiting for a merge decision, with the guardian verdict for each.' });
+  }
+
+  // 2) Lowest-health scanned repo — what to fix.
+  const scored = repos.map((r) => ({ r, s: latestByRepo.get(r.id)?.score })).filter((x) => x.s != null) as { r: typeof repos[number]; s: number }[];
+  if (scored.length) {
+    scored.sort((a, b) => a.s - b.s);
+    const worst = scored[0];
+    suggestions.push({ id: 'fix-worst', icon: 'fix',
+      title: `Fix ${worst.r.name} (health ${worst.s})`,
+      subtitle: 'Your lowest-scoring repository', prompt: `What are the highest-priority issues in ${worst.r.fullName} right now, and can you open fixes for the safe ones?` });
+  }
+
+  // 3) A never-scanned repo — nudge a first scan.
+  const neverScanned = repos.find((r) => !latestByRepo.has(r.id) && !r.paused);
+  if (neverScanned) {
+    suggestions.push({ id: 'scan-new', icon: 'scan',
+      title: `Scan ${neverScanned.name}`,
+      subtitle: 'Never analyzed yet', prompt: `Run a security scan on ${neverScanned.fullName} and walk me through what you find.` });
+  }
+
+  // 4) Most-recently scanned repo — summarize it.
+  const recent = [...latestByRepo.entries()].sort((a, b) => (b[1].at?.getTime() ?? 0) - (a[1].at?.getTime() ?? 0))[0];
+  if (recent) {
+    const rr = byId.get(recent[0])!;
+    suggestions.push({ id: 'report-recent', icon: 'report',
+      title: `Summarize ${rr.name}’s latest scan`,
+      subtitle: 'Score, top findings, what changed', prompt: `Give me a summary of the latest run for ${rr.fullName}: score, top findings by severity, and what changed.` });
+  }
+
+  // 5) Compare — only meaningful with 2+ scored repos.
+  if (scored.length >= 2) {
+    suggestions.push({ id: 'compare', icon: 'compare',
+      title: `Compare health across ${scored.length} repos`,
+      subtitle: 'Ranked worst to best', prompt: 'Compare the health scores across all my repositories and show them as a table, worst first.' });
+  }
+
+  return c.json({ suggestions: suggestions.slice(0, 6) });
+});
+
+/**
+ * Gordon Logs — real, per-user accountability trail from gordon_events. Newest first, paginated.
+ * Enriches repoId → repo name so the client can show a human label. The full input/output preview
+ * is included for the collapsible per-row breakdown.
+ */
+chatRouter.get('/logs', async (c) => {
+  try {
+    const user = await getSessionUser(c);
+    if (!user) return c.json({ error: 'Unauthorized' }, 401);
+    const limit = Math.min(Number(c.req.query('limit')) || 100, 500);
+    const offset = Math.max(Number(c.req.query('offset')) || 0, 0);
+
+    const rows = await db.select().from(gordonEvents)
+      .where(eq(gordonEvents.userId, user.id))
+      .orderBy(desc(gordonEvents.createdAt))
+      .limit(limit).offset(offset);
+
+    // Resolve repo names for the repoIds present (bounded set).
+    const repoIds = [...new Set(rows.map((r) => r.repoId).filter((x): x is number => x != null))];
+    const repoNames = new Map<number, string>();
+    if (repoIds.length) {
+      const rr = await db.select({ id: repositories.id, fullName: repositories.fullName }).from(repositories).where(inArray(repositories.id, repoIds));
+      for (const r of rr) repoNames.set(r.id, r.fullName);
+    }
+
+    const total = (await db.select({ n: count() }).from(gordonEvents).where(eq(gordonEvents.userId, user.id)))[0]?.n ?? rows.length;
+
+    return c.json({
+      total: Number(total), limit, offset,
+      logs: rows.map((r) => ({
+        id: r.id, toolName: r.toolName, repoId: r.repoId, repoName: r.repoId ? repoNames.get(r.repoId) ?? null : null,
+        success: r.success, requiredApproval: r.requiredApproval, durationMs: r.durationMs, errorText: r.errorText,
+        createdAt: r.createdAt, input: r.input, outputSummary: r.outputSummary,
+      })),
+    });
+  } catch (err: any) {
+    console.error('[GordonLogs] Error fetching logs:', err);
+    return c.json({ total: 0, limit: 100, offset: 0, logs: [] });
+  }
+});
+
 // Lightweight repo list for the composer's @-tag picker.
 chatRouter.get('/repos', async (c) => {
   const user = await getSessionUser(c);
@@ -85,7 +218,34 @@ chatRouter.get('/repos', async (c) => {
   const ids = await accessibleRepoIds(user.id);
   if (ids.length === 0) return c.json({ repos: [] });
   const rows = await db.select({ id: repositories.id, fullName: repositories.fullName }).from(repositories).where(inArray(repositories.id, ids));
-  return c.json({ repos: rows });
+  // `source` drives the provider logo in the picker. Every repo today is ingested through the
+  // GitHub App, so it's derived as 'github'; when GitLab ingestion lands, set the distinguishing
+  // signal here and the UI shows the GitLab logo automatically — no client change needed.
+  return c.json({ repos: rows.map((r) => ({ ...r, source: 'github' as const })) });
+});
+
+chatRouter.get('/branches/:repoId', async (c) => {
+  const user = await getSessionUser(c);
+  if (!user) return c.json({ error: 'Unauthorized' }, 401);
+  const repoId = Number(c.req.param('repoId'));
+  if (!Number.isFinite(repoId)) return c.json({ error: 'Invalid repoId' }, 400);
+  if (!(await assertRepoAccess(user.id, repoId))) return c.json({ error: 'Forbidden' }, 403);
+  const [repo] = await db.select().from(repositories).where(eq(repositories.id, repoId));
+  if (!repo?.installationId) return c.json({ branches: [], defaultBranch: null, note: 'Repository has no GitHub installation.' });
+  try {
+    const { getInstallationOctokit } = await import('../lib/github.js');
+    const octokit = await getInstallationOctokit(repo.installationId);
+    const [repoInfo, branchList] = await Promise.all([
+      octokit.request('GET /repos/{owner}/{repo}', { owner: repo.owner, repo: repo.name }),
+      octokit.request('GET /repos/{owner}/{repo}/branches', { owner: repo.owner, repo: repo.name, per_page: 100 }),
+    ]);
+    return c.json({
+      defaultBranch: repoInfo.data.default_branch,
+      branches: branchList.data.map((b: any) => ({ name: b.name, protected: b.protected, commitSha: b.commit?.sha })),
+    });
+  } catch (e: any) {
+    return c.json({ error: `Could not load branches: ${e.message}` }, 502);
+  }
 });
 
 chatRouter.get('/sessions', async (c) => {
@@ -139,7 +299,7 @@ chatRouter.post('/', async (c) => {
   const user = await getSessionUser(c);
   if (!user) return c.json({ error: 'Unauthorized' }, 401);
 
-  const { messages, sessionId, repoId }: { messages: UIMessage[]; sessionId?: string; repoId?: number } = await c.req.json();
+  const { messages, sessionId, repoId, ref }: { messages: UIMessage[]; sessionId?: string; repoId?: number; ref?: string } = await c.req.json();
   if (!Array.isArray(messages) || messages.length === 0) return c.json({ error: 'messages required' }, 400);
 
   // Resolve or lazily create the session. A bad/foreign sessionId falls through to a fresh
@@ -156,7 +316,7 @@ chatRouter.post('/', async (c) => {
   if (typeof repoId === 'number' && (await assertRepoAccess(user.id, repoId))) {
     if (session.repoId !== repoId) await db.update(chatSessions).set({ repoId }).where(eq(chatSessions.id, session.id));
     const [repo] = await db.select().from(repositories).where(eq(repositories.id, repoId));
-    if (repo) activeRepoLine = `\n\nACTIVE REPO: the user has pinned "${repo.fullName}" (repoId ${repoId}). Default to this repoId for repo-scoped tools unless they clearly mean another.`;
+    if (repo) activeRepoLine = `\n\nACTIVE REPO: the user has pinned "${repo.fullName}" (repoId ${repoId})${ref ? ` on branch/ref "${ref}"` : ''}. Default to this repoId${ref ? ` and ref "${ref}"` : ''} for repo-scoped tools unless they clearly mean another.`;
   }
 
   // Persist the incoming user message now (not in onFinish) so even an aborted/errored
@@ -168,9 +328,9 @@ chatRouter.post('/', async (c) => {
 
   const result = streamText({
     model: getModel('orchestrator'), // gpt-4o — best tool-calling reliability
-    system: GORDON_SYSTEM + activeRepoLine,
+    system: GORDON_SYSTEM + GORDON_HARNESS_SYSTEM + activeRepoLine,
     messages: await convertToModelMessages(messages),
-    tools: createGordonTools(user.id),
+    tools: createGordonTools(user.id, session.id),
     stopWhen: stepCountIs(12), // real agentic loop: plan -> call tools -> observe -> answer
   });
 

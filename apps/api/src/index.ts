@@ -113,6 +113,11 @@ import { reportsRouter } from './routes/reports.js';
 import { approvalsRouter } from './routes/approvals.js';
 import { alertsRouter } from './routes/alerts.js';
 import { issuesPrsRouter } from './routes/issues-prs.js';
+import { integrationsRouter } from './routes/integrations.js';
+import { connectorRequestsRouter } from './routes/connector-requests.js';
+import { mcpRouter } from './routes/mcp.js';
+import { newsletterRouter } from './routes/newsletter.js';
+import { workspacesRouter } from './routes/workspaces.js';
 
 const routes = app
   .route('/api/webhooks', webhookRouter)
@@ -125,11 +130,16 @@ const routes = app
   .route('/api/approvals', approvalsRouter)
   .route('/api/alerts', alertsRouter)
   .route('/api/issues-prs', issuesPrsRouter)
+  .route('/api/integrations', integrationsRouter)
+  .route('/api/connector-requests', connectorRequestsRouter)
+  .route('/api/mcp', mcpRouter)
+  .route('/api/newsletter', newsletterRouter)
+  .route('/api/workspaces', workspacesRouter)
   .route('/ws', wsRouter);
 
 export type AppType = typeof routes;
 
-const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 3001;
+const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 console.log(`Server is running on port ${port}`);
 
 const server = serve({

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { NavLink, Outlet, useLocation, useNavigate } from 'react-router';
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, Radio, List, GitFork, ShieldAlert, Package, 
   AlertTriangle, Network, Bot, ClipboardCheck, Database, MessageSquare,
@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { Theme } from '../types';
 import { Toaster } from 'sonner';
+import { FloatingStreamWidget } from '../FloatingStreamWidget';
 
 const themeOrder: Theme[] = ['dark', 'cream', 'white'];
 
@@ -162,44 +163,47 @@ export function AdminLayout() {
 
       {/* MAIN CONTAINER */}
       <div className="flex-1 flex flex-col overflow-hidden min-w-0 bg-cw-bg">
-        {/* Topbar */}
-        <div className="h-[70px] px-8 border-b border-cw-bdr bg-cw-bg2 flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-4">
-            <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="text-cw-txt2 hover:text-cw-txt transition-colors">
-              <Menu size={20} />
-            </button>
-            <h2 className="text-[16px] font-bold text-cw-txt">{roomName}</h2>
-            <div className="px-3 py-1 rounded-full bg-cw-green/10 text-cw-green text-[12px] font-medium flex items-center gap-2 border border-cw-green/20">
-              <div className="w-1.5 h-1.5 rounded-full bg-cw-green animate-pulse" />
-              All systems operational
+        {/* Topbar (hidden on /commits page to prevent header duplication) */}
+        {!location.pathname.includes('/commits') && (
+          <div className="h-[70px] px-8 border-b border-cw-bdr bg-cw-bg2 flex items-center justify-between shrink-0">
+            <div className="flex items-center gap-4">
+              <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="text-cw-txt2 hover:text-cw-txt transition-colors">
+                <Menu size={20} />
+              </button>
+              <h2 className="text-[16px] font-bold text-cw-txt">{roomName}</h2>
+              <div className="px-3 py-1 rounded-full bg-cw-green/10 text-cw-green text-[12px] font-medium flex items-center gap-2 border border-cw-green/20">
+                <div className="w-1.5 h-1.5 rounded-full bg-cw-green animate-pulse" />
+                All systems operational
+              </div>
+            </div>
+            
+            <div className="flex items-center">
+              <button className="flex items-center gap-2 px-3 py-1.5 rounded-md border border-cw-bdr bg-cw-bg text-cw-txt text-[13px] font-medium hover:bg-cw-bg3 transition-colors">
+                <Calendar size={14} /> June 2026
+              </button>
+              <button className="flex items-center gap-2 px-3 py-1.5 rounded-md border border-cw-bdr bg-cw-bg text-cw-txt text-[13px] font-medium hover:bg-cw-bg3 transition-colors">
+                <Download size={14} /> Export
+              </button>
+              <button className="flex items-center gap-2 px-3 py-1.5 rounded-md border border-cw-bdr bg-cw-bg text-cw-txt text-[13px] font-medium hover:bg-cw-bg3 transition-colors">
+                <Bell size={14} /> 5
+              </button>
+              <div className="h-6 w-px bg-cw-bdr mx-1" />
+              <button onClick={cycleTheme} className="w-8 h-8 rounded-full border border-cw-bdr flex items-center justify-center text-cw-txt2 hover:bg-cw-bg3 transition-colors">
+                {themeIcons[theme]}
+              </button>
+              <button className="w-8 h-8 rounded-full bg-cw-bg3 flex items-center justify-center text-cw-txt2 hover:bg-cw-txt transition-colors">
+                <MoreHorizontal size={16} />
+              </button>
             </div>
           </div>
-          
-          <div className="flex items-center">
-            <button className="flex items-center gap-2 px-3 py-1.5 rounded-md border border-cw-bdr bg-cw-bg text-cw-txt text-[13px] font-medium hover:bg-cw-bg3 transition-colors">
-              <Calendar size={14} /> June 2026
-            </button>
-            <button className="flex items-center gap-2 px-3 py-1.5 rounded-md border border-cw-bdr bg-cw-bg text-cw-txt text-[13px] font-medium hover:bg-cw-bg3 transition-colors">
-              <Download size={14} /> Export
-            </button>
-            <button className="flex items-center gap-2 px-3 py-1.5 rounded-md border border-cw-bdr bg-cw-bg text-cw-txt text-[13px] font-medium hover:bg-cw-bg3 transition-colors">
-              <Bell size={14} /> 5
-            </button>
-            <div className="h-6 w-px bg-cw-bdr mx-1" />
-            <button onClick={cycleTheme} className="w-8 h-8 rounded-full border border-cw-bdr flex items-center justify-center text-cw-txt2 hover:bg-cw-bg3 transition-colors">
-              {themeIcons[theme]}
-            </button>
-            <button className="w-8 h-8 rounded-full bg-cw-bg3 flex items-center justify-center text-cw-txt2 hover:bg-cw-txt transition-colors">
-              <MoreHorizontal size={16} />
-            </button>
-          </div>
-        </div>
+        )}
 
         {/* Content Area */}
         <div className="flex-1 overflow-auto p-8">
           <Outlet />
         </div>
       </div>
+      <FloatingStreamWidget onNavigate={(path) => navigate(path)} />
       <Toaster position="top-right" theme={theme as any} richColors />
     </div>
   );

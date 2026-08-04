@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router';
+import { useNavigate } from 'react-router-dom';
 import { Search, Loader, AlertCircle, Play, Pause, Settings as SettingsIcon, BarChart2, GitFork, Lock, Globe, Wrench } from 'lucide-react';
 import { toast } from 'sonner';
 import { API_URL } from '../../lib/api';
@@ -239,6 +239,12 @@ export function Repositories({ activeOrg }: { activeOrg?: string }) {
                       className="px-3 py-1.5 bg-cw-bg border border-cw-bdr hover:bg-cw-bg2 text-cw-txt text-[12px] font-medium rounded-lg transition-colors flex items-center gap-1.5 disabled:opacity-50"
                     >
                       {isPaused ? <><Play size={14} /> Resume</> : <><Pause size={14} /> Pause</>}
+                    </button>
+                    <button
+                      onClick={() => navigate(`/dashboard/repos/${repo.id}/commits`)}
+                      className="px-3 py-1.5 bg-cw-purple/10 border border-cw-purple/30 text-cw-purple text-[12px] font-medium rounded-lg transition-colors flex items-center gap-1.5 hover:bg-cw-purple/15"
+                    >
+                      <GitFork size={14} /> View Commits
                     </button>
                     <button
                       onClick={() => navigate('/dashboard/history')}

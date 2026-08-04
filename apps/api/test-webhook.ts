@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 
 const SECRET = 'dev-secret';
-const URL = 'http://localhost:3001/api/webhooks/github';
+const URL = 'http://localhost:3000/api/webhooks/github';
 
 const payload = JSON.stringify({
   after: 'f1d2d2f924e986ac86fdf7b36c94bcdf32beec15',
@@ -37,7 +37,7 @@ async function testWebhook() {
       console.error('❌ Webhook failed!');
     }
   } catch (error) {
-    console.error('Failed to connect to the server. Is it running on port 3001?', error);
+    console.error('Failed to connect to the server. Is it running on port 3000?', error);
   }
 }
 

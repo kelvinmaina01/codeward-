@@ -377,6 +377,41 @@ export const agentCanvasData: AgentData[] = [
     summary: { criticals: 0, highs: 0, mediums: 1, fixed: 0, linesRemoved: 0, duration: 'scheduled' }
   },
   {
+    id: 'data_dx',
+    name: 'Data & DX Agent',
+    icon: 'Database01Icon',
+    model: 'haiku-4-5',
+    status: 'passed',
+    score: 92,
+    label: '16 data checks',
+    statusText: 'Data contracts intact · 0 drift',
+    progress: 100,
+    color: '#06b6d4',
+    metrics: [{ t: 'Contracts OK', c: 'green' }, { t: '0 drift', c: 'green' }, { t: 'Score: 92', c: '' }],
+    logs: [
+      { t: '00:03', type: 'info', msg: 'Data & DX Agent started · analyzing data pipelines & DX telemetry' },
+      { t: '00:04', type: 'tool', msg: 'analyse_data_pipelines(repoPath) → 6 pipelines scanned' },
+      { t: '00:06', type: 'pass', msg: 'Data pipeline entanglement: low · clean DAG boundaries' },
+      { t: '00:07', type: 'tool', msg: 'check_data_contracts(repoPath) → verifying schema definitions' },
+      { t: '00:09', type: 'pass', msg: 'All analytics event schemas validated via JSON Schema' },
+      { t: '00:10', type: 'tool', msg: 'check_vector_embedding_drift(repoPath)' },
+      { t: '00:12', type: 'pass', msg: 'Vector embedding drift: 0% · model version aligned' },
+      { t: '00:15', type: 'tool', msg: 'measure_ci_reliability(repoPath)' },
+      { t: '00:18', type: 'pass', msg: 'CI reliability: 98.2% · 0 non-deterministic test failures this week' },
+      { t: '00:19', type: 'pass', msg: 'gateDecision=PASS · score=92 · report generated' },
+    ],
+    config: { model: 'claude-haiku-4-5', trigger: 'weekly-cron 0 6 * * 1', tools: 'data-pipeline-analyzer,schema-contract-checker,ci-reliability-meter', maxSteps: '15' },
+    findings: [
+      { sev: 'info', title: 'Data contracts intact', desc: 'All analytics event schemas match production consumers' },
+      { sev: 'info', title: 'CI flakiness: 0%', desc: 'No non-deterministic pipeline failures detected this week' },
+    ],
+    sandbox: [
+      { icon: 'Database01Icon', active: false, done: true, name: 'Pipeline DAG analyzer', status: '6 pipelines clean' },
+      { icon: 'CheckCircle2Icon', active: false, done: true, name: 'Data contract validator', status: 'Schemas aligned' },
+    ],
+    summary: { criticals: 0, highs: 0, mediums: 0, fixed: 0, linesRemoved: 0, duration: '0m 19s' }
+  },
+  {
     id: 'chat',
     name: 'Chat Agent',
     icon: 'Message01Icon',
