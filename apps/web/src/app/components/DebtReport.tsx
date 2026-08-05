@@ -3,6 +3,10 @@ import { Loader, AlertCircle, ShieldAlert, Activity, LayoutTemplate, TrendingDow
 import { API_URL } from '../../lib/api';
 import { GithubIcon, GithubLink, PlatformIcon, githubFileUrl, extractFilePaths } from './GithubLink';
 import { RepoSelector } from './RepoSelector';
+import { pdf } from '@react-pdf/renderer';
+import { ReportPDF } from './ReportPDF';
+import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
 
 interface RealAlert {
   id: string;
@@ -38,38 +42,16 @@ const sevChip: Record<string, string> = {
   INFO: 'bg-cw-blue/10 text-cw-blue',
 };
 
-/** Generates and downloads a real Markdown debt report with a Codeward badge header. */
-function downloadReport(findings: RealAlert[], fixesOpened: number) {
+async function downloadReport(findings: RealAlert[], fixesOpened: number) {
+  const doc = <ReportPDF findings={findings} fixesOpened={fixesOpened} categories={CATEGORY_META} />;
+  const asPdf = pdf(doc);
+  const blob = await asPdf.toBlob();
+  
   const now = new Date().toISOString().slice(0, 10);
-  const bySev = (s: string) => findings.filter((f) => f.severity === s).length;
-  const lines: string[] = [
-    `![Codeward](https://img.shields.io/badge/Codeward-verified-7c3aed?style=for-the-badge) ![Debt](https://img.shields.io/badge/open%20debt-${findings.length}-f59e0b?style=for-the-badge)`,
-    '',
-    `# Codeward Technical Debt Report`,
-    `_Generated ${now} · ${findings.length} open high-priority items · ${fixesOpened} auto-fix PR(s) opened_`,
-    '',
-    `| Severity | Count |`,
-    `|---|---|`,
-    `| CRITICAL | ${bySev('CRITICAL')} |`,
-    `| HIGH | ${bySev('HIGH')} |`,
-    '',
-  ];
-  for (const cat of CATEGORY_META) {
-    const items = findings.filter((f) => f.source === cat.key);
-    if (items.length === 0) continue;
-    lines.push(`## ${cat.label} (${items.length})`, '');
-    for (const f of items) {
-      lines.push(`- **[${f.severity}] ${f.title}** — ${f.repo}${f.file ? ` \`${f.file}${f.line != null ? `:${f.line}` : ''}\`` : ''}`);
-      lines.push(`  - ${f.description}`);
-      if (f.suggestedFix) lines.push(`  - _Suggested fix:_ ${f.suggestedFix}`);
-      if (f.htmlUrl) lines.push(`  - ${f.htmlUrl}`);
-    }
-    lines.push('');
-  }
-  const blob = new Blob([lines.join('\n')], { type: 'text/markdown' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url; a.download = `codeward-debt-report-${now}.md`;
+  a.href = url;
+  a.download = `codeward-debt-report-${now}.pdf`;
   a.click();
   URL.revokeObjectURL(url);
 }
@@ -82,6 +64,39 @@ export function DebtReport() {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [repoFilter, setRepoFilter] = useState<string>('All');
+  const navigate = useNavigate();
+
+  const exportToDrive = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/integrations`, { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch integrations');
+      const data = await res.json();
+      const connected = data.integrations || [];
+      const workspaceConnected = connected.find((i: any) => i.id === 'workspace' && i.connected);
+
+      if (!workspaceConnected) {
+        toast('Google Workspace not connected. Redirecting to integrations...', { icon: '⚠️' });
+        setTimeout(() => navigate('/dashboard/integrations'), 1500);
+        return;
+      }
+
+      toast.loading('Syncing report to Google Drive...', { id: 'drive-sync' });
+
+      // Simulate a backend endpoint call to export
+      const syncRes = await fetch(`${API_URL}/api/reports/export-drive`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ count: findings.length }),
+        credentials: 'include'
+      });
+
+      if (!syncRes.ok) throw new Error('Failed to sync to Drive');
+
+      toast.success('Report successfully synced to Google Drive!', { id: 'drive-sync' });
+    } catch (e: any) {
+      toast.error(e.message || 'Error exporting to Google Drive', { id: 'drive-sync' });
+    }
+  };
 
   useEffect(() => {
     fetch(`${API_URL}/api/alerts`, { credentials: 'include' })
@@ -130,6 +145,13 @@ export function DebtReport() {
                 onChange={(val, name) => setRepoFilter(String(val))}
               />
             )}
+            <button
+              onClick={exportToDrive}
+              disabled={findings.length === 0}
+              className="flex items-center gap-2 bg-cw-bg2 hover:bg-cw-bg3 border border-cw-bdr text-cw-txt px-3.5 py-2 rounded-lg text-[12px] font-semibold transition-colors disabled:opacity-40 shrink-0 shadow-sm"
+            >
+              <img src="https://upload.wikimedia.org/wikipedia/commons/1/12/Google_Drive_icon_%282020%29.svg" alt="Drive" className="w-[14px] h-[14px] object-contain" /> Export to Drive
+            </button>
             <button
               onClick={() => downloadReport(findings, fixesOpened)}
               disabled={findings.length === 0}

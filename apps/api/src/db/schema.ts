@@ -87,6 +87,7 @@ export const agentTasks = pgTable('agent_tasks', {
   score: integer('score'),
   findingsCount: integer('findings_count').default(0),
   findings: jsonb('findings'),
+  checkpointState: jsonb('checkpoint_state'),
   reportMeta: jsonb('report_meta'),
   tokenUsage: jsonb('token_usage'),
   duration: integer('duration'),
