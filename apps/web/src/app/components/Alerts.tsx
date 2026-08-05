@@ -91,7 +91,7 @@ export function Alerts() {
   return (
     <div className="flex-1 flex overflow-hidden relative h-full">
       <div className="flex-1 overflow-y-auto w-full transition-all duration-300">
-        <div className="p-8 max-w-[1000px] mx-auto pb-24">
+        <div className="p-4 sm:p-6 md:p-8 max-w-[1000px] mx-auto pb-24">
 
           {/* Top Bar: Title & View Mode Toggle */}
           <div className="flex items-center justify-between mb-8 gap-4 flex-wrap">
@@ -316,7 +316,7 @@ export function Alerts() {
       </div>
 
       {/* Detail drawer */}
-      <div className={`shrink-0 h-full bg-cw-bg2 border-l border-cw-bdr flex flex-col transition-[width,min-width,opacity] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${selected ? 'w-[450px] min-w-[320px] md:w-[380px] lg:w-[450px] opacity-100' : 'w-0 min-w-0 opacity-0 overflow-hidden border-none'}`}>
+      <div className={`shrink-0 h-full bg-cw-bg2 border-l border-cw-bdr flex flex-col transition-[width,min-width,opacity] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${selected ? 'w-full md:w-[380px] lg:w-[450px] opacity-100 z-30 absolute md:relative inset-y-0 right-0 shadow-2xl md:shadow-none' : 'w-0 min-w-0 opacity-0 overflow-hidden border-none'}`}>
         {selected && (
           <>
             <div className="px-6 py-5 border-b border-cw-bdr flex items-center justify-between bg-cw-bg shrink-0">

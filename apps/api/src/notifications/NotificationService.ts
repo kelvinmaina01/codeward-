@@ -4,6 +4,7 @@ import * as React from 'react';
 import { WelcomeVerificationEmail } from './templates/WelcomeVerificationEmail.js';
 import { EscalationEmail } from './templates/EscalationEmail.js';
 import { RepoConnectedSuccessEmail } from './templates/RepoConnectedSuccessEmail.js';
+import { RunFailureEmail } from './templates/RunFailureEmail.js';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -71,6 +72,31 @@ export class NotificationService {
       to,
       `Codeward Initial Scan Complete: ${repoName}`,
       React.createElement(RepoConnectedSuccessEmail, { repoName, baselineScore, dashboardUrl })
+    );
+  }
+
+  static async sendRunFailure(
+    to: string,
+    repoName: string,
+    agentId: string,
+    runId: number,
+    commitSha: string,
+    errorMessage: string,
+    retryUrl: string,
+    logTail?: string
+  ) {
+    return this.sendEmail(
+      to,
+      `Agent Run Failed: ${agentId} on ${repoName}`,
+      React.createElement(RunFailureEmail, {
+        repoName,
+        agentId,
+        runId,
+        commitSha,
+        errorMessage,
+        retryUrl,
+        logTail
+      })
     );
   }
 }

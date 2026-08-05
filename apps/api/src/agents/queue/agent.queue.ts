@@ -17,11 +17,12 @@
  * ============================================================================
  */
 
-import { Queue, Worker, Job } from 'bullmq';
+import { Queue, Worker, Job, UnrecoverableError } from 'bullmq';
 import dotenv from 'dotenv';
 import { createRedisConnection } from '../../lib/redis.js';
 import { db } from '../../db/index.js';
-import { agentTasks, runs, repositories } from '../../db/schema.js';
+import { NotificationService } from '../../notifications/NotificationService.js';
+import { agentTasks, runs, repositories, runLogs, user } from '../../db/schema.js';
 import { eq, and, notLike } from 'drizzle-orm';
 import { getProvider } from '../core/registry.js';
 import type { AgentDefinition, SandboxHandle, AgentRunConfig } from '../core/provider.js';
@@ -39,6 +40,50 @@ import { guardianAgent } from '../definitions/guardian.agent.js';
 import { chatAgent } from '../definitions/chat.agent.js';
 import { broadcast } from '../../routes/ws.js';
 
+export async function logAndBroadcast(
+  type: string,
+  payload: {
+    repo: string;
+    sha: string;
+    agent: string;
+    status: string;
+    step?: string;
+    runId?: number;
+    score?: number | null;
+    findingsCount?: number;
+    error?: string;
+    logType?: 'build' | 'run' | 'system';
+    level?: 'ok' | 'err' | 'inf' | 'warn' | 'plain';
+    message?: string;
+  }
+) {
+  const tsMs = Date.now();
+  // 1. Broadcast live WebSocket update
+  broadcast(type, { ...payload, tsMs });
+
+  // 2. Persist to Postgres run_logs table
+  if (payload.runId) {
+    try {
+      const msg = payload.message || `[${payload.repo}] [${(payload.sha || '').slice(0, 7)}] ${payload.agent}: ${payload.status}`;
+      const [run] = await db.select({ repoId: runs.repoId }).from(runs).where(eq(runs.id, payload.runId));
+      if (run?.repoId) {
+        await db.insert(runLogs).values({
+          runId: payload.runId,
+          repoId: run.repoId,
+          agent: payload.agent,
+          logType: payload.logType ?? 'run',
+          level: payload.level ?? (type === 'agent_failed' ? 'err' : type === 'agent_completed' ? 'ok' : 'plain'),
+          tsMs,
+          message: msg,
+          meta: { step: payload.step, score: payload.score, findingsCount: payload.findingsCount, error: payload.error },
+        });
+      }
+    } catch (e) {
+      console.error('[AgentWorker] Failed to persist runLog:', e);
+    }
+  }
+}
+
 dotenv.config();
 
 // ---------------------------------------------------------------------------
@@ -51,7 +96,16 @@ const connection = createRedisConnection();
 // Queue
 // ---------------------------------------------------------------------------
 
-export const agentQueue = new Queue('agent-jobs', { connection: connection as any });
+export const agentQueue = new Queue('agent-jobs', {
+  connection: connection as any,
+  defaultJobOptions: {
+    attempts: 3,
+    backoff: {
+      type: 'exponential',
+      delay: 5000,
+    }
+  }
+});
 
 // ---------------------------------------------------------------------------
 // Job Interface
@@ -128,13 +182,27 @@ function createSandbox(): LocalExecSandbox | FlySandbox {
 async function claimTaskRow(runId: number, agentId: string, providerName?: string) {
   const [existing] = await db.select().from(agentTasks).where(and(eq(agentTasks.runId, runId), eq(agentTasks.agentId, agentId)));
   if (existing) {
-    await db.update(agentTasks).set({ status: 'running', provider: providerName || 'openai', startedAt: new Date() }).where(eq(agentTasks.id, existing.id));
-    return existing.id;
+    const [claimed] = await db
+      .update(agentTasks)
+      .set({
+        status: 'running',
+        startedAt: new Date(),
+        completedAt: null, // Clear completion timestamp on retry
+      })
+      .where(eq(agentTasks.id, existing.id))
+      .returning();
+      
+    return { taskId: claimed.id, checkpointState: claimed.checkpointState as any[] | null };
   }
   const [inserted] = await db.insert(agentTasks).values({
-    runId, agentId, status: 'running', provider: providerName || 'openai', startedAt: new Date(),
+    runId,
+    agentId,
+    provider: providerName,
+    status: 'running',
+    startedAt: new Date(),
   }).returning();
-  return inserted.id;
+
+  return { taskId: inserted.id, checkpointState: null };
 }
 
 // ---------------------------------------------------------------------------
@@ -146,7 +214,7 @@ export const agentWorker = new Worker('agent-jobs', async (job: Job<AgentJobData
 
   console.log(`[AgentWorker] Starting ${agentId} for ${repoFullName}@${commitSHA} (run #${runId})`);
 
-  const taskId = await claimTaskRow(runId, agentId, providerName);
+  const { taskId, checkpointState } = await claimTaskRow(runId, agentId, providerName);
   let sandbox: LocalExecSandbox | FlySandbox | null = null;
 
   try {
@@ -176,11 +244,11 @@ export const agentWorker = new Worker('agent-jobs', async (job: Job<AgentJobData
       }
     }
 
-    broadcast('agent_active', { repo: repoFullName, sha: commitSHA, agent: agentId, status: 'Initializing container...', step: 'init', runId });
+    logAndBroadcast('agent_active', { repo: repoFullName, sha: commitSHA, agent: agentId, status: 'Initializing container...', step: 'init', runId, logType: 'build', level: 'plain' });
 
     sandbox = createSandbox();
     await sandbox.init(`https://github.com/${repoFullName}.git`, commitSHA, {}, installationToken);
-    broadcast('agent_active', { repo: repoFullName, sha: commitSHA, agent: agentId, status: 'Cloned & Sandboxed', step: 'cloned', runId });
+    logAndBroadcast('agent_active', { repo: repoFullName, sha: commitSHA, agent: agentId, status: 'Cloned & Sandboxed', step: 'cloned', runId, logType: 'build', level: 'plain' });
 
     // -----------------------------------------------------------------------
     // 3. Build the tools
@@ -228,12 +296,13 @@ Use these EXACT values for any tool parameter named runId/repoId — never inven
       model: model || definition.defaultModel,
       commitSHA,
       repoFullName,
+      checkpointState: checkpointState || undefined,
     };
 
     // -----------------------------------------------------------------------
     // 5. Execute via the provider
     // -----------------------------------------------------------------------
-    broadcast('agent_active', { repo: repoFullName, sha: commitSHA, agent: agentId, status: 'Running AST & Security Checks...', step: 'scanning', runId });
+    logAndBroadcast('agent_active', { repo: repoFullName, sha: commitSHA, agent: agentId, status: 'Running AST & Security Checks...', step: 'scanning', runId, logType: 'run', level: 'inf' });
     const provider = getProvider(providerName);
     const result = await provider.execute(config);
 
@@ -249,7 +318,7 @@ Use these EXACT values for any tool parameter named runId/repoId — never inven
     // trust to auto-fix. repoForClone was already loaded above for the clone token.
     const autoFixAllowed = repoForClone?.autoFixEnabled !== false;
     if (autoFixAllowed && AUTO_FIX_ELIGIBLE_AGENTS.has(agentId) && result.status !== 'error' && result.findings.length > 0 && runRow?.repoId != null) {
-      broadcast('agent_active', { repo: repoFullName, sha: commitSHA, agent: agentId, status: 'Generating Auto-Fix PR...', step: 'autofix', runId });
+      logAndBroadcast('agent_active', { repo: repoFullName, sha: commitSHA, agent: agentId, status: 'Generating Auto-Fix PR...', step: 'autofix', runId, logType: 'run', level: 'warn' });
       try {
         const { openFixPR } = await import('../fixer/fixer.service.js');
         const outcome = await openFixPR({
@@ -447,25 +516,81 @@ Use these EXACT values for any tool parameter named runId/repoId — never inven
       .where(eq(agentTasks.id, taskId));
 
     console.log(`[AgentWorker] ${agentId} completed: score=${result.score}, findings=${result.findings.length}, duration=${result.duration}ms`);
-    broadcast('agent_completed', { repo: repoFullName, sha: commitSHA, agent: agentId, status: 'Completed', score: result.score, findingsCount: result.findings.length, step: 'done', runId });
+    logAndBroadcast('agent_completed', { repo: repoFullName, sha: commitSHA, agent: agentId, status: 'Completed', score: result.score, findingsCount: result.findings.length, step: 'done', runId, logType: 'run', level: 'ok' });
 
     return result;
 
   } catch (error) {
     const err = error as Error;
-    console.error(`[AgentWorker] ${agentId} failed:`, err.message);
-    broadcast('agent_failed', { repo: repoFullName, sha: commitSHA, agent: agentId, status: 'Failed', error: err.message, step: 'error', runId });
+    console.error(`[AgentWorker] ${agentId} failed (Attempt ${job.attemptsMade + 1}):`, err.message);
 
-    // Mark as failed in the database
-    await db.update(agentTasks)
-      .set({
-        status: 'failed',
-        error: err.message,
-        completedAt: new Date(),
-      })
-      .where(eq(agentTasks.id, taskId));
+    const msg = err.message.toLowerCase();
+    const isDeterministic = msg.includes('429') || msg.includes('insufficient_quota') || msg.includes('401') || msg.includes('syntaxerror');
+    const maxAttempts = job.opts.attempts || 1;
+    const willRetry = !isDeterministic && (job.attemptsMade + 1 < maxAttempts);
+    
+    const checkpointState = (error as any).checkpointState || null;
 
-    throw error; // Re-throw so BullMQ can handle retries
+    if (willRetry) {
+      const retryMsg = `Retrying automatically (Attempt ${job.attemptsMade + 2} of ${maxAttempts}) - ${err.message}`;
+      console.log(`[AgentWorker] ${agentId} - ${retryMsg}`);
+      logAndBroadcast('agent_active', { repo: repoFullName, sha: commitSHA, agent: agentId, status: retryMsg, step: 'retrying', runId, logType: 'system', level: 'warn' });
+      
+      if (checkpointState) {
+        await db.update(agentTasks).set({ checkpointState }).where(eq(agentTasks.id, taskId));
+      }
+    } else {
+      // Final failure or deterministic
+      logAndBroadcast('agent_failed', { repo: repoFullName, sha: commitSHA, agent: agentId, status: 'Failed', error: err.message, step: 'error', runId, logType: 'run', level: 'err' });
+
+      // Mark as failed in the database and save checkpoint
+      await db.update(agentTasks)
+        .set({
+          status: 'failed',
+          error: err.message,
+          checkpointState,
+          completedAt: new Date(),
+        })
+        .where(eq(agentTasks.id, taskId));
+      
+      // Since it's a final failure, trigger the email notification here
+      try {
+        const repoUrl = `https://app.codeward.cloud/runs/${runId}`;
+        const logTail = err.message + '\n' + (err.stack || '');
+        
+        // We look up the organization owner's email. For now, since we have repoFullName,
+        // we can fetch the user associated with the repo.
+        const [runRowCatch] = await db.select().from(runs).where(eq(runs.id, runId));
+        if (runRowCatch?.repoId) {
+          const [repoOwner] = await db
+            .select({ email: user.email })
+            .from(repositories)
+            .innerJoin(user, eq(repositories.userId, user.id))
+            .where(eq(repositories.id, runRowCatch.repoId));
+
+          if (repoOwner?.email) {
+            await NotificationService.sendRunFailure(
+              repoOwner.email,
+              repoFullName,
+              agentId,
+              runId,
+              commitSHA,
+              err.message,
+              `${repoUrl}/retry`,
+              logTail.substring(0, 2000)
+            );
+          }
+        }
+      } catch (emailErr) {
+        console.error(`[AgentWorker] Failed to send failure email for ${agentId}:`, emailErr);
+      }
+    }
+
+    if (isDeterministic) {
+      throw new UnrecoverableError(`Deterministic failure: ${err.message}`);
+    }
+    
+    throw error; // Re-throw so BullMQ can handle retries (or move to failed if exhausted)
   } finally {
     if (sandbox) {
       await sandbox.destroy();

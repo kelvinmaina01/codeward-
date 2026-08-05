@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { auth } from '../auth/index.js';
 import { db } from '../db/index.js';
 import * as schema from '../db/schema.js';
-import { eq, and, or, inArray, desc } from 'drizzle-orm';
+import { eq, and, or, inArray, desc, gte } from 'drizzle-orm';
 
 export const alertsRouter = new Hono();
 
@@ -35,8 +35,20 @@ alertsRouter.get('/', async (c) => {
   if (repos.length === 0) return c.json({ alerts: [], stats: { total: 0, high: 0, critical: 0, fixesOpened: 0 } });
 
   const repoById = new Map(repos.map((r) => [r.id, r]));
+  const tf = c.req.query('timeFilter') || 'all';
+  const timeFilterMap: Record<string, number> = {
+    '1d': 24 * 60 * 60 * 1000,
+    '7d': 7 * 24 * 60 * 60 * 1000,
+    '15d': 15 * 24 * 60 * 60 * 1000,
+  };
+
+  const baseCond = inArray(schema.runs.repoId, repos.map((r) => r.id));
+  const cond = tf !== 'all' && timeFilterMap[tf]
+    ? and(baseCond, gte(schema.runs.createdAt, new Date(Date.now() - timeFilterMap[tf])))
+    : baseCond;
+
   const recentRuns = await db.select().from(schema.runs)
-    .where(inArray(schema.runs.repoId, repos.map((r) => r.id)))
+    .where(cond)
     .orderBy(desc(schema.runs.createdAt)).limit(40);
   if (recentRuns.length === 0) return c.json({ alerts: [], stats: { total: 0, high: 0, critical: 0, fixesOpened: 0 } });
 

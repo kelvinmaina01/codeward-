@@ -112,6 +112,9 @@ export interface AgentRunConfig {
 
   /** The repository being analyzed (e.g. 'acme-corp/my-api') */
   repoFullName: string;
+
+  /** Restored conversation history from a failed previous run */
+  checkpointState?: any[];
 }
 
 // ---------------------------------------------------------------------------

@@ -2,7 +2,9 @@ import { LocalExecSandbox } from './sandbox/local-exec.js';
 import { securityAgent } from './agents/definitions/security.agent.js';
 import { NativeOpenAIProvider } from './providers/openai.provider.js';
 import { runAgentLoop } from './agents/agent-loop.js';
-import 'dotenv/config';
+import dotenv from 'dotenv';
+import path from 'path';
+dotenv.config({ path: path.resolve(process.cwd(), 'apps/api/.env') });
 
 const REPO_URL = 'https://github.com/kelvinmaina01/codeward-.git';
 

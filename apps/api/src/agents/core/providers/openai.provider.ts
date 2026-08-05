@@ -49,7 +49,7 @@ export class OpenAIProvider implements AgentProvider {
         systemPrompt: config.systemPrompt,
         maxSteps: config.maxSteps,
         tools: toolArray,
-        messages: [{ role: 'user', content: config.taskPrompt }],
+        messages: config.checkpointState || [{ role: 'user', content: config.taskPrompt }],
       }, provider);
 
       // Orchestrator's submit_orchestrator_decision schema uses overallWeightedScore/
@@ -77,15 +77,7 @@ export class OpenAIProvider implements AgentProvider {
     } catch (error) {
       const err = error as Error;
       console.error(`[OpenAIProvider] Agent "${config.agentId}" failed:`, err.message);
-      return {
-        agentId: config.agentId,
-        status: 'error',
-        findings: [],
-        score: 0,
-        duration: Date.now() - startTime,
-        modelUsed: model,
-        tokenUsage: { input: 0, output: 0 },
-      };
+      throw error; // Re-throw so BullMQ and the worker's catch block can handle retries and checkpointing
     }
   }
 }

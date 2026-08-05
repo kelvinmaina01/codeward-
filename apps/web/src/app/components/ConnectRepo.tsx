@@ -324,13 +324,7 @@ export function ConnectRepo({ user, onConnect, onSkip, activeOrg, setActiveOrg, 
                     onClick={() => { setAuthProvider('gitlab'); setActiveStep(STEPS.GITLAB_AUTH); }}
                     className="flex items-center justify-center gap-3 p-3 bg-cw-bg3 border border-cw-bdr rounded-lg hover:border-cw-purple transition text-sm font-medium text-cw-txt"
                   >
-                    <svg className="w-5 h-5 shrink-0" viewBox="0 0 380 380" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path fill="#E24329" d="M269.41 127.31l-29.35-90.31a10.66 10.66 0 0 0-20.26 0l-29.8 90.31h139.69a10.67 10.67 0 0 0-20.28 0z" />
-                      <path fill="#FC6D26" d="M190 351.46l89.6-275.82h-139.7l50.1 275.82z" />
-                      <path fill="#FCA326" d="M370.47 186.23l-90.87 165.23-89.6-275.82 120.47-5.06a10.65 10.65 0 0 1 10.29 13.62l49.71 102.03z" />
-                      <path fill="#E24329" d="M110.59 127.31l29.35-90.31a10.66 10.66 0 0 1 20.26 0l29.8 90.31H50.31a10.67 10.67 0 0 1 20.28 0z" />
-                      <path fill="#FCA326" d="M9.53 186.23l90.87 165.23 89.6-275.82L69.53 70.58a10.65 10.65 0 0 0-10.29 13.62L9.53 186.23z" />
-                    </svg>
+                    <img src="https://i.ibb.co/SDsmVD5S/GITLABLOGO-removebg-preview.png" className="w-5 h-5 object-contain" alt="GitLab" />
                     Continue with GitLab
                   </button>
                 </div>

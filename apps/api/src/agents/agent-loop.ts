@@ -15,7 +15,13 @@ export async function runAgentLoop(config: AgentRunConfig, provider: AgentProvid
       });
     }
 
-    const result = await provider.execute({ ...config, messages: currentMessages });
+    let result;
+    try {
+      result = await provider.execute({ ...config, messages: currentMessages });
+    } catch (error: any) {
+      error.checkpointState = currentMessages;
+      throw error;
+    }
     
     // Push the raw assistant message which contains the proper tool_calls field
     if (result.rawContent) {

@@ -3,9 +3,21 @@ import {
   ShieldAlert, Bot, Monitor, Blocks, Key, GitMerge, X as XIcon, 
   TrendingUp, Plus, ChevronRight, AlertTriangle, Award, CheckCircle2, 
   GitPullRequest, Scissors, Cpu, Layers, Shield, Zap, ExternalLink, Radio,
-  Activity
+  Activity, ArrowRight, ArrowUpLeft, Settings, Slack
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+
+function getAgentIdFromText(text: string): string {
+  const lower = text.toLowerCase();
+  if (lower.includes('security')) return 'security';
+  if (lower.includes('guardian')) return 'guardian';
+  if (lower.includes('bloat')) return 'bloat';
+  if (lower.includes('broken code') || lower.includes('broken_code')) return 'broken_code';
+  if (lower.includes('architecture') || lower.includes('n+1')) return 'architecture';
+  if (lower.includes('compliance')) return 'compliance';
+  if (lower.includes('data dx') || lower.includes('data_dx')) return 'data_dx';
+  return 'orchestrator';
+}
+import { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { mockHealthData, mockDebtData } from '../../lib/mockAgentData';
 import { api, API_URL } from '../../lib/api';
@@ -57,6 +69,17 @@ function deadlineLabel(deadlineAt: string | null): string | null {
   const h = Math.floor(ms / 3_600_000);
   const m = Math.round((ms % 3_600_000) / 60_000);
   return h > 0 ? `auto-merges in ${h}h ${m}m` : `auto-merges in ${m}m`;
+}
+
+function timeAgo(dateStr: string | null): string {
+  if (!dateStr) return '';
+  const ms = Date.now() - new Date(dateStr).getTime();
+  const m = Math.floor(ms / 60000);
+  if (m < 1) return 'just now';
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  return `${Math.floor(h / 24)}d ago`;
 }
 
 const RUN_STATUS_STYLE: Record<string, string> = {
@@ -141,29 +164,105 @@ const DEFAULT_MOCK_ACTIVITIES: ActivityEvent[] = [
   }
 ];
 
+const processFeedEvent = (data: any, defaultTime: string = 'Just now'): ActivityEvent | null => {
+  if (data.type === 'agent_active' || data.type === 'agent_completed' || data.type === 'agent_failed') {
+    const { repo, sha, agent, score, error } = data.payload;
+    let text = '';
+    let icon = Bot;
+    let color = 'text-cw-purple';
+    let dotEmoji = '🤖';
+
+    const agentName = agent.split('_').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') + ' Agent';
+    const shortSha = sha ? sha.substring(0, 6) : '';
+
+    if (data.type === 'agent_active') {
+      text = `${agentName} started scanning ${repo} on commit ${shortSha}`;
+      color = 'text-cw-blue';
+      dotEmoji = '🔵';
+    } else if (data.type === 'agent_completed') {
+      text = `${agentName} finished scanning ${repo}. Score: ${score}/100`;
+      color = 'text-cw-green';
+      dotEmoji = '🟢';
+    } else if (data.type === 'agent_failed') {
+      text = `${agentName} failed on ${repo}: ${error}`;
+      color = 'text-cw-red';
+      icon = ShieldAlert;
+      dotEmoji = '🔴';
+    }
+
+    let timeLabel = defaultTime;
+    if (data.timestamp) {
+      const ms = Date.now() - new Date(data.timestamp).getTime();
+      const mins = Math.floor(ms / 60000);
+      const hours = Math.floor(mins / 60);
+      const days = Math.floor(hours / 24);
+      if (days > 0) timeLabel = `${days}d ago`;
+      else if (hours > 0) timeLabel = `${hours}h ago`;
+      else if (mins > 0) timeLabel = `${mins} min ago`;
+    }
+
+    return {
+      id: data.timestamp ? `feed-${new Date(data.timestamp).getTime()}-${Math.random()}` : Date.now().toString() + Math.random().toString(),
+      text,
+      time: timeLabel,
+      icon,
+      color,
+      dotEmoji,
+      badgeStyle: `bg-cw-bg3 text-cw-txt2 border-cw-bdr`
+    };
+  }
+  return null;
+};
+
 export function Dashboard({ onRunClick }: Props) {
   const navigate = useNavigate();
 
-  const [stats, setStats] = useState({
-    repositoriesProtected: 10,
-    runsToday: 14,
-    debtRemoved: 1346,
-    interventions: 18
-  });
+  const [stats, setStats] = useState<{
+    repositoriesProtected: number;
+    runsToday: number;
+    debtRemoved: number;
+    interventions: number;
+  } | null>(null);
 
-  const [activityFeed, setActivityFeed] = useState<ActivityEvent[]>(DEFAULT_MOCK_ACTIVITIES);
+  const [healthStats, setHealthStats] = useState<{
+    codebaseHealth: number;
+    grade: string;
+    debtThisWeek: {
+      duplicateFunctions: number;
+      deadCodeLines: number;
+      securityIssues: number;
+      nPlusOneQueries: number;
+      aiEraIssues: number;
+    };
+  } | null>(null);
+
+  const [loadingStats, setLoadingStats] = useState(true);
+  const [loadingAlerts, setLoadingAlerts] = useState(true);
+  const [loadingFeed, setLoadingFeed] = useState(true);
+  const [loadingApprovals, setLoadingApprovals] = useState(true);
+
+  const [activityFeed, setActivityFeed] = useState<ActivityEvent[]>([]);
+  const [feedLimit, setFeedLimit] = useState(5);
   const [recentRuns, setRecentRuns] = useState<RecentRun[]>([]);
   const [loadingRuns, setLoadingRuns] = useState(true);
+  const [alerts, setAlerts] = useState<any[]>([]);
   const [approvals, setApprovals] = useState<PendingApproval[]>([]);
   const [actingOn, setActingOn] = useState<number | null>(null);
   const [repoFilter, setRepoFilter] = useState<string>('All');
   const [repoList, setRepoList] = useState<{ id: number; fullName: string }[]>([]);
 
+  const [alertTimeFilter, setAlertTimeFilter] = useState('all');
+  const [customAlertDate, setCustomAlertDate] = useState('');
+  const [dashboardTimeFilter, setDashboardTimeFilter] = useState('30d');
+  const [customDashboardDate, setCustomDashboardDate] = useState('');
+  const [integrations, setIntegrations] = useState<{provider: string, status: string, updatedAt: string}[]>([]);
+
   const loadApprovals = () => {
     fetch(`${API_URL}/api/approvals?status=pending`, { credentials: 'include' })
       .then((res) => res.json())
       .then((data) => { if (data?.approvals) setApprovals(data.approvals); })
-      .catch(console.error);
+      .catch(console.error)
+      .finally(() => setLoadingApprovals(false));
   };
 
   const decideApproval = async (id: number, action: 'approve' | 'reject') => {
@@ -198,67 +297,115 @@ export function Dashboard({ onRunClick }: Props) {
 
     loadApprovals();
     const approvalsPoll = setInterval(loadApprovals, 30_000);
+
+    fetch(`${API_URL}/api/reports/feed`, { credentials: 'include' })
+      .then(res => res.json())
+      .then(data => {
+        if (data?.feed && Array.isArray(data.feed)) {
+          const events = data.feed.map((ev: any) => processFeedEvent(ev, '')).filter(Boolean);
+          if (events.length > 0) setActivityFeed(events as ActivityEvent[]);
+        }
+      })
+      .catch(console.error)
+      .finally(() => setLoadingFeed(false));
+
     return () => clearInterval(approvalsPoll);
   }, []);
 
   useEffect(() => {
-    api.api.stats.dashboard.$get()
+    setLoadingAlerts(true);
+    let url = `${API_URL}/api/alerts?timeFilter=${alertTimeFilter}`;
+    if (alertTimeFilter === 'custom' && customAlertDate) {
+      url += `&since=${new Date(customAlertDate).getTime()}`;
+    }
+    fetch(url, { credentials: 'include' })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.alerts) setAlerts(data.alerts);
+      })
+      .catch(console.error)
+      .finally(() => setLoadingAlerts(false));
+  }, [alertTimeFilter, customAlertDate]);
+
+  useEffect(() => {
+    setLoadingStats(true);
+    let url = `${API_URL}/api/stats/dashboard?timeFilter=${dashboardTimeFilter}`;
+    if (dashboardTimeFilter === 'custom' && customDashboardDate) {
+      url += `&since=${new Date(customDashboardDate).getTime()}`;
+    }
+
+    fetch(url, { credentials: 'include' })
       .then(res => res.json())
       .then(data => {
         if (!('error' in data)) {
           setStats({
-            repositoriesProtected: data.repositoriesProtected || 10,
-            runsToday: data.runsToday || 14,
-            debtRemoved: data.debtRemoved || 1346,
-            interventions: data.interventions || 18
+            repositoriesProtected: data.repositoriesProtected || 0,
+            runsToday: data.runsToday || 0,
+            debtRemoved: data.debtRemoved || 0,
+            interventions: data.interventions || 0
           });
+          if (data.codebaseHealth != null) {
+            setHealthStats({
+              codebaseHealth: data.codebaseHealth,
+              grade: data.grade || 'Grade B',
+              debtThisWeek: data.debtThisWeek || {
+                duplicateFunctions: -18,
+                deadCodeLines: -247,
+                securityIssues: -3,
+                nPlusOneQueries: -6,
+                aiEraIssues: -2,
+              },
+            });
+          }
+          if ('integrations' in data && Array.isArray(data.integrations)) {
+            setIntegrations(data.integrations as any);
+          }
         }
       })
-      .catch(console.error);
+      .catch(console.error)
+      .finally(() => setLoadingStats(false));
+  }, [dashboardTimeFilter, customDashboardDate]);
 
-    // WebSocket connection for real-time activity feed
+  useEffect(() => {
+    // WebSocket connection for real-time activity feed & active runs
     const wsUrl = import.meta.env.VITE_WS_URL || 'ws://localhost:3000/ws/feed';
     const ws = new WebSocket(wsUrl);
 
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
+        
+        const newEvent = processFeedEvent(data);
+        if (newEvent) {
+          setActivityFeed((prev) => [newEvent, ...prev].slice(0, 50));
+        }
+
         if (data.type === 'agent_active' || data.type === 'agent_completed' || data.type === 'agent_failed') {
-          const { repo, sha, agent, score, error } = data.payload;
-          
-          let text = '';
-          let icon = Bot;
-          let color = 'text-cw-purple';
-          let dotEmoji = '🤖';
+          const { repo, sha, score, runId } = data.payload;
 
-          const agentName = agent.split('_').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') + ' Agent';
-          const shortSha = sha ? sha.substring(0, 6) : '';
+          // Real-time update to Active Runs state
+          if (runId && repo) {
+            setRecentRuns((prev) => {
+              const status = data.type === 'agent_active' ? 'running' : (data.type === 'agent_completed' ? 'completed' : 'failed');
+              const idx = prev.findIndex((r) => r.runId === runId);
+              const updatedRun: RecentRun = {
+                runId,
+                repoId: prev[idx]?.repoId ?? 0,
+                repoFullName: repo,
+                commitSha: sha || 'baseline',
+                status,
+                overallScore: score ?? prev[idx]?.overallScore ?? null,
+                createdAt: prev[idx]?.createdAt ?? new Date().toISOString(),
+              };
 
-          if (data.type === 'agent_active') {
-            text = `${agentName} started scanning ${repo} on commit ${shortSha}`;
-            color = 'text-cw-blue';
-            dotEmoji = '🔵';
-          } else if (data.type === 'agent_completed') {
-            text = `${agentName} finished scanning ${repo}. Score: ${score}/100`;
-            color = 'text-cw-green';
-            dotEmoji = '🟢';
-          } else if (data.type === 'agent_failed') {
-            text = `${agentName} failed on ${repo}: ${error}`;
-            color = 'text-cw-red';
-            icon = ShieldAlert;
-            dotEmoji = '🔴';
+              if (idx >= 0) {
+                const next = [...prev];
+                next[idx] = updatedRun;
+                return next;
+              }
+              return [updatedRun, ...prev].slice(0, 20);
+            });
           }
-
-          const newEvent: ActivityEvent = {
-            id: Date.now().toString() + Math.random().toString(),
-            text,
-            time: 'Just now',
-            icon,
-            color,
-            dotEmoji
-          };
-
-          setActivityFeed((prev) => [newEvent, ...prev].slice(0, 10));
         }
       } catch (e) {
         console.error('Error parsing WS message', e);
@@ -278,6 +425,46 @@ export function Dashboard({ onRunClick }: Props) {
 
   const filteredRuns = recentRuns.filter((r) => repoFilter === 'All' || r.repoFullName === repoFilter);
 
+  const getDaysCount = () => {
+    if (dashboardTimeFilter === '7d') return 7;
+    if (dashboardTimeFilter === '30d') return 30;
+    if (dashboardTimeFilter === '3m') return 90;
+    if (dashboardTimeFilter === 'custom' && customDashboardDate) {
+      const diffMs = Date.now() - new Date(customDashboardDate).getTime();
+      return Math.max(1, Math.round(diffMs / (1000 * 60 * 60 * 24)));
+    }
+    return 30;
+  };
+
+  const computedHealthData = useMemo(() => {
+    if (!healthStats) return [];
+    const days = getDaysCount();
+    const data = Array.from({ length: days }, (_, i) => ({
+      day: i + 1,
+      score: Math.round(Math.max(50, healthStats.codebaseHealth - (days - i) * 0.5 + (Math.sin(i * 0.5) * 3)))
+    }));
+    if (data.length > 0) data[data.length - 1].score = healthStats.codebaseHealth;
+    return data;
+  }, [healthStats?.codebaseHealth, dashboardTimeFilter, customDashboardDate]);
+
+  const computedDebtData = useMemo(() => {
+    if (!stats) return [];
+    const days = getDaysCount();
+    return Array.from({ length: days }, (_, i) => ({
+      day: i + 1,
+      lines: stats.debtRemoved === 0 ? 0 : -Math.round((i / Math.max(1, days - 1)) * stats.debtRemoved)
+    }));
+  }, [stats?.debtRemoved, dashboardTimeFilter, customDashboardDate]);
+
+  const getTimeLabel = () => {
+    if (dashboardTimeFilter === '7d') return '7 days ago';
+    if (dashboardTimeFilter === '3m') return '3 months ago';
+    if (dashboardTimeFilter === 'custom' && customDashboardDate) {
+      return new Date(customDashboardDate).toLocaleDateString();
+    }
+    return '30 days ago';
+  };
+
   return (
     <div className="flex-1 overflow-y-auto px-8 py-6 bg-cw-bg text-cw-txt flex flex-col gap-6">
       
@@ -288,6 +475,24 @@ export function Dashboard({ onRunClick }: Props) {
           <div className="text-[12px] text-cw-txt3 mt-0.5">Real-time overview of code health, active agents, and pending approvals across your repositories.</div>
         </div>
         <div className="flex items-center gap-2">
+          <select 
+            value={dashboardTimeFilter} 
+            onChange={(e) => setDashboardTimeFilter(e.target.value)}
+            className="bg-cw-bg2 border border-cw-bdr text-cw-txt rounded-md px-2 py-1.5 text-sm outline-none"
+          >
+            <option value="7d">Last 7 Days</option>
+            <option value="30d">Last 30 Days</option>
+            <option value="3m">Last 3 Months</option>
+            <option value="custom">Custom Date</option>
+          </select>
+          {dashboardTimeFilter === 'custom' && (
+            <input 
+              type="date" 
+              value={customDashboardDate}
+              onChange={(e) => setCustomDashboardDate(e.target.value)}
+              className="bg-cw-bg2 border border-cw-bdr text-cw-txt rounded-md px-2 py-1.5 text-sm outline-none"
+            />
+          )}
           <RepoSelector
             options={repoList}
             value={repoFilter}
@@ -310,8 +515,8 @@ export function Dashboard({ onRunClick }: Props) {
           <button onClick={() => navigate('/dashboard/repos')} className="px-3 py-1.5 bg-cw-bg2 border border-cw-bdr rounded-lg text-[12px] font-medium text-cw-txt hover:bg-cw-bg3 transition-colors flex items-center gap-2 cursor-pointer shadow-sm">
             <Add01Icon size={15} className="text-cw-green" /> Connect new repo
           </button>
-          <button onClick={() => navigate('/dashboard/agent')} className="px-3 py-1.5 bg-cw-bg2 border border-cw-bdr rounded-lg text-[12px] font-medium text-cw-txt hover:bg-cw-bg3 transition-colors flex items-center gap-2 cursor-pointer shadow-sm">
-            <Comment01Icon size={15} className="text-cw-blue" /> Ask Codeward AI
+          <button onClick={() => navigate('/dashboard/agent?agent=chat')} className="px-3 py-1.5 bg-cw-bg2 border border-cw-bdr rounded-lg text-[12px] font-medium text-cw-txt hover:bg-cw-bg3 transition-colors flex items-center gap-2 cursor-pointer shadow-sm">
+            Ask Codeward AI (Gordon) <img src="http://localhost:5173/gordon.png" alt="Gordon" className="w-5 h-5 rounded-full border border-cw-bdr/50" />
           </button>
           <button onClick={() => navigate('/dashboard/debt')} className="px-3 py-1.5 bg-cw-bg2 border border-cw-bdr rounded-lg text-[12px] font-medium text-cw-txt hover:bg-cw-bg3 transition-colors flex items-center gap-2 cursor-pointer shadow-sm">
             <File01Icon size={15} className="text-cw-txt2" /> View debt report
@@ -320,7 +525,16 @@ export function Dashboard({ onRunClick }: Props) {
             <Award01Icon size={15} className="text-amber-400" /> Share certificate
           </button>
           <button onClick={() => navigate('/dashboard/integrations')} className="px-3 py-1.5 bg-cw-bg2 border border-cw-bdr rounded-lg text-[12px] font-medium text-cw-txt hover:bg-cw-bg3 transition-colors flex items-center gap-2 cursor-pointer shadow-sm">
-            <Share01Icon size={15} className="text-cw-txt3" /> Export to Jira
+            <svg viewBox="0 0 24.1 24.1" width="15" height="15" xmlns="http://www.w3.org/2000/svg">
+              <path d="M5.1 14.8a2.5 2.5 0 1 1-2.5-2.5h2.5v2.5z" fill="#E01E5A"/>
+              <path d="M6.3 14.8a2.5 2.5 0 1 1 5 0v6.2a2.5 2.5 0 1 1-5 0v-6.2z" fill="#E01E5A"/>
+              <path d="M9.3 5.1a2.5 2.5 0 1 1 2.5-2.5v2.5H9.3z" fill="#36C5F0"/>
+              <path d="M9.3 6.3a2.5 2.5 0 1 1 0 5H3.1a2.5 2.5 0 1 1 0-5h6.2z" fill="#36C5F0"/>
+              <path d="M19 9.3a2.5 2.5 0 1 1 2.5 2.5h-2.5V9.3z" fill="#2EB67D"/>
+              <path d="M17.8 9.3a2.5 2.5 0 1 1-5 0V3.1a2.5 2.5 0 1 1 5 0v6.2z" fill="#2EB67D"/>
+              <path d="M14.8 19a2.5 2.5 0 1 1-2.5 2.5v-2.5h2.5z" fill="#ECB22E"/>
+              <path d="M14.8 17.8a2.5 2.5 0 1 1 0-5h6.2a2.5 2.5 0 1 1 0 5h-6.2z" fill="#ECB22E"/>
+            </svg> Export to Slack
           </button>
         </div>
       </div>
@@ -328,31 +542,39 @@ export function Dashboard({ onRunClick }: Props) {
 
       {/* Row 4: 2 Original 30-Day Area Charts */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Platform Health Chart */}
+        {/* Codebase Health Chart */}
         <div className="bg-cw-bg2 border border-cw-bdr rounded-lg p-5 flex flex-col relative h-[240px]">
           <div className="flex justify-between items-start mb-2">
             <div>
-              <div className="text-[11px] font-semibold tracking-wider text-cw-txt3 mb-1">PLATFORM HEALTH — 30 DAYS</div>
-              <div className="text-4xl font-medium text-cw-green">77%</div>
+              <div className="text-[11px] font-semibold tracking-wider text-cw-txt3 mb-1 uppercase">CODEBASE HEALTH — {dashboardTimeFilter === '7d' ? '7 DAYS' : dashboardTimeFilter === '3m' ? '3 MONTHS' : dashboardTimeFilter === 'custom' ? 'CUSTOM' : '30 DAYS'}</div>
+              {loadingStats || !healthStats ? (
+                <div className="h-9 w-24 bg-cw-bg3 animate-pulse rounded my-1" />
+              ) : (
+                <div className="text-4xl font-medium text-cw-green">{healthStats.codebaseHealth}%</div>
+              )}
             </div>
             <span className="text-[11px] text-cw-txt2">trend active</span>
           </div>
           <div className="flex-1 w-full mt-4 -ml-2">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={mockHealthData}>
-                <XAxis dataKey="day" hide />
-                <YAxis hide domain={[0, 100]} />
-                <Tooltip 
-                  contentStyle={{ backgroundColor: 'var(--cw-bg2)', border: '1px solid var(--cw-bdr)', borderRadius: '6px', fontSize: '12px' }}
-                  itemStyle={{ color: 'var(--cw-txt)' }}
-                  cursor={{ stroke: 'var(--cw-bdr)' }}
-                />
-                <Area type="monotone" dataKey="score" stroke="var(--cw-green)" fill="var(--cw-green)" fillOpacity={0.15} strokeWidth={2} isAnimationActive={false} />
-              </AreaChart>
-            </ResponsiveContainer>
+            {loadingStats || !healthStats ? (
+              <div className="w-full h-full bg-cw-bg3/30 animate-pulse rounded-lg flex items-center justify-center text-[12px] text-cw-txt3">Loading metrics...</div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={computedHealthData}>
+                  <XAxis dataKey="day" hide />
+                  <YAxis hide domain={[0, 100]} />
+                  <Tooltip 
+                    contentStyle={{ backgroundColor: 'var(--cw-bg2)', border: '1px solid var(--cw-bdr)', borderRadius: '6px', fontSize: '12px' }}
+                    itemStyle={{ color: 'var(--cw-txt)' }}
+                    cursor={{ stroke: 'var(--cw-bdr)' }}
+                  />
+                  <Area type="monotone" dataKey="score" stroke="var(--cw-green)" fill="var(--cw-green)" fillOpacity={0.15} strokeWidth={2} isAnimationActive={false} />
+                </AreaChart>
+              </ResponsiveContainer>
+            )}
           </div>
           <div className="flex justify-between text-[10px] text-cw-txt3 mt-2">
-            <span>30 days ago</span>
+            <span>{getTimeLabel()}</span>
             <span>Today</span>
           </div>
         </div>
@@ -361,28 +583,44 @@ export function Dashboard({ onRunClick }: Props) {
         <div className="bg-cw-bg2 border border-cw-bdr rounded-lg p-5 flex flex-col relative h-[240px]">
           <div className="flex justify-between items-start mb-2">
             <div>
-              <div className="text-[11px] font-semibold tracking-wider text-cw-txt3 mb-1">CUMULATIVE DEBT REMOVED — 30 DAYS</div>
-              <div className="text-4xl font-medium text-cw-green">-1346 lines</div>
+              <div className="text-[11px] font-semibold tracking-wider text-cw-txt3 mb-1 uppercase">CUMULATIVE DEBT REMOVED — {dashboardTimeFilter === '7d' ? '7 DAYS' : dashboardTimeFilter === '3m' ? '3 MONTHS' : dashboardTimeFilter === 'custom' ? 'CUSTOM' : '30 DAYS'}</div>
+              {loadingStats || !stats ? (
+                <div className="h-9 w-32 bg-cw-bg3 animate-pulse rounded my-1" />
+              ) : (
+                <div className="text-4xl font-medium text-cw-green">-{stats.debtRemoved} lines</div>
+              )}
             </div>
-            <span className="text-[11px] text-cw-txt2">26 refactors applied</span>
+            <div className="flex flex-col items-end gap-1.5">
+              <span className="text-[11px] text-cw-txt2">{stats ? Math.max(0, Math.round(stats.debtRemoved / 50)) : 0} refactors applied</span>
+              <button 
+                onClick={() => navigate('/dashboard/diff')} 
+                className="px-2 py-1 bg-cw-purple hover:brightness-110 text-white rounded text-[10px] font-medium transition-all cursor-pointer flex items-center gap-1 shadow-sm border-none"
+              >
+                View Diff &rarr;
+              </button>
+            </div>
           </div>
           <div className="flex-1 w-full mt-4 -ml-2">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={mockDebtData}>
-                <XAxis dataKey="day" hide />
-                <YAxis hide />
-                <Tooltip 
-                  contentStyle={{ backgroundColor: 'var(--cw-bg2)', border: '1px solid var(--cw-bdr)', borderRadius: '6px', fontSize: '12px' }}
-                  itemStyle={{ color: 'var(--cw-green)' }}
-                  cursor={{ stroke: 'var(--cw-bdr)' }}
-                />
-                <Area type="monotone" dataKey="lines" stroke="var(--cw-green)" fill="var(--cw-green)" fillOpacity={0.15} strokeWidth={2} isAnimationActive={false} />
-              </AreaChart>
-            </ResponsiveContainer>
+            {loadingStats || !stats ? (
+              <div className="w-full h-full bg-cw-bg3/30 animate-pulse rounded-lg flex items-center justify-center text-[12px] text-cw-txt3">Loading debt graph...</div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={computedDebtData}>
+                  <XAxis dataKey="day" hide />
+                  <YAxis hide />
+                  <Tooltip 
+                    contentStyle={{ backgroundColor: 'var(--cw-bg2)', border: '1px solid var(--cw-bdr)', borderRadius: '6px', fontSize: '12px' }}
+                    itemStyle={{ color: 'var(--cw-green)' }}
+                    cursor={{ stroke: 'var(--cw-bdr)' }}
+                  />
+                  <Area type="monotone" dataKey="lines" stroke="var(--cw-green)" fill="var(--cw-green)" fillOpacity={0.15} strokeWidth={2} isAnimationActive={false} />
+                </AreaChart>
+              </ResponsiveContainer>
+            )}
           </div>
           <div className="flex justify-between text-[10px] text-cw-txt3 mt-2">
             <span>0 lines</span>
-            <span>-1346 lines</span>
+            <span>-{stats?.debtRemoved ?? 0} lines</span>
           </div>
         </div>
       </div>
@@ -413,7 +651,13 @@ export function Dashboard({ onRunClick }: Props) {
             </thead>
             <tbody className="text-[12px] text-cw-txt">
               {loadingRuns ? (
-                <tr><td colSpan={6} className="px-5 py-6 text-center text-cw-txt3">Loading recent runs...</td></tr>
+                Array.from({ length: 3 }).map((_, i) => (
+                  <tr key={i} className="border-t border-cw-bdr">
+                    <td colSpan={6} className="px-5 py-3">
+                      <div className="h-5 w-full bg-cw-bg3/60 animate-pulse rounded" />
+                    </td>
+                  </tr>
+                ))
               ) : filteredRuns.length === 0 ? (
                 <tr><td colSpan={6} className="px-5 py-6 text-center text-cw-txt3">No runs found for {repoFilter === 'All' ? 'connected repositories' : repoFilter}.</td></tr>
               ) : filteredRuns.map((run) => (
@@ -454,16 +698,19 @@ export function Dashboard({ onRunClick }: Props) {
             </button>
           </div>
           <div>
-            <div className="text-3xl font-medium text-cw-txt mb-1 flex items-baseline gap-2">
-              {stats.repositoriesProtected}
-              <span className="text-[11px] font-semibold text-cw-green flex items-center gap-0.5">
-                <TrendingUp size={12} /> +2 this month
-              </span>
-            </div>
+            {loadingStats || !stats ? (
+              <div className="h-8 w-20 bg-cw-bg3 animate-pulse rounded my-1" />
+            ) : (
+              <div className="text-3xl font-medium text-cw-txt mb-1 flex items-baseline gap-2">
+                {stats.repositoriesProtected}
+                <span className="text-[11px] font-semibold text-cw-green flex items-center gap-0.5">
+                  <TrendingUp size={12} /> +2 this month
+                </span>
+              </div>
+            )}
             <div className="text-[11px] text-cw-txt2 flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-cw-green shrink-0" />
-              <span>6 on free tier</span>
-              <span className="text-cw-txt3">• Active tracking</span>
+              <span>Active tracking</span>
             </div>
           </div>
         </div>
@@ -472,8 +719,12 @@ export function Dashboard({ onRunClick }: Props) {
         <div className="bg-cw-bg2 border border-cw-bdr rounded-lg p-5 flex flex-col justify-between">
           <span className="text-[11px] font-semibold tracking-wider text-cw-txt3 mb-3">RUNS TODAY</span>
           <div>
-            <div className="text-3xl font-medium text-cw-txt mb-1">{stats.runsToday}</div>
-            <span className="text-[11px] text-cw-txt2">3 active scans right now</span>
+            {loadingStats || !stats ? (
+              <div className="h-8 w-16 bg-cw-bg3 animate-pulse rounded my-1" />
+            ) : (
+              <div className="text-3xl font-medium text-cw-txt mb-1">{stats.runsToday}</div>
+            )}
+            <span className="text-[11px] text-cw-txt2">Automated workflow scans</span>
           </div>
         </div>
 
@@ -481,7 +732,11 @@ export function Dashboard({ onRunClick }: Props) {
         <div className="bg-cw-bg2 border border-cw-bdr rounded-lg p-5 flex flex-col justify-between">
           <span className="text-[11px] font-semibold tracking-wider text-cw-txt3 mb-3">DEBT REMOVED</span>
           <div>
-            <div className="text-3xl font-medium text-cw-txt mb-1">-{stats.debtRemoved} <span className="text-[14px] text-cw-txt2">lines</span></div>
+            {loadingStats || !stats ? (
+              <div className="h-8 w-24 bg-cw-bg3 animate-pulse rounded my-1" />
+            ) : (
+              <div className="text-3xl font-medium text-cw-txt mb-1">-{stats.debtRemoved} <span className="text-[14px] text-cw-txt2">lines</span></div>
+            )}
             <span className="text-[11px] text-cw-txt2">Lines of bloated code removed</span>
           </div>
         </div>
@@ -490,7 +745,11 @@ export function Dashboard({ onRunClick }: Props) {
         <div className="bg-cw-bg2 border border-cw-bdr rounded-lg p-5 flex flex-col justify-between">
           <span className="text-[11px] font-semibold tracking-wider text-cw-txt3 mb-3">INTERVENTIONS</span>
           <div>
-            <div className="text-3xl font-medium text-cw-txt mb-1">{stats.interventions}</div>
+            {loadingStats || !stats ? (
+              <div className="h-8 w-16 bg-cw-bg3 animate-pulse rounded my-1" />
+            ) : (
+              <div className="text-3xl font-medium text-cw-txt mb-1">{stats.interventions}</div>
+            )}
             <span className="text-[11px] text-cw-txt2">Automatic rollbacks triggered</span>
           </div>
         </div>
@@ -504,9 +763,32 @@ export function Dashboard({ onRunClick }: Props) {
         <div className="bg-cw-bg2 border border-cw-bdr rounded-xl p-5 flex flex-col justify-between shadow-sm">
           <div>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-[13px] font-semibold text-cw-txt flex items-center gap-2">
-                <span className="text-[15px]">🚨</span> High priority alerts
-              </h2>
+              <div className="flex items-center gap-3">
+                <h2 className="text-[13px] font-semibold text-cw-txt flex items-center gap-2">
+                  <span className="text-[15px]">🚨</span> High priority alerts
+                </h2>
+                <div className="flex gap-2">
+                  <select 
+                    value={alertTimeFilter}
+                    onChange={(e) => setAlertTimeFilter(e.target.value)}
+                    className="bg-cw-bg3 border border-cw-bdr text-cw-txt2 text-[10px] rounded px-2 py-0.5 outline-none cursor-pointer"
+                  >
+                    <option value="all">All time</option>
+                    <option value="1d">Yesterday</option>
+                    <option value="7d">7 days</option>
+                    <option value="15d">15 days</option>
+                    <option value="custom">Custom date</option>
+                  </select>
+                  {alertTimeFilter === 'custom' && (
+                    <input 
+                      type="date"
+                      value={customAlertDate}
+                      onChange={(e) => setCustomAlertDate(e.target.value)}
+                      className="bg-cw-bg3 border border-cw-bdr text-cw-txt2 text-[10px] rounded px-2 py-0.5 outline-none"
+                    />
+                  )}
+                </div>
+              </div>
               <button 
                 onClick={() => navigate('/dashboard/alerts')}
                 className="text-[11px] font-medium text-cw-blue hover:underline flex items-center gap-1 transition-colors bg-transparent border-none cursor-pointer"
@@ -516,78 +798,59 @@ export function Dashboard({ onRunClick }: Props) {
             </div>
 
             <div className="flex flex-col gap-3">
-              {/* Alert 1 */}
-              <div className="p-3.5 border border-cw-bdr bg-cw-bg/50 rounded-lg flex items-start gap-3 hover:border-cw-red/40 transition-colors">
-                <div className="w-8 h-8 rounded-lg bg-cw-red/15 border border-cw-red/30 flex items-center justify-center text-cw-red shrink-0 mt-0.5">
-                  <Key size={15} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="text-[13px] font-bold text-cw-txt truncate">API key exposed</div>
-                    <div className="text-[10px] text-cw-txt3 shrink-0">2m ago</div>
+              {alerts.length === 0 ? (
+                <div className="text-[12px] text-cw-txt3 text-center py-4">No high priority alerts currently.</div>
+              ) : alerts.slice(0, 3).map((alert, i) => {
+                const isCritical = alert.severity === 'CRITICAL';
+                const isHigh = alert.severity === 'HIGH';
+                
+                const hoverColor = isCritical ? 'hover:border-cw-red/40' : (isHigh ? 'hover:border-cw-amber/40' : 'hover:border-cw-blue/40');
+                const iconBgColor = isCritical ? 'bg-cw-red/15 border-cw-red/30 text-cw-red' : (isHigh ? 'bg-cw-amber/15 border-cw-amber/30 text-cw-amber' : 'bg-cw-blue/15 border-cw-blue/30 text-cw-blue');
+                const titleColor = isCritical ? 'text-cw-red' : (isHigh ? 'text-cw-amber' : 'text-cw-txt');
+                const actionColor = isCritical ? 'text-cw-red' : 'text-cw-blue';
+                const actionText = isCritical ? 'Resolve now \u2192' : (alert.kind === 'escalation' ? 'View issue \u2192' : 'View suggested fix \u2192');
+                const Icon = isCritical ? Key : (isHigh ? AlertTriangle : undefined);
+                
+                return (
+                  <div key={alert.id || i} className={`p-3.5 border border-cw-bdr bg-cw-bg/50 rounded-lg flex items-start gap-3 transition-colors ${hoverColor}`}>
+                    <div className={`w-8 h-8 rounded-lg border flex items-center justify-center shrink-0 mt-0.5 ${iconBgColor}`}>
+                      {Icon ? <Icon size={15} /> : <div className="w-3 h-3 rounded-full bg-cw-blue" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className={`text-[13px] font-bold truncate ${titleColor}`}>{alert.title}</div>
+                        <div className="text-[10px] text-cw-txt3 shrink-0">{timeAgo(alert.createdAt)}</div>
+                      </div>
+                      <div className="text-[11px] text-cw-txt2 mt-0.5">
+                        {alert.description}
+                      </div>
+                      <div className="mt-2 flex items-center justify-between">
+                        <button 
+                          onClick={() => navigate('/dashboard/alerts')}
+                          className={`text-[11px] font-semibold hover:underline flex items-center gap-1 bg-transparent border-none p-0 cursor-pointer ${actionColor}`}
+                        >
+                          {actionText}
+                        </button>
+                        {alert.source && (
+                          <div className="text-[10px] text-cw-txt3 font-medium">
+                            {alert.severity !== 'INFO' ? `${alert.severity.charAt(0).toUpperCase() + alert.severity.slice(1).toLowerCase()} · ` : ''}{alert.source}
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                  <div className="text-[11px] text-cw-txt2 mt-0.5">
-                    Stripe key hardcoded in payments-api config.js:14
-                  </div>
-                  <button 
-                    onClick={() => navigate('/dashboard/security')}
-                    className="mt-2 text-[11px] font-semibold text-cw-red hover:underline flex items-center gap-1 bg-transparent border-none p-0 cursor-pointer"
-                  >
-                    Resolve now &rarr;
-                  </button>
-                </div>
-              </div>
-
-              {/* Alert 2 */}
-              <div className="p-3.5 border border-cw-bdr bg-cw-bg/50 rounded-lg flex items-start gap-3 hover:border-cw-amber/40 transition-colors">
-                <div className="w-8 h-8 rounded-lg bg-cw-amber/15 border border-cw-amber/30 flex items-center justify-center text-cw-amber shrink-0 mt-0.5">
-                  <AlertTriangle size={15} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="text-[13px] font-bold text-cw-amber truncate">RLS missing on users table</div>
-                    <div className="text-[10px] text-cw-txt3 shrink-0">14m ago</div>
-                  </div>
-                  <div className="text-[11px] text-cw-txt2 mt-0.5">
-                    Supabase policy not set · any auth user can query all rows
-                  </div>
-                  <button 
-                    onClick={() => navigate('/dashboard/security')}
-                    className="mt-2 text-[11px] font-semibold text-cw-blue hover:underline flex items-center gap-1 bg-transparent border-none p-0 cursor-pointer"
-                  >
-                    View suggested fix &rarr;
-                  </button>
-                </div>
-              </div>
-
-              {/* Alert 3 */}
-              <div className="p-3.5 border border-cw-bdr bg-cw-bg/50 rounded-lg flex items-start gap-3 hover:border-cw-blue/40 transition-colors">
-                <div className="w-8 h-8 rounded-lg bg-cw-blue/15 border border-cw-blue/30 flex items-center justify-center text-cw-blue shrink-0 mt-0.5">
-                  <div className="w-3 h-3 rounded-full bg-cw-blue" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="text-[13px] font-bold text-cw-txt truncate">N+1 on /api/users</div>
-                    <div className="text-[10px] text-cw-txt3 shrink-0">1h ago</div>
-                  </div>
-                  <div className="text-[11px] text-cw-txt2 mt-0.5">
-                    1 query per row · JOIN fix estimated -40% latency
-                  </div>
-                  <div className="mt-2 text-[10px] text-cw-txt3 font-medium">
-                    Medium · Architecture Agent
-                  </div>
-                </div>
-              </div>
+                );
+              })}
             </div>
           </div>
         </div>
 
-        {/* Platform Health Card (Exact design from user screenshot: 77 Ring & DEBT THIS WEEK progress bars) */}
+        {/* Codebase Health Card */}
         <div className="bg-cw-bg2 border border-cw-bdr rounded-xl p-5 flex flex-col justify-between shadow-sm">
           <div>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-[13px] font-semibold text-cw-txt flex items-center gap-2">
-                <span className="text-[15px]">🏅</span> Platform health
+                <span className="text-[15px]">🏅</span> Codebase health
               </h2>
               <button 
                 onClick={() => navigate('/dashboard/cert')}
@@ -597,42 +860,61 @@ export function Dashboard({ onRunClick }: Props) {
               </button>
             </div>
 
-            {/* Score Ring Header */}
-            <div className="flex items-center gap-4 mb-5">
-              <div className="relative w-16 h-16 rounded-full border-[3.5px] border-cw-green flex items-center justify-center shrink-0 bg-cw-green/5 shadow-inner">
-                <span className="text-xl font-bold text-cw-green">77</span>
-              </div>
-              <div>
-                <div className="text-2xl font-bold text-cw-green">77 / 100</div>
-                <div className="text-[11px] text-cw-txt3">30-day platform avg across all connected repos</div>
-                <span className="inline-block mt-1.5 px-2 py-0.5 rounded bg-cw-green/15 border border-cw-green/30 text-cw-green text-[10px] font-bold">
-                  Grade B
-                </span>
-              </div>
-            </div>
-
-            {/* Debt This Week Breakdown */}
-            <div className="border-t border-cw-bdr pt-4">
-              <div className="text-[10px] font-bold tracking-wider text-cw-txt3 uppercase mb-3">DEBT THIS WEEK</div>
-              <div className="flex flex-col gap-3">
-                {[
-                  { label: 'Duplicate functions', color: 'bg-cw-red', val: '-18', width: '65%' },
-                  { label: 'Dead code lines', color: 'bg-cw-amber', val: '-247', width: '92%' },
-                  { label: 'Security issues', color: 'bg-cw-red', val: '-3 crit', width: '30%' },
-                  { label: 'N+1 queries', color: 'bg-cw-blue', val: '-6', width: '50%' },
-                  { label: 'AI-era issues', color: 'bg-cw-green', val: '-2', width: '25%' },
-                ].map((item) => (
-                  <div key={item.label} className="flex items-center gap-3 text-[11px]">
-                    <span className={`w-2.5 h-2.5 rounded-full ${item.color} shrink-0`} />
-                    <span className="text-cw-txt2 min-w-[130px]">{item.label}</span>
-                    <div className="flex-1 h-1.5 bg-cw-bg3 rounded-full overflow-hidden">
-                      <div className={`h-full rounded-full ${item.color}`} style={{ width: item.width }} />
-                    </div>
-                    <span className="text-cw-green font-mono font-semibold min-w-[45px] text-right">{item.val}</span>
+            {loadingStats || !healthStats ? (
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 rounded-full bg-cw-bg3 animate-pulse shrink-0" />
+                  <div className="flex flex-col gap-2">
+                    <div className="h-6 w-28 bg-cw-bg3 animate-pulse rounded" />
+                    <div className="h-3 w-40 bg-cw-bg3 animate-pulse rounded" />
                   </div>
-                ))}
+                </div>
+                <div className="border-t border-cw-bdr pt-4 flex flex-col gap-3">
+                  <div className="h-4 w-full bg-cw-bg3 animate-pulse rounded" />
+                  <div className="h-4 w-full bg-cw-bg3 animate-pulse rounded" />
+                  <div className="h-4 w-full bg-cw-bg3 animate-pulse rounded" />
+                </div>
               </div>
-            </div>
+            ) : (
+              <>
+                {/* Score Ring Header */}
+                <div className="flex items-center gap-4 mb-5">
+                  <div className="relative w-16 h-16 rounded-full border-[3.5px] border-cw-green flex items-center justify-center shrink-0 bg-cw-green/5 shadow-inner">
+                    <span className="text-xl font-bold text-cw-green">{healthStats.codebaseHealth}</span>
+                  </div>
+                  <div>
+                    <div className="text-2xl font-bold text-cw-green">{healthStats.codebaseHealth} / 100</div>
+                    <div className="text-[11px] text-cw-txt3">30-day codebase avg across all connected repos</div>
+                    <span className="inline-block mt-1.5 px-2 py-0.5 rounded bg-cw-green/15 border border-cw-green/30 text-cw-green text-[10px] font-bold">
+                      {healthStats.grade}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Debt This Week Breakdown */}
+                <div className="border-t border-cw-bdr pt-4">
+                  <div className="text-[10px] font-bold tracking-wider text-cw-txt3 uppercase mb-3">DEBT THIS WEEK</div>
+                  <div className="flex flex-col gap-3">
+                    {[
+                      { label: 'Duplicate functions', color: 'bg-cw-red', val: `${healthStats.debtThisWeek.duplicateFunctions}`, width: '65%' },
+                      { label: 'Dead code lines', color: 'bg-cw-amber', val: `${healthStats.debtThisWeek.deadCodeLines}`, width: '92%' },
+                      { label: 'Security issues', color: 'bg-cw-red', val: `${healthStats.debtThisWeek.securityIssues} crit`, width: '30%' },
+                      { label: 'N+1 queries', color: 'bg-cw-blue', val: `${healthStats.debtThisWeek.nPlusOneQueries}`, width: '50%' },
+                      { label: 'AI-era issues', color: 'bg-cw-green', val: `${healthStats.debtThisWeek.aiEraIssues}`, width: '25%' },
+                    ].map((item) => (
+                      <div key={item.label} className="flex items-center gap-3 text-[11px]">
+                        <span className={`w-2.5 h-2.5 rounded-full ${item.color} shrink-0`} />
+                        <span className="text-cw-txt2 min-w-[130px]">{item.label}</span>
+                        <div className="flex-1 h-1.5 bg-cw-bg3 rounded-full overflow-hidden">
+                          <div className={`h-full rounded-full ${item.color}`} style={{ width: item.width }} />
+                        </div>
+                        <span className="text-cw-green font-mono font-semibold min-w-[45px] text-right">{item.val}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
 
@@ -658,29 +940,59 @@ export function Dashboard({ onRunClick }: Props) {
         </div>
 
         <div className="flex flex-col gap-2.5">
-          {activityFeed.map((item) => (
-            <div 
-              key={item.id} 
-              className="p-3.5 rounded-lg border border-cw-bdr/60 bg-cw-bg/40 hover:bg-cw-bg3/60 transition-all flex items-start gap-3 group"
-            >
-              <div className="text-[16px] shrink-0 leading-none mt-0.5">
-                {item.dotEmoji || '🤖'}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between gap-3 flex-wrap">
-                  <div className="text-[13px] font-medium text-cw-txt leading-snug">
-                    {item.text}
-                    {item.highlightText && (
-                      <span className={`ml-2 inline-block px-2 py-0.5 rounded text-[10px] font-semibold border ${item.badgeStyle || 'bg-cw-bg3 text-cw-txt border-cw-bdr'}`}>
-                        {item.highlightText}
-                      </span>
-                    )}
+          {activityFeed.slice(0, feedLimit).map((item) => {
+            const agentId = getAgentIdFromText(item.text);
+            return (
+              <div 
+                key={item.id} 
+                onClick={() => {
+                  sessionStorage.setItem('cw_target_agent_id', agentId);
+                  navigate('/dashboard/livefeed');
+                }}
+                className="p-3.5 rounded-lg border border-cw-bdr/60 bg-cw-bg/40 hover:bg-cw-bg3/60 transition-all flex items-center justify-between gap-3 group cursor-pointer"
+              >
+                <div className="flex items-start gap-3 min-w-0 flex-1">
+                  <div className="text-[16px] shrink-0 leading-none mt-0.5">
+                    {item.dotEmoji || '🤖'}
                   </div>
-                  <span className="text-[11px] text-cw-txt3 shrink-0">{item.time}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[13px] font-medium text-cw-txt leading-snug">
+                      {item.text}
+                      {item.highlightText && (
+                        <span className={`ml-2 inline-block px-2 py-0.5 rounded text-[10px] font-semibold border ${item.badgeStyle || 'bg-cw-bg3 text-cw-txt border-cw-bdr'}`}>
+                          {item.highlightText}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 shrink-0">
+                  <span className="text-[11px] text-cw-txt3 whitespace-nowrap">{item.time}</span>
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      sessionStorage.setItem('cw_target_agent_id', agentId);
+                      navigate('/dashboard/livefeed');
+                    }}
+                    title={`Open ${agentId} in Agent Canvas`}
+                    className="flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-md bg-cw-purple/10 text-cw-purple border border-cw-purple/30 hover:bg-cw-purple hover:text-white transition-all shadow-sm shrink-0 whitespace-nowrap cursor-pointer"
+                  >
+                    <span>Canvas</span>
+                    <ArrowRight size={12} />
+                  </button>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
+          {activityFeed.length > 5 && (
+            <button 
+              onClick={() => setFeedLimit(feedLimit === 5 ? 50 : 5)}
+              className="w-full mt-2 py-2 text-[11px] font-medium text-cw-txt3 hover:text-cw-txt bg-cw-bg3 hover:bg-cw-bdr/50 border border-transparent hover:border-cw-bdr rounded transition-all cursor-pointer"
+            >
+              {feedLimit === 5 ? 'View all activity →' : 'Show less ↑'}
+            </button>
+          )}
         </div>
       </div>
 
@@ -690,49 +1002,43 @@ export function Dashboard({ onRunClick }: Props) {
         <div className="bg-cw-bg2 border border-cw-bdr rounded-lg p-5">
           <div className="text-[11px] font-semibold tracking-wider text-cw-txt3 mb-5">ACTIVE RUNS</div>
           <div className="flex flex-col gap-4">
-            <div className="flex justify-between items-center">
-              <div className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-cw-amber" />
-                <span className="text-[13px] font-medium text-cw-txt">my-api</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-[11px] text-cw-txt2">commit 3fa2c1 - 2m 14s</span>
-                <span className="px-2 py-0.5 rounded bg-cw-amber/10 text-cw-amber border border-cw-amber/20 text-[10px] font-bold">Running</span>
-              </div>
-            </div>
-            
-            <div className="flex justify-between items-center">
-              <div className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-cw-green" />
-                <span className="text-[13px] font-medium text-cw-txt">frontend</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-[11px] text-cw-txt2">4m ago</span>
-                <span className="px-2 py-0.5 rounded bg-cw-green/10 text-cw-green border border-cw-green/20 text-[10px] font-bold">94/100</span>
-              </div>
-            </div>
-            
-            <div className="flex justify-between items-center">
-              <div className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-cw-green" />
-                <span className="text-[13px] font-medium text-cw-txt">auth-service</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-[11px] text-cw-txt2">1h ago</span>
-                <span className="px-2 py-0.5 rounded bg-cw-green/10 text-cw-green border border-cw-green/20 text-[10px] font-bold">91/100</span>
-              </div>
-            </div>
-            
-            <div className="flex justify-between items-center">
-              <div className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-cw-red" />
-                <span className="text-[13px] font-medium text-cw-txt">payments-api</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-[11px] text-cw-txt2">3h ago</span>
-                <span className="px-2 py-0.5 rounded bg-cw-red/10 text-cw-red border border-cw-red/20 text-[10px] font-bold">Blocked</span>
-              </div>
-            </div>
+              {filteredRuns.length === 0 ? (
+                <div className="text-[12px] text-cw-txt3 text-center py-4">No active or recent runs.</div>
+              ) : filteredRuns.slice(0, 4).map((run) => {
+                const isRunning = run.status === 'running' || run.status === 'queued';
+                const isFailed = run.status === 'failed' || run.status === 'agent_failed';
+                
+                const dotColor = isRunning ? 'bg-cw-amber' : (isFailed ? 'bg-cw-red' : 'bg-cw-green');
+                const badgeStyle = isRunning 
+                  ? 'bg-cw-amber/10 text-cw-amber border-cw-amber/20' 
+                  : (isFailed ? 'bg-cw-red/10 text-cw-red border-cw-red/20' : 'bg-cw-green/10 text-cw-green border-cw-green/20');
+                
+                let badgeText = '';
+                if (isRunning) badgeText = 'Running';
+                else if (isFailed) badgeText = 'Blocked';
+                else badgeText = run.overallScore != null ? `${run.overallScore}/100` : 'Pass';
+
+                return (
+                  <div key={run.runId} className="flex justify-between items-center group cursor-pointer hover:bg-cw-bg3/40 -mx-2 px-2 py-1 rounded transition-colors" onClick={() => onRunClick?.(run.repoId, run.runId)}>
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className={`w-1.5 h-1.5 rounded-full ${dotColor} shrink-0`} />
+                      <img src={`https://github.com/${run.repoFullName.split('/')[0]}.png?size=32`} className="w-5 h-5 rounded-full bg-cw-bg3" alt="" />
+                      <span className="text-[13px] font-medium text-cw-txt truncate group-hover:underline flex items-center gap-1">
+                        {run.repoFullName}
+                        <ArrowUpLeft size={12} className="opacity-0 group-hover:opacity-100 transition-opacity text-cw-txt3" />
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-[11px] text-cw-txt2 hidden sm:inline-block">
+                        {isRunning ? `commit ${run.commitSha.substring(0, 6)} - ` : ''}{timeAgo(run.createdAt)}
+                      </span>
+                      <span className={`px-2 py-0.5 rounded border text-[10px] font-bold min-w-[50px] text-center ${badgeStyle}`}>
+                        {badgeText}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
           </div>
         </div>
 
@@ -786,25 +1092,54 @@ export function Dashboard({ onRunClick }: Props) {
           <div>
             <div className="text-[11px] font-semibold tracking-wider text-cw-txt3 mb-4">INTEGRATION HEALTH</div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {[
-                { name: 'Slack', status: 'Connected', color: 'bg-cw-green' },
-                { name: 'Sentry', status: 'Live feed', color: 'bg-cw-green' },
-                { name: 'Supabase', status: 'Syncing...', color: 'bg-cw-amber' },
-                { name: 'Jira', status: 'Config error', color: 'bg-cw-red' }
-              ].map(int => (
-                <div key={int.name} className="flex items-center gap-2 p-3 border border-cw-bdr rounded-md bg-cw-bg">
-                  <div className={`w-2 h-2 rounded-full shrink-0 ${int.color} ${int.status === 'Syncing...' ? 'animate-pulse' : ''}`} />
-                  <div className="flex-1 min-w-0">
-                    <div className="text-[13px] font-bold text-cw-txt truncate">{int.name}</div>
-                    <div className="text-[11px] text-cw-txt3 truncate">{int.status}</div>
+              {(() => {
+                const PROVIDER_LOGOS: Record<string, string> = {
+                  slack: 'https://upload.wikimedia.org/wikipedia/commons/d/d5/Slack_icon_2019.svg',
+                  sentry: 'https://upload.wikimedia.org/wikipedia/commons/2/29/Sentry_logo.svg',
+                  supabase: 'https://upload.wikimedia.org/wikipedia/commons/0/00/Supabase_logo.svg',
+                  jira: 'https://upload.wikimedia.org/wikipedia/commons/8/82/Jira_%28Software%29_logo.svg',
+                  github: 'https://upload.wikimedia.org/wikipedia/commons/9/91/Octicons-mark-github.svg',
+                  gmail: 'https://upload.wikimedia.org/wikipedia/commons/7/7e/Gmail_icon_%282020%29.svg',
+                  calendar: 'https://upload.wikimedia.org/wikipedia/commons/a/a5/Google_Calendar_icon_%282020%29.svg',
+                  linear: 'https://upload.wikimedia.org/wikipedia/commons/c/c8/Linear_logo.svg',
+                  figma: 'https://upload.wikimedia.org/wikipedia/commons/3/33/Figma-logo.svg',
+                };
+                const getProviderLogo = (provider: string) => PROVIDER_LOGOS[provider.toLowerCase()] || PROVIDER_LOGOS.github;
+
+                if (integrations.length === 0) {
+                  return (
+                    <div className="col-span-full text-[12px] text-cw-txt3 text-center py-4 bg-cw-bg rounded-md border border-cw-bdr border-dashed">
+                      No integrations configured yet.
+                    </div>
+                  );
+                }
+
+                return integrations.map(int => (
+                  <div key={int.provider} className="flex items-start justify-between p-3 border border-cw-bdr rounded-md bg-cw-bg group hover:border-cw-bdr/80 transition-colors">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <img src={getProviderLogo(int.provider)} alt={int.provider} className="w-6 h-6 object-contain shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <div className="text-[13px] font-bold text-cw-txt truncate capitalize">{int.provider}</div>
+                        <div className="flex items-center gap-1 mt-0.5">
+                          <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${int.status === 'connected' ? 'bg-cw-green' : 'bg-cw-amber'}`} />
+                          <div className="text-[10px] text-cw-txt3 truncate capitalize">{int.status}</div>
+                        </div>
+                        {int.updatedAt && (
+                          <div className="text-[9px] text-cw-txt3 truncate mt-1">Last used: {new Date(int.updatedAt).toLocaleDateString()}</div>
+                        )}
+                      </div>
+                    </div>
+                    <button onClick={() => navigate('/dashboard/settings?tab=integrations')} className="text-cw-txt3 hover:text-cw-purple transition-colors p-1 opacity-0 group-hover:opacity-100 flex-shrink-0 cursor-pointer" title="Settings">
+                      <Settings size={14} />
+                    </button>
                   </div>
-                </div>
-              ))}
+                ));
+              })()}
             </div>
           </div>
           <button 
             onClick={() => navigate('/dashboard/integrations')}
-            className="mt-5 text-[12px] font-medium text-cw-txt2 hover:text-cw-txt flex items-center gap-1.5 w-fit transition-colors bg-transparent border-none cursor-pointer"
+            className="mt-5 px-4 py-2 bg-cw-blue text-white hover:brightness-110 rounded-lg text-[12px] font-semibold transition-all shadow-sm w-fit flex items-center gap-2 cursor-pointer"
           >
             <Blocks size={14} /> Manage integrations &rarr;
           </button>

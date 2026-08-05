@@ -208,6 +208,12 @@ function DashboardLayout() {
   const screen = pathToScreen(location.pathname);
 
   useEffect(() => {
+    if (screen === 'livefeed' && sessionStorage.getItem('cw_target_agent_id')) {
+      setLiveFeedView('canvas');
+    }
+  }, [location.pathname]);
+
+  useEffect(() => {
     if (session?.user && globalOrgs.length === 0) {
       fetch(`${API_URL}/api/repos/connected`, { credentials: 'include' })
         .then(async res => {
@@ -359,76 +365,90 @@ function DashboardLayout() {
       <div className="flex-1 flex overflow-hidden">
         <div className="flex-1 flex flex-col min-w-0 bg-cw-bg relative">
           {/* Topbar */}
-          <div className={`flex items-center justify-between transition-all duration-300 ${screen === 'agent' ? 'absolute top-0 left-0 right-0 z-30 px-5 h-[52px] pointer-events-none' : 'px-8 h-[80px] border-b border-cw-bdr bg-cw-bg shrink-0'}`}>
-            <div className="flex items-center gap-5">
+          <div className={`flex items-center justify-between gap-2 transition-all duration-300 ${screen === 'agent' ? 'absolute top-0 left-0 right-0 z-30 px-4 sm:px-5 h-[52px] pointer-events-none' : 'px-4 sm:px-8 h-[64px] sm:h-[80px] border-b border-cw-bdr bg-cw-bg shrink-0'}`}>
+            <div className="flex items-center gap-2 sm:gap-4 shrink-0 min-w-0">
               <button
                 onClick={() => setIsSidebarPinned(!isSidebarPinned)}
-                className="w-9 h-9 rounded-md border border-cw-bdr bg-cw-bg2 text-cw-txt flex items-center justify-center cursor-pointer hover:bg-cw-bg3 transition-colors shrink-0 pointer-events-auto shadow-sm"
+                className="w-8 h-8 sm:w-9 sm:h-9 rounded-md border border-cw-bdr bg-cw-bg2 text-cw-txt flex items-center justify-center cursor-pointer hover:bg-cw-bg3 transition-colors shrink-0 pointer-events-auto shadow-sm"
               >
                 <Menu size={18} />
               </button>
               {screen !== 'agent' && (
-                <div>
-                  <h1 className="text-[22px] font-bold text-cw-txt tracking-tight leading-none flex items-center gap-2">
+                <div className="shrink-0 min-w-0">
+                  <h1 className="text-[15px] sm:text-[18px] md:text-[20px] font-bold text-cw-txt tracking-tight leading-none flex items-center gap-2 whitespace-nowrap shrink-0">
                     {topbar.title}
                   </h1>
                 </div>
               )}
             </div>
-            <div className="flex gap-3 items-center pointer-events-auto relative">
 
+            <div className="flex items-center gap-1.5 sm:gap-3 pointer-events-auto relative overflow-x-auto no-scrollbar shrink-0">
               {screen === 'repos' && (
                 <button
                   onClick={() => navigate('/connect')}
-                  className="px-4 py-2 rounded-md bg-cw-purple hover:brightness-110 text-white text-[13px] font-medium transition-colors flex items-center gap-2 shadow-sm mr-2"
+                  className="px-3 sm:px-4 py-1.5 sm:py-2 rounded-md bg-cw-purple hover:brightness-110 text-white text-[12px] sm:text-[13px] font-medium transition-colors flex items-center gap-1.5 shadow-sm whitespace-nowrap shrink-0"
                 >
-                  <Plus size={14} /> Connect new repo
+                  <Plus size={14} /> <span className="hidden sm:inline">Connect new repo</span><span className="sm:hidden">Connect</span>
                 </button>
               )}
               {screen === 'livefeed' && (
-                <div className="flex items-center gap-2 mr-2">
+                <div className="inline-flex items-center gap-1 bg-cw-bg2 border border-cw-bdr p-1 rounded-xl shrink-0 whitespace-nowrap shadow-sm">
                   <button
+                    type="button"
                     onClick={() => setLiveFeedView('stream')}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md border text-[12px] font-medium transition-colors ${liveFeedView === 'stream' ? 'bg-cw-bg2 border-cw-bdr text-cw-txt shadow-sm' : 'border-transparent text-cw-txt2 hover:text-cw-txt hover:bg-cw-bg2/50'}`}
+                    className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[11px] sm:text-[12px] font-semibold transition-all shrink-0 whitespace-nowrap cursor-pointer ${
+                      liveFeedView === 'stream'
+                        ? 'bg-cw-purple text-white shadow-md'
+                        : 'text-cw-txt2 hover:text-cw-txt hover:bg-cw-bg3/50'
+                    }`}
                   >
-                    <TerminalSquare size={14} /> Stream
+                    <TerminalSquare size={13} className="shrink-0" />
+                    <span className="whitespace-nowrap font-semibold">Stream</span>
                   </button>
                   <button
+                    type="button"
                     onClick={() => setLiveFeedView('canvas')}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md border text-[12px] font-medium transition-colors ${liveFeedView === 'canvas' ? 'bg-cw-bg2 border-cw-bdr text-cw-txt shadow-sm' : 'border-transparent text-cw-txt2 hover:text-cw-txt hover:bg-cw-bg2/50'}`}
+                    className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[11px] sm:text-[12px] font-semibold transition-all shrink-0 whitespace-nowrap cursor-pointer ${
+                      liveFeedView === 'canvas'
+                        ? 'bg-cw-purple text-white shadow-md'
+                        : 'text-cw-txt2 hover:text-cw-txt hover:bg-cw-bg3/50'
+                    }`}
                   >
-                    <LayoutGrid size={14} /> Agent Canvas
+                    <LayoutGrid size={13} className="shrink-0" />
+                    <span className="whitespace-nowrap font-semibold">Agent Canvas</span>
                   </button>
                 </div>
               )}
-              <div className="flex-1" />
-              <button onClick={() => setIsGlobalFeedOpen(true)} className="px-4 py-2 rounded-md border border-cw-bdr bg-cw-bg2 text-cw-txt text-[13px] font-medium hover:bg-cw-bg3 transition-colors flex items-center gap-2 whitespace-nowrap shrink-0">
-                <Globe size={14} /> Global feed
+
+              <button onClick={() => setIsGlobalFeedOpen(true)} className="px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-md border border-cw-bdr bg-cw-bg2 text-cw-txt text-[12px] sm:text-[13px] font-medium hover:bg-cw-bg3 transition-colors flex items-center gap-1.5 whitespace-nowrap shrink-0">
+                <Globe size={14} /> <span className="hidden sm:inline">Global feed</span>
               </button>
               
-              <div className="flex items-center ml-2 border border-cw-bdr rounded-md bg-cw-bg2 overflow-hidden shrink-0">
-                <button onClick={() => navigate('/dashboard/agent')} className="px-3 py-1.5 text-cw-txt text-[13px] font-medium hover:bg-cw-bg3 transition-colors flex items-center gap-2 border-r border-cw-bdr whitespace-nowrap">
-                  <Sparkles size={14} /> Skills
+              <div className="flex items-center border border-cw-bdr rounded-md bg-cw-bg2 overflow-hidden shrink-0">
+                <button onClick={() => navigate('/dashboard/agent')} className="px-2.5 sm:px-3 py-1.5 text-cw-txt text-[12px] sm:text-[13px] font-medium hover:bg-cw-bg3 transition-colors flex items-center gap-1.5 border-r border-cw-bdr whitespace-nowrap">
+                  <Sparkles size={14} /> <span className="hidden sm:inline">Skills</span>
                 </button>
-                <button onClick={() => window.open('/docs', '_blank')} className="px-3 py-1.5 text-cw-txt text-[13px] font-medium hover:bg-cw-bg3 transition-colors flex items-center gap-2 whitespace-nowrap">
-                  <FileText size={14} /> Docs
+                <button onClick={() => window.open('/docs', '_blank')} className="px-2.5 sm:px-3 py-1.5 text-cw-txt text-[12px] sm:text-[13px] font-medium hover:bg-cw-bg3 transition-colors flex items-center gap-1.5 whitespace-nowrap">
+                  <FileText size={14} /> <span className="hidden sm:inline">Docs</span>
                 </button>
               </div>
 
-              <div onClick={() => navigate('/dashboard/settings')} className="flex items-center gap-1.5 px-3 py-1.5 ml-2 rounded-md border border-cw-bdr bg-cw-bg text-[13px] font-medium text-cw-txt cursor-pointer hover:bg-cw-bg2 transition-colors whitespace-nowrap shrink-0">
-                <BadgeCheck size={14} className="text-cw-purple" /> Free Tier
-              </div>
+              <a href="https://discord.gg/nnMH4URBsK" target="_blank" rel="noreferrer" className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-cw-bdr bg-[#5865F2]/10 text-[13px] font-medium text-cw-txt no-underline cursor-pointer hover:bg-[#5865F2]/20 border-[#5865F2]/30 transition-colors whitespace-nowrap shrink-0">
+                <svg width="14" height="14" viewBox="0 0 127.14 96.36" fill="currentColor" className="text-[#5865F2]">
+                  <path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1,105.25,105.25,0,0,0,32.19-16.14h0c2.64-27.38-4.51-51.11-19.32-72.15ZM42.63,65.22c-5.22,0-9.49-4.77-9.49-10.6s4.19-10.6,9.49-10.6,9.54,4.77,9.49,10.6c0,5.83-4.27,10.6-9.49,10.6Zm41.83,0c-5.22,0-9.49-4.77-9.49-10.6s4.19-10.6,9.49-10.6,9.54,4.77,9.49,10.6c0,5.83-4.27,10.6-9.49,10.6Z"/>
+                </svg> Discord
+              </a>
 
               <button 
                 onClick={() => setIsHelpDrawerOpen(true)}
-                className="flex items-center gap-2 ml-2 px-3 py-1.5 rounded-md border border-cw-bdr bg-cw-bg2 hover:bg-cw-bg3 text-cw-txt font-medium text-[13px] transition whitespace-nowrap shrink-0"
+                className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-md border border-cw-bdr bg-cw-bg2 hover:bg-cw-bg3 text-cw-txt font-medium text-[13px] transition whitespace-nowrap shrink-0"
               >
                 Need help? <span className="text-[10px] bg-cw-bg px-1.5 py-0.5 rounded border border-cw-bdr text-cw-txt2 font-mono shrink-0">H</span>
               </button>
+            </div>
 
             </div>
-          </div>
-
+            
           <div className={`flex-1 overflow-hidden flex flex-col ${screen === 'agent' ? 'pt-[52px]' : ''}`}>
             {renderScreen()}
           </div>
@@ -493,7 +513,7 @@ function DashboardLayout() {
           </div>
         )}
       </div>
-      <Toaster position="top-right" theme={theme as any} richColors />
+      <Toaster position="top-right" theme="dark" richColors />
     </div>
   );
 }
