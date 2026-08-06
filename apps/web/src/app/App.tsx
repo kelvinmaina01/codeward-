@@ -32,6 +32,7 @@ import { useSession, signOut } from '../lib/auth';
 import { Toaster } from 'sonner';
 import { API_URL } from '../lib/api';
 import CodewardHero from './components/LandingHero';
+import PricingPage from './components/PricingPage';
 import { WorkspaceProvider } from './contexts/WorkspaceContext';
 import { WorkspaceSwitcher } from './components/WorkspaceSwitcher';
 import { TeamDrawer } from './components/drawers/TeamDrawer';
@@ -560,7 +561,7 @@ export const routes = [
   },
   {
     path: "/pricing",
-    element: <CodewardHero />
+    element: <PricingPage />
   },
   {
     path: "/agents/:agentId",

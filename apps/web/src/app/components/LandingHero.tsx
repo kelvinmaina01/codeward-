@@ -2,9 +2,9 @@ import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Helmet } from 'react-helmet-async';
 import { blogs } from '../data/blogs';
-import { FooterTrustBadges } from './FooterTrustBadges';
-import { NewsletterForm } from './NewsletterForm';
 import { useSession } from '../../lib/auth';
+import { LandingHeader } from './LandingHeader';
+import { LandingFooter } from './LandingFooter';
 
 // ============================================================
 // Codeward Hero Section — Self-contained single-file component
@@ -228,6 +228,632 @@ function SecuritySection() {
   );
 }
 
+function LiveCodewardCodeReviewWidget() {
+  const [typedText, setTypedText] = useState("");
+  const fullText = "git push origin main";
+  const [isPatching, setIsPatching] = useState(true);
+
+  useEffect(() => {
+    let index = 0;
+    const interval = setInterval(() => {
+      if (index <= fullText.length) {
+        setTypedText(fullText.slice(0, index));
+        index++;
+      } else {
+        clearInterval(interval);
+        setTimeout(() => {
+          setIsPatching(false);
+        }, 2200);
+      }
+    }, 110);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="w-full max-w-[620px] rounded-3xl border border-white/15 bg-[#f8f9fc] p-5 font-['DM_Sans'] text-gray-900 shadow-2xl transition-all duration-500 hover:scale-[1.01]">
+      {/* 1. Terminal Top Command Bar */}
+      <div className="rounded-2xl bg-[#0a0c10] px-5 py-3.5 text-white font-mono text-sm flex items-center justify-between shadow-xl border border-white/10">
+        <div className="flex items-center gap-2">
+          <span className="text-emerald-400 font-bold">$</span>
+          <span className="text-gray-100 font-medium">{typedText}</span>
+          <span className="w-2 h-4 bg-emerald-400 animate-pulse inline-block ml-0.5" />
+        </div>
+        <span className="text-[10px] uppercase font-bold text-gray-500 bg-white/5 px-2.5 py-0.5 rounded">bash</span>
+      </div>
+
+      {/* 2. Connecting Thread Line & Bot Status */}
+      <div className="relative pl-6 py-3 my-0.5 flex items-center gap-3">
+        <div className="absolute left-6 top-0 bottom-0 w-0.5 bg-gray-200" />
+        <div className="relative z-10 flex items-center gap-2 text-xs font-medium text-gray-600 bg-[#f8f9fc] px-1">
+          <img
+            src="https://avatars.githubusercontent.com/in/4029840?s=41&u=2d62d6d33d7b1197056c93741230d09bd6859d15&v=4"
+            alt="Codeward Bot"
+            className="h-6 w-6 rounded-full border border-gray-200 shadow-sm shrink-0"
+          />
+          <span className="font-bold text-gray-900">codeward-code-review</span>
+          <span className="rounded bg-gray-200/80 text-gray-700 px-1.5 py-0.5 text-[10px] font-semibold">bot</span>
+          <span>reviewed</span>
+          <span className="font-bold text-purple-700">PR #142</span>
+          <span className="text-gray-400">just now</span>
+        </div>
+      </div>
+
+      {/* 3. Compact Review Status Card */}
+      <div className="rounded-2xl border border-gray-200/80 bg-white p-4 shadow-sm text-gray-900 space-y-3">
+        {/* Comment Header */}
+        <div className="flex items-center justify-between pb-2.5 border-b border-gray-100 text-xs">
+          <div className="flex items-center gap-2">
+            <img
+              src="https://avatars.githubusercontent.com/in/4029840?s=41&u=2d62d6d33d7b1197056c93741230d09bd6859d15&v=4"
+              alt="Codeward Bot"
+              className="h-5 w-5 rounded-full border border-gray-200 shadow-sm shrink-0"
+            />
+            <span className="font-bold text-gray-900">Code Review by Codeward</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="px-2 py-0.5 rounded-full bg-rose-50 text-rose-600 border border-rose-200 text-[10px] font-semibold">🐞 3 Bugs</span>
+            <span className="px-2 py-0.5 rounded-full bg-purple-50 text-purple-600 border border-purple-200 text-[10px] font-semibold">🛡️ 34 Rules</span>
+          </div>
+        </div>
+
+        <div>
+          {/* Table Header */}
+          <div className="grid grid-cols-4 text-[10px] font-bold uppercase tracking-wider text-gray-400 pb-2 border-b border-gray-100">
+            <div>REPOSITORY</div>
+            <div>STATUS</div>
+            <div>ACTION</div>
+            <div className="text-right">UPDATED</div>
+          </div>
+
+          {/* Table Rows */}
+          <div className="divide-y divide-gray-50 text-xs font-medium pt-1">
+            {/* Row 1 */}
+            <div className="grid grid-cols-4 py-2 items-center">
+              <div className="font-mono text-gray-900 font-bold flex items-center gap-1.5">
+                <svg className="w-3.5 h-3.5 text-gray-800 shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                  <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" />
+                </svg>
+                <span>codeward-</span>
+              </div>
+              <div className="flex items-center gap-1.5 text-emerald-600 font-semibold text-[11px]">
+                <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                <span>34 rules passed</span>
+              </div>
+              <div>
+                <span className="text-purple-600 underline font-medium hover:text-purple-800 cursor-pointer">Visit report ↗</span>
+              </div>
+              <div className="text-right text-gray-400">just now</div>
+            </div>
+
+            {/* Row 2 */}
+            <div className="grid grid-cols-4 py-2 items-center">
+              <div className="font-mono text-gray-900 font-bold flex items-center gap-1.5">
+                <svg className="w-3.5 h-3.5 text-gray-800 shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                  <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" />
+                </svg>
+                <span>compass</span>
+              </div>
+              {isPatching ? (
+                <div className="flex items-center gap-1.5 text-amber-600 font-semibold text-[11px]">
+                  <span className="h-2 w-2 rounded-full bg-amber-500 animate-spin" />
+                  <span>Auto-patching...</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5 text-emerald-600 font-semibold text-[11px]">
+                  <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                  <span>1 bug patched</span>
+                </div>
+              )}
+              <div>
+                <span className="text-purple-600 underline font-medium hover:text-purple-800 cursor-pointer">View diff ↗</span>
+              </div>
+              <div className="text-right text-gray-400">just now</div>
+            </div>
+
+            {/* Row 3 */}
+            <div className="grid grid-cols-4 py-2 items-center">
+              <div className="font-mono text-gray-900 font-bold flex items-center gap-1.5">
+                <svg className="w-3.5 h-3.5 text-gray-800 shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                  <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" />
+                </svg>
+                <span>inua360</span>
+              </div>
+              <div className="flex items-center gap-1.5 text-emerald-600 font-semibold text-[11px]">
+                <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                <span>0 vulnerabilities</span>
+              </div>
+              <div>
+                <span className="text-purple-600 underline font-medium hover:text-purple-800 cursor-pointer">Visit report ↗</span>
+              </div>
+              <div className="text-right text-gray-400">1m ago</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function LiveSecurityShieldWidget() {
+  const [isShielding, setIsShielding] = useState(false);
+  const [isShielded, setIsShielded] = useState(false);
+
+  const handleShieldSecret = () => {
+    setIsShielding(true);
+    setTimeout(() => {
+      setIsShielding(false);
+      setIsShielded(true);
+    }, 2000);
+  };
+
+  return (
+    <div className="w-full max-w-[620px] rounded-3xl border border-white/15 bg-[#f8f9fc] p-5 font-['DM_Sans'] text-gray-900 shadow-2xl transition-all duration-500 hover:scale-[1.01]">
+      {/* 1. Command Bar (Live Run Feed / Agent Canvas Run #247) */}
+      <div className="rounded-2xl bg-[#0a0c10] px-5 py-3.5 text-white font-sans text-sm flex items-center justify-between shadow-xl border border-white/10">
+        <div className="flex items-center gap-2.5">
+          <span className="font-bold text-gray-100 text-xs">Live run feed</span>
+          <span className="text-[10px] font-bold text-purple-300 bg-purple-900/60 border border-purple-500/30 px-2 py-0.5 rounded font-mono">
+            Agent Canvas Run #247
+          </span>
+        </div>
+        <div className="flex items-center gap-2 text-[10px] font-mono">
+          <span className="text-emerald-400 font-bold">15/15 Active</span>
+          <span className="text-gray-500">•</span>
+          <span className={isShielded ? "text-emerald-400 font-bold" : "text-rose-400 font-bold"}>
+            {isShielded ? "0 Critical" : "1 Critical"}
+          </span>
+        </div>
+      </div>
+
+      {/* 2. Connecting Thread Line & Bot Status */}
+      <div className="relative pl-6 py-3 my-0.5 flex items-center gap-3">
+        <div className="absolute left-6 top-0 bottom-0 w-0.5 bg-gray-200" />
+        <div className="relative z-10 flex items-center gap-2 text-xs font-medium text-gray-600 bg-[#f8f9fc] px-1">
+          <img
+            src="https://avatars.githubusercontent.com/in/4029840?s=41&u=2d62d6d33d7b1197056c93741230d09bd6859d15&v=4"
+            alt="Codeward Bot"
+            className="h-6 w-6 rounded-full border border-gray-200 shadow-sm shrink-0"
+          />
+          <span className="font-bold text-gray-900">Security Agent</span>
+          <span className="rounded bg-rose-100 text-rose-800 px-1.5 py-0.5 text-[10px] font-bold">haiku-4-5</span>
+          <span>ran 18 checks</span>
+          <span className="font-bold text-rose-600">{isShielded ? "100/100" : "45/100"}</span>
+          <span className="text-gray-400">just now</span>
+        </div>
+      </div>
+
+      {/* 3. Compact Review Status Card */}
+      <div className="rounded-2xl border border-gray-200/80 bg-white p-4 shadow-sm text-gray-900 space-y-3">
+        {/* Banner Alert */}
+        {!isShielded ? (
+          <div className="rounded-xl bg-rose-600 text-white px-3.5 py-2 text-xs font-bold flex items-center justify-between shadow-sm">
+            <div className="flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full bg-white animate-ping" />
+              <span>SECURITY ALERT: Hardcoded Stripe Key Line 14</span>
+            </div>
+            <span className="text-[10px] opacity-90 font-mono">1 Critical</span>
+          </div>
+        ) : (
+          <div className="rounded-xl bg-emerald-600 text-white px-3.5 py-2 text-xs font-bold flex items-center justify-between shadow-sm">
+            <div className="flex items-center gap-2">
+              <span className="text-white font-bold">🛡️</span>
+              <span>SECRET SHIELDED: Hardcoded Key Removed & Re-encrypted</span>
+            </div>
+            <span className="text-[10px] font-mono text-emerald-100">Score: 100/100</span>
+          </div>
+        )}
+
+        <div>
+          {/* Table Header */}
+          <div className="grid grid-cols-4 text-[10px] font-bold uppercase tracking-wider text-gray-400 pb-2 border-b border-gray-100">
+            <div>AGENT</div>
+            <div>STATUS</div>
+            <div>FINDINGS</div>
+            <div className="text-right">LATENCY</div>
+          </div>
+
+          {/* Table Rows */}
+          <div className="divide-y divide-gray-50 text-xs font-medium pt-1">
+            {/* Row 1 */}
+            <div className="grid grid-cols-4 py-2 items-center">
+              <div className="font-mono text-gray-900 font-bold flex items-center gap-1.5">
+                <span className="text-rose-500">🛡️</span>
+                <span>Security</span>
+              </div>
+              {isShielding ? (
+                <div className="flex items-center gap-1.5 text-amber-600 font-semibold text-[11px]">
+                  <span className="h-2 w-2 rounded-full bg-amber-500 animate-spin" />
+                  <span>Shielding secret...</span>
+                </div>
+              ) : isShielded ? (
+                <div className="flex items-center gap-1.5 text-emerald-600 font-semibold text-[11px]">
+                  <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                  <span>Key Secured</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5 text-rose-600 font-semibold text-[11px]">
+                  <span className="h-2 w-2 rounded-full bg-rose-500" />
+                  <span>1 Critical key</span>
+                </div>
+              )}
+              <div className="text-gray-600 font-medium">Line 14 API key</div>
+              <div className="text-right text-gray-400 font-mono">180ms</div>
+            </div>
+
+            {/* Row 2 */}
+            <div className="grid grid-cols-4 py-2 items-center">
+              <div className="font-mono text-gray-900 font-bold flex items-center gap-1.5">
+                <span className="text-emerald-500">🗑️</span>
+                <span>Bloat</span>
+              </div>
+              <div className="flex items-center gap-1.5 text-emerald-600 font-semibold text-[11px]">
+                <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                <span>Score: 88</span>
+              </div>
+              <div className="text-emerald-600 font-medium">-38 dead lines</div>
+              <div className="text-right text-gray-400 font-mono">95ms</div>
+            </div>
+
+            {/* Row 3 */}
+            <div className="grid grid-cols-4 py-2 items-center">
+              <div className="font-mono text-gray-900 font-bold flex items-center gap-1.5">
+                <span className="text-purple-500">⚡</span>
+                <span>Orchestrator</span>
+              </div>
+              <div className="flex items-center gap-1.5 font-semibold text-[11px]">
+                <span className={`h-2 w-2 rounded-full ${isShielded ? "bg-emerald-500" : "bg-rose-500"}`} />
+                <span className={isShielded ? "text-emerald-600" : "text-rose-600"}>
+                  {isShielded ? "Gate: ALLOW" : "Gate: BLOCK"}
+                </span>
+              </div>
+              <div className="text-gray-600 font-medium">15 agents run</div>
+              <div className="text-right text-gray-400 font-mono">4m 18s</div>
+            </div>
+          </div>
+
+          {/* Action Button Footer */}
+          <div className="pt-3 border-t border-gray-100 flex justify-end">
+            {!isShielded ? (
+              <button
+                onClick={handleShieldSecret}
+                disabled={isShielding}
+                className="px-4 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 active:scale-95 text-white text-xs font-bold transition-all shadow-md cursor-pointer flex items-center gap-1.5"
+              >
+                {isShielding ? (
+                  <>
+                    <span className="h-3 w-3 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                    <span>Shielding & Revoking Key...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Shield Secret & Re-scan</span>
+                    <span>🛡️</span>
+                  </>
+                )}
+              </button>
+            ) : (
+              <div className="px-3 py-1 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold flex items-center gap-1">
+                <span>✓ Secret Revoked & Repository Shielded</span>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function LiveTechDebtWidget() {
+  const [isFixing, setIsFixing] = useState(false);
+  const [isFixed, setIsFixed] = useState(false);
+
+  const handleApplyFixes = () => {
+    setIsFixing(true);
+    setTimeout(() => {
+      setIsFixing(false);
+      setIsFixed(true);
+    }, 2000);
+  };
+
+  return (
+    <div className="w-full max-w-[620px] rounded-3xl border border-white/15 bg-[#f8f9fc] p-5 font-['DM_Sans'] text-gray-900 shadow-2xl transition-all duration-500 hover:scale-[1.01]">
+      {/* 1. PR Command Header (Borrowed from Screenshot 1 & 2) */}
+      <div className="rounded-2xl bg-[#0a0c10] px-5 py-3.5 text-white font-sans text-sm flex items-center justify-between shadow-xl border border-white/10">
+        <div className="flex items-center gap-2 font-mono text-xs">
+          <span className="text-purple-400 font-bold">feat(ai):</span>
+          <span className="text-gray-200 truncate max-w-[280px]">integrate new streaming endpoints</span>
+          <span className="text-gray-500 font-bold">#241</span>
+        </div>
+        <span className="text-[10px] font-bold text-rose-400 bg-rose-950/60 border border-rose-500/30 px-2 py-0.5 rounded font-mono">
+          {isFixed ? "PASSED" : "BLOCKED"}
+        </span>
+      </div>
+
+      {/* 2. Connecting Thread Line & Bot Status */}
+      <div className="relative pl-6 py-3 my-0.5 flex items-center gap-3">
+        <div className="absolute left-6 top-0 bottom-0 w-0.5 bg-gray-200" />
+        <div className="relative z-10 flex items-center gap-2 text-xs font-medium text-gray-600 bg-[#f8f9fc] px-1">
+          <img
+            src="https://avatars.githubusercontent.com/in/4029840?s=41&u=2d62d6d33d7b1197056c93741230d09bd6859d15&v=4"
+            alt="Codeward Bot"
+            className="h-6 w-6 rounded-full border border-gray-200 shadow-sm shrink-0"
+          />
+          <span className="font-bold text-gray-900">Codeward App</span>
+          <span className="rounded bg-gray-200/80 text-gray-700 px-1.5 py-0.5 text-[10px] font-semibold">bot</span>
+          <span>analyzed</span>
+          <span className="font-bold text-purple-700">PR #241</span>
+          <span className="text-gray-400">just now</span>
+        </div>
+      </div>
+
+      {/* 3. Compact Review Status Card */}
+      <div className="rounded-2xl border border-gray-200/80 bg-white p-4 shadow-sm text-gray-900 space-y-3">
+        {/* Banner Alert */}
+        {!isFixed ? (
+          <div className="rounded-xl bg-rose-600 text-white px-3.5 py-2 text-xs font-bold flex items-center justify-between shadow-sm">
+            <div className="flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full bg-white animate-ping" />
+              <span>MERGE BLOCKED: Critical Debt Threshold Exceeded</span>
+            </div>
+            <span className="text-[10px] opacity-90 font-mono">-45 Points</span>
+          </div>
+        ) : (
+          <div className="rounded-xl bg-emerald-600 text-white px-3.5 py-2 text-xs font-bold flex items-center justify-between shadow-sm">
+            <div className="flex items-center gap-2">
+              <span className="text-white font-bold">✓</span>
+              <span>DEBT CLEARED: All Checks Passed & Auto-Refactored</span>
+            </div>
+            <span className="text-[10px] font-mono text-emerald-100">+100 Points</span>
+          </div>
+        )}
+
+        <div>
+          {/* Table Header */}
+          <div className="grid grid-cols-4 text-[10px] font-bold uppercase tracking-wider text-gray-400 pb-2 border-b border-gray-100">
+            <div>CHECK</div>
+            <div>SCORE</div>
+            <div>ANALYSIS</div>
+            <div className="text-right">WEIGHT</div>
+          </div>
+
+          {/* Table Rows */}
+          <div className="divide-y divide-gray-50 text-xs font-medium pt-1">
+            {/* Row 1 */}
+            <div className="grid grid-cols-4 py-2 items-center">
+              <div className="font-mono text-gray-900 font-bold">Security</div>
+              <div className="flex items-center gap-1.5 text-emerald-600 font-semibold text-[11px]">
+                <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                <span>100/100 (Pass)</span>
+              </div>
+              <div className="text-gray-600 font-medium">0 findings</div>
+              <div className="text-right text-gray-400 font-mono">x2.0</div>
+            </div>
+
+            {/* Row 2 */}
+            <div className="grid grid-cols-4 py-2 items-center">
+              <div className="font-mono text-gray-900 font-bold">Architecture</div>
+              <div className="flex items-center gap-1.5 text-emerald-600 font-semibold text-[11px]">
+                <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                <span>92/100 (Pass)</span>
+              </div>
+              <div className="text-gray-600 font-medium">Modular</div>
+              <div className="text-right text-gray-400 font-mono">x1.0</div>
+            </div>
+
+            {/* Row 3 */}
+            <div className="grid grid-cols-4 py-2 items-center">
+              <div className="font-mono text-gray-900 font-bold">Broken Code</div>
+              {isFixing ? (
+                <div className="flex items-center gap-1.5 text-amber-600 font-semibold text-[11px]">
+                  <span className="h-2 w-2 rounded-full bg-amber-500 animate-spin" />
+                  <span>Auto-fixing...</span>
+                </div>
+              ) : isFixed ? (
+                <div className="flex items-center gap-1.5 text-emerald-600 font-semibold text-[11px]">
+                  <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                  <span>100/100 (Fixed)</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5 text-rose-600 font-semibold text-[11px]">
+                  <span className="h-2 w-2 rounded-full bg-rose-500" />
+                  <span>0/100 (Fail)</span>
+                </div>
+              )}
+              <div className="text-purple-600 font-medium cursor-pointer" onClick={handleApplyFixes}>
+                {isFixed ? "Auto-refactored" : "Race condition"}
+              </div>
+              <div className="text-right text-gray-400 font-mono">x1.8</div>
+            </div>
+          </div>
+
+          {/* Action Button Footer */}
+          <div className="pt-3 border-t border-gray-100 flex justify-end">
+            {!isFixed ? (
+              <button
+                onClick={handleApplyFixes}
+                disabled={isFixing}
+                className="px-4 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-700 active:scale-95 text-white text-xs font-bold transition-all shadow-md cursor-pointer flex items-center gap-1.5"
+              >
+                {isFixing ? (
+                  <>
+                    <span className="h-3 w-3 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                    <span>Applying Auto-Fixes...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Apply Auto-Fixes & Re-run</span>
+                    <span>⚡</span>
+                  </>
+                )}
+              </button>
+            ) : (
+              <div className="px-3 py-1 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold flex items-center gap-1">
+                <span>✓ Auto-Fixes Applied Successfully</span>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function LiveSandboxTestWidget() {
+  const [connectState, setConnectState] = useState<'idle' | 'connecting' | 'connected'>('idle');
+  const [isRunning, setIsRunning] = useState(true);
+
+  useEffect(() => {
+    const timer1 = setTimeout(() => {
+      setConnectState('connecting');
+    }, 1000);
+
+    const timer2 = setTimeout(() => {
+      setConnectState('connected');
+    }, 2800);
+
+    const timer3 = setTimeout(() => {
+      setIsRunning(false);
+    }, 4500);
+
+    return () => {
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+      clearTimeout(timer3);
+    };
+  }, []);
+
+  return (
+    <div className="w-full max-w-[620px] rounded-3xl border border-white/15 bg-[#f8f9fc] p-5 font-['DM_Sans'] text-gray-900 shadow-2xl transition-all duration-500 hover:scale-[1.01]">
+      {/* 1. Repository Connection Top Bar (Borrowed from Screenshot) */}
+      <div className="rounded-2xl bg-[#0a0c10] px-5 py-3.5 text-white font-sans text-sm flex items-center justify-between shadow-xl border border-white/10">
+        <div className="flex items-center gap-2.5">
+          <svg className="w-4 h-4 text-gray-400 shrink-0" viewBox="0 0 24 24" fill="currentColor">
+            <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" />
+          </svg>
+          <span className="font-mono text-xs text-gray-300">kelvinmaina01 /</span>
+          <span className="font-mono text-xs font-bold text-white">CODEWARD-OS</span>
+          <span className="text-[10px] text-gray-500 bg-white/10 px-1.5 py-0.5 rounded font-mono">Private</span>
+        </div>
+
+        {/* Animated Connection Button */}
+        {connectState === 'idle' && (
+          <button className="px-3 py-1 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold transition-all shadow-md cursor-pointer flex items-center gap-1">
+            <span>Connect</span>
+            <span>→</span>
+          </button>
+        )}
+        {connectState === 'connecting' && (
+          <div className="px-3 py-1 rounded-lg bg-amber-500/20 border border-amber-500/30 text-amber-300 text-xs font-bold flex items-center gap-1.5 animate-pulse">
+            <span className="h-2 w-2 rounded-full bg-amber-400 animate-spin" />
+            <span>Connecting...</span>
+          </div>
+        )}
+        {connectState === 'connected' && (
+          <div className="px-3 py-1 rounded-lg bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-xs font-bold flex items-center gap-1.5">
+            <span className="text-emerald-400 font-bold">✓</span>
+            <span>Connected</span>
+          </div>
+        )}
+      </div>
+
+      {/* 2. Connecting Thread Line & Bot Status */}
+      <div className="relative pl-6 py-3 my-0.5 flex items-center gap-3">
+        <div className="absolute left-6 top-0 bottom-0 w-0.5 bg-gray-200" />
+        <div className="relative z-10 flex items-center gap-2 text-xs font-medium text-gray-600 bg-[#f8f9fc] px-1">
+          <img
+            src="https://avatars.githubusercontent.com/in/4029840?s=41&u=2d62d6d33d7b1197056c93741230d09bd6859d15&v=4"
+            alt="Codeward Bot"
+            className="h-6 w-6 rounded-full border border-gray-200 shadow-sm shrink-0"
+          />
+          <span className="font-bold text-gray-900">codeward-test-agent</span>
+          <span className="rounded bg-emerald-100 text-emerald-800 px-1.5 py-0.5 text-[10px] font-bold">isolated</span>
+          <span>executing</span>
+          <span className="font-bold text-purple-700">run #53</span>
+          <span className="text-gray-400">just now</span>
+        </div>
+      </div>
+
+      {/* 3. Compact Review Status Card */}
+      <div className="rounded-2xl border border-gray-200/80 bg-white p-4 shadow-sm text-gray-900 space-y-3">
+        {/* Comment Header */}
+        <div className="flex items-center justify-between pb-2.5 border-b border-gray-100 text-xs">
+          <div className="flex items-center gap-2">
+            <span className="text-emerald-500 font-bold text-sm">📦</span>
+            <span className="font-bold text-gray-900">kelvinmaina01 / x-algorithm</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold">⚡ Score: 100/100</span>
+            <span className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-[10px] font-bold">🧹 Ephemeral</span>
+          </div>
+        </div>
+
+        <div>
+          {/* Table Header */}
+          <div className="grid grid-cols-4 text-[10px] font-bold uppercase tracking-wider text-gray-400 pb-2 border-b border-gray-100">
+            <div>TEST TOOL</div>
+            <div>STATUS</div>
+            <div>RESULT</div>
+            <div className="text-right">LATENCY</div>
+          </div>
+
+          {/* Table Rows */}
+          <div className="divide-y divide-gray-50 text-xs font-medium pt-1">
+            {/* Row 1 */}
+            <div className="grid grid-cols-4 py-2 items-center">
+              <div className="font-mono text-gray-900 font-bold flex items-center gap-1.5">
+                <span>📦</span>
+                <span>sandbox_init</span>
+              </div>
+              <div className="flex items-center gap-1.5 text-emerald-600 font-semibold text-[11px]">
+                <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                <span>Isolated container</span>
+              </div>
+              <div className="text-gray-600 font-medium">Cloned SHA</div>
+              <div className="text-right text-gray-400 font-mono">100ms</div>
+            </div>
+
+            {/* Row 2 */}
+            <div className="grid grid-cols-4 py-2 items-center">
+              <div className="font-mono text-gray-900 font-bold flex items-center gap-1.5">
+                <span>⚡</span>
+                <span>fallow_health</span>
+              </div>
+              {isRunning ? (
+                <div className="flex items-center gap-1.5 text-amber-600 font-semibold text-[11px]">
+                  <span className="h-2 w-2 rounded-full bg-amber-500 animate-spin" />
+                  <span>Evaluating...</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5 text-emerald-600 font-semibold text-[11px]">
+                  <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                  <span>Score 100/100</span>
+                </div>
+              )}
+              <div className="text-emerald-600 font-medium">No dead code</div>
+              <div className="text-right text-gray-400 font-mono">451ms</div>
+            </div>
+
+            {/* Row 3 */}
+            <div className="grid grid-cols-4 py-2 items-center">
+              <div className="font-mono text-gray-900 font-bold flex items-center gap-1.5">
+                <span>⚡</span>
+                <span>bundle_size</span>
+              </div>
+              <div className="flex items-center gap-1.5 text-emerald-600 font-semibold text-[11px]">
+                <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                <span>Zero bloat</span>
+              </div>
+              <div className="text-emerald-600 font-medium">Passed</div>
+              <div className="text-right text-gray-400 font-mono">60ms</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 type Particle = {
   baseX: number;
   baseY: number;
@@ -436,9 +1062,9 @@ function TestimonialsSection() {
           Most AI tools just autocomplete mistakes faster. <span className="bg-yellow-300 text-black px-1 rounded-sm">Codeward</span> is the first platform we've used that actually understands our entire architecture, proactively finding and fixing deep logic flaws before they ever reach our main branch.
         </>
       ),
-      author: "Jane Doe",
-      role: "Senior Engineer, TechCorp",
-      avatar: "https://randomuser.me/api/portraits/women/44.jpg"
+      author: "Durgesh Sharma",
+      role: "Technology Leader, Medpace",
+      avatar: "https://media.licdn.com/dms/image/v2/D4D35AQEUzFOssgYIdw/profile-framedphoto-shrink_800_800/B4DZ..ehuLIwAY-/0/1785607101828?e=1786640400&v=beta&t=pkS8EQYj6CMRo9mvnf-q-GB2t9jyMkKHIOhD9vF6T98"
     },
     {
       id: 2,
@@ -446,12 +1072,12 @@ function TestimonialsSection() {
       icon: "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Symbols/Check%20Mark%20Button.png",
       text: (
         <>
-          It's not just another chatbot that you have to micromanage. Codeward acts like a true senior engineerÃ¢â‚¬â€<span className="bg-yellow-300 text-black px-1 rounded-sm">autonomously refactoring</span> legacy code and writing comprehensive test suites without needing my constant supervision.
+          It's not just another chatbot that you have to micromanage. Codeward acts like a true senior engineer—<span className="bg-yellow-300 text-black px-1 rounded-sm">autonomously refactoring</span> legacy code and writing comprehensive test suites without needing constant supervision.
         </>
       ),
-      author: "John Smith",
-      role: "CTO, StartupInc",
-      avatar: "https://randomuser.me/api/portraits/men/32.jpg"
+      author: "Brian Nyakundi",
+      role: "Founder @ Baywoods | Full-Stack Developer",
+      avatar: "https://media.licdn.com/dms/image/v2/D5635AQF1mFVZpCHP3w/profile-framedphoto-shrink_800_800/profile-framedphoto-shrink_800_800/0/1738869935517?e=1786640400&v=beta&t=qxB5EDlmp4MFHQbyZCRDjKwnUzz53ydSSvjFNOvLvM4"
     },
     {
       id: 3,
@@ -462,22 +1088,35 @@ function TestimonialsSection() {
           Our technical debt was becoming unmanageable. Within weeks of deploying <span className="bg-yellow-300 text-black px-1 rounded-sm">Codeward</span>, it systematically eliminated thousands of lines of legacy code and upgraded our core modules, all while passing our strictest CI/CD pipelines.
         </>
       ),
-      author: "Alice Johnson",
-      role: "Lead Developer, MegaCorp",
-      avatar: "https://randomuser.me/api/portraits/women/68.jpg"
+      author: "Renee (Wanjiru) Njuwa",
+      role: "Web Security & Blue Team Specialist, Riara University",
+      avatar: "https://media.licdn.com/dms/image/v2/D4E03AQGsAiWh07j-sw/profile-displayphoto-crop_800_800/B4EZxwGisdIsAI-/0/1771407317853?e=1787788800&v=beta&t=KI0yPtkcQXAc4bi5Yfs54WAewdVnpM-nOkvihK4pg-Y"
     },
     {
       id: 4,
-      bgColor: "bg-[#a9b0b7]", // Grey from the image
+      bgColor: "bg-[#a9b0b7]", // Grey
       icon: "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Objects/Light%20Bulb.png",
       text: (
         <>
-          The Review Agent is a total game-changer. It doesn't just leave vague comments on PRsÃ¢â‚¬â€it <span className="bg-yellow-300 text-black px-1 rounded-sm">spins up sandboxes</span>, runs the failing tests, and commits self-healing patches instantly. Our velocity has literally doubled.
+          Codeward has completely transformed how our engineering teams scale. It doesn't just leave vague PR comments—it <span className="bg-yellow-300 text-black px-1 rounded-sm">spins up sandboxes</span>, runs failing tests, and commits self-healing patches instantly.
         </>
       ),
-      author: "David Lee",
-      role: "Engineering Manager, Innovate LLC",
-      avatar: "https://randomuser.me/api/portraits/men/46.jpg"
+      author: "Cynthia Saraiva",
+      role: "Senior Infrastructure Engineer @ Mistral AI",
+      avatar: "https://media.licdn.com/dms/image/v2/D4D35AQGAqffvt9ifig/profile-framedphoto-shrink_800_800/B4DZ8420RJI4AY-/0/1783365322734?e=1786640400&v=beta&t=gQxjhRqbzMZ9Mn9cWFnJMKFQPs1W196UfIUoQI4fsS4"
+    },
+    {
+      id: 5,
+      bgColor: "bg-[#f1f8e9]", // Light green
+      icon: "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Symbols/Cross%20Mark.png",
+      text: (
+        <>
+          Maintaining consistent code standards across fast-growing teams used to take weeks. <span className="bg-yellow-300 text-black px-1 rounded-sm">Codeward</span> enforces architectural rules automatically across all repositories so developers focus purely on building.
+        </>
+      ),
+      author: "Anna Wellerdiek",
+      role: "Staff Systems Architect @ Zavu.dev",
+      avatar: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&auto=format&fit=crop&q=80"
     }
   ];
 
@@ -503,18 +1142,15 @@ function TestimonialsSection() {
 
     const handleMouseEnter = () => { isHovered = true; };
     const handleMouseLeave = () => { isHovered = false; };
-    
-    el.addEventListener('mouseenter', handleMouseEnter);
-    el.addEventListener('mouseleave', handleMouseLeave);
-
-    const step = () => {
+     const step = () => {
       if (!isHovered) {
-        if (direction === 1 && el.scrollLeft >= el.scrollWidth - el.clientWidth - 2) {
+        const maxScroll = el.scrollWidth - el.clientWidth;
+        if (direction === 1 && el.scrollLeft >= maxScroll - 5) {
           direction = -1;
-        } else if (direction === -1 && el.scrollLeft <= 2) {
+        } else if (direction === -1 && el.scrollLeft <= 5) {
           direction = 1;
         }
-        el.scrollLeft += 1.5 * direction;
+        el.scrollLeft += 2.2 * direction;
       }
       animationFrameId = requestAnimationFrame(step);
     };
@@ -529,16 +1165,16 @@ function TestimonialsSection() {
   }, []);
 
   return (
-    <section className="bg-[#05060a] py-16 pl-8 md:pl-20 border-t border-white/5">
+    <section className="bg-[#05060a] py-16 pl-8 md:pl-20 border-t border-white/5 overflow-hidden">
       <div className="w-full">
         <div className="max-w-[1500px] mr-auto">
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 md:mb-12 gap-6 md:gap-0 pr-8 md:pr-20">
             <h2 className="text-3xl md:text-5xl font-bold text-white tracking-tight">What developers are saying</h2>
             <div className="flex gap-4">
-              <button onClick={scrollLeft} className="h-14 w-14 rounded-full border border-white/20 flex items-center justify-center text-white hover:bg-white/10 transition-colors shrink-0">
+              <button onClick={scrollLeft} aria-label="Scroll left" className="h-14 w-14 rounded-full border border-white/20 flex items-center justify-center text-white hover:bg-white/10 active:scale-95 transition-all shrink-0 cursor-pointer">
                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
               </button>
-              <button onClick={scrollRight} className="h-14 w-14 rounded-full border border-white/20 flex items-center justify-center text-white hover:bg-white/10 transition-colors shrink-0">
+              <button onClick={scrollRight} aria-label="Scroll right" className="h-14 w-14 rounded-full border border-white/20 flex items-center justify-center text-white hover:bg-white/10 active:scale-95 transition-all shrink-0 cursor-pointer">
                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
               </button>
             </div>
@@ -546,13 +1182,13 @@ function TestimonialsSection() {
 
           <div 
             ref={scrollRef}
-            className="flex gap-8 overflow-x-auto snap-x snap-mandatory pb-12 pr-[20vw] hide-scrollbar"
-            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+            className="flex gap-8 overflow-x-auto pb-12 pr-[20vw] hide-scrollbar"
+            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', scrollBehavior: 'smooth' }}
           >
             {testimonials.map((t) => (
               <div 
                 key={t.id} 
-                className={`${t.bgColor} shrink-0 w-[85vw] md:w-[500px] h-[400px] rounded-2xl p-8 flex flex-col justify-end relative shadow-2xl snap-start`}
+                className={`${t.bgColor} shrink-0 w-[85vw] md:w-[480px] h-[380px] rounded-2xl p-8 flex flex-col justify-between relative shadow-2xl transition-transform hover:scale-[1.02]`}
               >
                 <div>
                   <p className="text-xl md:text-2xl text-black font-medium leading-[1.3] mb-8 tracking-tight">
@@ -776,295 +1412,7 @@ export default function CodewardHero() {
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_left,_rgba(0,0,0,0.85)_0%,_rgba(0,0,0,0.4)_40%,_transparent_70%)]" />
       </div>
 
-      {/* Top nav */}
-      <header className="relative z-50 flex items-center justify-between px-8 py-6 md:px-14">
-        <div className="flex items-center">
-          <img src="https://i.ibb.co/0jxSNrnp/codewrdlogo-png-removebg-preview.png" alt="Codeward Logo" className="h-8 w-auto object-contain -mr-2" />
-          <span className="text-2xl font-bold tracking-tight text-white">
-            Code<span className="text-purple-500">ward</span>
-          </span>
-        </div>
-        <nav className="hidden gap-8 text-sm font-medium text-white/80 md:flex items-center">
-          {/* Products Mega Menu */}
-          <div className="group">
-            <button className="hover:text-white transition-colors flex items-center gap-1 py-4">
-              Products 
-              <svg className="w-4 h-4 opacity-70 group-hover:rotate-180 transition-transform" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
-            </button>
-            <div className="absolute top-full left-0 w-full px-8 md:px-14 mt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 transform group-hover:translate-y-0 translate-y-2 z-50">
-              <div className="bg-[#F5F5EF] rounded-3xl shadow-2xl overflow-hidden text-black flex p-8 md:p-12 gap-10 border border-black/5 relative w-full">
-                <div className="flex-1">
-                  <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-8">Platform</h4>
-                  <div className="grid grid-cols-3 gap-x-8 gap-y-12">
-                    <a href="#" className="block group/link">
-                      <div className="font-bold text-[17px] mb-1.5 text-black group-hover/link:text-[#8B5CF6] transition-colors">Orchestrator Agent</div>
-                      <div className="text-sm text-gray-500 font-medium">Coordinates analysis & gate decisions.</div>
-                    </a>
-                    <a href="#" className="block group/link">
-                      <div className="font-bold text-[17px] mb-1.5 text-black group-hover/link:text-[#8B5CF6] transition-colors">Security Agent</div>
-                      <div className="text-sm text-gray-500 font-medium">18 checks, OWASP, Trivy, Secrets.</div>
-                    </a>
-                    <a href="#" className="block group/link">
-                      <div className="font-bold text-[17px] mb-1.5 text-black group-hover/link:text-[#8B5CF6] transition-colors">Bloat Agent</div>
-                      <div className="text-sm text-gray-500 font-medium">AST duplication & dead code removal.</div>
-                    </a>
-                    <a href="#" className="block group/link">
-                      <div className="font-bold text-[17px] mb-1.5 text-black group-hover/link:text-[#8B5CF6] transition-colors">Broken Code Agent</div>
-                      <div className="text-sm text-gray-500 font-medium">Sandbox test runs & flaky detection.</div>
-                    </a>
-                    <a href="#" className="block group/link">
-                      <div className="font-bold text-[17px] mb-1.5 text-black group-hover/link:text-[#8B5CF6] transition-colors">Architecture Agent</div>
-                      <div className="text-sm text-gray-500 font-medium">Load testing, k6, N+1 queries.</div>
-                    </a>
-                    <a href="#" className="block group/link">
-                      <div className="font-bold text-[17px] mb-1.5 text-black group-hover/link:text-[#8B5CF6] transition-colors">AI-Era Agent</div>
-                      <div className="text-sm text-gray-500 font-medium">Prompt injection & RAG drift.</div>
-                    </a>
-                  </div>
-                </div>
-                <div className="w-[320px]">
-                  <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-6">Infrastructure</h4>
-                  <a href="#" className="block h-[180px] rounded-[1.25rem] bg-gradient-to-br from-[#E2E8F0] to-[#FFFFFF] p-6 relative overflow-hidden group/card shadow-inner transition-transform hover:scale-[1.02] border border-black/5">
-                    <div className="absolute inset-0 flex items-center justify-center p-4">
-                      <div className="w-[110%] h-[120%] bg-white rounded-lg shadow-sm border border-gray-100 flex flex-col p-4 opacity-90 group-hover/card:scale-[1.03] transition-transform duration-500">
-                         <div className="h-3 w-16 bg-gray-200 rounded mb-4"></div>
-                         <div className="h-2 w-full bg-gray-100 rounded mb-2"></div>
-                         <div className="h-2 w-3/4 bg-gray-100 rounded mb-6"></div>
-                         <div className="flex gap-3">
-                           <div className="w-10 h-10 rounded bg-purple-100"></div>
-                           <div className="flex-1 space-y-2">
-                             <div className="h-2 w-full bg-gray-50 rounded"></div>
-                             <div className="h-2 w-1/2 bg-gray-50 rounded"></div>
-                           </div>
-                         </div>
-                      </div>
-                    </div>
-                  </a>
-                  <div className="mt-4 font-bold text-[15px] text-black">Firecracker microVM sandboxes in {"<125ms"}</div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Solutions Mega Menu */}
-          <div className="group">
-            <button className="hover:text-white transition-colors flex items-center gap-1 py-4">
-              Solutions 
-              <svg className="w-4 h-4 opacity-70 group-hover:rotate-180 transition-transform" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
-            </button>
-            <div className="absolute top-full left-0 w-full px-8 md:px-14 mt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 transform group-hover:translate-y-0 translate-y-2 z-50">
-              <div className="bg-[#F5F5EF] rounded-3xl shadow-2xl overflow-hidden text-black flex p-8 md:p-12 gap-10 border border-black/5 relative w-full">
-                <div className="flex-1">
-                  <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-8">Use Cases</h4>
-                  <div className="grid grid-cols-3 gap-x-8 gap-y-12">
-                    <a href="#" className="block group/link">
-                      <div className="font-bold text-[17px] mb-1.5 text-black group-hover/link:text-[#8B5CF6] transition-colors">CI/CD Pipeline Shield</div>
-                      <div className="text-sm text-gray-500 font-medium">Block bad code automatically before merge.</div>
-                    </a>
-                    <a href="#" className="block group/link">
-                      <div className="font-bold text-[17px] mb-1.5 text-black group-hover/link:text-[#8B5CF6] transition-colors">Tech Debt Elimination</div>
-                      <div className="text-sm text-gray-500 font-medium">AST-based automatic code refactoring.</div>
-                    </a>
-                    <a href="#" className="block group/link">
-                      <div className="font-bold text-[17px] mb-1.5 text-black group-hover/link:text-[#8B5CF6] transition-colors">Continuous Compliance</div>
-                      <div className="text-sm text-gray-500 font-medium">Scheduled GDPR, EU AI Act, WCAG checks.</div>
-                    </a>
-                    <a href="#" className="block group/link">
-                      <div className="font-bold text-[17px] mb-1.5 text-black group-hover/link:text-[#8B5CF6] transition-colors">Security & Secrets</div>
-                      <div className="text-sm text-gray-500 font-medium">Scan for vulnerabilities and exposed keys.</div>
-                    </a>
-                    <a href="#" className="block group/link">
-                      <div className="font-bold text-[17px] mb-1.5 text-black group-hover/link:text-[#8B5CF6] transition-colors">Flaky Test Resolution</div>
-                      <div className="text-sm text-gray-500 font-medium">10x re-runs to isolate non-determinism.</div>
-                    </a>
-                    <a href="#" className="block group/link">
-                      <div className="font-bold text-[17px] mb-1.5 text-black group-hover/link:text-[#8B5CF6] transition-colors">Enterprise Architecture</div>
-                      <div className="text-sm text-gray-500 font-medium">Scale safely with deep load testing.</div>
-                    </a>
-                  </div>
-                </div>
-                <div className="w-[320px]">
-                  <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-6">Playbook</h4>
-                  <a href="#" className="block h-[180px] rounded-[1.25rem] bg-gradient-to-br from-[#2E1065] via-[#4C1D95] to-[#7C3AED] p-6 relative overflow-hidden group/card shadow-inner transition-transform hover:scale-[1.02]">
-                     <div className="absolute inset-0 opacity-20 mix-blend-overlay" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noiseFilter%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.85%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noiseFilter)%22/%3E%3C/svg%3E")' }}></div>
-                     <div className="absolute top-6 left-6 text-[10px] font-bold tracking-widest text-white/70 uppercase">Architecture</div>
-                     <div className="absolute bottom-6 left-6 text-[22px] font-bold leading-snug text-white z-10 w-[80%]">
-                       The 100+ Check Validation Flow
-                     </div>
-                  </a>
-                  <div className="mt-4 font-bold text-[15px] text-black">How 8 agents run in parallel to secure your PRs</div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <a href="#pricing" className="hover:text-white transition-colors">Pricing</a>
-
-          {/* Resources Mega Menu */}
-          <div className="group">
-            <button className="hover:text-white transition-colors flex items-center gap-1 py-4">
-              Resources 
-              <svg className="w-4 h-4 opacity-70 group-hover:rotate-180 transition-transform" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
-            </button>
-            <div className="absolute top-full left-0 w-full px-8 md:px-14 mt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 transform group-hover:translate-y-0 translate-y-2 z-50">
-              <div className="bg-[#F5F5EF] rounded-3xl shadow-2xl overflow-hidden text-black flex p-8 md:p-12 gap-10 border border-black/5 relative w-full">
-                <div className="flex-1">
-                  <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-8">Resources</h4>
-                  <div className="grid grid-cols-3 gap-x-8 gap-y-12">
-                    <a href="#" className="block group/link">
-                      <div className="font-bold text-[17px] mb-1.5 text-black group-hover/link:text-[#8B5CF6] transition-colors">Dashboard</div>
-                      <div className="text-sm text-gray-500 font-medium">View live run feeds and health scores.</div>
-                    </a>
-                    <a href="#" className="block group/link">
-                      <div className="font-bold text-[17px] mb-1.5 text-black group-hover/link:text-[#8B5CF6] transition-colors">Documentation</div>
-                      <div className="text-sm text-gray-500 font-medium">Setup guides and integrations.</div>
-                    </a>
-                    <a href="#" className="block group/link">
-                      <div className="font-bold text-[17px] mb-1.5 text-black group-hover/link:text-[#8B5CF6] transition-colors">GitHub App</div>
-                      <div className="text-sm text-gray-500 font-medium">Install Codeward on your repositories.</div>
-                    </a>
-                    <a href="#" className="block group/link">
-                      <div className="font-bold text-[17px] mb-1.5 text-black group-hover/link:text-[#8B5CF6] transition-colors">Pricing</div>
-                      <div className="text-sm text-gray-500 font-medium">Free, Pro, and Enterprise tiers.</div>
-                    </a>
-                    <a href="#" className="block group/link">
-                      <div className="font-bold text-[17px] mb-1.5 text-black group-hover/link:text-[#8B5CF6] transition-colors">Sandbox Infrastructure</div>
-                      <div className="text-sm text-gray-500 font-medium">Learn how our Firecracker VMs work.</div>
-                    </a>
-                    <a href="#" className="block group/link">
-                      <div className="font-bold text-[17px] mb-1.5 text-black group-hover/link:text-[#8B5CF6] transition-colors">API Reference</div>
-                      <div className="text-sm text-gray-500 font-medium">Automate runs programmatically.</div>
-                    </a>
-                  </div>
-                </div>
-                <div className="w-[320px]">
-                  <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-6">To read</h4>
-                  <a href="#" className="block h-[180px] rounded-[1.25rem] bg-gradient-to-br from-[#303833] via-[#434b41] to-[#252c23] p-6 relative overflow-hidden group/card shadow-inner transition-transform hover:scale-[1.02]">
-                     <div className="absolute inset-0 opacity-40 mix-blend-overlay" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noiseFilter%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.85%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noiseFilter)%22/%3E%3C/svg%3E")' }}></div>
-                     <div className="absolute top-6 left-6 text-[10px] font-bold tracking-widest text-white/70 uppercase">Engineering</div>
-                     <div className="absolute bottom-6 left-6 text-[22px] font-bold leading-snug text-white z-10 w-[90%]">
-                       The Automated Principal Engineer
-                     </div>
-                  </a>
-                  <div className="mt-4 font-bold text-[15px] text-black">Why manual code reviews are a bottleneck for teams</div>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          {/* Developers Mega Menu */}
-          <div className="group">
-            <button className="hover:text-white transition-colors flex items-center gap-1 py-4">
-              Developers 
-              <svg className="w-4 h-4 opacity-70 group-hover:rotate-180 transition-transform" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
-            </button>
-            <div className="absolute top-full left-0 w-full px-8 md:px-14 mt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 transform group-hover:translate-y-0 translate-y-2 z-50">
-              <div className="bg-[#F5F5EF] rounded-3xl shadow-2xl overflow-hidden text-black flex p-8 md:p-12 gap-10 border border-black/5 relative w-full">
-                <div className="flex-1">
-                  <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-8">Developers</h4>
-                  <div className="grid grid-cols-4 gap-x-8 gap-y-12">
-                    <a href="#" className="block group/link">
-                      <div className="font-bold text-[17px] mb-1.5 text-black group-hover/link:text-[#8B5CF6] transition-colors">API Reference</div>
-                      <div className="text-sm text-gray-500 font-medium">Complete API documentation and reference.</div>
-                    </a>
-                    <a href="#" className="block group/link">
-                      <div className="font-bold text-[17px] mb-1.5 text-black group-hover/link:text-[#8B5CF6] transition-colors">GitHub Repository</div>
-                      <div className="text-sm text-gray-500 font-medium">Contribute to the core project.</div>
-                    </a>
-                    <a href="#" className="block group/link">
-                      <div className="font-bold text-[17px] mb-1.5 text-black group-hover/link:text-[#8B5CF6] transition-colors">Architecture Specs</div>
-                      <div className="text-sm text-gray-500 font-medium">BullMQ, Supabase, and Firecracker.</div>
-                    </a>
-                    <a href="#" className="block group/link">
-                      <div className="font-bold text-[17px] mb-1.5 text-black group-hover/link:text-[#8B5CF6] transition-colors">Custom Rules</div>
-                      <div className="text-sm text-gray-500 font-medium">Write your own AST checks.</div>
-                    </a>
-                  </div>
-                </div>
-                <div className="w-[320px]">
-                  <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-6">Community</h4>
-                  <a href="#" className="block h-[180px] rounded-[1.25rem] bg-gradient-to-br from-[#4A3D36] via-[#3E453A] to-[#344033] p-6 relative overflow-hidden group/card shadow-inner transition-transform hover:scale-[1.02]">
-                    <div className="flex items-center gap-3 relative z-10 text-white">
-                       {/* WhatsApp logo */}
-                       <svg className="w-8 h-8 opacity-90" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a5.8 5.8 0 00-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-                       {/* Discord logo */}
-                       <svg className="w-8 h-8 opacity-90" fill="currentColor" viewBox="0 0 24 24"><path d="M20.317 4.37a19.791 19.791 0 00-4.885-1.515.074.074 0 00-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 00-5.487 0 12.64 12.64 0 00-.617-1.25.077.077 0 00-.079-.037A19.736 19.736 0 003.677 4.37a.07.07 0 00-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 00.031.057 19.9 19.9 0 005.993 3.03.078.078 0 00.084-.028 14.09 14.09 0 001.226-1.994.076.076 0 00-.041-.106 13.107 13.107 0 01-1.872-.892.077.077 0 01-.008-.128 10.2 10.2 0 00.372-.292.074.074 0 01.077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 01.078.01c.12.098.246.198.373.292a.077.077 0 01-.006.127 12.299 12.299 0 01-1.873.892.077.077 0 00-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 00.084.028 19.839 19.839 0 006.002-3.03.077.077 0 00.032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 00-.031-.028zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg>
-                    </div>
-                    <div className="absolute bottom-6 left-6 text-[22px] font-bold leading-snug text-white z-10 w-[70%]">
-                      Join our<br/>developer community
-                    </div>
-                    {/* Decorative noise/texture overlay */}
-                    <div className="absolute inset-0 opacity-40 mix-blend-overlay" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noiseFilter%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.85%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noiseFilter)%22/%3E%3C/svg%3E")' }}></div>
-                    <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-white/10 blur-2xl rounded-full" />
-                  </a>
-                </div>
-              </div>
-            </div>
-          </div>
-          <a href="#docs" className="hover:text-white transition-colors">Docs</a>
-          {/* Blogs Mega Menu */}
-          <div className="group">
-            <button onClick={() => navigate('/blogs')} className="hover:text-white transition-colors flex items-center gap-1 py-4 cursor-pointer">
-              Blogs 
-              <svg className="w-4 h-4 opacity-70 group-hover:rotate-180 transition-transform" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
-            </button>
-            <div className="absolute top-full left-0 w-full px-8 md:px-14 mt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 transform group-hover:translate-y-0 translate-y-2 z-50">
-              <div className="bg-[#F5F5EF] rounded-3xl shadow-2xl overflow-hidden text-black flex flex-col md:flex-row p-8 md:p-12 gap-10 border border-black/5 relative w-full">
-                
-                {/* Left side: Advantage and Learn More */}
-                <div className="w-full md:w-[350px] flex flex-col justify-between shrink-0">
-                  <div>
-                    <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-6">Our Blog</h4>
-                    <h3 className="text-[26px] font-black text-black leading-tight mb-4 tracking-tight">Stay ahead of technical debt.</h3>
-                    <p className="text-gray-600 font-medium text-[15px] leading-relaxed mb-8">
-                      Discover actionable insights on autonomous engineering, code quality, and scaling your development velocity with AI. Read expert perspectives on how the smartest teams build software today.
-                    </p>
-                  </div>
-                  <button onClick={() => navigate('/blogs')} className="flex items-center justify-center gap-2 text-white bg-black hover:bg-black/80 px-6 py-3.5 rounded-full font-bold w-full md:w-fit transition-colors shadow-md">
-                    Explore all blogs &rarr;
-                  </button>
-                </div>
-
-                {/* Right side: Featured Blogs */}
-                <div className="flex-1 md:border-l border-black/10 md:pl-10">
-                  <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-6">Featured Reads</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {blogs.slice(0, 3).map((post, idx) => (
-                      <div onClick={() => navigate(`/blogs/${post.slug}`)} key={idx} className="group/blog cursor-pointer flex flex-col h-full">
-                        <div className={`aspect-[16/10] overflow-hidden rounded-[1rem] mb-4 relative shadow-sm shrink-0 border border-black/5 bg-gradient-to-br ${post.gradient || 'from-purple-900 to-indigo-900'}`}>
-                          <div className="absolute inset-0 bg-gradient-to-tr from-black/20 via-transparent to-white/20 mix-blend-overlay" />
-                          <div className="absolute inset-0 bg-black/10" />
-                          <div className="absolute inset-0 p-3 flex flex-col justify-between z-10">
-                            <div className="flex justify-start">
-                              <div className="bg-white/90 backdrop-blur-sm px-2 py-1 rounded-sm text-[9px] font-bold text-black uppercase tracking-wider shadow-sm">
-                                {post.category}
-                              </div>
-                            </div>
-                            <div>
-                              <span className="text-[10px] font-bold tracking-widest text-white/90 uppercase block drop-shadow-md">
-                                {post.overlayText || 'ENGINEERING'}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                        <h5 className="font-bold text-[16px] leading-snug text-black mb-2 group-hover/blog:text-[#8B5CF6] transition-colors line-clamp-3">
-                          {post.title}
-                        </h5>
-                        <div className="mt-auto pt-2 text-[13px] font-bold text-gray-500 flex items-center gap-2">
-                          <span>{post.readTime}</span>
-                          <span>Ã‚Â·</span>
-                          <span>{post.date}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-              </div>
-            </div>
-          </div>
-        </nav>
-      </header>
+<LandingHeader />
 
       {/* Hero */}
       <section className="relative z-10 flex min-h-[calc(100vh-96px)] items-center px-8 md:px-14">
@@ -1312,146 +1660,90 @@ export default function CodewardHero() {
       </section>
 
 
-      {/* Ã¢â€ â‚¬Ã¢â€ â‚¬ Specialized AI Agents Section Ã¢â€ â‚¬Ã¢â€ â‚¬ */}
-      <section 
-        className="relative bg-[#05060a] py-20 md:py-24 px-8 md:px-20 border-t border-white/5 bg-cover bg-center bg-no-repeat"
-        style={{ backgroundImage: "url('https://i.ibb.co/xP4yRWx/codewarrrrd-section.png')" }}
-      >
-        <div className="absolute inset-0 bg-[#05060a]/60" /> {/* Dark overlay to ensure text readability */}
-        <div className="relative z-10 mx-auto max-w-7xl flex flex-col space-y-40">
+      {/* ── Specialized AI Agents Section ── */}
+      <section className="relative overflow-hidden bg-[#05060a] py-16 md:py-20 px-8 md:px-20 border-t border-white/5">
+        {/* Dark Cyber Aesthetic Image Background */}
+        <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
+          <img
+            src="https://i.pinimg.com/736x/c5/f3/31/c5f331770f86cd888bd2277d78fc0d90.jpg"
+            alt="Agents Section Background"
+            loading="lazy"
+            decoding="async"
+            className="w-full h-full object-cover opacity-20 mix-blend-overlay"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-[#05060a] via-transparent to-[#05060a]" />
+        </div>
+        <div className="relative z-10 mx-auto max-w-7xl flex flex-col space-y-24 md:space-y-32">
           
           {/* Agent 1: Security Shield */}
           <div className="flex flex-col md:flex-row items-center gap-16">
             <FadeInSection direction="up" className="flex-1 max-w-xl">
-              <h2 className="text-2xl md:text-3xl font-bold text-white mb-6 leading-tight">Ironclad protection before you deploy</h2>
-              <p className="text-white/60 text-base md:text-lg leading-relaxed mb-8">
+              <h2 className="text-2xl md:text-4xl font-extrabold text-white mb-6 leading-tight drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)]">
+                Ironclad protection before you deploy
+              </h2>
+              <p className="text-white font-medium text-base md:text-lg leading-relaxed mb-8 drop-shadow-[0_2px_8px_rgba(0,0,0,0.7)]">
                 Shields your codebase from vulnerabilities and hardcoded secrets. It runs deep static analysis and provisions isolated ephemeral sandboxes to verify patches before any code reaches production.
               </p>
-              <button onClick={() => navigate('/signup')} className="inline-flex w-fit items-center gap-2 px-6 py-3 rounded-full bg-white text-black text-sm font-semibold transition-all duration-300 hover:bg-[#8B5CF6] hover:text-white hover:scale-105 hover:shadow-[0_0_25px_rgba(139,92,246,0.5)] active:bg-green-500 active:text-white active:scale-95">
+              <button onClick={() => navigate('/signup')} className="inline-flex w-fit items-center gap-2 px-6 py-3 rounded-full bg-white text-black text-sm font-bold shadow-lg transition-all duration-300 hover:bg-[#8B5CF6] hover:text-white hover:scale-105 hover:shadow-[0_0_25px_rgba(139,92,246,0.5)] active:bg-green-500 active:text-white active:scale-95 cursor-pointer">
                 Secure your repo →
               </button>
             </FadeInSection>
             <FadeInSection direction="up" className="flex-1 w-full flex justify-end">
-              {/* GitHub-style gradient-border card — Security */}
-              <div className="relative w-full max-w-[680px] rounded-3xl p-[4px] shadow-[0_0_100px_rgba(239,68,68,0.28),0_30px_70px_rgba(0,0,0,0.65),0_0_0_1px_rgba(239,68,68,0.15)]" style={{ background: 'linear-gradient(135deg, rgba(239,68,68,0.7) 0%, rgba(168,85,247,0.4) 45%, rgba(255,255,255,0.08) 100%)' }}>
-                <div className="relative rounded-3xl bg-[#0d1117] overflow-hidden">
-                  <img
-                    src="https://i.ibb.co/Y4Tr8tJG/security-dashboard.png"
-                    alt="Security Dashboard"
-                    loading="lazy"
-                    decoding="async"
-                    className="w-full h-auto block"
-                  />
-                </div>
-              </div>
+              <LiveSecurityShieldWidget />
             </FadeInSection>
           </div>
 
           {/* Agent 2: Technical Debt */}
           <div className="flex flex-col md:flex-row items-center gap-16">
             <FadeInSection direction="up" className="flex-1 max-w-xl">
-              <h2 className="text-2xl md:text-3xl font-bold text-white mb-6 leading-tight">Crush legacy technical debt</h2>
-              <p className="text-white/60 text-base md:text-lg leading-relaxed mb-8">
+              <h2 className="text-2xl md:text-4xl font-extrabold text-white mb-6 leading-tight drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)]">
+                Crush legacy technical debt
+              </h2>
+              <p className="text-white font-medium text-base md:text-lg leading-relaxed mb-8 drop-shadow-[0_2px_8px_rgba(0,0,0,0.7)]">
                 Identifies, tracks, and autonomously eliminates technical debt. It highlights overly complex, legacy modules and writes modern, optimized refactors without breaking the underlying architecture.
               </p>
-              <button onClick={() => navigate('/signup')} className="inline-flex w-fit items-center gap-2 px-6 py-3 rounded-full bg-white text-black text-sm font-semibold transition-all duration-300 hover:bg-[#8B5CF6] hover:text-white hover:scale-105 hover:shadow-[0_0_25px_rgba(139,92,246,0.5)] active:bg-green-500 active:text-white active:scale-95">
+              <button onClick={() => navigate('/signup')} className="inline-flex w-fit items-center gap-2 px-6 py-3 rounded-full bg-white text-black text-sm font-bold shadow-lg transition-all duration-300 hover:bg-[#8B5CF6] hover:text-white hover:scale-105 hover:shadow-[0_0_25px_rgba(139,92,246,0.5)] active:bg-green-500 active:text-white active:scale-95 cursor-pointer">
                 Eliminate tech debt →
               </button>
             </FadeInSection>
             <FadeInSection direction="up" className="flex-1 w-full flex justify-end">
-              {/* GitHub-style gradient-border card — Debt Tracker */}
-              <div className="relative w-full max-w-[680px] rounded-3xl p-[4px] shadow-[0_0_100px_rgba(168,85,247,0.28),0_30px_70px_rgba(0,0,0,0.65),0_0_0_1px_rgba(168,85,247,0.15)]" style={{ background: 'linear-gradient(135deg, rgba(168,85,247,0.7) 0%, rgba(99,102,241,0.4) 45%, rgba(255,255,255,0.08) 100%)' }}>
-                <div className="relative rounded-3xl bg-[#0d1117] overflow-hidden">
-                  <img
-                    src="https://i.ibb.co/svMtrRNV/debt-tracker.png"
-                    alt="Debt Tracker"
-                    loading="lazy"
-                    decoding="async"
-                    className="w-full h-auto block"
-                  />
-                </div>
-              </div>
+              <LiveTechDebtWidget />
             </FadeInSection>
           </div>
 
           {/* Agent 3: Sandbox Test */}
           <div className="flex flex-col md:flex-row items-center gap-16">
             <FadeInSection direction="up" className="flex-1 max-w-xl">
-              <h2 className="text-2xl md:text-3xl font-bold text-white mb-6 leading-tight">Real tests in live sandboxes</h2>
-              <p className="text-white/60 text-base md:text-lg leading-relaxed mb-8">
+              <h2 className="text-2xl md:text-4xl font-extrabold text-white mb-6 leading-tight drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)]">
+                Real tests in live sandboxes
+              </h2>
+              <p className="text-white font-medium text-base md:text-lg leading-relaxed mb-8 drop-shadow-[0_2px_8px_rgba(0,0,0,0.7)]">
                 Never merge broken code again. For every PR, the Test Agent spins up an ephemeral environment, executes your entire test suite, and ensures the code handles real-world scenarios flawlessly.
               </p>
-              <button onClick={() => navigate('/signup')} className="inline-flex w-fit items-center gap-2 px-6 py-3 rounded-full bg-white text-black text-sm font-semibold transition-all duration-300 hover:bg-[#8B5CF6] hover:text-white hover:scale-105 hover:shadow-[0_0_25px_rgba(139,92,246,0.5)] active:bg-green-500 active:text-white active:scale-95">
+              <button onClick={() => navigate('/signup')} className="inline-flex w-fit items-center gap-2 px-6 py-3 rounded-full bg-white text-black text-sm font-bold shadow-lg transition-all duration-300 hover:bg-[#8B5CF6] hover:text-white hover:scale-105 hover:shadow-[0_0_25px_rgba(139,92,246,0.5)] active:bg-green-500 active:text-white active:scale-95 cursor-pointer">
                 Explore testing sandboxes →
               </button>
             </FadeInSection>
             <FadeInSection direction="up" className="flex-1 w-full flex justify-end">
-              {/* GitHub-style gradient-border card — Live Sandbox */}
-              <div className="relative w-full max-w-[680px] rounded-3xl p-[4px] shadow-[0_0_100px_rgba(34,197,94,0.28),0_30px_70px_rgba(0,0,0,0.65),0_0_0_1px_rgba(34,197,94,0.15)]" style={{ background: 'linear-gradient(135deg, rgba(34,197,94,0.7) 0%, rgba(6,182,212,0.4) 45%, rgba(255,255,255,0.08) 100%)' }}>
-                <div className="relative rounded-3xl bg-[#0d1117] overflow-hidden">
-                  <img
-                    src="https://i.ibb.co/v4b84tTn/sandbox-live.png"
-                    alt="Live Sandbox"
-                    loading="lazy"
-                    decoding="async"
-                    className="w-full h-auto block"
-                  />
-                </div>
-              </div>
+              <LiveSandboxTestWidget />
             </FadeInSection>
           </div>
 
           {/* Agent 4: Refactor Agent */}
           <div className="flex flex-col md:flex-row items-center gap-16">
             <FadeInSection direction="up" className="flex-1 max-w-xl">
-              <h2 className="text-2xl md:text-3xl font-bold text-white mb-6 leading-tight">Scale your architecture safely</h2>
-              <p className="text-white/60 text-base md:text-lg leading-relaxed mb-8">
+              <h2 className="text-2xl md:text-4xl font-extrabold text-white mb-6 leading-tight drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)]">
+                Scale your architecture safely
+              </h2>
+              <p className="text-white font-medium text-base md:text-lg leading-relaxed mb-8 drop-shadow-[0_2px_8px_rgba(0,0,0,0.7)]">
                 Restructures entire directories without losing business logic. The AI deeply understands your context, applies new design patterns, and checks its own work through sandboxed test runs.
               </p>
-              <button onClick={() => navigate('/signup')} className="inline-flex w-fit items-center gap-2 px-6 py-3 rounded-full bg-white text-black text-sm font-semibold transition-all duration-300 hover:bg-[#8B5CF6] hover:text-white hover:scale-105 hover:shadow-[0_0_25px_rgba(139,92,246,0.5)] active:bg-green-500 active:text-white active:scale-95">
+              <button onClick={() => navigate('/signup')} className="inline-flex w-fit items-center gap-2 px-6 py-3 rounded-full bg-white text-black text-sm font-bold shadow-lg transition-all duration-300 hover:bg-[#8B5CF6] hover:text-white hover:scale-105 hover:shadow-[0_0_25px_rgba(139,92,246,0.5)] active:bg-green-500 active:text-white active:scale-95 cursor-pointer">
                 Start refactoring safely →
               </button>
             </FadeInSection>
             <FadeInSection direction="up" className="flex-1 w-full flex justify-end">
-              {/* GitHub-style gradient-border card — Refactor Diff */}
-              <div className="relative w-full max-w-[680px] rounded-3xl p-[4px] shadow-[0_0_100px_rgba(59,130,246,0.28),0_30px_70px_rgba(0,0,0,0.65),0_0_0_1px_rgba(59,130,246,0.15)]" style={{ background: 'linear-gradient(135deg, rgba(59,130,246,0.7) 0%, rgba(139,92,246,0.4) 45%, rgba(255,255,255,0.08) 100%)' }}>
-                <div className="relative rounded-3xl bg-[#0d1117] overflow-hidden">
-                  <img
-                    src="https://i.ibb.co/G4HcKRKx/refactor-diff.png"
-                    alt="Refactor Diff"
-                    loading="lazy"
-                    decoding="async"
-                    className="w-full h-auto block"
-                  />
-                </div>
-              </div>
-            </FadeInSection>
-          </div>
-
-          {/* Agent 5: Code Review Agent */}
-          <div className="flex flex-col md:flex-row items-center gap-16">
-            <FadeInSection direction="up" className="flex-1 max-w-xl">
-              <h2 className="text-2xl md:text-3xl font-bold text-white mb-6 leading-tight">Automated, self-healing PR reviews</h2>
-              <p className="text-white/60 text-base md:text-lg leading-relaxed mb-8">
-                Completes PR reviews in seconds instead of days. It leaves actionable, inline comments for developers and can automatically generate self-healing patches to resolve issues immediately.
-              </p>
-              <button onClick={() => navigate('/signup')} className="inline-flex w-fit items-center gap-2 px-6 py-3 rounded-full bg-white text-black text-sm font-semibold transition-all duration-300 hover:bg-[#8B5CF6] hover:text-white hover:scale-105 hover:shadow-[0_0_25px_rgba(139,92,246,0.5)] active:bg-green-500 active:text-white active:scale-95">
-                Automate code reviews →
-              </button>
-            </FadeInSection>
-            <FadeInSection direction="up" className="flex-1 w-full flex justify-end">
-              {/* GitHub-style gradient-border card — PR Review */}
-              <div className="relative w-full max-w-[680px] rounded-3xl p-[4px] shadow-[0_0_100px_rgba(249,115,22,0.28),0_30px_70px_rgba(0,0,0,0.65),0_0_0_1px_rgba(249,115,22,0.15)]" style={{ background: 'linear-gradient(135deg, rgba(249,115,22,0.7) 0%, rgba(234,179,8,0.4) 45%, rgba(255,255,255,0.08) 100%)' }}>
-                <div className="relative rounded-3xl bg-[#0d1117] overflow-hidden">
-                  <img
-                    src="https://i.ibb.co/F4Tkfvh8/Screenshot-2026-06-25-223842.png"
-                    alt="PR Review Summary"
-                    loading="lazy"
-                    decoding="async"
-                    className="w-full h-auto block"
-                  />
-                </div>
-              </div>
+              <LiveCodewardCodeReviewWidget />
             </FadeInSection>
           </div>
 
@@ -1558,125 +1850,7 @@ export default function CodewardHero() {
       </section>
 
       {/* ─── Footer Section ─── */}
-      <div className="px-4 md:px-8 pb-4 md:pb-8 bg-[#05060a]">
-        <footer className="relative bg-[#C3DBFF] rounded-[16px] pt-20 md:pt-24 pb-8 px-8 md:px-14 overflow-hidden shadow-2xl">
-          {/* Fabric Gradient Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-tr from-white/40 via-transparent to-black/5 mix-blend-overlay pointer-events-none" />
-          
-          <div className="mx-auto max-w-[1500px] relative z-10">
-
-
-            {/* Mission, Trust Badges & Contact */}
-            <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-8 mb-16 pb-10 border-b border-black/10">
-              <p className="text-black/80 text-base md:text-lg font-medium max-w-xs leading-relaxed shrink-0">
-                Codeward builds, tests, and optimizes your codebase.<br />
-                Automatically.
-              </p>
-              
-              {/* Trust & Security Badges (ISO 27001, GDPR, CCPA, HIPAA, SSL, 99% Accuracy) */}
-              <div className="my-2 xl:my-0">
-                <FooterTrustBadges />
-              </div>
-
-              <a href="mailto:hello@codeward.ai" className="text-black hover:text-[#8B5CF6] transition-colors text-base md:text-lg font-bold flex items-center gap-2 group shrink-0">
-                <span className="group-hover:translate-x-1 transition-transform">→</span> hello@codeward.ai
-              </a>
-            </div>
-
-          {/* Links Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12 mb-16 md:mb-20">
-            <div className="flex flex-col gap-4">
-              <h4 className="text-black font-bold mb-2">Product</h4>
-              <a href="#" className="text-black/70 hover:text-black transition-colors text-sm font-semibold">AI Code Builder</a>
-              <a href="#" className="text-black/70 hover:text-black transition-colors text-sm font-semibold">Automated Code Reviews</a>
-              <a href="#" className="text-black/70 hover:text-black transition-colors text-sm font-semibold">Technical Debt Management</a>
-              <a href="#" className="text-black/70 hover:text-black transition-colors text-sm font-semibold">Security Sandboxes</a>
-              <a href="#" className="text-black/70 hover:text-black transition-colors text-sm font-semibold">Architecture Refactoring</a>
-              <a href="#" className="text-black/70 hover:text-black transition-colors text-sm font-semibold">Tech Debt Calculator</a>
-              <a href="#" className="text-black/70 hover:text-black transition-colors text-sm font-semibold">Playbooks</a>
-            </div>
-            <div className="flex flex-col gap-4">
-              <h4 className="text-black font-bold mb-2">Solutions</h4>
-              <a href="#" className="text-black/70 hover:text-black transition-colors text-sm font-semibold">For Startups</a>
-              <a href="#" className="text-black/70 hover:text-black transition-colors text-sm font-semibold">For Enterprise</a>
-              <a href="#" className="text-black/70 hover:text-black transition-colors text-sm font-semibold">For Open Source</a>
-              <a href="#" className="text-black/70 hover:text-black transition-colors text-sm font-semibold">Y Combinator</a>
-            </div>
-            <div className="flex flex-col gap-4">
-              <h4 className="text-black font-bold mb-2">Compare</h4>
-              <button onClick={() => navigate('/compare/coderabbit')} className="text-black/70 hover:text-black transition-colors text-sm font-semibold text-left">Codeward vs CodeRabbit</button>
-              <button onClick={() => navigate('/compare/greptile')} className="text-black/70 hover:text-black transition-colors text-sm font-semibold text-left">Codeward vs Greptile</button>
-              <button onClick={() => navigate('/compare/copilot')} className="text-black/70 hover:text-black transition-colors text-sm font-semibold text-left">Codeward vs Copilot</button>
-              <button onClick={() => navigate('/compare/cursor')} className="text-black/70 hover:text-black transition-colors text-sm font-semibold text-left">Codeward vs Cursor</button>
-              <button onClick={() => navigate('/compare/sonarqube')} className="text-black/70 hover:text-black transition-colors text-sm font-semibold text-left">Codeward vs SonarQube</button>
-              <button onClick={() => navigate('/compare/snyk')} className="text-black/70 hover:text-black transition-colors text-sm font-semibold text-left">Codeward vs Snyk</button>
-              <button onClick={() => navigate('/compare/deepsource')} className="text-black/70 hover:text-black transition-colors text-sm font-semibold text-left">Codeward vs DeepSource</button>
-              <button onClick={() => navigate('/compare/codeclimate')} className="text-black/70 hover:text-black transition-colors text-sm font-semibold text-left">Codeward vs Code Climate</button>
-              <button onClick={() => navigate('/compare/codacy')} className="text-black/70 hover:text-black transition-colors text-sm font-semibold text-left">Codeward vs Codacy</button>
-              <button onClick={() => navigate('/compare/fallow')} className="text-black/70 hover:text-black transition-colors text-sm font-semibold text-left">Codeward vs Fallow</button>
-            </div>
-            <div className="flex flex-col gap-4">
-              <h4 className="text-black font-bold mb-2">Company</h4>
-              <a href="/book-demo" className="text-black/70 hover:text-black transition-colors text-sm font-semibold">Get a demo</a>
-              <a href="#" className="text-black/70 hover:text-black transition-colors text-sm font-semibold">Blog</a>
-              <a href="#" className="text-black/70 hover:text-black transition-colors text-sm font-semibold">Documentation</a>
-              <a href="#" className="text-black/70 hover:text-black transition-colors text-sm font-semibold">FAQ</a>
-              <a href="#" className="text-black/70 hover:text-black transition-colors text-sm font-semibold">The Codeward Effect</a>
-              <a href="#" className="text-black/70 hover:text-black transition-colors text-sm font-semibold">Careers</a>
-              <a href="#" className="text-black/70 hover:text-black transition-colors text-sm font-semibold">Contact</a>
-            </div>
-          </div>
-
-          {/* Integrations Block */}
-          <div className="mb-16">
-            <h4 className="text-black font-bold mb-6">Integrations</h4>
-            <div className="text-black/70 text-sm font-semibold leading-loose flex flex-wrap gap-x-3">
-              {["GitHub", "GitLab", "Bitbucket", "Jira", "Linear", "Slack", "Discord", "VS Code", "JetBrains", "Vercel", "AWS", "Google Cloud", "Azure", "Supabase", "Stripe", "Docker", "Kubernetes", "Datadog", "Sentry"].map((integration, i, arr) => (
-                <span key={integration} className="whitespace-nowrap">
-                  <a href="#" className="hover:text-black transition-colors">{integration}</a>
-                  {i < arr.length - 1 && <span className="ml-3">Ã‚Â·</span>}
-                </span>
-              ))}
-            </div>
-          </div>
-
-          {/* Newsletter Block */}
-          <NewsletterForm />
-
-          {/* Bottom Bar */}
-          <div className="flex flex-col md:flex-row justify-between items-center gap-6 pt-8 border-t border-black/10 text-black/50 text-sm font-semibold">
-            <div className="flex flex-wrap items-center gap-6">
-              <span>Ã‚Â©2026, Codeward</span>
-              <a href="#" className="hover:text-black transition-colors">Privacy</a>
-              <a href="#" className="hover:text-black transition-colors">Terms</a>
-              <a href="#" className="hover:text-black transition-colors">Trust</a>
-              <a href="#" className="hover:text-black transition-colors">Status</a>
-              <div className="flex items-center gap-4 ml-2">
-                <a href="#" className="hover:text-black transition-colors" aria-label="Instagram">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></svg>
-                </a>
-                <a href="#" className="hover:text-black transition-colors" aria-label="YouTube">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2.5 7.1c0-1.7 1.4-3.1 3.1-3.1h12.8c1.7 0 3.1 1.4 3.1 3.1v9.8c0 1.7-1.4 3.1-3.1 3.1H5.6C3.9 20 2.5 18.6 2.5 16.9V7.1Z"/><path d="m9.5 10 6.5 3-6.5 3v-6Z"/></svg>
-                </a>
-                <a href="#" className="hover:text-black transition-colors" aria-label="LinkedIn">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect width="4" height="12" x="2" y="9"/><circle cx="4" cy="4" r="2"/></svg>
-                </a>
-                <a href="#" className="hover:text-black transition-colors" aria-label="X (Twitter)">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z"/></svg>
-                </a>
-                <a href="#" className="hover:text-black transition-colors" aria-label="Website">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/><path d="M2 12h20"/></svg>
-                </a>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 relative z-50">
-              Codeward meets <span className="text-black font-black text-lg leading-none">✦</span>
-            </div>
-          </div>
-        </div>
-      </footer>
-      </div>
+<LandingFooter />
     </div>
   );
 }

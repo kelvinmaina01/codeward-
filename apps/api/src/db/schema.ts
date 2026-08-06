@@ -1,4 +1,4 @@
-import { pgTable, serial, text, varchar, timestamp, integer, boolean, jsonb, real, uuid, bigint } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, varchar, timestamp, integer, boolean, jsonb, real, uuid, bigint, index } from "drizzle-orm/pg-core";
 
 export interface Finding {
   severity: "info" | "low" | "medium" | "high" | "critical";
@@ -135,8 +135,16 @@ export const user = pgTable("user", {
   email: text('email').notNull().unique(),
   emailVerified: boolean('emailVerified').notNull(),
   image: text('image'),
+  isDeleted: boolean('isDeleted').default(false).notNull(),
   createdAt: timestamp('createdAt').notNull(),
   updatedAt: timestamp('updatedAt').notNull()
+});
+
+export const accountDeletions = pgTable("account_deletions", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: text("user_id").notNull().references(() => user.id, { onDelete: 'cascade' }),
+  status: varchar("status", { length: 50 }).default('pending').notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 export const session = pgTable("session", {
@@ -350,6 +358,11 @@ export const runLogs = pgTable('run_logs', {
   message: text('message').notNull(),
   meta: jsonb('meta'), // extra structured attributes (exitCode, toolName, etc.)
   createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => {
+  return {
+    repoIdTsMsIdx: index('run_logs_repo_id_ts_ms_idx').on(table.repoId, table.tsMs),
+    runIdTsMsIdx: index('run_logs_run_id_ts_ms_idx').on(table.runId, table.tsMs),
+  };
 });
 
 

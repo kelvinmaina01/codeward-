@@ -1,0 +1,10 @@
+console.log('A: start');
+import('dotenv/config');
+console.log('B: dotenv');
+const { createRedisConnection } = await import('./src/lib/redis.js');
+console.log('C: redis lib imported');
+const r = createRedisConnection();
+console.log('D: connection created');
+r.on('ready', () => { console.log('E: READY'); r.disconnect(); process.exit(0); });
+r.on('error', (e) => console.log('F: error', e.message));
+setTimeout(() => { console.log('G: timeout'); process.exit(1); }, 20000);

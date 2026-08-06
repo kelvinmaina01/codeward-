@@ -118,6 +118,7 @@ import { connectorRequestsRouter } from './routes/connector-requests.js';
 import { mcpRouter } from './routes/mcp.js';
 import { newsletterRouter } from './routes/newsletter.js';
 import { workspacesRouter } from './routes/workspaces.js';
+import { usersRouter } from './routes/users.js';
 
 const routes = app
   .route('/api/webhooks', webhookRouter)
@@ -135,6 +136,7 @@ const routes = app
   .route('/api/mcp', mcpRouter)
   .route('/api/newsletter', newsletterRouter)
   .route('/api/workspaces', workspacesRouter)
+  .route('/api/users', usersRouter)
   .route('/ws', wsRouter);
 
 export type AppType = typeof routes;

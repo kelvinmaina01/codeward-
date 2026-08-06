@@ -5,6 +5,7 @@ import { WelcomeVerificationEmail } from './templates/WelcomeVerificationEmail.j
 import { EscalationEmail } from './templates/EscalationEmail.js';
 import { RepoConnectedSuccessEmail } from './templates/RepoConnectedSuccessEmail.js';
 import { RunFailureEmail } from './templates/RunFailureEmail.js';
+import { AccountDeletionEmail } from './templates/AccountDeletionEmail.js';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -97,6 +98,14 @@ export class NotificationService {
         retryUrl,
         logTail
       })
+    );
+  }
+
+  static async sendAccountDeletionQueued(to: string, userName: string, dataSummary: Record<string, number>) {
+    return this.sendEmail(
+      to,
+      'Your Codeward account deletion has been queued',
+      React.createElement(AccountDeletionEmail, { userName, dataSummary })
     );
   }
 }

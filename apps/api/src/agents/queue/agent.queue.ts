@@ -244,11 +244,11 @@ export const agentWorker = new Worker('agent-jobs', async (job: Job<AgentJobData
       }
     }
 
-    logAndBroadcast('agent_active', { repo: repoFullName, sha: commitSHA, agent: agentId, status: 'Initializing container...', step: 'init', runId, logType: 'build', level: 'plain' });
+    logAndBroadcast('agent_active', { repo: repoFullName, sha: commitSHA, agent: agentId, status: 'Initializing container...', step: 'init', runId, logType: 'build', level: 'plain', message: `[${repoFullName}] [${(commitSHA || '').slice(0, 7)}] ${agentId}: 📦 Initializing isolated sandbox container...` });
 
     sandbox = createSandbox();
     await sandbox.init(`https://github.com/${repoFullName}.git`, commitSHA, {}, installationToken);
-    logAndBroadcast('agent_active', { repo: repoFullName, sha: commitSHA, agent: agentId, status: 'Cloned & Sandboxed', step: 'cloned', runId, logType: 'build', level: 'plain' });
+    logAndBroadcast('agent_active', { repo: repoFullName, sha: commitSHA, agent: agentId, status: 'Cloned & Sandboxed', step: 'cloned', runId, logType: 'build', level: 'plain', message: `  ├─ 📦 Cloned & sandboxed repository workspace` });
 
     // -----------------------------------------------------------------------
     // 3. Build the tools
@@ -296,6 +296,7 @@ Use these EXACT values for any tool parameter named runId/repoId — never inven
       model: model || definition.defaultModel,
       commitSHA,
       repoFullName,
+      runId,
       checkpointState: checkpointState || undefined,
     };
 
@@ -516,7 +517,19 @@ Use these EXACT values for any tool parameter named runId/repoId — never inven
       .where(eq(agentTasks.id, taskId));
 
     console.log(`[AgentWorker] ${agentId} completed: score=${result.score}, findings=${result.findings.length}, duration=${result.duration}ms`);
-    logAndBroadcast('agent_completed', { repo: repoFullName, sha: commitSHA, agent: agentId, status: 'Completed', score: result.score, findingsCount: result.findings.length, step: 'done', runId, logType: 'run', level: 'ok' });
+    logAndBroadcast('agent_completed', {
+      repo: repoFullName,
+      sha: commitSHA,
+      agent: agentId,
+      status: 'Completed',
+      score: result.score,
+      findingsCount: result.findings.length,
+      step: 'done',
+      runId,
+      logType: 'run',
+      level: 'ok',
+      message: `✅ [${repoFullName}] [${(commitSHA || '').slice(0, 7)}] ${agentId} finished (Score: ${result.score ?? 100}/100, Findings: ${result.findings.length})`,
+    });
 
     return result;
 
@@ -594,6 +607,17 @@ Use these EXACT values for any tool parameter named runId/repoId — never inven
   } finally {
     if (sandbox) {
       await sandbox.destroy();
+      logAndBroadcast('agent_active', {
+        repo: repoFullName,
+        sha: commitSHA,
+        agent: agentId,
+        status: 'Sandbox cleaned',
+        step: 'cleanup',
+        runId,
+        logType: 'system',
+        level: 'plain',
+        message: `  └─ 🧹 Destroyed & cleaned isolated sandbox container`,
+      });
     }
   }
 

@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "node generate-sitemap.js && vite build",
-    "dev": "vite",
+    "dev": "vite --force",
     "start": "vite preview --port ${PORT:-5173} --host"
   },
   "dependencies": {

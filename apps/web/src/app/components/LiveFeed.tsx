@@ -127,23 +127,25 @@ export function LiveFeed({ viewMode }: LiveFeedProps) {
           // Check repo filter matching
           if (repoFilter !== 'All') {
             const selectedRepo = repoList.find((r) => String(r.id) === repoFilter);
-            if (selectedRepo && repo && selectedRepo.fullName !== repo) {
+            if (selectedRepo && repo && selectedRepo.fullName.toLowerCase() !== String(repo).toLowerCase() && !selectedRepo.fullName.toLowerCase().endsWith(`/${String(repo).toLowerCase()}`)) {
               return; // Skip logs for non-selected repos
             }
           }
 
-          let level = 'plain';
-          let message = '';
+          let level = data.payload.level || 'plain';
+          let message = data.payload.message || '';
 
-          if (data.type === 'agent_active') {
-            level = step === 'scanning' ? 'inf' : (step === 'autofix' ? 'warn' : 'plain');
-            message = `[${repo}] [${(sha || '').slice(0, 7)}] ${agent}: ${status || 'active'}...`;
-          } else if (data.type === 'agent_completed') {
-            level = 'ok';
-            message = `[${repo}] [${(sha || '').slice(0, 7)}] ${agent} finished (Score: ${score}/100, Findings: ${findingsCount ?? 0})`;
-          } else if (data.type === 'agent_failed') {
-            level = 'err';
-            message = `[${repo}] [${(sha || '').slice(0, 7)}] ${agent} FAILED: ${error}`;
+          if (!message) {
+            if (data.type === 'agent_active') {
+              level = step === 'scanning' ? 'inf' : (step === 'autofix' ? 'warn' : 'plain');
+              message = `[${repo}] [${(sha || '').slice(0, 7)}] ${agent}: ${status || 'active'}...`;
+            } else if (data.type === 'agent_completed') {
+              level = 'ok';
+              message = `✅ [${repo}] [${(sha || '').slice(0, 7)}] ${agent} finished (Score: ${score}/100, Findings: ${findingsCount ?? 0})`;
+            } else if (data.type === 'agent_failed') {
+              level = 'err';
+              message = `❌ [${repo}] [${(sha || '').slice(0, 7)}] ${agent} FAILED: ${error}`;
+            }
           }
 
           const newLog: LogItem = {

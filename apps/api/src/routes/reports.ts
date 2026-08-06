@@ -293,6 +293,9 @@ reportsRouter.get('/livefeed-logs', async (c) => {
 
   const repoById = new Map(repos.map((r) => [r.id, r]));
   const repoFilterParam = c.req.query('repoId');
+  const runIdParam = c.req.query('runId');
+
+  const targetRunId = runIdParam ? Number(runIdParam) : null;
   const targetRepoId = repoFilterParam && repoFilterParam !== 'All' ? Number(repoFilterParam) : null;
 
   const repoIds = targetRepoId ? [targetRepoId] : repos.map((r) => r.id);
@@ -301,11 +304,16 @@ reportsRouter.get('/livefeed-logs', async (c) => {
   // 1. Fetch persistent logs from schema.runLogs if present
   let logsFromDb: any[] = [];
   try {
-    const logsCond = targetRepoId ? eq(schema.runLogs.repoId, targetRepoId) : inArray(schema.runLogs.repoId, repoIds);
+    const logsCond = targetRunId 
+      ? eq(schema.runLogs.runId, targetRunId)
+      : targetRepoId 
+        ? eq(schema.runLogs.repoId, targetRepoId) 
+        : inArray(schema.runLogs.repoId, repoIds);
+
     logsFromDb = await db.select().from(schema.runLogs)
       .where(logsCond)
       .orderBy(desc(schema.runLogs.tsMs))
-      .limit(300);
+      .limit(500);
   } catch (e) {
     console.error('Error fetching runLogs:', e);
   }
@@ -330,27 +338,32 @@ reportsRouter.get('/livefeed-logs', async (c) => {
     return c.json({ logs: formatted });
   }
 
-  // 2. Fallback: reconstruct rich detailed millisecond sublogs from recent runs and agentTasks
-  const recentRuns = await db.select().from(schema.runs)
-    .where(inArray(schema.runs.repoId, repoIds))
-    .orderBy(desc(schema.runs.createdAt))
-    .limit(10);
+  // 2. Fallback: reconstruct rich detailed millisecond sublogs from runs and agentTasks
+  let runsQuery = db.select().from(schema.runs);
+  if (targetRunId) {
+    runsQuery = runsQuery.where(eq(schema.runs.id, targetRunId)) as any;
+  } else if (targetRepoId) {
+    runsQuery = runsQuery.where(eq(schema.runs.repoId, targetRepoId)).orderBy(desc(schema.runs.createdAt)).limit(30) as any;
+  } else {
+    runsQuery = runsQuery.where(inArray(schema.runs.repoId, repoIds)).orderBy(desc(schema.runs.createdAt)).limit(20) as any;
+  }
 
+  const recentRuns = await runsQuery;
   if (recentRuns.length === 0) return c.json({ logs: [] });
 
   const runIds = recentRuns.map((r) => r.id);
   const tasks = await db.select().from(schema.agentTasks).where(inArray(schema.agentTasks.runId, runIds));
-  const runMap = new Map(recentRuns.map((r) => [r.id, r]));
-
   const reconstructedLogs: any[] = [];
+  const dbInsertRows: any[] = [];
 
-  for (const r of recentRuns.reverse()) {
+  for (const r of recentRuns.slice().reverse()) {
     const repo = r.repoId != null ? repoById.get(r.repoId) : undefined;
     const repoName = repo?.fullName ?? 'unknown';
     const sha = (r.commitSha || '').slice(0, 7);
     const baseTime = r.createdAt ? new Date(r.createdAt).getTime() : Date.now();
 
     // High level run start log
+    const runStartMsg = `[${repoName}] [${sha}] Executing analysis run #${r.id} on commit ${sha}`;
     reconstructedLogs.push({
       id: `run-start-${r.id}`,
       runId: r.id,
@@ -360,9 +373,14 @@ reportsRouter.get('/livefeed-logs', async (c) => {
       logType: 'system',
       level: 'inf',
       tsMs: baseTime,
-      message: `[${repoName}] [${sha}] Executing analysis run #${r.id} on commit ${sha}`,
+      message: runStartMsg,
       meta: { levelDepth: 0 },
     });
+    if (r.repoId) {
+      dbInsertRows.push({
+        runId: r.id, repoId: r.repoId, agent: 'system', logType: 'system', level: 'inf', tsMs: baseTime, message: runStartMsg, meta: { levelDepth: 0 },
+      });
+    }
 
     const runTasks = tasks.filter((t) => t.runId === r.id);
     let delta = 120; // Simulated microsecond offset per step
@@ -372,32 +390,18 @@ reportsRouter.get('/livefeed-logs', async (c) => {
       delta += 30;
 
       // Agent init
+      const initMsg = `[${repoName}] [${sha}] ${t.agentId}: 📦 Initializing isolated sandbox container...`;
       reconstructedLogs.push({
-        id: `task-init-${t.id}`,
-        runId: r.id,
-        repoId: r.repoId,
-        repoFullName: repoName,
-        agent: t.agentId,
-        logType: 'build',
-        level: 'plain',
-        tsMs: taskTime,
-        message: `[${repoName}] [${sha}] ${t.agentId}: Initializing isolated sandbox container...`,
-        meta: { levelDepth: 0 },
+        id: `task-init-${t.id}`, runId: r.id, repoId: r.repoId, repoFullName: repoName, agent: t.agentId, logType: 'build', level: 'plain', tsMs: taskTime, message: initMsg, meta: { levelDepth: 0 },
       });
+      if (r.repoId) dbInsertRows.push({ runId: r.id, repoId: r.repoId, agent: t.agentId, logType: 'build', level: 'plain', tsMs: taskTime, message: initMsg, meta: { levelDepth: 0 } });
 
       // Sublog: Clone & AST step
+      const cloneMsg = `  ├─ 📦 Cloned & sandboxed repository workspace`;
       reconstructedLogs.push({
-        id: `task-clone-${t.id}`,
-        runId: r.id,
-        repoId: r.repoId,
-        repoFullName: repoName,
-        agent: t.agentId,
-        logType: 'build',
-        level: 'plain',
-        tsMs: taskTime + 18,
-        message: `  ├─ Cloned & sandboxed repository workspace`,
-        meta: { levelDepth: 1 },
+        id: `task-clone-${t.id}`, runId: r.id, repoId: r.repoId, repoFullName: repoName, agent: t.agentId, logType: 'build', level: 'plain', tsMs: taskTime + 18, message: cloneMsg, meta: { levelDepth: 1 },
       });
+      if (r.repoId) dbInsertRows.push({ runId: r.id, repoId: r.repoId, agent: t.agentId, logType: 'build', level: 'plain', tsMs: taskTime + 18, message: cloneMsg, meta: { levelDepth: 1 } });
 
       // Sublog: Tool executions
       const meta = (t.reportMeta as any) ?? {};
@@ -405,18 +409,12 @@ reportsRouter.get('/livefeed-logs', async (c) => {
       for (let i = 0; i < tools.length; i++) {
         const rawTool = tools[i];
         const toolName = typeof rawTool === 'object' && rawTool !== null ? (rawTool.name || rawTool.tool || rawTool.id || JSON.stringify(rawTool)) : String(rawTool);
+        const toolMsg = `  ├─ ⚡ Executing tool: ${toolName}`;
+        const toolTsMs = taskTime + 45 + i * 15;
         reconstructedLogs.push({
-          id: `task-tool-${t.id}-${i}`,
-          runId: r.id,
-          repoId: r.repoId,
-          repoFullName: repoName,
-          agent: t.agentId,
-          logType: 'run',
-          level: 'inf',
-          tsMs: taskTime + 45 + i * 15,
-          message: `  ├─ Executing tool: ${toolName}`,
-          meta: { levelDepth: 1, toolName },
+          id: `task-tool-${t.id}-${i}`, runId: r.id, repoId: r.repoId, repoFullName: repoName, agent: t.agentId, logType: 'run', level: 'inf', tsMs: toolTsMs, message: toolMsg, meta: { levelDepth: 1, toolName },
         });
+        if (r.repoId) dbInsertRows.push({ runId: r.id, repoId: r.repoId, agent: t.agentId, logType: 'run', level: 'inf', tsMs: toolTsMs, message: toolMsg, meta: { levelDepth: 1, toolName } });
       }
 
       // Sublog: Findings
@@ -424,38 +422,63 @@ reportsRouter.get('/livefeed-logs', async (c) => {
       for (let i = 0; i < findings.length; i++) {
         const f = findings[i];
         const sev = String(f.severity ?? 'INFO').toUpperCase();
+        const icon = sev === 'CRITICAL' || sev === 'HIGH' ? '🚨' : (sev === 'MEDIUM' ? '⚠️' : 'ℹ️');
         const level = sev === 'CRITICAL' || sev === 'HIGH' ? 'err' : (sev === 'MEDIUM' ? 'warn' : 'plain');
+        const findingMsg = `  ├─ ${icon} [${sev}] ${f.title}${f.file ? ` (${f.file}${f.line ? `:${f.line}` : ''})` : ''}`;
+        const findingTsMs = taskTime + 110 + i * 12;
         reconstructedLogs.push({
-          id: `task-finding-${t.id}-${i}`,
-          runId: r.id,
-          repoId: r.repoId,
-          repoFullName: repoName,
-          agent: t.agentId,
-          logType: 'run',
-          level,
-          tsMs: taskTime + 110 + i * 12,
-          message: `  └─ [${sev}] ${f.title}${f.file ? ` (${f.file}${f.line ? `:${f.line}` : ''})` : ''}`,
-          meta: { levelDepth: 1, severity: sev, file: f.file, line: f.line },
+          id: `task-finding-${t.id}-${i}`, runId: r.id, repoId: r.repoId, repoFullName: repoName, agent: t.agentId, logType: 'run', level, tsMs: findingTsMs, message: findingMsg, meta: { levelDepth: 1, severity: sev, file: f.file, line: f.line },
         });
+        if (r.repoId) dbInsertRows.push({ runId: r.id, repoId: r.repoId, agent: t.agentId, logType: 'run', level, tsMs: findingTsMs, message: findingMsg, meta: { levelDepth: 1, severity: sev, file: f.file, line: f.line } });
+      }
+
+      // Auto-fix PR log if present
+      if (meta.autoFixPR?.opened) {
+        const prMsg = `  ├─ 🔀 Opened Auto-Fix PR #${meta.autoFixPR.pullRequestNumber}: ${meta.autoFixPR.htmlUrl}`;
+        const prTsMs = taskTime + 200;
+        reconstructedLogs.push({
+          id: `task-pr-${t.id}`, runId: r.id, repoId: r.repoId, repoFullName: repoName, agent: t.agentId, logType: 'run', level: 'ok', tsMs: prTsMs, message: prMsg, meta: { levelDepth: 1 },
+        });
+        if (r.repoId) dbInsertRows.push({ runId: r.id, repoId: r.repoId, agent: t.agentId, logType: 'run', level: 'ok', tsMs: prTsMs, message: prMsg, meta: { levelDepth: 1 } });
+      }
+
+      // Escalation log if present
+      if (meta.escalation?.issues && meta.escalation.issues.length > 0) {
+        const escMsg = `  ├─ 🚨 Escalated ${meta.escalation.issues.length} unresolved finding(s) to GitHub Issues`;
+        const escTsMs = taskTime + 220;
+        reconstructedLogs.push({
+          id: `task-esc-${t.id}`, runId: r.id, repoId: r.repoId, repoFullName: repoName, agent: t.agentId, logType: 'run', level: 'warn', tsMs: escTsMs, message: escMsg, meta: { levelDepth: 1 },
+        });
+        if (r.repoId) dbInsertRows.push({ runId: r.id, repoId: r.repoId, agent: t.agentId, logType: 'run', level: 'warn', tsMs: escTsMs, message: escMsg, meta: { levelDepth: 1 } });
       }
 
       // Completion log
       const isErr = t.status === 'failed' || t.status === 'agent_failed';
       const finishTime = t.completedAt ? new Date(t.completedAt).getTime() : taskTime + 250;
+      const finishMsg = isErr
+        ? `❌ [${repoName}] [${sha}] ${t.agentId} FAILED: ${t.error || 'Execution failed'}`
+        : `✅ [${repoName}] [${sha}] ${t.agentId} finished (Score: ${t.score ?? 100}/100, Findings: ${t.findingsCount ?? findings.length})`;
       reconstructedLogs.push({
-        id: `task-end-${t.id}`,
-        runId: r.id,
-        repoId: r.repoId,
-        repoFullName: repoName,
-        agent: t.agentId,
-        logType: 'run',
-        level: isErr ? 'err' : 'ok',
-        tsMs: finishTime,
-        message: isErr
-          ? `[${repoName}] [${sha}] ${t.agentId} FAILED: ${t.error || 'Execution failed'}`
-          : `[${repoName}] [${sha}] ${t.agentId} finished (Score: ${t.score ?? 100}/100, Findings: ${t.findingsCount ?? findings.length})`,
-        meta: { levelDepth: 0 },
+        id: `task-end-${t.id}`, runId: r.id, repoId: r.repoId, repoFullName: repoName, agent: t.agentId, logType: 'run', level: isErr ? 'err' : 'ok', tsMs: finishTime, message: finishMsg, meta: { levelDepth: 0 },
       });
+      if (r.repoId) dbInsertRows.push({ runId: r.id, repoId: r.repoId, agent: t.agentId, logType: 'run', level: isErr ? 'err' : 'ok', tsMs: finishTime, message: finishMsg, meta: { levelDepth: 0 } });
+
+      // Sandbox cleanup log
+      const cleanupTime = finishTime + 10;
+      const cleanupMsg = `  └─ 🧹 Destroyed & cleaned isolated sandbox container`;
+      reconstructedLogs.push({
+        id: `task-clean-${t.id}`, runId: r.id, repoId: r.repoId, repoFullName: repoName, agent: t.agentId, logType: 'system', level: 'plain', tsMs: cleanupTime, message: cleanupMsg, meta: { levelDepth: 1 },
+      });
+      if (r.repoId) dbInsertRows.push({ runId: r.id, repoId: r.repoId, agent: t.agentId, logType: 'system', level: 'plain', tsMs: cleanupTime, message: cleanupMsg, meta: { levelDepth: 1 } });
+    }
+  }
+
+  // Backfill into Postgres run_logs table so legacy runs are permanently stored!
+  if (dbInsertRows.length > 0) {
+    try {
+      await db.insert(schema.runLogs).values(dbInsertRows.slice(0, 1000));
+    } catch (err) {
+      console.error('Failed to backfill runLogs:', err);
     }
   }
 

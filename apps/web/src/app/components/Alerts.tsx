@@ -53,7 +53,6 @@ export function Alerts() {
   const [sourceTab, setSourceTab] = useState<string>('All');
   const [repoFilter, setRepoFilter] = useState<string>('All');
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<'list' | 'kpi'>('list');
 
   useEffect(() => {
     fetch(`${API_URL}/api/alerts`, { credentials: 'include' })
@@ -81,19 +80,12 @@ export function Alerts() {
   });
   const selected = alerts.find((a) => a.id === selectedId) || null;
 
-  // Derived KPI metrics
-  const healthScore = Math.max(35, Math.min(100, 100 - (stats.critical * 15 + stats.high * 5)));
-  const autofixRate = stats.total > 0 ? Math.round((stats.fixesOpened / stats.total) * 100) : 100;
-  const securityCount = alerts.filter((a) => a.source.includes('Security')).length;
-  const guardianCount = alerts.filter((a) => a.source.includes('Guardian')).length;
-  const otherCount = Math.max(0, alerts.length - securityCount - guardianCount);
-
   return (
     <div className="flex-1 flex overflow-hidden relative h-full">
       <div className="flex-1 overflow-y-auto w-full transition-all duration-300">
         <div className="p-4 sm:p-6 md:p-8 max-w-[1000px] mx-auto pb-24">
 
-          {/* Top Bar: Title & View Mode Toggle */}
+          {/* Top Bar: Title & Repo Selector */}
           <div className="flex items-center justify-between mb-8 gap-4 flex-wrap">
             <div>
               <h1 className="text-[22px] font-bold text-cw-txt flex items-center gap-3">
@@ -108,32 +100,6 @@ export function Alerts() {
             </div>
 
             <div className="flex items-center gap-3">
-              {/* View Mode Toggle: List vs KPI Overview */}
-              <div className="flex items-center p-1 bg-cw-bg2 border border-cw-bdr rounded-xl">
-                <button
-                  type="button"
-                  onClick={() => setViewMode('list')}
-                  className={`px-3 py-1.5 rounded-lg text-[12px] font-bold transition-all cursor-pointer ${
-                    viewMode === 'list'
-                      ? 'bg-cw-purple text-white shadow-sm'
-                      : 'text-cw-txt3 hover:text-cw-txt'
-                  }`}
-                >
-                  List View
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setViewMode('kpi')}
-                  className={`px-3 py-1.5 rounded-lg text-[12px] font-bold transition-all cursor-pointer ${
-                    viewMode === 'kpi'
-                      ? 'bg-cw-purple text-white shadow-sm'
-                      : 'text-cw-txt3 hover:text-cw-txt'
-                  }`}
-                >
-                  KPI Matrix
-                </button>
-              </div>
-
               {alerts.length > 0 && (
                 <RepoSelector
                   options={repoOptions.filter((r) => r !== 'All').map((r) => ({ id: r, fullName: r }))}
@@ -144,112 +110,6 @@ export function Alerts() {
                 />
               )}
             </div>
-          </div>
-
-          {/* KPI Executive Overview Mode */}
-          {viewMode === 'kpi' && (
-            <div className="space-y-6 mb-8 animate-in fade-in duration-200">
-              {/* Row 1: Health Index Banner & Key Metrics */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-cw-bg2 border border-cw-bdr rounded-2xl p-5 flex flex-col justify-between relative overflow-hidden">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[12px] font-bold text-cw-txt2 uppercase tracking-wider">Security Health Index</span>
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${healthScore > 80 ? 'bg-cw-green/20 text-cw-green' : healthScore > 60 ? 'bg-cw-amber/20 text-cw-amber' : 'bg-cw-red/20 text-cw-red'}`}>
-                      {healthScore > 80 ? 'Optimal' : healthScore > 60 ? 'Attention Needed' : 'High Risk'}
-                    </span>
-                  </div>
-                  <div className="my-4 flex items-baseline gap-2">
-                    <span className="text-[42px] font-extrabold text-cw-txt tracking-tight">{healthScore}</span>
-                    <span className="text-[16px] font-bold text-cw-txt3">/ 100</span>
-                  </div>
-                  <div className="w-full bg-cw-bg3 h-2 rounded-full overflow-hidden">
-                    <div
-                      className={`h-full rounded-full transition-all ${healthScore > 80 ? 'bg-cw-green' : healthScore > 60 ? 'bg-cw-amber' : 'bg-cw-red'}`}
-                      style={{ width: `${healthScore}%` }}
-                    />
-                  </div>
-                </div>
-
-                <div className="bg-cw-bg2 border border-cw-bdr rounded-2xl p-5 flex flex-col justify-between">
-                  <span className="text-[12px] font-bold text-cw-txt2 uppercase tracking-wider">Auto-Fix Resolution Rate</span>
-                  <div className="my-4 flex items-baseline gap-2">
-                    <span className="text-[42px] font-extrabold text-cw-blue tracking-tight">{autofixRate}%</span>
-                    <span className="text-[12px] text-cw-txt2 font-medium">of findings</span>
-                  </div>
-                  <div className="text-[11px] text-cw-txt3 flex items-center justify-between border-t border-cw-bdr/50 pt-2">
-                    <span>PRs opened: {stats.fixesOpened}</span>
-                    <span>Total findings: {stats.total}</span>
-                  </div>
-                </div>
-
-                <div className="bg-cw-bg2 border border-cw-bdr rounded-2xl p-5 flex flex-col justify-between">
-                  <span className="text-[12px] font-bold text-cw-txt2 uppercase tracking-wider">Active Critical Threat Level</span>
-                  <div className="my-4 flex items-baseline gap-2">
-                    <span className="text-[42px] font-extrabold text-cw-red tracking-tight">{stats.critical}</span>
-                    <span className="text-[12px] text-cw-txt2 font-medium">blocking issues</span>
-                  </div>
-                  <div className="text-[11px] text-cw-txt3 border-t border-cw-bdr/50 pt-2 flex items-center justify-between">
-                    <span>High severity: {stats.high}</span>
-                    <span className="text-cw-red font-bold">Requires Action</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Row 2: Agent Incident Breakdown */}
-              <div className="bg-cw-bg2 border border-cw-bdr rounded-2xl p-5">
-                <h3 className="text-[14px] font-bold text-cw-txt mb-4 uppercase tracking-wider">Incident Source Distribution</h3>
-                <div className="space-y-3">
-                  <div>
-                    <div className="flex justify-between text-[12px] font-medium mb-1">
-                      <span className="text-cw-txt">Security Agent</span>
-                      <span className="text-cw-txt2">{securityCount} alerts</span>
-                    </div>
-                    <div className="w-full bg-cw-bg3 h-2 rounded-full overflow-hidden">
-                      <div className="bg-cw-red h-full rounded-full" style={{ width: `${alerts.length > 0 ? (securityCount / alerts.length) * 100 : 0}%` }} />
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="flex justify-between text-[12px] font-medium mb-1">
-                      <span className="text-cw-txt">Guardian Agent</span>
-                      <span className="text-cw-txt2">{guardianCount} alerts</span>
-                    </div>
-                    <div className="w-full bg-cw-bg3 h-2 rounded-full overflow-hidden">
-                      <div className="bg-cw-purple h-full rounded-full" style={{ width: `${alerts.length > 0 ? (guardianCount / alerts.length) * 100 : 0}%` }} />
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="flex justify-between text-[12px] font-medium mb-1">
-                      <span className="text-cw-txt">Architecture & Bloat Agents</span>
-                      <span className="text-cw-txt2">{otherCount} alerts</span>
-                    </div>
-                    <div className="w-full bg-cw-bg3 h-2 rounded-full overflow-hidden">
-                      <div className="bg-cw-amber h-full rounded-full" style={{ width: `${alerts.length > 0 ? (otherCount / alerts.length) * 100 : 0}%` }} />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Real stat counts filters */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-            {[
-              { id: 'all' as const, num: stats.total, label: 'Total alerts', color: 'text-cw-purple' },
-              { id: 'CRITICAL' as const, num: stats.critical, label: 'Critical', color: 'text-cw-red' },
-              { id: 'HIGH' as const, num: stats.high, label: 'High', color: 'text-cw-amber' },
-              { id: 'autofix' as const, num: stats.fixesOpened, label: 'Auto-fix PRs', color: 'text-cw-blue' },
-            ].map((stat) => (
-              <div
-                key={stat.id}
-                onClick={() => setFilter(stat.id)}
-                className={`bg-cw-bg2 rounded-xl p-4 cursor-pointer transition-all border ${filter === stat.id ? 'border-cw-purple shadow-sm' : 'border-transparent hover:border-cw-bdr'}`}
-              >
-                <div className={`text-[24px] font-bold mb-0.5 ${stat.color}`}>{stat.num}</div>
-                <div className="text-[12px] text-cw-txt2">{stat.label}</div>
-              </div>
-            ))}
           </div>
 
           {/* Real category tabs */}

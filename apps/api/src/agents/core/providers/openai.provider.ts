@@ -15,6 +15,7 @@
 import type { AgentProvider, AgentRunConfig, AgentResult, ToolMap } from '../provider.js';
 import { NativeOpenAIProvider, AgentTool } from '../../../providers/openai.provider.js';
 import { runAgentLoop } from '../../agent-loop.js';
+import { logAndBroadcast } from '../../queue/agent.queue.js';
 
 function toolMapToArray(tools: ToolMap): AgentTool[] {
   return Object.entries(tools).map(([name, def]) => ({
@@ -37,8 +38,40 @@ export class OpenAIProvider implements AgentProvider {
     const toolArray = toolMapToArray(config.tools).map(t => ({
       ...t,
       execute: async (args: any) => {
+        if (config.runId) {
+          logAndBroadcast('agent_active', {
+            repo: config.repoFullName,
+            sha: config.commitSHA,
+            agent: config.agentId,
+            status: `Executing tool ${t.name}`,
+            step: 'tool',
+            runId: config.runId,
+            logType: 'run',
+            level: 'inf',
+            message: `  ├─ ⚡ Executing tool: ${t.name}`,
+          });
+        }
         const result = await t.execute(args);
-        if (t.name.startsWith('submit_')) reportArgs = args;
+        if (t.name.startsWith('submit_')) {
+          reportArgs = args;
+          if (config.runId && args?.findings && Array.isArray(args.findings)) {
+            for (const f of args.findings) {
+              const sev = String(f.severity ?? 'INFO').toUpperCase();
+              const icon = sev === 'CRITICAL' || sev === 'HIGH' ? '🚨' : (sev === 'MEDIUM' ? '⚠️' : 'ℹ️');
+              logAndBroadcast('agent_active', {
+                repo: config.repoFullName,
+                sha: config.commitSHA,
+                agent: config.agentId,
+                status: `Reported finding: ${f.title}`,
+                step: 'finding',
+                runId: config.runId,
+                logType: 'run',
+                level: sev === 'CRITICAL' || sev === 'HIGH' ? 'err' : (sev === 'MEDIUM' ? 'warn' : 'plain'),
+                message: `  ├─ ${icon} [${sev}] ${f.title}${f.file ? ` (${f.file}${f.line ? `:${f.line}` : ''})` : ''}`,
+              });
+            }
+          }
+        }
         return result;
       }
     }));

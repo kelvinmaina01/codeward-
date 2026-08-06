@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { auth } from '../auth/index.js';
 import { db } from '../db/index.js';
 import * as schema from '../db/schema.js';
-import { eq, and, or, inArray, desc } from 'drizzle-orm';
+import { eq, and, or, inArray, desc, isNotNull } from 'drizzle-orm';
 import { triggerComprehensiveAudit } from '../agents/audit-trigger.js';
 
 export const reposRouter = new Hono();
@@ -58,17 +58,32 @@ reposRouter.get('/connected', async (c) => {
     // fabricating this with a hash of the repo name ("fake health data for the dashboard
     // demo") even though real scores exist. Attach the real latest completed run's score, or
     // fall back to the real baselineScore from the first scan if no later run exists yet.
-    const reposWithHealth = await Promise.all(connectedRepos.map(async (repo) => {
-      const [latestRun] = await db.select().from(schema.runs)
-        .where(and(eq(schema.runs.repoId, repo.id), eq(schema.runs.status, 'completed')))
-        .orderBy(desc(schema.runs.createdAt))
-        .limit(1);
+    // Single DISTINCT ON query instead of a per-repo query (was N+1).
+    const repoIds = connectedRepos.map((r) => r.id);
+    const latestRuns = repoIds.length > 0
+      ? await db.selectDistinctOn([schema.runs.repoId], {
+          repoId: schema.runs.repoId,
+          score: schema.runs.score,
+          createdAt: schema.runs.createdAt,
+        })
+        .from(schema.runs)
+        .where(and(
+          inArray(schema.runs.repoId, repoIds),
+          eq(schema.runs.status, 'completed'),
+          isNotNull(schema.runs.score),
+        ))
+        .orderBy(schema.runs.repoId, desc(schema.runs.createdAt))
+      : [];
+    const latestByRepo = new Map(latestRuns.map((r) => [r.repoId, r]));
+
+    const reposWithHealth = connectedRepos.map((repo) => {
+      const latestRun = latestByRepo.get(repo.id);
       return {
         ...repo,
         healthScore: latestRun?.score ?? repo.baselineScore ?? null,
         lastScanAt: latestRun?.createdAt ?? repo.auditCompletedAt ?? null,
       };
-    }));
+    });
 
     // Also return user's organizations so the global UI can populate the workspace switcher
     const accounts = await db.select().from(schema.account).where(and(eq(schema.account.userId, session.user.id), eq(schema.account.providerId, 'github')));

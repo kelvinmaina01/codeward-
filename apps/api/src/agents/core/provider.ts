@@ -113,6 +113,9 @@ export interface AgentRunConfig {
   /** The repository being analyzed (e.g. 'acme-corp/my-api') */
   repoFullName: string;
 
+  /** Optional database runId for log tracking */
+  runId?: number;
+
   /** Restored conversation history from a failed previous run */
   checkpointState?: any[];
 }

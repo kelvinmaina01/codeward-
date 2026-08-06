@@ -34,6 +34,8 @@ import { useSession, signOut } from '../../lib/auth';
 import { useWorkspace } from '../contexts/WorkspaceContext';
 import { API_URL } from '../../lib/api';
 
+import { DeleteAccountDialog } from './DeleteAccountDialog';
+
 type TabType = 'general' | 'account' | 'billing' | 'team' | 'developers';
 
 interface ApiKey {
@@ -110,6 +112,7 @@ export function Settings() {
   const { data: session } = useSession();
   const { activeWorkspace, setOpenInviteDrawer } = useWorkspace();
   const [activeTab, setActiveTab] = useState<TabType>('account');
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   // User Profile State
   const [fullName, setFullName] = useState(session?.user?.name || 'Kelvin Maina');
@@ -513,17 +516,23 @@ export function Settings() {
                   <div className="text-[11px] text-cw-txt3 mt-0.5">This will permanently delete your account, workspace data, and all repository connections.</div>
                 </div>
                 <button
-                  onClick={() => {
-                    if (confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
-                      toast.error('Account deletion initiated');
-                    }
-                  }}
+                  onClick={() => setShowDeleteDialog(true)}
                   className="px-3.5 py-1.5 bg-red-500/20 hover:bg-red-500 text-red-300 hover:text-white text-[12px] font-semibold rounded-xl border border-red-500/40 transition-colors cursor-pointer"
                 >
                   Delete account
                 </button>
               </div>
             </SectionCard>
+
+            <DeleteAccountDialog 
+              open={showDeleteDialog} 
+              onOpenChange={setShowDeleteDialog} 
+              onSuccess={async () => {
+                toast.success('Account deletion queued. You will be logged out.');
+                await signOut();
+                window.location.reload();
+              }}
+            />
 
           </div>
         )}
@@ -610,13 +619,13 @@ export function Settings() {
         {activeTab === 'billing' && (
           <div className="flex flex-col gap-6">
             
-            {/* Current Plan Overview */}
-            <SectionCard title="Current Subscription" icon={CreditCard}>
-              <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 p-4 bg-cw-bg3/60 border border-cw-bdr rounded-xl mb-6">
+            {/* Current Subscription & Pricing Plans */}
+            <SectionCard title="Current Subscription & Plans" icon={CreditCard}>
+              <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 p-5 bg-cw-bg3/60 border border-cw-bdr rounded-2xl mb-6">
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="text-xl font-bold text-cw-txt">Free Tier</span>
-                    <span className="px-2.5 py-0.5 text-[10px] font-bold bg-cw-purple/20 text-cw-purple rounded-full border border-cw-purple/30 uppercase">Current</span>
+                    <span className="px-2.5 py-0.5 text-[10px] font-bold bg-cw-purple/20 text-cw-purple rounded-full border border-cw-purple/30 uppercase">Current Plan</span>
                   </div>
                   <p className="text-[12px] text-cw-txt3 mt-1">300 daily refresh credits · 5 connected repos · Automated PR Reviews</p>
                 </div>
@@ -626,69 +635,121 @@ export function Settings() {
                 </div>
               </div>
 
-              {/* Plan Tiers */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-2">
-                
-                {/* Free */}
-                <div className="border border-cw-bdr rounded-xl p-4 bg-cw-bg3/30 flex flex-col justify-between">
+              {/* Plan Cards Grid (Pro, Pro Plus, Enterprise) */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                {/* Pro Plan */}
+                <div className="border border-cw-bdr rounded-2xl p-5 bg-cw-bg3/30 flex flex-col justify-between hover:border-cw-purple/40 transition-all">
                   <div>
-                    <h3 className="font-bold text-cw-txt text-base">Free</h3>
-                    <p className="text-[12px] text-cw-txt3 mt-0.5">For indie developers and side projects.</p>
-                    <div className="text-xl font-bold text-cw-txt mt-3 mb-4">$0 <span className="text-xs font-normal text-cw-txt3">/mo</span></div>
-                    <ul className="text-[12px] text-cw-txt2 space-y-2 mb-6">
-                      <li className="flex items-center gap-2"><CheckCircle size={14} className="text-cw-purple shrink-0" /> 300 Daily Credits</li>
-                      <li className="flex items-center gap-2"><CheckCircle size={14} className="text-cw-purple shrink-0" /> 5 Repositories</li>
-                      <li className="flex items-center gap-2"><CheckCircle size={14} className="text-cw-purple shrink-0" /> Community Support</li>
-                    </ul>
-                  </div>
-                  <button disabled className="w-full py-2 bg-cw-bg3 text-cw-txt3 font-semibold rounded-xl text-[12px] border border-cw-bdr cursor-not-allowed">
-                    Current Plan
-                  </button>
-                </div>
-
-                {/* Pro */}
-                <div className="border-2 border-cw-purple rounded-xl p-4 bg-cw-purple/5 flex flex-col justify-between relative shadow-lg">
-                  <span className="absolute -top-3 right-4 px-2.5 py-0.5 bg-cw-purple text-white text-[10px] font-bold uppercase rounded-full">Popular</span>
-                  <div>
-                    <h3 className="font-bold text-cw-txt text-base">Pro Developer</h3>
-                    <p className="text-[12px] text-cw-txt3 mt-0.5">For active developers and growing codebases.</p>
-                    <div className="text-xl font-bold text-cw-txt mt-3 mb-4">$29 <span className="text-xs font-normal text-cw-txt3">/mo</span></div>
-                    <ul className="text-[12px] text-cw-txt2 space-y-2 mb-6">
+                    <div className="flex justify-between items-center mb-1">
+                      <h3 className="font-bold text-cw-txt text-lg">Pro</h3>
+                    </div>
+                    <p className="text-[12px] text-cw-txt3">For active developers & small projects.</p>
+                    <div className="text-2xl font-extrabold text-cw-txt my-3">$12 <span className="text-xs font-normal text-cw-txt3">/mo</span></div>
+                    <ul className="text-[12px] text-cw-txt2 space-y-2 mb-6 border-t border-cw-bdr/40 pt-3">
                       <li className="flex items-center gap-2"><CheckCircle size={14} className="text-cw-purple shrink-0" /> 5,000 Monthly Credits</li>
                       <li className="flex items-center gap-2"><CheckCircle size={14} className="text-cw-purple shrink-0" /> Unlimited Repositories</li>
-                      <li className="flex items-center gap-2"><CheckCircle size={14} className="text-cw-purple shrink-0" /> Priority Agent Execution</li>
-                      <li className="flex items-center gap-2"><CheckCircle size={14} className="text-cw-purple shrink-0" /> Slack & Email Alerts</li>
+                      <li className="flex items-center gap-2"><CheckCircle size={14} className="text-cw-purple shrink-0" /> PR Summarization & Review</li>
+                      <li className="flex items-center gap-2"><CheckCircle size={14} className="text-cw-purple shrink-0" /> IDE & CLI Integration</li>
                     </ul>
                   </div>
                   <button 
-                    onClick={() => toast.info('Redirecting to Stripe checkout...')}
-                    className="w-full py-2 bg-cw-purple hover:bg-purple-600 text-white font-semibold rounded-xl text-[12px] transition-colors cursor-pointer"
+                    onClick={() => toast.success('Redirecting to Pro checkout...')}
+                    className="w-full py-2.5 bg-cw-bg3 hover:bg-cw-bdr text-cw-txt font-bold rounded-xl text-[12px] border border-cw-bdr transition-all cursor-pointer"
                   >
                     Upgrade to Pro
                   </button>
                 </div>
 
-                {/* Team */}
-                <div className="border border-cw-bdr rounded-xl p-4 bg-cw-bg3/30 flex flex-col justify-between">
+                {/* Pro Plus Plan (Popular) */}
+                <div className="border-2 border-cw-purple rounded-2xl p-5 bg-cw-purple/10 flex flex-col justify-between relative shadow-xl">
+                  <span className="absolute -top-3 right-4 px-3 py-0.5 bg-cw-purple text-white text-[10px] font-bold uppercase rounded-full tracking-wider shadow-md">Popular</span>
                   <div>
-                    <h3 className="font-bold text-cw-txt text-base">Team & Enterprise</h3>
-                    <p className="text-[12px] text-cw-txt3 mt-0.5">For engineering teams & organizations.</p>
-                    <div className="text-xl font-bold text-cw-txt mt-3 mb-4">$99 <span className="text-xs font-normal text-cw-txt3">/mo</span></div>
-                    <ul className="text-[12px] text-cw-txt2 space-y-2 mb-6">
-                      <li className="flex items-center gap-2"><CheckCircle size={14} className="text-cw-purple shrink-0" /> 25,000 Monthly Credits</li>
-                      <li className="flex items-center gap-2"><CheckCircle size={14} className="text-cw-purple shrink-0" /> 10 Team Seats included</li>
-                      <li className="flex items-center gap-2"><CheckCircle size={14} className="text-cw-purple shrink-0" /> SOC2 Compliance Export</li>
-                      <li className="flex items-center gap-2"><CheckCircle size={14} className="text-cw-purple shrink-0" /> Dedicated SLA & Support</li>
+                    <div className="flex justify-between items-center mb-1">
+                      <h3 className="font-bold text-cw-purple text-lg">Pro Plus</h3>
+                    </div>
+                    <p className="text-[12px] text-cw-txt2">For fast-growing teams & production apps.</p>
+                    <div className="text-2xl font-extrabold text-cw-txt my-3">$24 <span className="text-xs font-normal text-cw-txt3">/mo</span></div>
+                    <ul className="text-[12px] text-cw-txt2 space-y-2 mb-6 border-t border-cw-purple/20 pt-3">
+                      <li className="flex items-center gap-2"><CheckCircle size={14} className="text-cw-purple shrink-0" /> 20,000 Monthly Credits</li>
+                      <li className="flex items-center gap-2"><CheckCircle size={14} className="text-cw-purple shrink-0" /> Unlimited Repositories</li>
+                      <li className="flex items-center gap-2"><CheckCircle size={14} className="text-cw-purple shrink-0" /> Agentic Chat (Gordon AI)</li>
+                      <li className="flex items-center gap-2"><CheckCircle size={14} className="text-cw-purple shrink-0" /> Jira, Slack, Datadog integrations</li>
+                      <li className="flex items-center gap-2"><CheckCircle size={14} className="text-cw-purple shrink-0" /> 20 Custom Policy Rules</li>
                     </ul>
                   </div>
                   <button 
-                    onClick={() => toast.info('Contact sales@codeward.ai for custom enterprise plans')}
-                    className="w-full py-2 bg-cw-bg3 hover:bg-cw-bdr text-cw-txt font-semibold rounded-xl text-[12px] border border-cw-bdr transition-colors cursor-pointer"
+                    onClick={() => toast.success('Redirecting to Pro Plus checkout...')}
+                    className="w-full py-2.5 bg-cw-purple hover:brightness-110 text-white font-bold rounded-xl text-[12px] shadow-lg shadow-cw-purple/30 transition-all cursor-pointer"
+                  >
+                    Upgrade to Pro Plus
+                  </button>
+                </div>
+
+                {/* Enterprise Plan */}
+                <div className="border border-cw-bdr rounded-2xl p-5 bg-cw-bg3/30 flex flex-col justify-between hover:border-cw-purple/40 transition-all">
+                  <div>
+                    <div className="flex justify-between items-center mb-1">
+                      <h3 className="font-bold text-cw-txt text-lg">Enterprise</h3>
+                    </div>
+                    <p className="text-[12px] text-cw-txt3">For engineering orgs needing custom SLA & SOC2.</p>
+                    <div className="text-2xl font-extrabold text-cw-txt my-3">Custom</div>
+                    <ul className="text-[12px] text-cw-txt2 space-y-2 mb-6 border-t border-cw-bdr/40 pt-3">
+                      <li className="flex items-center gap-2"><CheckCircle size={14} className="text-cw-purple shrink-0" /> Custom Credits Grant</li>
+                      <li className="flex items-center gap-2"><CheckCircle size={14} className="text-cw-purple shrink-0" /> Dedicated CSM & 24/7 SLA</li>
+                      <li className="flex items-center gap-2"><CheckCircle size={14} className="text-cw-purple shrink-0" /> Custom RBAC, SSO & Audit Logs</li>
+                      <li className="flex items-center gap-2"><CheckCircle size={14} className="text-cw-purple shrink-0" /> EU SaaS & Self-Hosting options</li>
+                    </ul>
+                  </div>
+                  <button 
+                    onClick={() => toast.info('Contact sales@codeward.ai for Enterprise options')}
+                    className="w-full py-2.5 bg-cw-bg3 hover:bg-cw-bdr text-cw-txt font-bold rounded-xl text-[12px] border border-cw-bdr transition-all cursor-pointer"
                   >
                     Contact Sales
                   </button>
                 </div>
+              </div>
 
+              {/* Pay As You Go: Buy Credit Packs (Same as Pricing Page) */}
+              <div className="border-t border-cw-bdr/50 pt-6 mt-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <div className="text-sm font-bold text-cw-txt flex items-center gap-2">
+                      <Zap size={16} className="text-cw-amber" />
+                      Pay As You Go — Buy Credit Packs
+                    </div>
+                    <p className="text-[12px] text-cw-txt3 mt-0.5">Top up in one click. Valid for 12 months with no subscription required.</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
+                  {[
+                    { usd: 3, credits: 100 },
+                    { usd: 5, credits: 200 },
+                    { usd: 10, credits: 500 },
+                    { usd: 20, credits: 1200, popular: true },
+                    { usd: 50, credits: 3400 },
+                    { usd: 100, credits: 7500 },
+                  ].map((pack) => (
+                    <button
+                      key={pack.usd}
+                      onClick={() => toast.success(`Purchased ${pack.credits.toLocaleString()} credits for $${pack.usd}!`)}
+                      className={`relative flex flex-col items-start rounded-xl border p-3.5 text-left transition-all cursor-pointer ${
+                        pack.popular
+                          ? 'border-cw-purple bg-cw-purple/10 hover:bg-cw-purple/20'
+                          : 'border-cw-bdr bg-cw-bg3/50 hover:bg-cw-bg3 hover:border-cw-purple/40'
+                      }`}
+                    >
+                      {pack.popular && (
+                        <span className="absolute -top-2 right-2 rounded-full bg-cw-purple px-1.5 py-0.5 text-[8px] font-bold uppercase text-white">
+                          Best Value
+                        </span>
+                      )}
+                      <span className="text-lg font-bold text-cw-txt">${pack.usd}</span>
+                      <span className="text-[11px] font-semibold text-cw-txt2 mt-0.5">{pack.credits.toLocaleString()} credits</span>
+                      <span className="text-[9px] text-cw-txt3 mt-2 font-mono">${(pack.usd / pack.credits).toFixed(3)}/ea</span>
+                    </button>
+                  ))}
+                </div>
               </div>
             </SectionCard>
 

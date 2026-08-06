@@ -19,7 +19,6 @@ function getAgentIdFromText(text: string): string {
 }
 import { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { mockHealthData, mockDebtData } from '../../lib/mockAgentData';
 import { api, API_URL } from '../../lib/api';
 import { RepoSelector } from './RepoSelector';
 import { 
@@ -221,12 +220,15 @@ export function Dashboard({ onRunClick }: Props) {
     repositoriesProtected: number;
     runsToday: number;
     debtRemoved: number;
+    refactorsApplied: number;
     interventions: number;
+    healthTrend: { date: string; score: number | null }[];
+    debtTrend: { date: string; lines: number }[];
   } | null>(null);
 
   const [healthStats, setHealthStats] = useState<{
-    codebaseHealth: number;
-    grade: string;
+    codebaseHealth: number | null;
+    grade: string | null;
     debtThisWeek: {
       duplicateFunctions: number;
       deadCodeLines: number;
@@ -342,21 +344,22 @@ export function Dashboard({ onRunClick }: Props) {
             repositoriesProtected: data.repositoriesProtected || 0,
             runsToday: data.runsToday || 0,
             debtRemoved: data.debtRemoved || 0,
-            interventions: data.interventions || 0
+            refactorsApplied: data.refactorsApplied || 0,
+            interventions: data.interventions || 0,
+            healthTrend: Array.isArray(data.healthTrend) ? data.healthTrend : [],
+            debtTrend: Array.isArray(data.debtTrend) ? data.debtTrend : [],
           });
-          if (data.codebaseHealth != null) {
-            setHealthStats({
-              codebaseHealth: data.codebaseHealth,
-              grade: data.grade || 'Grade B',
-              debtThisWeek: data.debtThisWeek || {
-                duplicateFunctions: -18,
-                deadCodeLines: -247,
-                securityIssues: -3,
-                nPlusOneQueries: -6,
-                aiEraIssues: -2,
-              },
-            });
-          }
+          setHealthStats({
+            codebaseHealth: data.codebaseHealth ?? null,
+            grade: data.grade || null,
+            debtThisWeek: data.debtThisWeek || {
+              duplicateFunctions: 0,
+              deadCodeLines: 0,
+              securityIssues: 0,
+              nPlusOneQueries: 0,
+              aiEraIssues: 0,
+            },
+          });
           if ('integrations' in data && Array.isArray(data.integrations)) {
             setIntegrations(data.integrations as any);
           }
@@ -425,36 +428,19 @@ export function Dashboard({ onRunClick }: Props) {
 
   const filteredRuns = recentRuns.filter((r) => repoFilter === 'All' || r.repoFullName === repoFilter);
 
-  const getDaysCount = () => {
-    if (dashboardTimeFilter === '7d') return 7;
-    if (dashboardTimeFilter === '30d') return 30;
-    if (dashboardTimeFilter === '3m') return 90;
-    if (dashboardTimeFilter === 'custom' && customDashboardDate) {
-      const diffMs = Date.now() - new Date(customDashboardDate).getTime();
-      return Math.max(1, Math.round(diffMs / (1000 * 60 * 60 * 24)));
-    }
-    return 30;
-  };
-
   const computedHealthData = useMemo(() => {
-    if (!healthStats) return [];
-    const days = getDaysCount();
-    const data = Array.from({ length: days }, (_, i) => ({
+    return stats?.healthTrend?.map((p, i) => ({
       day: i + 1,
-      score: Math.round(Math.max(50, healthStats.codebaseHealth - (days - i) * 0.5 + (Math.sin(i * 0.5) * 3)))
-    }));
-    if (data.length > 0) data[data.length - 1].score = healthStats.codebaseHealth;
-    return data;
-  }, [healthStats?.codebaseHealth, dashboardTimeFilter, customDashboardDate]);
+      score: p.score,
+    })) ?? [];
+  }, [stats?.healthTrend]);
 
   const computedDebtData = useMemo(() => {
-    if (!stats) return [];
-    const days = getDaysCount();
-    return Array.from({ length: days }, (_, i) => ({
+    return stats?.debtTrend?.map((p, i) => ({
       day: i + 1,
-      lines: stats.debtRemoved === 0 ? 0 : -Math.round((i / Math.max(1, days - 1)) * stats.debtRemoved)
-    }));
-  }, [stats?.debtRemoved, dashboardTimeFilter, customDashboardDate]);
+      lines: -p.lines,
+    })) ?? [];
+  }, [stats?.debtTrend]);
 
   const getTimeLabel = () => {
     if (dashboardTimeFilter === '7d') return '7 days ago';
@@ -547,16 +533,16 @@ export function Dashboard({ onRunClick }: Props) {
           <div className="flex justify-between items-start mb-2">
             <div>
               <div className="text-[11px] font-semibold tracking-wider text-cw-txt3 mb-1 uppercase">CODEBASE HEALTH — {dashboardTimeFilter === '7d' ? '7 DAYS' : dashboardTimeFilter === '3m' ? '3 MONTHS' : dashboardTimeFilter === 'custom' ? 'CUSTOM' : '30 DAYS'}</div>
-              {loadingStats || !healthStats ? (
+              {loadingStats || !stats ? (
                 <div className="h-9 w-24 bg-cw-bg3 animate-pulse rounded my-1" />
               ) : (
-                <div className="text-4xl font-medium text-cw-green">{healthStats.codebaseHealth}%</div>
+                <div className="text-4xl font-medium text-cw-green">{healthStats?.codebaseHealth != null ? `${healthStats.codebaseHealth}%` : '—'}</div>
               )}
             </div>
-            <span className="text-[11px] text-cw-txt2">trend active</span>
+            <span className="text-[11px] text-cw-txt2">{healthStats?.codebaseHealth != null ? 'trend active' : 'no scans yet'}</span>
           </div>
           <div className="flex-1 w-full mt-4 -ml-2">
-            {loadingStats || !healthStats ? (
+            {loadingStats || !stats ? (
               <div className="w-full h-full bg-cw-bg3/30 animate-pulse rounded-lg flex items-center justify-center text-[12px] text-cw-txt3">Loading metrics...</div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
@@ -587,11 +573,11 @@ export function Dashboard({ onRunClick }: Props) {
               {loadingStats || !stats ? (
                 <div className="h-9 w-32 bg-cw-bg3 animate-pulse rounded my-1" />
               ) : (
-                <div className="text-4xl font-medium text-cw-green">-{stats.debtRemoved} lines</div>
+                <div className="text-4xl font-medium text-cw-green">{stats.debtRemoved}</div>
               )}
             </div>
             <div className="flex flex-col items-end gap-1.5">
-              <span className="text-[11px] text-cw-txt2">{stats ? Math.max(0, Math.round(stats.debtRemoved / 50)) : 0} refactors applied</span>
+              <span className="text-[11px] text-cw-txt2">{stats?.refactorsApplied ?? 0} refactors applied</span>
               <button 
                 onClick={() => navigate('/dashboard/diff')} 
                 className="px-2 py-1 bg-cw-purple hover:brightness-110 text-white rounded text-[10px] font-medium transition-all cursor-pointer flex items-center gap-1 shadow-sm border-none"
@@ -619,8 +605,8 @@ export function Dashboard({ onRunClick }: Props) {
             )}
           </div>
           <div className="flex justify-between text-[10px] text-cw-txt3 mt-2">
-            <span>0 lines</span>
-            <span>-{stats?.debtRemoved ?? 0} lines</span>
+            <span>0</span>
+            <span>{stats?.debtRemoved ?? 0} files refactored</span>
           </div>
         </div>
       </div>
@@ -704,7 +690,7 @@ export function Dashboard({ onRunClick }: Props) {
               <div className="text-3xl font-medium text-cw-txt mb-1 flex items-baseline gap-2">
                 {stats.repositoriesProtected}
                 <span className="text-[11px] font-semibold text-cw-green flex items-center gap-0.5">
-                  <TrendingUp size={12} /> +2 this month
+                  <TrendingUp size={12} /> tracked
                 </span>
               </div>
             )}
@@ -735,9 +721,9 @@ export function Dashboard({ onRunClick }: Props) {
             {loadingStats || !stats ? (
               <div className="h-8 w-24 bg-cw-bg3 animate-pulse rounded my-1" />
             ) : (
-              <div className="text-3xl font-medium text-cw-txt mb-1">-{stats.debtRemoved} <span className="text-[14px] text-cw-txt2">lines</span></div>
+              <div className="text-3xl font-medium text-cw-txt mb-1">{stats.debtRemoved} <span className="text-[14px] text-cw-txt2">files</span></div>
             )}
-            <span className="text-[11px] text-cw-txt2">Lines of bloated code removed</span>
+            <span className="text-[11px] text-cw-txt2">Files changed by merged refactors</span>
           </div>
         </div>
 
@@ -880,14 +866,16 @@ export function Dashboard({ onRunClick }: Props) {
                 {/* Score Ring Header */}
                 <div className="flex items-center gap-4 mb-5">
                   <div className="relative w-16 h-16 rounded-full border-[3.5px] border-cw-green flex items-center justify-center shrink-0 bg-cw-green/5 shadow-inner">
-                    <span className="text-xl font-bold text-cw-green">{healthStats.codebaseHealth}</span>
+                    <span className="text-xl font-bold text-cw-green">{healthStats.codebaseHealth != null ? healthStats.codebaseHealth : '—'}</span>
                   </div>
                   <div>
-                    <div className="text-2xl font-bold text-cw-green">{healthStats.codebaseHealth} / 100</div>
-                    <div className="text-[11px] text-cw-txt3">30-day codebase avg across all connected repos</div>
-                    <span className="inline-block mt-1.5 px-2 py-0.5 rounded bg-cw-green/15 border border-cw-green/30 text-cw-green text-[10px] font-bold">
-                      {healthStats.grade}
-                    </span>
+                    <div className="text-2xl font-bold text-cw-green">{healthStats.codebaseHealth != null ? `${healthStats.codebaseHealth} / 100` : 'No data yet'}</div>
+                    <div className="text-[11px] text-cw-txt3">Latest completed scan avg across connected repos</div>
+                    {healthStats.grade && (
+                      <span className="inline-block mt-1.5 px-2 py-0.5 rounded bg-cw-green/15 border border-cw-green/30 text-cw-green text-[10px] font-bold">
+                        {healthStats.grade}
+                      </span>
+                    )}
                   </div>
                 </div>
 
@@ -896,21 +884,25 @@ export function Dashboard({ onRunClick }: Props) {
                   <div className="text-[10px] font-bold tracking-wider text-cw-txt3 uppercase mb-3">DEBT THIS WEEK</div>
                   <div className="flex flex-col gap-3">
                     {[
-                      { label: 'Duplicate functions', color: 'bg-cw-red', val: `${healthStats.debtThisWeek.duplicateFunctions}`, width: '65%' },
-                      { label: 'Dead code lines', color: 'bg-cw-amber', val: `${healthStats.debtThisWeek.deadCodeLines}`, width: '92%' },
-                      { label: 'Security issues', color: 'bg-cw-red', val: `${healthStats.debtThisWeek.securityIssues} crit`, width: '30%' },
-                      { label: 'N+1 queries', color: 'bg-cw-blue', val: `${healthStats.debtThisWeek.nPlusOneQueries}`, width: '50%' },
-                      { label: 'AI-era issues', color: 'bg-cw-green', val: `${healthStats.debtThisWeek.aiEraIssues}`, width: '25%' },
-                    ].map((item) => (
-                      <div key={item.label} className="flex items-center gap-3 text-[11px]">
-                        <span className={`w-2.5 h-2.5 rounded-full ${item.color} shrink-0`} />
-                        <span className="text-cw-txt2 min-w-[130px]">{item.label}</span>
-                        <div className="flex-1 h-1.5 bg-cw-bg3 rounded-full overflow-hidden">
-                          <div className={`h-full rounded-full ${item.color}`} style={{ width: item.width }} />
+                      { label: 'Duplicate functions', color: 'bg-cw-red', val: healthStats.debtThisWeek.duplicateFunctions },
+                      { label: 'Dead code lines', color: 'bg-cw-amber', val: healthStats.debtThisWeek.deadCodeLines },
+                      { label: 'Security issues', color: 'bg-cw-red', val: healthStats.debtThisWeek.securityIssues },
+                      { label: 'N+1 queries', color: 'bg-cw-blue', val: healthStats.debtThisWeek.nPlusOneQueries },
+                      { label: 'AI-era issues', color: 'bg-cw-green', val: healthStats.debtThisWeek.aiEraIssues },
+                    ].map((item) => {
+                      const maxVal = Math.max(1, ...([healthStats.debtThisWeek.duplicateFunctions, healthStats.debtThisWeek.deadCodeLines, healthStats.debtThisWeek.securityIssues, healthStats.debtThisWeek.nPlusOneQueries, healthStats.debtThisWeek.aiEraIssues]));
+                      const widthPct = Math.max(3, Math.round((item.val / maxVal) * 100));
+                      return (
+                        <div key={item.label} className="flex items-center gap-3 text-[11px]">
+                          <span className={`w-2.5 h-2.5 rounded-full ${item.color} shrink-0`} />
+                          <span className="text-cw-txt2 min-w-[130px]">{item.label}</span>
+                          <div className="flex-1 h-1.5 bg-cw-bg3 rounded-full overflow-hidden">
+                            <div className={`h-full rounded-full ${item.color}`} style={{ width: `${widthPct}%` }} />
+                          </div>
+                          <span className="text-cw-green font-mono font-semibold min-w-[45px] text-right">{item.val}</span>
                         </div>
-                        <span className="text-cw-green font-mono font-semibold min-w-[45px] text-right">{item.val}</span>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               </>
