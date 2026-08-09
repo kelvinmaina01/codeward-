@@ -2,6 +2,22 @@ import { z } from 'zod';
 import type { SandboxHandle } from '../../core/provider.js';
 import { createMemoryTools } from '../../tools/memory.tools.js';
 
+type GuardianOctokitContext =
+  | { octokit: { request: (route: string, params?: any) => Promise<any> }; owner: string; repo: string }
+  | { error: string };
+
+let testOctokitResolver: ((repoId: string) => Promise<GuardianOctokitContext>) | null = null;
+
+export function setGuardianOctokitResolverForTests(
+  resolver: ((repoId: string) => Promise<GuardianOctokitContext>) | null
+) {
+  testOctokitResolver = resolver;
+}
+
+async function getGuardianOctokitContext(repoId: string): Promise<GuardianOctokitContext> {
+  return testOctokitResolver ? testOctokitResolver(repoId) : resolveOctokit(repoId);
+}
+
 /**
  * Every tool here is a real GitHub API call via the installation-scoped Octokit client
  * (lib/github.ts, which now correctly delegates to the working github/client.ts — the
@@ -15,7 +31,7 @@ import { createMemoryTools } from '../../tools/memory.tools.js';
  * humanApproved:true argument as a code-level gate, not just a prompt instruction, matching
  * the constitution's "human explicitly approves via dashboard" rule.
  */
-export async function resolveOctokit(repoId: string) {
+export async function resolveOctokit(repoId: string): Promise<GuardianOctokitContext> {
   const { db } = await import('../../../db/index.js');
   const { repositories } = await import('../../../db/schema.js');
   const { eq } = await import('drizzle-orm');
@@ -40,7 +56,7 @@ export const createGuardianTools = (sandbox: SandboxHandle) => {
         estimatedDurationSeconds: z.number()
       }),
       execute: async (args: any) => {
-        const ctx = await resolveOctokit(args.repoId);
+        const ctx = await getGuardianOctokitContext(args.repoId);
         if ('error' in ctx) return ctx;
         const res = await ctx.octokit.request('POST /repos/{owner}/{repo}/issues/{issue_number}/comments', {
           owner: ctx.owner, repo: ctx.repo, issue_number: args.pullRequestNumber,
@@ -60,7 +76,7 @@ export const createGuardianTools = (sandbox: SandboxHandle) => {
         comments: z.array(z.object({ path: z.string(), line: z.number(), body: z.string() })).optional().default([])
       }),
       execute: async (args: any) => {
-        const ctx = await resolveOctokit(args.repoId);
+        const ctx = await getGuardianOctokitContext(args.repoId);
         if ('error' in ctx) return ctx;
         try {
           const res = await ctx.octokit.request('POST /repos/{owner}/{repo}/pulls/{pull_number}/reviews', {
@@ -94,7 +110,7 @@ export const createGuardianTools = (sandbox: SandboxHandle) => {
         path: z.string(), line: z.number(), body: z.string()
       }),
       execute: async (args: any) => {
-        const ctx = await resolveOctokit(args.repoId);
+        const ctx = await getGuardianOctokitContext(args.repoId);
         if ('error' in ctx) return ctx;
         // A real run showed the model passing a commit_id that isn't part of the PR ("commit_id
         // is not part of the pull request"). The only valid commit for an inline comment is the
@@ -119,7 +135,7 @@ export const createGuardianTools = (sandbox: SandboxHandle) => {
         labels: z.array(z.string()), assignees: z.array(z.string()).optional().default([])
       }),
       execute: async (args: any) => {
-        const ctx = await resolveOctokit(args.repoId);
+        const ctx = await getGuardianOctokitContext(args.repoId);
         if ('error' in ctx) return ctx;
         const res = await ctx.octokit.request('POST /repos/{owner}/{repo}/issues', {
           owner: ctx.owner, repo: ctx.repo, title: args.title, body: args.body,
@@ -133,7 +149,7 @@ export const createGuardianTools = (sandbox: SandboxHandle) => {
       description: 'Apply labels to an existing issue. Real GitHub API call.',
       parameters: z.object({ repoId: z.string(), issueNumber: z.number(), labels: z.array(z.string()) }),
       execute: async (args: any) => {
-        const ctx = await resolveOctokit(args.repoId);
+        const ctx = await getGuardianOctokitContext(args.repoId);
         if ('error' in ctx) return ctx;
         await ctx.octokit.request('POST /repos/{owner}/{repo}/issues/{issue_number}/labels', {
           owner: ctx.owner, repo: ctx.repo, issue_number: args.issueNumber, labels: args.labels
@@ -146,7 +162,7 @@ export const createGuardianTools = (sandbox: SandboxHandle) => {
       description: 'Reply to a developer\'s reply on a PR review comment thread. Real GitHub API call.',
       parameters: z.object({ repoId: z.string(), pullRequestNumber: z.number(), commentId: z.number(), body: z.string() }),
       execute: async (args: any) => {
-        const ctx = await resolveOctokit(args.repoId);
+        const ctx = await getGuardianOctokitContext(args.repoId);
         if ('error' in ctx) return ctx;
         const res = await ctx.octokit.request('POST /repos/{owner}/{repo}/pulls/{pull_number}/comments/{comment_id}/replies', {
           owner: ctx.owner, repo: ctx.repo, pull_number: args.pullRequestNumber,
@@ -160,7 +176,7 @@ export const createGuardianTools = (sandbox: SandboxHandle) => {
       description: 'Update the initial "running" status comment with final results. Real GitHub API call.',
       parameters: z.object({ repoId: z.string(), commentId: z.number(), newBody: z.string() }),
       execute: async (args: any) => {
-        const ctx = await resolveOctokit(args.repoId);
+        const ctx = await getGuardianOctokitContext(args.repoId);
         if ('error' in ctx) return ctx;
         const res = await ctx.octokit.request('PATCH /repos/{owner}/{repo}/issues/comments/{comment_id}', {
           owner: ctx.owner, repo: ctx.repo, comment_id: args.commentId, body: args.newBody
@@ -176,7 +192,7 @@ export const createGuardianTools = (sandbox: SandboxHandle) => {
         commitMessage: z.string(), sha: z.string().optional()
       }),
       execute: async (args: any) => {
-        const ctx = await resolveOctokit(args.repoId);
+        const ctx = await getGuardianOctokitContext(args.repoId);
         if ('error' in ctx) return ctx;
         const res = await ctx.octokit.request('PUT /repos/{owner}/{repo}/contents/{path}', {
           owner: ctx.owner, repo: ctx.repo, path: args.filePath, message: args.commitMessage,
@@ -190,7 +206,7 @@ export const createGuardianTools = (sandbox: SandboxHandle) => {
       description: 'Create a new branch (e.g. codeward/audit-fixes) from a given SHA. Real GitHub API call.',
       parameters: z.object({ repoId: z.string(), branchName: z.string(), fromSha: z.string() }),
       execute: async (args: any) => {
-        const ctx = await resolveOctokit(args.repoId);
+        const ctx = await getGuardianOctokitContext(args.repoId);
         if ('error' in ctx) return ctx;
         await ctx.octokit.request('POST /repos/{owner}/{repo}/git/refs', {
           owner: ctx.owner, repo: ctx.repo, ref: `refs/heads/${args.branchName}`, sha: args.fromSha
@@ -203,7 +219,7 @@ export const createGuardianTools = (sandbox: SandboxHandle) => {
       description: 'Open a PR for an audit branch. Real GitHub API call.',
       parameters: z.object({ repoId: z.string(), title: z.string(), body: z.string(), head: z.string(), base: z.string(), draft: z.boolean().optional().default(false) }),
       execute: async (args: any) => {
-        const ctx = await resolveOctokit(args.repoId);
+        const ctx = await getGuardianOctokitContext(args.repoId);
         if ('error' in ctx) return ctx;
         const res = await ctx.octokit.request('POST /repos/{owner}/{repo}/pulls', {
           owner: ctx.owner, repo: ctx.repo, title: args.title, body: args.body, head: args.head, base: args.base, draft: args.draft
@@ -223,7 +239,7 @@ export const createGuardianTools = (sandbox: SandboxHandle) => {
         if (args.humanApproved !== true) {
           return { success: false, error: 'Refused: humanApproved was not true. This is an irreversible action and requires explicit human approval.' };
         }
-        const ctx = await resolveOctokit(args.repoId);
+        const ctx = await getGuardianOctokitContext(args.repoId);
         if ('error' in ctx) return ctx;
         const res = await ctx.octokit.request('PUT /repos/{owner}/{repo}/pulls/{pull_number}/merge', {
           owner: ctx.owner, repo: ctx.repo, pull_number: args.pullRequestNumber,
@@ -237,7 +253,7 @@ export const createGuardianTools = (sandbox: SandboxHandle) => {
       description: 'Read the full PR — diff summary, description, reviewers, status. Real GitHub API call.',
       parameters: z.object({ repoId: z.string(), pullRequestNumber: z.number() }),
       execute: async (args: any) => {
-        const ctx = await resolveOctokit(args.repoId);
+        const ctx = await getGuardianOctokitContext(args.repoId);
         if ('error' in ctx) return ctx;
         const res = await ctx.octokit.request('GET /repos/{owner}/{repo}/pulls/{pull_number}', {
           owner: ctx.owner, repo: ctx.repo, pull_number: args.pullRequestNumber
@@ -255,7 +271,7 @@ export const createGuardianTools = (sandbox: SandboxHandle) => {
       description: 'Get the real unified diff (patch) for every changed file in a PR — the actual line-level content to review, not just metadata. Real GitHub API call.',
       parameters: z.object({ repoId: z.string(), pullRequestNumber: z.number() }),
       execute: async (args: any) => {
-        const ctx = await resolveOctokit(args.repoId);
+        const ctx = await getGuardianOctokitContext(args.repoId);
         if ('error' in ctx) return ctx;
         const res: any = await ctx.octokit.request('GET /repos/{owner}/{repo}/pulls/{pull_number}/files', {
           owner: ctx.owner, repo: ctx.repo, pull_number: args.pullRequestNumber
@@ -273,7 +289,7 @@ export const createGuardianTools = (sandbox: SandboxHandle) => {
       description: 'Read a specific file from the repo at a given ref. Real GitHub API call.',
       parameters: z.object({ repoId: z.string(), filePath: z.string(), ref: z.string().optional() }),
       execute: async (args: any) => {
-        const ctx = await resolveOctokit(args.repoId);
+        const ctx = await getGuardianOctokitContext(args.repoId);
         if ('error' in ctx) return ctx;
         const res: any = await ctx.octokit.request('GET /repos/{owner}/{repo}/contents/{path}', {
           owner: ctx.owner, repo: ctx.repo, path: args.filePath, ref: args.ref
@@ -289,7 +305,7 @@ export const createGuardianTools = (sandbox: SandboxHandle) => {
       description: 'Get the repo\'s default branch name and its current head commit SHA — needed as the base to branch a fix off of. Real GitHub API call.',
       parameters: z.object({ repoId: z.string() }),
       execute: async (args: any) => {
-        const ctx = await resolveOctokit(args.repoId);
+        const ctx = await getGuardianOctokitContext(args.repoId);
         if ('error' in ctx) return ctx;
         const repoRes = await ctx.octokit.request('GET /repos/{owner}/{repo}', { owner: ctx.owner, repo: ctx.repo });
         const defaultBranch = repoRes.data.default_branch;
@@ -304,7 +320,7 @@ export const createGuardianTools = (sandbox: SandboxHandle) => {
       description: 'Check for existing open issues before creating duplicates. Real GitHub API call.',
       parameters: z.object({ repoId: z.string(), state: z.enum(["open", "closed", "all"]).optional().default("open") }),
       execute: async (args: any) => {
-        const ctx = await resolveOctokit(args.repoId);
+        const ctx = await getGuardianOctokitContext(args.repoId);
         if ('error' in ctx) return ctx;
         const res = await ctx.octokit.request('GET /repos/{owner}/{repo}/issues', {
           owner: ctx.owner, repo: ctx.repo, state: args.state
