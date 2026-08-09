@@ -32,6 +32,17 @@ export interface EscalationResult {
   skipped: Array<{ title: string; reason: string }>;
 }
 
+export interface EscalationTaskView {
+  agentId: string;
+  findings: unknown;
+  reportMeta?: any;
+}
+
+export interface EscalationGuardianTools {
+  list_issues: { execute: (args: any) => Promise<any> };
+  create_issue: { execute: (args: any) => Promise<any> };
+}
+
 const ESCALATABLE_SEVERITIES = new Set(['CRITICAL', 'HIGH']);
 // Real, logged cap — not a silent truncation. Prevents one bad run from spamming a repo with
 // issues; anything beyond this per run is logged, not dropped quietly.
@@ -44,17 +55,14 @@ const MAX_ISSUES_PER_RUN = 5;
  * genuinely unresolved — and opens a real GitHub issue for each, after a real duplicate check
  * against currently-open issues. This is the "agents fail to fix it, so they escalate" path.
  */
-export async function escalateUnresolvedFindings(params: EscalationParams): Promise<EscalationResult> {
-  const { db } = await import('../../db/index.js');
-  const { agentTasks } = await import('../../db/schema.js');
-  const { eq, and, notLike } = await import('drizzle-orm');
-
-  const tasks = await db.select().from(agentTasks).where(
-    and(eq(agentTasks.runId, params.runId), notLike(agentTasks.agentId, 'orchestrator%'))
-  );
-
+export async function escalateTaskFindings(params: {
+  guardianTools: EscalationGuardianTools;
+  repoId: string;
+  runId: number;
+  tasks: EscalationTaskView[];
+}): Promise<EscalationResult> {
   const unresolved: UnresolvedFinding[] = [];
-  for (const task of tasks) {
+  for (const task of params.tasks) {
     const findings = (task.findings as any[]) ?? [];
     const meta = (task.reportMeta as any) ?? {};
     const fixedFiles = new Set<string>(
@@ -74,8 +82,7 @@ export async function escalateUnresolvedFindings(params: EscalationParams): Prom
 
   if (unresolved.length === 0) return { escalated: [], skipped: [] };
 
-  const guardianTools = createGuardianTools(params.sandbox);
-  const existing: any = await guardianTools.list_issues.execute({ repoId: params.repoId, state: 'open' });
+  const existing: any = await params.guardianTools.list_issues.execute({ repoId: params.repoId, state: 'open' });
   if ('error' in existing) {
     return { escalated: [], skipped: unresolved.map((f) => ({ title: f.title, reason: `Could not check for duplicate issues: ${existing.error}` })) };
   }
@@ -110,7 +117,7 @@ export async function escalateUnresolvedFindings(params: EscalationParams): Prom
       `_Codeward's automated pipeline could not auto-resolve this finding and is escalating it for manual review (run #${params.runId})._`,
     ].filter(Boolean).join('\n');
 
-    const res: any = await guardianTools.create_issue.execute({
+    const res: any = await params.guardianTools.create_issue.execute({
       repoId: params.repoId, title: issueTitle, body, labels: ['codeward', finding.severity.toLowerCase()],
     });
 
@@ -122,4 +129,21 @@ export async function escalateUnresolvedFindings(params: EscalationParams): Prom
   }
 
   return { escalated, skipped };
+}
+
+export async function escalateUnresolvedFindings(params: EscalationParams): Promise<EscalationResult> {
+  const { db } = await import('../../db/index.js');
+  const { agentTasks } = await import('../../db/schema.js');
+  const { eq, and, notLike } = await import('drizzle-orm');
+
+  const tasks = await db.select().from(agentTasks).where(
+    and(eq(agentTasks.runId, params.runId), notLike(agentTasks.agentId, 'orchestrator%'))
+  );
+
+  return escalateTaskFindings({
+    guardianTools: createGuardianTools(params.sandbox),
+    repoId: params.repoId,
+    runId: params.runId,
+    tasks,
+  });
 }

@@ -5,6 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
+    "test:harness": "npm run test:guardian:mock && npm run test:guardian:renderer && npm run test:fixer:verification && npm run test:escalation",
+    "test:guardian:mock": "tsx src/test-guardian-octokit-mock.ts",
+    "test:guardian:renderer": "tsx src/test-guardian-renderer.ts",
+    "test:fixer:verification": "tsx src/test-fixer-verification-harness.ts",
+    "test:escalation": "tsx src/test-escalation-harness.ts",
     "build": "tsc",
     "start": "node dist/index.js"
   },
