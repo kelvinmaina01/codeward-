@@ -54,7 +54,7 @@ export class FlySandbox {
       ? repoUrl.replace('https://', `https://x-access-token:${installationToken}@`)
       : repoUrl;
     console.log(`[FlySandbox] Cloning ${repoUrl} into ${this.workDir}${installationToken ? ' (authenticated)' : ''}...`);
-    const cloneRes = await this.execRaw(`mkdir -p "${this.workDir}" && git clone "${authedUrl}" "${this.workDir}"`);
+    const cloneRes = await this.execRaw(`mkdir -p "${this.workDir}" && GIT_LFS_SKIP_SMUDGE=1 git clone "${authedUrl}" "${this.workDir}"`);
     if (cloneRes.exitCode !== 0) {
       // Never let a real token leak into an error message/log.
       const sanitized = (cloneRes.stderr || cloneRes.stdout).replace(new RegExp(installationToken ?? '(?!)', 'g'), '[REDACTED]');
@@ -62,7 +62,7 @@ export class FlySandbox {
     }
     if (commitSHA && commitSHA !== 'baseline') {
       console.log(`[FlySandbox] Checking out ${commitSHA}...`);
-      const checkoutRes = await this.exec(`git checkout ${commitSHA}`);
+      const checkoutRes = await this.exec(`GIT_LFS_SKIP_SMUDGE=1 git checkout ${commitSHA}`);
       if (checkoutRes.exitCode !== 0) {
         throw new Error(`Failed to checkout ${commitSHA} in Fly sandbox: ${checkoutRes.stderr || checkoutRes.stdout}`);
       }

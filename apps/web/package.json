@@ -6,7 +6,9 @@
   "scripts": {
     "build": "node generate-sitemap.js && vite build",
     "dev": "vite --force",
-    "start": "vite preview --port ${PORT:-5173} --host"
+    "start": "vite preview --port ${PORT:-5173} --host",
+    "deploy": "wrangler pages deploy dist --project-name=codeward-web",
+    "preview:cf": "wrangler pages dev dist"
   },
   "dependencies": {
     "@ai-sdk/react": "^3.0.209",
@@ -85,6 +87,7 @@
     "@tailwindcss/vite": "4.1.12",
     "@vitejs/plugin-react": "4.7.0",
     "tailwindcss": "4.1.12",
-    "vite": "6.3.5"
+    "vite": "6.3.5",
+    "wrangler": "^3.114.0"
   }
 }

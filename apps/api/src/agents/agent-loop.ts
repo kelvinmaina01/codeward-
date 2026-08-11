@@ -1,8 +1,25 @@
 import { AgentProvider, AgentRunConfig } from "../providers/openai.provider.js";
 
-export async function runAgentLoop(config: AgentRunConfig, provider: AgentProvider): Promise<string> {
+export interface AgentLoopResult {
+  text: string;
+  tokenUsage: {
+    input: number;
+    output: number;
+    total: number;
+  };
+}
+
+export async function runAgentLoop(config: AgentRunConfig, provider: AgentProvider): Promise<AgentLoopResult> {
   let currentMessages = [...(config.messages || [])];
   const maxSteps = config.maxSteps || 15;
+  const tokenUsage = { input: 0, output: 0, total: 0 };
+
+  const addUsage = (usage?: { input: number; output: number; total: number }) => {
+    if (!usage) return;
+    tokenUsage.input += usage.input ?? 0;
+    tokenUsage.output += usage.output ?? 0;
+    tokenUsage.total += usage.total ?? ((usage.input ?? 0) + (usage.output ?? 0));
+  };
 
   for (let step = 0; step < maxSteps; step++) {
     const isLastStep = step === maxSteps - 1;
@@ -18,6 +35,7 @@ export async function runAgentLoop(config: AgentRunConfig, provider: AgentProvid
     let result;
     try {
       result = await provider.execute({ ...config, messages: currentMessages });
+      addUsage(result.usage);
     } catch (error: any) {
       error.checkpointState = currentMessages;
       throw error;
@@ -31,7 +49,7 @@ export async function runAgentLoop(config: AgentRunConfig, provider: AgentProvid
     }
 
     if (result.toolCalls.length === 0) {
-      return result.text;
+      return { text: result.text, tokenUsage };
     }
     
     // Dynamic terminal detection: any tool starting with "submit_" is terminal
@@ -57,7 +75,7 @@ export async function runAgentLoop(config: AgentRunConfig, provider: AgentProvid
 
     if (isTerminal) {
       console.log(`[AgentLoop] Terminal tool called at step ${step + 1}/${maxSteps}. Exiting.`);
-      return result.text;
+      return { text: result.text, tokenUsage };
     }
 
     // Format tool results as proper role: 'tool' messages
@@ -72,5 +90,5 @@ export async function runAgentLoop(config: AgentRunConfig, provider: AgentProvid
   }
 
   console.warn(`[AgentLoop] Max steps (${maxSteps}) exhausted without terminal tool call.`);
-  return "Max steps reached without submission";
+  return { text: "Max steps reached without submission", tokenUsage };
 }

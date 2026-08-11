@@ -87,7 +87,31 @@ export async function assertRepoAccess(userId: string, repoId: number): Promise<
 }
 
 const SEVERITY_RANK: Record<string, number> = { CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 3, INFO: 4 };
-const ANALYSIS_AGENTS = ['security', 'bloat', 'broken_code', 'architecture', 'ai_era', 'compliance'] as const;
+const ANALYSIS_AGENTS = ['security', 'bloat', 'broken_code', 'architecture', 'ai_era', 'compliance', 'data_dx'] as const;
+type GordonPermissionMode = 'default' | 'auto_review' | 'full_access';
+
+const SANDBOX_ACTION_TOOLS = new Set(['spawn_agent', 'run_all_agents']);
+const ALL_ACTION_TOOLS = new Set(['spawn_agent', 'run_all_agents', 'create_github_issue', 'create_issue_from_finding', 'approve_and_merge', 'reject_fix']);
+
+function toolNeedsApproval(toolName: string, permissionMode: GordonPermissionMode): boolean {
+  if (!ALL_ACTION_TOOLS.has(toolName)) return false;
+  if (permissionMode === 'full_access') return false;
+  if (permissionMode === 'auto_review' && SANDBOX_ACTION_TOOLS.has(toolName)) return false;
+  return true;
+}
+
+function summarizeTokenUsage(tasks: Array<{ tokenUsage: unknown }>) {
+  return tasks.reduce((acc, task) => {
+    const usage = (task.tokenUsage ?? {}) as any;
+    const input = Number(usage.input ?? usage.promptTokens ?? usage.prompt_tokens ?? 0);
+    const output = Number(usage.output ?? usage.completionTokens ?? usage.completion_tokens ?? 0);
+    const total = Number(usage.total ?? usage.totalTokens ?? usage.total_tokens ?? (input + output));
+    acc.input += Number.isFinite(input) ? input : 0;
+    acc.output += Number.isFinite(output) ? output : 0;
+    acc.total += Number.isFinite(total) ? total : 0;
+    return acc;
+  }, { input: 0, output: 0, total: 0 });
+}
 
 async function resolveRepoRef(repoId: number, ref?: string) {
   const { resolveOctokit } = await import('../guardian/guardian.tools.js');
@@ -106,7 +130,7 @@ async function resolveRepoRef(repoId: number, ref?: string) {
   }
 }
 
-export function createGordonTools(userId: string, sessionId?: string) {
+export function createGordonTools(userId: string, sessionId?: string, permissionMode: GordonPermissionMode = 'default') {
   const tools = {
     list_repositories: tool({
       description: "List the repositories this user can see, each with its latest run's score, status and date. Call this first when the user hasn't named a specific repo, so you can resolve which repo they mean and use the numeric repoId in later tools.",
@@ -239,9 +263,11 @@ export function createGordonTools(userId: string, sessionId?: string) {
         if (!run) return { error: `No run #${runId}.` };
         if (!run.repoId || !(await assertRepoAccess(userId, run.repoId))) return { error: 'You do not have access to that run.' };
         const tasks = await db.select().from(agentTasks).where(eq(agentTasks.runId, runId));
+        const tokenUsage = summarizeTokenUsage(tasks);
         return {
           runId, status: run.status, overallScore: run.score, commitSha: run.commitSha,
-          agents: tasks.map((t) => ({ agentId: t.agentId, status: t.status, score: t.score, findingsCount: t.findingsCount, durationMs: t.duration })),
+          tokenUsage,
+          agents: tasks.map((t) => ({ agentId: t.agentId, status: t.status, score: t.score, findingsCount: t.findingsCount, durationMs: t.duration, tokenUsage: t.tokenUsage ?? null })),
         };
       },
     }),
@@ -254,10 +280,12 @@ export function createGordonTools(userId: string, sessionId?: string) {
         if (!run) return { error: `No run #${runId}.` };
         if (!run.repoId || !(await assertRepoAccess(userId, run.repoId))) return { error: 'You do not have access to that run.' };
         const tasks = await db.select().from(agentTasks).where(eq(agentTasks.runId, runId));
+        const tokenUsage = summarizeTokenUsage(tasks);
         return {
           runId,
           status: run.status,
           commitSha: run.commitSha,
+          tokenUsage,
           rawLogs: run.rawLogs ? run.rawLogs.slice(-12000) : null,
           rawLogsTruncated: !!run.rawLogs && run.rawLogs.length > 12000,
           tasks: tasks.map((t) => ({
@@ -268,6 +296,7 @@ export function createGordonTools(userId: string, sessionId?: string) {
             startedAt: t.startedAt,
             completedAt: t.completedAt,
             durationMs: t.duration,
+            tokenUsage: t.tokenUsage ?? null,
             error: t.error,
             toolsExecuted: ((t.reportMeta as any)?.toolsExecuted ?? []).slice(0, 20),
             summary: (t.reportMeta as any)?.summary ?? null,
@@ -399,13 +428,13 @@ export function createGordonTools(userId: string, sessionId?: string) {
     // not just asked for in the prompt. Every execute() below does REAL work.
 
     spawn_agent: tool({
-      description: 'Run one of the analysis agents on a repo NOW (real sandbox job). Requires user approval. Use when the user asks to scan/analyze/check a repo. agentType is one of the analysis agents.',
+      description: 'Run one of the analysis agents on a repo NOW (real sandbox job). Requires user approval unless Gordon permissions allow sandbox auto-review. Use when the user asks to scan/analyze/check a repo. agentType is one of the analysis agents.',
       inputSchema: z.object({
-        agentType: z.enum(['security', 'bloat', 'broken_code', 'architecture', 'ai_era', 'compliance']),
+        agentType: z.enum(['security', 'bloat', 'broken_code', 'architecture', 'ai_era', 'compliance', 'data_dx']),
         repoId: z.number(),
         ref: z.string().optional().describe('Branch name or commit SHA. Defaults to the repository default branch.'),
       }),
-      needsApproval: true,
+      needsApproval: toolNeedsApproval('spawn_agent', permissionMode),
       execute: async ({ agentType, repoId, ref }) => {
         if (!(await assertRepoAccess(userId, repoId))) return { error: 'You do not have access to that repository.' };
         const resolved = await resolveRepoRef(repoId, ref);
@@ -414,8 +443,9 @@ export function createGordonTools(userId: string, sessionId?: string) {
         const sha = resolved.sha;
         const [run] = await db.insert(runs).values({ repoId, commitSha: sha, status: 'queued' }).returning();
         const { agentQueue } = await import('../../queue/agent.queue.js');
-        const job = await agentQueue.add(`agent-${agentType}`, { agentId: agentType, commitSHA: sha, repoFullName: fullName, runId: run.id });
-        return { spawned: true, runId: run.id, jobId: job.id, agentType, repo: fullName, commitSha: sha.slice(0, 7), note: 'Running in a real sandbox — call get_run_status to follow progress.' };
+        await db.insert(agentTasks).values({ runId: run.id, agentId: agentType, status: 'queued', provider: 'openai' });
+        const job = await agentQueue.add(`agent-${agentType}`, { agentId: agentType, commitSHA: sha, repoFullName: fullName, runId: run.id }, { jobId: `gordon-${agentType}-${run.id}` });
+        return { spawned: true, runId: run.id, jobId: job.id, queueName: 'agent-jobs', agentType, repo: fullName, ref: resolved.selectedRef, commitSha: sha.slice(0, 7), permissionMode, note: 'Running in a real sandbox - call get_run_status to follow progress.' };
       },
     }),
 
@@ -425,7 +455,7 @@ export function createGordonTools(userId: string, sessionId?: string) {
         repoId: z.number(),
         ref: z.string().optional().describe('Branch name or commit SHA. Defaults to the repository default branch.'),
       }),
-      needsApproval: true,
+      needsApproval: toolNeedsApproval('run_all_agents', permissionMode),
       execute: async ({ repoId, ref }) => {
         if (!(await assertRepoAccess(userId, repoId))) return { error: 'You do not have access to that repository.' };
         const resolved = await resolveRepoRef(repoId, ref);
@@ -437,7 +467,7 @@ export function createGordonTools(userId: string, sessionId?: string) {
         for (const agentType of ANALYSIS_AGENTS) {
           const [existing] = await db.select().from(agentTasks).where(and(eq(agentTasks.runId, run.id), eq(agentTasks.agentId, agentType)));
           if (!existing) await db.insert(agentTasks).values({ runId: run.id, agentId: agentType, status: 'queued', provider: 'openai' });
-          const job = await agentQueue.add(`agent-${agentType}`, { agentId: agentType, commitSHA: resolved.sha, repoFullName: fullName, runId: run.id });
+          const job = await agentQueue.add(`agent-${agentType}`, { agentId: agentType, commitSHA: resolved.sha, repoFullName: fullName, runId: run.id }, { jobId: `gordon-${agentType}-${run.id}` });
           jobs.push({ agentType, jobId: job.id });
         }
         return {
@@ -446,6 +476,8 @@ export function createGordonTools(userId: string, sessionId?: string) {
           repo: fullName,
           ref: resolved.selectedRef,
           commitSha: resolved.sha.slice(0, 7),
+          permissionMode,
+          queueName: 'agent-jobs',
           agents: jobs,
           next: ['Report progress with get_run_status.', 'Read logs with get_run_logs.', 'Verified eligible findings may open auto-fix PRs via the existing worker.'],
         };
@@ -460,7 +492,7 @@ export function createGordonTools(userId: string, sessionId?: string) {
         body: z.string(),
         labels: z.array(z.string()).optional().default(['codeward', 'gordon']),
       }),
-      needsApproval: true,
+      needsApproval: toolNeedsApproval('create_github_issue', permissionMode),
       execute: async ({ repoId, title, body, labels }) => {
         if (!(await assertRepoAccess(userId, repoId))) return { error: 'You do not have access to that repository.' };
         const { createGuardianTools } = await import('../guardian/guardian.tools.js');
@@ -478,7 +510,7 @@ export function createGordonTools(userId: string, sessionId?: string) {
         findingId: z.string(),
         extraContext: z.string().optional(),
       }),
-      needsApproval: true,
+      needsApproval: toolNeedsApproval('create_issue_from_finding', permissionMode),
       execute: async ({ runId, agentId, findingId, extraContext }) => {
         const [run] = await db.select().from(runs).where(eq(runs.id, runId));
         if (!run?.repoId || !(await assertRepoAccess(userId, run.repoId))) return { error: 'You do not have access to that run.' };
@@ -511,7 +543,7 @@ export function createGordonTools(userId: string, sessionId?: string) {
     approve_and_merge: tool({
       description: 'Approve a pending Codeward auto-fix PR and merge it for real. Requires user approval. Get the approvalId from list_pending_approvals first.',
       inputSchema: z.object({ approvalId: z.number() }),
-      needsApproval: true,
+      needsApproval: toolNeedsApproval('approve_and_merge', permissionMode),
       execute: async ({ approvalId }) => {
         const [row] = await db.select().from(mergeApprovals).where(eq(mergeApprovals.id, approvalId));
         if (!row) return { error: `No approval #${approvalId}.` };
@@ -525,7 +557,7 @@ export function createGordonTools(userId: string, sessionId?: string) {
     reject_fix: tool({
       description: 'Reject a pending Codeward auto-fix PR — closes the PR with an explanatory comment. Requires user approval. Get the approvalId from list_pending_approvals.',
       inputSchema: z.object({ approvalId: z.number(), note: z.string().optional() }),
-      needsApproval: true,
+      needsApproval: toolNeedsApproval('reject_fix', permissionMode),
       execute: async ({ approvalId, note }) => {
         const [row] = await db.select().from(mergeApprovals).where(eq(mergeApprovals.id, approvalId));
         if (!row) return { error: `No approval #${approvalId}.` };

@@ -77,7 +77,7 @@ export class OpenAIProvider implements AgentProvider {
     }));
 
     try {
-      await runAgentLoop({
+      const loopResult = await runAgentLoop({
         model,
         systemPrompt: config.systemPrompt,
         maxSteps: config.maxSteps,
@@ -102,7 +102,7 @@ export class OpenAIProvider implements AgentProvider {
         score,
         duration: Date.now() - startTime,
         modelUsed: model,
-        tokenUsage: { input: 0, output: 0 }, // runAgentLoop/NativeOpenAIProvider don't currently surface usage; real 0, not fabricated
+        tokenUsage: loopResult.tokenUsage,
         gateDecision,
         toolsExecuted: reportArgs?.toolsExecuted,
         summary: reportArgs?.summary,

@@ -2,6 +2,7 @@ import { guardianAgent } from '../definitions/guardian.agent.js';
 import { NativeOpenAIProvider } from '../../providers/openai.provider.js';
 import { runAgentLoop } from '../agent-loop.js';
 import type { SandboxHandle } from '../core/provider.js';
+import { renderGuardianFinalReview } from './github-renderer.js';
 
 export interface ReviewFixPRParams {
   sandbox: SandboxHandle;
@@ -17,25 +18,28 @@ export interface ReviewHumanPRParams {
   repoId: string;
   pullRequestNumber: number;
   runId: number;
-  // Findings from the run that analyzed this PR's head commit, grouped for guardian's context.
   findings: Array<{ agentId: string; severity: string; title: string; file?: string | null; line?: number | null }>;
   gateDecision: string | null;
 }
 
 export type ReviewResult =
-  | { reviewed: true; event: 'APPROVE' | 'REQUEST_CHANGES' | 'COMMENT'; viaFormalReview: boolean; reviewId: number; htmlUrl: string; body: string; comments?: Array<{ path: string; line: number; body: string }> }
+  | {
+      reviewed: true;
+      event: 'APPROVE' | 'REQUEST_CHANGES' | 'COMMENT';
+      viaFormalReview: boolean;
+      reviewId: number;
+      htmlUrl: string;
+      body: string;
+      comments?: Array<{ path: string; line: number; body: string }>;
+    }
   | { reviewed: false; reason: string };
 
-/**
- * Shared review core: runs guardian through the genuine agentic loop against one PR, with a
- * caller-supplied task message, and returns the real GitHub review outcome. Both the auto-fix
- * PR review and the human-PR review use this — guardian reasons about the real diff either way,
- * it just gets different context about WHY it's reviewing.
- */
 async function runGuardianReview(sandbox: SandboxHandle, taskMessage: string): Promise<ReviewResult> {
   const tools = guardianAgent.createTools(sandbox);
   const submitToolName = 'submit_pr_review';
-  if (!(submitToolName in tools)) return { reviewed: false, reason: `guardian's toolset is missing ${submitToolName} — cannot review.` };
+  if (!(submitToolName in tools)) {
+    return { reviewed: false, reason: `guardian's toolset is missing ${submitToolName} - cannot review.` };
+  }
 
   let reviewArgs: any = null;
   let reviewResult: any = null;
@@ -45,18 +49,22 @@ async function runGuardianReview(sandbox: SandboxHandle, taskMessage: string): P
     parameters: def.parameters,
     execute: async (args: any) => {
       const result = await def.execute(args);
-      if (name === submitToolName) { reviewArgs = args; reviewResult = result; }
+      if (name === submitToolName) {
+        reviewArgs = args;
+        reviewResult = result;
+      }
       return result;
     },
   }));
 
-  // NativeOpenAIProvider calls OpenAI directly and doesn't know guardianAgent.defaultModel's
-  // 'claude-3.5-sonnet' string (that remap lives in the OpenAIProvider wrapper, bypassed here).
   const model = !guardianAgent.defaultModel.startsWith('claude') ? guardianAgent.defaultModel : 'gpt-4o-mini';
 
   try {
     await runAgentLoop({
-      model, systemPrompt: guardianAgent.systemPrompt, maxSteps: 10, tools: toolArray,
+      model,
+      systemPrompt: guardianAgent.systemPrompt,
+      maxSteps: 10,
+      tools: toolArray,
       messages: [{ role: 'user', content: taskMessage }],
     }, new NativeOpenAIProvider());
   } catch (e) {
@@ -64,36 +72,91 @@ async function runGuardianReview(sandbox: SandboxHandle, taskMessage: string): P
   }
 
   if (!reviewArgs) return { reviewed: false, reason: 'Guardian did not submit a review within its step budget.' };
-  if (!reviewResult?.success) return { reviewed: false, reason: `submit_pr_review's real GitHub call failed: ${reviewResult?.error ?? 'unknown error'}` };
+  if (!reviewResult?.success) {
+    return { reviewed: false, reason: `submit_pr_review's real GitHub call failed: ${reviewResult?.error ?? 'unknown error'}` };
+  }
+
   return {
-    reviewed: true, event: reviewArgs.event, viaFormalReview: !!reviewResult.viaFormalReview,
-    reviewId: reviewResult.reviewId, htmlUrl: reviewResult.htmlUrl,
-    // Guardian's actual written assessment + any inline comments — the "what did guardian say"
-    // the dashboard shows. Captured here because it's the only place that has reviewArgs.
+    reviewed: true,
+    event: reviewArgs.event,
+    viaFormalReview: !!reviewResult.viaFormalReview,
+    reviewId: reviewResult.reviewId,
+    htmlUrl: reviewResult.htmlUrl,
     body: String(reviewArgs.body ?? ''),
     comments: Array.isArray(reviewArgs.comments) ? reviewArgs.comments : [],
   };
 }
 
-/**
- * Guardian reviews one of Codeward's OWN auto-fix PRs — verifying the generated diff correctly
- * and minimally addresses the findings that motivated it.
- */
 export async function reviewFixPR(params: ReviewFixPRParams): Promise<ReviewResult> {
   const fixSummary = params.appliedFixes.map((f) => `- ${f.filePath}: ${f.rationale}`).join('\n');
-  return runGuardianReview(params.sandbox,
-    `Review PR #${params.pullRequestNumber} on repoId ${params.repoId}. This PR was opened automatically by Codeward's own auto-fix pipeline (run #${params.runId}, ${params.agentId} agent) based on these real, already-confirmed-safe findings:\n${fixSummary}\n\nUse get_pull_request_files to read the REAL diff. Verify it correctly and ONLY addresses the stated findings — no unrelated changes, no correctness regressions you can spot from the diff alone. Then call submit_pr_review: APPROVE if the diff is correct and minimal, REQUEST_CHANGES if you see something wrong or out of scope, COMMENT if you're uncertain and want a human to look. You MUST call submit_pr_review to finish — this is your terminal action.`);
+  const reviewTemplate = renderGuardianFinalReview({
+    repoFullName: `repoId:${params.repoId}`,
+    runId: params.runId,
+    commitSha: 'unknown',
+    gateDecision: 'COMMENT',
+    summary: `Guardian is verifying a Codeward auto-fix PR opened by the ${params.agentId} agent.`,
+    findings: params.appliedFixes.map((f) => ({
+      agentId: params.agentId,
+      severity: 'INFO',
+      title: f.rationale,
+      file: f.filePath,
+      fixStatus: 'pr_opened',
+    })),
+    checks: [{ name: 'PR diff review', status: 'skipped', summary: 'Guardian must inspect the live GitHub diff before choosing a verdict' }],
+  });
+
+  return runGuardianReview(params.sandbox, [
+    `Review PR #${params.pullRequestNumber} on repoId ${params.repoId}.`,
+    `This PR was opened automatically by Codeward's own auto-fix pipeline (run #${params.runId}, ${params.agentId} agent).`,
+    '',
+    'Already-confirmed-safe findings:',
+    fixSummary,
+    '',
+    'Use get_pull_request_files to read the real diff. Verify it correctly and only addresses the stated findings: no unrelated changes and no correctness regressions visible from the diff.',
+    '',
+    'Use this GitHub review structure for your body, updating the details after you inspect the real diff:',
+    reviewTemplate,
+    '',
+    'Then call submit_pr_review. Use APPROVE if the diff is correct and minimal, REQUEST_CHANGES if something is wrong or out of scope, and COMMENT if a human should look.',
+    'You must call submit_pr_review to finish.',
+  ].join('\n'));
 }
 
-/**
- * Guardian reviews a HUMAN-opened PR, using the findings from Codeward's analysis of that PR's
- * head commit. This is the same reasoning it applies to its own PRs, now pointed at a
- * developer's work — the real "reviews human PRs too" capability.
- */
 export async function reviewHumanPR(params: ReviewHumanPRParams): Promise<ReviewResult> {
   const findingsSummary = params.findings.length === 0
-    ? 'Codeward\'s agents found no issues in this PR.'
-    : params.findings.map((f) => `- [${f.severity}] (${f.agentId}) ${f.title}${f.file ? ` — ${f.file}${f.line != null ? `:${f.line}` : ''}` : ''}`).join('\n');
-  return runGuardianReview(params.sandbox,
-    `Review human-opened PR #${params.pullRequestNumber} on repoId ${params.repoId}. Codeward's agents analyzed this PR's changes and reached an overall gate decision of ${params.gateDecision ?? 'UNKNOWN'}. Their findings:\n${findingsSummary}\n\nUse get_pull_request_files to read the REAL diff. Post inline comments (via submit_pr_review's comments array) on the exact lines that correspond to real findings, referencing the tool evidence. Then set the review event: REQUEST_CHANGES ONLY if there is a Critical or High finding backed by evidence (per your constitution — never block on speculation); APPROVE if the changes look sound and findings are low/none; COMMENT if you have feedback but nothing blocking. You MUST call submit_pr_review to finish — this is your terminal action.`);
+    ? "Codeward's agents found no issues in this PR."
+    : params.findings.map((f) => `- [${f.severity}] (${f.agentId}) ${f.title}${f.file ? ` - ${f.file}${f.line != null ? `:${f.line}` : ''}` : ''}`).join('\n');
+
+  const hasBlocker = params.findings.some((f) => ['CRITICAL', 'HIGH'].includes(String(f.severity).toUpperCase()));
+  const reviewTemplate = renderGuardianFinalReview({
+    repoFullName: `repoId:${params.repoId}`,
+    runId: params.runId,
+    commitSha: 'unknown',
+    gateDecision: params.gateDecision ?? (hasBlocker ? 'BLOCK' : 'COMMENT'),
+    summary: 'Codeward analyzed this human-opened PR and Guardian is publishing the verified outcome.',
+    findings: params.findings.map((f) => ({
+      agentId: f.agentId,
+      severity: f.severity,
+      title: f.title,
+      file: f.file,
+      line: f.line,
+    })),
+    checks: [{ name: 'PR diff review', status: 'skipped', summary: 'Guardian must inspect the live GitHub diff before choosing a verdict' }],
+  });
+
+  return runGuardianReview(params.sandbox, [
+    `Review human-opened PR #${params.pullRequestNumber} on repoId ${params.repoId}.`,
+    `Codeward's agents analyzed this PR's changes and reached an overall gate decision of ${params.gateDecision ?? 'UNKNOWN'}.`,
+    '',
+    'Agent findings:',
+    findingsSummary,
+    '',
+    'Use get_pull_request_files to read the real diff. Post inline comments via submit_pr_review only when the exact line is present in the GitHub diff and corresponds to real evidence. If a finding is outside the current diff, keep it in the review body instead of forcing an invalid inline comment.',
+    '',
+    'Use this GitHub review structure for your body, updating the details after you inspect the real diff:',
+    reviewTemplate,
+    '',
+    'Then set the review event. Use REQUEST_CHANGES only if there is a Critical or High finding backed by evidence; APPROVE if the changes look sound and findings are low or none; COMMENT if there is feedback but nothing blocking.',
+    'You must call submit_pr_review to finish.',
+  ].join('\n'));
 }

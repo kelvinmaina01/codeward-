@@ -19,7 +19,7 @@ function getAgentIdFromText(text: string): string {
 }
 import { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api, API_URL } from '../../lib/api';
+import { api, API_URL, WS_URL } from '../../lib/api';
 import { RepoSelector } from './RepoSelector';
 import { 
   Search01Icon, 
@@ -371,7 +371,7 @@ export function Dashboard({ onRunClick }: Props) {
 
   useEffect(() => {
     // WebSocket connection for real-time activity feed & active runs
-    const wsUrl = import.meta.env.VITE_WS_URL || 'ws://localhost:3000/ws/feed';
+    const wsUrl = import.meta.env.VITE_WS_URL || `${WS_URL}/ws/feed`;
     const ws = new WebSocket(wsUrl);
 
     ws.onmessage = (event) => {
@@ -502,7 +502,7 @@ export function Dashboard({ onRunClick }: Props) {
             <Add01Icon size={15} className="text-cw-green" /> Connect new repo
           </button>
           <button onClick={() => navigate('/dashboard/agent?agent=chat')} className="px-3 py-1.5 bg-cw-bg2 border border-cw-bdr rounded-lg text-[12px] font-medium text-cw-txt hover:bg-cw-bg3 transition-colors flex items-center gap-2 cursor-pointer shadow-sm">
-            Ask Codeward AI (Gordon) <img src="http://localhost:5173/gordon.png" alt="Gordon" className="w-5 h-5 rounded-full border border-cw-bdr/50" />
+            Ask Codeward AI (Gordon) <img src="/gordon.png" alt="Gordon" className="w-5 h-5 rounded-full border border-cw-bdr/50" />
           </button>
           <button onClick={() => navigate('/dashboard/debt')} className="px-3 py-1.5 bg-cw-bg2 border border-cw-bdr rounded-lg text-[12px] font-medium text-cw-txt hover:bg-cw-bg3 transition-colors flex items-center gap-2 cursor-pointer shadow-sm">
             <File01Icon size={15} className="text-cw-txt2" /> View debt report

@@ -5,6 +5,10 @@ import { blogs } from '../data/blogs';
 import { FooterTrustBadges } from './FooterTrustBadges';
 import { NewsletterForm } from './NewsletterForm';
 
+const FadeInSection: React.FC<{ children?: React.ReactNode; direction?: 'up' | 'left' | 'right'; className?: string; delay?: number }> = ({ children, className = '' }) => {
+  return <div className={className}>{children}</div>;
+};
+
 export const SingleBlogPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();

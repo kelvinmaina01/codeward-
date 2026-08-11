@@ -29,7 +29,7 @@ const GORDON_HARNESS_SYSTEM = `
 Gordon harness contract:
 - If the user is ambiguous, ask one concise follow-up question instead of guessing. For repo work, clarify repo and branch/ref when that changes the result.
 - READ tools include run history, findings, trends, fix priorities, shared agent memory, source files, repo directories, branch lists, real commit diffs, live run status, and run/tool logs.
-- ACTION tools require approval cards before execution: spawn_agent, run_all_agents, create_github_issue, create_issue_from_finding, approve_and_merge, reject_fix.
+- ACTION tools follow the user's selected permission mode: default asks before every action; auto_review allows sandbox scan actions but still asks before GitHub writes and merges; full_access allows Gordon actions without per-call approval. Repo access checks still apply in every mode.
 - After starting work, keep driving toward the user's goal by checking get_run_status and get_run_logs. Report run id, repo, branch/ref, commit, links, evidence, and next steps.
 - Arbitrary chat-driven code edits are not allowed unless the existing verified fixer pipeline opens a real auto-fix PR. If a finding cannot be safely verified/fixed, escalate by opening a GitHub issue with evidence.
 - Format substantial results with clear sections and GFM tables. Never claim a score, issue, PR, commit, or test result unless a tool returned it.`;
@@ -299,7 +299,7 @@ chatRouter.post('/', async (c) => {
   const user = await getSessionUser(c);
   if (!user) return c.json({ error: 'Unauthorized' }, 401);
 
-  const { messages, sessionId, repoId, ref }: { messages: UIMessage[]; sessionId?: string; repoId?: number; ref?: string } = await c.req.json();
+  const { messages, sessionId, repoId, ref, permissionMode }: { messages: UIMessage[]; sessionId?: string; repoId?: number; ref?: string; permissionMode?: 'default' | 'auto_review' | 'full_access' } = await c.req.json();
   if (!Array.isArray(messages) || messages.length === 0) return c.json({ error: 'messages required' }, 400);
 
   // Resolve or lazily create the session. A bad/foreign sessionId falls through to a fresh
@@ -319,6 +319,9 @@ chatRouter.post('/', async (c) => {
     if (repo) activeRepoLine = `\n\nACTIVE REPO: the user has pinned "${repo.fullName}" (repoId ${repoId})${ref ? ` on branch/ref "${ref}"` : ''}. Default to this repoId${ref ? ` and ref "${ref}"` : ''} for repo-scoped tools unless they clearly mean another.`;
   }
 
+  const selectedPermissionMode = permissionMode === 'auto_review' || permissionMode === 'full_access' ? permissionMode : 'default';
+  const permissionLine = `\n\nGORDON PERMISSION MODE: ${selectedPermissionMode}. Respect the server-enforced approval behavior for action tools. Never tell the user a gated action ran until the tool output confirms it.`;
+
   // Persist the incoming user message now (not in onFinish) so even an aborted/errored
   // generation keeps a record of what the user asked — "persist every prompt and trial".
   const lastMessage = messages[messages.length - 1];
@@ -328,9 +331,9 @@ chatRouter.post('/', async (c) => {
 
   const result = streamText({
     model: getModel('orchestrator'), // gpt-4o — best tool-calling reliability
-    system: GORDON_SYSTEM + GORDON_HARNESS_SYSTEM + activeRepoLine,
+    system: GORDON_SYSTEM + GORDON_HARNESS_SYSTEM + activeRepoLine + permissionLine,
     messages: await convertToModelMessages(messages),
-    tools: createGordonTools(user.id, session.id),
+    tools: createGordonTools(user.id, session.id, selectedPermissionMode),
     stopWhen: stepCountIs(12), // real agentic loop: plan -> call tools -> observe -> answer
   });
 

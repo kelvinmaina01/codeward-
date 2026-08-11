@@ -33,11 +33,17 @@ export class LocalExecSandbox implements SandboxHandle {
     const authedUrl = installationToken ? repoUrl.replace('https://', `https://x-access-token:${installationToken}@`) : repoUrl;
     console.log(`[LocalSandbox] Cloning ${repoUrl}${installationToken ? ' (authenticated)' : ''}...`);
     try {
-      await this.exec(`git clone "${authedUrl}" .`);
+      const cloneRes = await this.exec(`GIT_LFS_SKIP_SMUDGE=1 git clone "${authedUrl}" .`);
+      if (cloneRes.exitCode !== 0) {
+        throw new Error(`git clone failed: ${cloneRes.stderr || cloneRes.stdout}`);
+      }
 
       if (commitSHA && commitSHA !== 'baseline') {
         console.log(`[LocalSandbox] Checking out ${commitSHA}...`);
-        await this.exec(`git checkout ${commitSHA}`);
+        const checkoutRes = await this.exec(`GIT_LFS_SKIP_SMUDGE=1 git checkout ${commitSHA}`);
+        if (checkoutRes.exitCode !== 0) {
+          throw new Error(`git checkout failed: ${checkoutRes.stderr || checkoutRes.stdout}`);
+        }
       }
     } catch (err: any) {
       const sanitized = String(err?.message ?? err).replace(new RegExp(installationToken ?? '(?!)', 'g'), '[REDACTED]');

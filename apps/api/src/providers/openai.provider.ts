@@ -19,6 +19,11 @@ export interface AgentResult {
   text: string;
   toolCalls: Array<{ id: string; name: string; input: any }>;
   rawContent: any; // For appending back to history if needed
+  usage?: {
+    input: number;
+    output: number;
+    total: number;
+  };
 }
 
 export interface AgentProvider {
@@ -127,7 +132,12 @@ export class NativeOpenAIProvider implements AgentProvider {
     return {
       text: message.content || "",
       toolCalls,
-      rawContent: message // The raw message block to pass back in multi-turn
+      rawContent: message, // The raw message block to pass back in multi-turn
+      usage: {
+        input: data.usage?.prompt_tokens ?? data.usage?.input_tokens ?? 0,
+        output: data.usage?.completion_tokens ?? data.usage?.output_tokens ?? 0,
+        total: data.usage?.total_tokens ?? ((data.usage?.prompt_tokens ?? data.usage?.input_tokens ?? 0) + (data.usage?.completion_tokens ?? data.usage?.output_tokens ?? 0)),
+      },
     };
   }
 }
