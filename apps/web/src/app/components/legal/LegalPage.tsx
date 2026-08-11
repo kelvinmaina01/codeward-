@@ -68,28 +68,41 @@ export function LegalPage({ type, onBack, theme, onCycleTheme, themeIcon }: Lega
     }
   };
 
-  return (
-    <div className={`theme-${theme} w-full h-screen flex flex-col bg-cw-bg transition-colors duration-300 font-sans text-cw-txt relative`}>
-      {/* Top Navigation */}
-      <div className="h-[80px] border-b border-cw-bdr px-8 flex items-center justify-between shrink-0 bg-cw-bg z-10 relative">
-        <button 
-          onClick={onBack}
-          className="flex items-center gap-2 text-cw-txt2 hover:text-cw-txt transition-colors font-medium text-[13px] cursor-pointer"
-        >
-          <ChevronLeft size={16} />
-          Back
-        </button>
-        <button 
-          onClick={onCycleTheme} 
-          className="w-9 h-9 rounded-full border border-cw-bdr bg-cw-bg2 text-cw-txt2 flex items-center justify-center hover:bg-cw-bg3 transition-colors cursor-pointer"
-        >
-          {themeIcon}
-        </button>
-      </div>
+  const handleBackClick = () => {
+    if (onBack) {
+      onBack();
+    } else if (window.history.length > 1) {
+      window.history.back();
+    } else {
+      window.location.href = '/';
+    }
+  };
 
+  return (
+    <div className={`theme-${theme} w-full h-screen bg-cw-bg transition-colors duration-300 font-sans text-cw-txt relative flex flex-col`}>
       {/* Main Scrollable Container */}
       <div id="scroll-container" className="flex-1 overflow-y-auto overflow-x-hidden scroll-smooth relative flex flex-col justify-between">
-        <div className="max-w-[1000px] mx-auto px-8 py-16 flex flex-col md:flex-row gap-16 w-full">
+        
+        {/* Seamless Control Bar */}
+        <div className="max-w-[1000px] w-full mx-auto px-8 pt-8 flex items-center justify-between z-20 shrink-0">
+          <button 
+            onClick={handleBackClick}
+            className="flex items-center gap-2 text-cw-txt2 hover:text-cw-txt transition-all font-semibold text-[13px] cursor-pointer px-4 py-2 rounded-full bg-cw-bg2/80 hover:bg-cw-bg2 border border-cw-bdr/60 hover:border-cw-bdr shadow-xs backdrop-blur-sm"
+          >
+            <ChevronLeft size={16} />
+            Back
+          </button>
+          <button 
+            onClick={onCycleTheme} 
+            className="w-10 h-10 rounded-full border border-cw-bdr/60 bg-cw-bg2/80 text-cw-txt2 flex items-center justify-center hover:bg-cw-bg2 hover:text-cw-txt transition-all shadow-xs backdrop-blur-sm cursor-pointer"
+            title="Toggle Theme"
+            aria-label="Toggle Theme"
+          >
+            {themeIcon}
+          </button>
+        </div>
+
+        <div className="max-w-[1000px] mx-auto px-8 py-10 flex flex-col md:flex-row gap-16 w-full flex-1">
           
           {/* Left Sidebar (Table of Contents) */}
           <div className="w-[280px] shrink-0 hidden md:block relative">
