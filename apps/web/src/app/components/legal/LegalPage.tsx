@@ -161,15 +161,9 @@ export function LegalPage({ type, onBack, theme, onCycleTheme, themeIcon }: Lega
               ))}
             </div>
 
-            {/* In-content Scroll to Top action */}
+            {/* Footer copyright line */}
             <div className="pt-8 border-t border-cw-bdr flex justify-between items-center text-xs text-cw-txt2">
               <span>© {new Date().getFullYear()} Codeward Technologies. Nairobi, Westlands, Kenya.</span>
-              <button
-                onClick={scrollToTop}
-                className="px-3.5 py-2 rounded-lg bg-cw-bg2 border border-cw-bdr text-cw-txt hover:bg-cw-bg3 transition-colors flex items-center gap-2 font-medium cursor-pointer"
-              >
-                <ArrowUp size={14} /> Back to top
-              </button>
             </div>
           </div>
           
