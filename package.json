@@ -11,7 +11,8 @@
     "build": "npm run build:api && npm run build:web",
     "dev:web": "npm run dev --prefix apps/web",
     "dev:api": "npm run dev --prefix apps/api",
-    "dev": "concurrently \"npm run dev:web\" \"npm run dev:api\""
+    "dev": "concurrently \"npm run dev:web\" \"npm run dev:api\"",
+    "deploy:web": "npm run deploy --prefix apps/web"
   },
   "pnpm": {
     "onlyBuiltDependencies": [

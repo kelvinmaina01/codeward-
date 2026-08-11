@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { comparisons } from '../data/comparisons';
+import { blogs } from '../data/blogs';
 import { FooterTrustBadges } from './FooterTrustBadges';
 import { NewsletterForm } from './NewsletterForm';
 

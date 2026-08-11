@@ -1,3 +1,4 @@
+import { API_URL } from '../../lib/api';
 import React, { useState, useEffect } from 'react';
 import { InlineWidget } from 'react-calendly';
 import { Loader2, AlertCircle, ArrowRight } from 'lucide-react';
@@ -94,8 +95,7 @@ export function BookDemo() {
     try {
       // Relative path works if frontend and API are hosted under same domain, or we use full URL.
       // Assuming frontend calls an API route or we use the backend directly.
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-      const response = await fetch(`${apiUrl}/api/leads`, {
+      const response = await fetch(`${API_URL}/api/leads`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)

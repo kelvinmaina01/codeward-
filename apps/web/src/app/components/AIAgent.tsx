@@ -6,7 +6,7 @@ import remarkGfm from 'remark-gfm';
 import {
   Send, ChevronRight, Loader2, Wrench, CheckCircle2, AlertTriangle,
   History, Plus, Search, Pencil, Trash2, X, Square, MessageSquare,
-  GitFork, ChevronDown, Check, Ban, Radio, Zap, FileSpreadsheet,
+  GitFork, ChevronDown, Check, Ban, Radio, Zap, FileSpreadsheet, Hand, ShieldCheck,
 } from 'lucide-react';
 import {
   SecurityCheckIcon, Analytics01Icon, SourceCodeIcon, GitPullRequestIcon, Rocket01Icon, Time04Icon,
@@ -92,18 +92,41 @@ const ACTION_VERB: Record<string, string> = {
 };
 
 interface ToolDetail { id: string; name: string; state: string; input: unknown; output: unknown }
+type PermissionMode = 'default' | 'auto_review' | 'full_access';
+
+const PERMISSION_OPTIONS: Array<{ mode: PermissionMode; label: string; description: string; icon: typeof Hand }> = [
+  { mode: 'default', label: 'Default permissions', description: 'Ask before sandbox runs, GitHub writes, and merges.', icon: Hand },
+  { mode: 'auto_review', label: 'Auto-review', description: 'Run sandbox scans without asking; still ask before writes.', icon: ShieldCheck },
+  { mode: 'full_access', label: 'Full access', description: 'Allow Gordon action tools without per-call approval cards.', icon: Zap },
+];
+
+function formatTokens(usage: any): string | null {
+  if (!usage || typeof usage !== 'object') return null;
+  const input = Number(usage.input ?? usage.promptTokens ?? usage.prompt_tokens ?? 0);
+  const output = Number(usage.output ?? usage.completionTokens ?? usage.completion_tokens ?? 0);
+  const total = Number(usage.total ?? usage.totalTokens ?? usage.total_tokens ?? (input + output));
+  if (!Number.isFinite(total) || total <= 0) return null;
+  const compact = new Intl.NumberFormat(undefined, { notation: total >= 10000 ? 'compact' : 'standard', maximumFractionDigits: total >= 10000 ? 1 : 0 });
+  return `${compact.format(total)} tokens`;
+}
 
 function ToolResultSummary({ name, output }: { name: string; output: any }) {
   if (!output || typeof output !== 'object') return null;
   if (name === 'run_all_agents' && output.spawned) {
     return <div className="mt-1.5 rounded-md border border-cw-blue/20 bg-cw-blue/5 px-2.5 py-2 text-[11px] text-cw-txt2">
-      Run #{output.runId} queued on <span className="font-mono text-cw-blue">{output.ref}</span> at <span className="font-mono">{output.commitSha}</span>. {output.agents?.length ?? 0} agents scheduled.
+      Run #{output.runId} queued on <span className="font-mono text-cw-blue">{output.ref}</span> at <span className="font-mono">{output.commitSha}</span>. {output.agents?.length ?? 0} agents scheduled in {output.queueName ?? 'agent queue'}.
     </div>;
   }
   if (name === 'spawn_agent' && output.spawned) {
     return <div className="mt-1.5 rounded-md border border-cw-blue/20 bg-cw-blue/5 px-2.5 py-2 text-[11px] text-cw-txt2">
-      {output.agentType} run #{output.runId} queued on <span className="font-mono text-cw-blue">{output.ref ?? 'default'}</span> at <span className="font-mono">{output.commitSha}</span>.
+      {output.agentType} run #{output.runId} queued on <span className="font-mono text-cw-blue">{output.ref ?? 'default'}</span> at <span className="font-mono">{output.commitSha}</span> in {output.queueName ?? 'agent queue'}.
     </div>;
+  }
+  if ((name === 'get_run_status' || name === 'get_run_logs') && output.tokenUsage) {
+    const tokens = formatTokens(output.tokenUsage);
+    return tokens ? <div className="mt-1.5 inline-flex items-center gap-1.5 rounded-md border border-cw-purple/20 bg-cw-purple/5 px-2.5 py-1.5 text-[11px] text-cw-purple">
+      <Zap size={11} /> {tokens} used so far
+    </div> : null;
   }
   if ((name === 'create_github_issue' || name === 'create_issue_from_finding') && output.htmlUrl) {
     return <a href={output.htmlUrl} target="_blank" rel="noreferrer" className="mt-1.5 inline-flex items-center gap-1.5 rounded-md border border-cw-green/20 bg-cw-green/5 px-2.5 py-1.5 text-[11px] text-cw-green no-underline hover:brightness-110">
@@ -216,6 +239,52 @@ function ApprovalCard({ name, input, decided, onDecide }: {
         <div className="flex gap-2">
           <button onClick={() => onDecide(true)} className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-cw-green text-white hover:opacity-90 transition-opacity"><Check size={12} /> Accept</button>
           <button onClick={() => onDecide(false)} className="flex items-center gap-1 px-2.5 py-1 rounded-md border border-cw-bdr text-cw-txt2 hover:border-cw-red hover:text-cw-red transition-colors"><Ban size={12} /> Reject</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PermissionMenu({ mode, onChange }: { mode: PermissionMode; onChange: (mode: PermissionMode) => void }) {
+  const [open, setOpen] = useState(false);
+  const active = PERMISSION_OPTIONS.find((o) => o.mode === mode) ?? PERMISSION_OPTIONS[0];
+  const ActiveIcon = active.icon;
+
+  return (
+    <div className="relative shrink-0">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        title="Gordon tool permissions"
+        className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-cw-bdr/70 bg-cw-bg3/60 text-[11px] font-semibold text-cw-txt2 hover:text-cw-txt hover:border-cw-purple/60 transition-colors"
+      >
+        <ActiveIcon size={12} className={mode === 'full_access' ? 'text-cw-green' : mode === 'auto_review' ? 'text-cw-blue' : 'text-cw-txt3'} />
+        <span className="max-w-[150px] truncate">{active.label}</span>
+        <ChevronDown size={11} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && (
+        <div className="absolute bottom-full right-0 mb-2 w-[290px] overflow-hidden rounded-xl border border-cw-bdr bg-cw-bg2 shadow-2xl z-50 p-1.5">
+          {PERMISSION_OPTIONS.map((option) => {
+            const Icon = option.icon;
+            const selected = option.mode === mode;
+            return (
+              <button
+                key={option.mode}
+                type="button"
+                onClick={() => { onChange(option.mode); setOpen(false); }}
+                className={`w-full rounded-lg px-2.5 py-2 text-left flex items-start gap-2.5 transition-colors ${selected ? 'bg-cw-bg3 text-cw-txt' : 'text-cw-txt2 hover:bg-cw-bg3/70 hover:text-cw-txt'}`}
+              >
+                <Icon size={14} className={`mt-0.5 shrink-0 ${option.mode === 'full_access' ? 'text-cw-green' : option.mode === 'auto_review' ? 'text-cw-blue' : 'text-cw-txt3'}`} />
+                <span className="min-w-0">
+                  <span className="flex items-center gap-1.5 text-[12px] font-semibold">
+                    {option.label}
+                    {selected && <Check size={12} className="text-cw-green" />}
+                  </span>
+                  <span className="block text-[10.5px] leading-snug text-cw-txt3 mt-0.5">{option.description}</span>
+                </span>
+              </button>
+            );
+          })}
         </div>
       )}
     </div>
@@ -602,9 +671,14 @@ export function AIAgent() {
   const [detail, setDetail] = useState<ToolDetail | null>(null);
   const [attachedFiles, setAttachedFiles] = useState<AttachmentFile[]>([]);
   const [isPlanMode, setIsPlanMode] = useState(false);
+  const [permissionMode, setPermissionMode] = useState<PermissionMode>(() => {
+    const saved = localStorage.getItem('cw_gordon_permission_mode');
+    return saved === 'auto_review' || saved === 'full_access' ? saved : 'default';
+  });
   const sessionIdRef = useRef<string | null>(null);
   const pinnedRepoRef = useRef<Repo | null>(null);
   const selectedRefRef = useRef('');
+  const permissionModeRef = useRef<PermissionMode>('default');
   const bottomRef = useRef<HTMLDivElement>(null);
   const { data: session } = useSession();
   const userImage = session?.user?.image ?? null;
@@ -612,6 +686,10 @@ export function AIAgent() {
 
   useEffect(() => { pinnedRepoRef.current = pinnedRepo; }, [pinnedRepo]);
   useEffect(() => { selectedRefRef.current = selectedRef; }, [selectedRef]);
+  useEffect(() => {
+    permissionModeRef.current = permissionMode;
+    localStorage.setItem('cw_gordon_permission_mode', permissionMode);
+  }, [permissionMode]);
 
   useEffect(() => {
     setBranches([]);
@@ -663,7 +741,7 @@ export function AIAgent() {
   const transport = useMemo(() => new DefaultChatTransport({
     api: `${API_URL}/api/chat`,
     credentials: 'include',
-    body: () => ({ sessionId: sessionIdRef.current, repoId: pinnedRepoRef.current?.id, ref: selectedRefRef.current || undefined }),
+    body: () => ({ sessionId: sessionIdRef.current, repoId: pinnedRepoRef.current?.id, ref: selectedRefRef.current || undefined, permissionMode: permissionModeRef.current }),
     fetch: (async (info: RequestInfo | URL, init?: RequestInit) => {
       const res = await fetch(info, init);
       const sid = res.headers.get('X-Chat-Session-Id');
@@ -928,6 +1006,8 @@ export function AIAgent() {
 
               {/* Right Side Action Buttons */}
               <div className="flex items-center gap-2 ml-auto shrink-0">
+                <PermissionMenu mode={permissionMode} onChange={setPermissionMode} />
+
                 <button
                   type="button"
                   onClick={() => setIsPlanMode((p) => !p)}
