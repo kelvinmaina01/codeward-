@@ -2,7 +2,6 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "codeward-web",
   "compatibility_date": "2026-01-01",
-  "pages_build_output_dir": "./dist",
   "assets": {
     "directory": "./dist",
     "html_handling": "single-page-application"
