@@ -294,17 +294,17 @@ export function LiveFeed({ viewMode }: LiveFeedProps) {
           {/* Full Height Terminal Display with Sharp Edges */}
           <div className="flex-1 overflow-hidden rounded-none border border-cw-bdr bg-cw-log-bg flex flex-col shadow-inner">
             {/* Terminal Body */}
-            <div className="flex-1 overflow-y-auto px-4 py-3 font-mono text-[11px] leading-[1.75] select-text">
+            <div className="flex-1 overflow-y-auto px-5 py-4 font-jetbrains text-[13px] md:text-[14px] leading-[1.8] select-text tracking-tight">
               {loading ? (
-                <div className="py-12 text-center text-cw-txt3 flex items-center justify-center gap-2">
+                <div className="py-12 text-center text-cw-txt3 flex items-center justify-center gap-2 font-jetbrains text-xs">
                   <RefreshCw size={14} className="animate-spin text-cw-purple" />
                   <span>Loading persistent execution logs from server...</span>
                 </div>
               ) : logs.length === 0 ? (
-                <div className="py-16 text-center text-cw-txt3 flex flex-col items-center gap-2">
+                <div className="py-16 text-center text-cw-txt3 flex flex-col items-center gap-2 font-jetbrains">
                   <Bot size={28} className="text-cw-txt3/40" />
-                  <div>No run logs captured for this filter yet.</div>
-                  <div className="text-[10px] text-cw-txt3/60">
+                  <div className="text-sm">No run logs captured for this filter yet.</div>
+                  <div className="text-xs text-cw-txt3/60">
                     Connect a repository or push a commit to trigger a live agent scan.
                   </div>
                 </div>
@@ -316,17 +316,17 @@ export function LiveFeed({ viewMode }: LiveFeedProps) {
                   return (
                     <div 
                       key={l.id || i} 
-                      className={`flex items-start gap-3 group hover:bg-white/[0.02] px-1 py-[1px] rounded transition-colors ${
-                        isSublog ? 'pl-4' : ''
+                      className={`flex items-start gap-3.5 group hover:bg-white/[0.03] px-1.5 py-[2px] rounded transition-colors ${
+                        isSublog ? 'pl-5' : ''
                       }`}
                     >
-                      {/* Millisecond precision timestamp */}
-                      <span className="text-cw-txt3 shrink-0 select-none opacity-70 group-hover:opacity-100 font-mono text-[10px] pt-[1px]">
+                      {/* Millisecond precision timestamp in JetBrains Mono */}
+                      <span className="text-cw-txt3 shrink-0 select-none opacity-70 group-hover:opacity-100 font-jetbrains text-[11px] md:text-[12px] pt-[2px] font-medium">
                         {tsFormatted}
                       </span>
 
-                      {/* Log text content */}
-                      <span className={`break-words flex-1 ${clsColor[l.level] || 'text-cw-txt2'}`}>
+                      {/* Log text content in JetBrains Mono */}
+                      <span className={`break-words flex-1 font-jetbrains text-[13px] md:text-[14px] ${clsColor[l.level] || 'text-cw-txt2'}`}>
                         {l.message}
                       </span>
                     </div>

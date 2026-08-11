@@ -6,6 +6,8 @@ allowBuilds:
   '@tsparticles/engine': true
   esbuild: true
   msgpackr-extract: true
+  sharp: set this to true or false
+  workerd: set this to true or false
 overrides:
   react: '18.3.1'
   react-dom: '18.3.1'
