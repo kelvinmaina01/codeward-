@@ -47,7 +47,7 @@ export const privacyContent = [
       <Mail01Icon size={32} className="text-cw-amber shrink-0" />
       <div>
         <h4 className="font-bold text-cw-txt text-[14px] mb-1">Contact Us Anytime</h4>
-        <p className="text-cw-txt2 text-[13px] leading-relaxed">For data requests, questions, or complaints: privacy@codeward.dev. We respond within 30 days.</p>
+        <p className="text-cw-txt2 text-[13px] leading-relaxed">For data requests, questions, or complaints: privacy@codeward.cloud. We respond within 30 days.</p>
       </div>
     </div>
   </div>
@@ -61,15 +61,15 @@ export const privacyContent = [
       <div className="space-y-4">
   <div className="flex gap-4">
     <div className="font-semibold text-cw-blue shrink-0 pt-0.5 w-8">1.1</div>
-    <div className="leading-relaxed text-[14px] text-cw-txt2"><strong>Data Controller.</strong> The data controller responsible for your personal data is <span class="defined-term">Codeward Limited</span>, a company incorporated under the laws of [JURISDICTION], with its registered office at [REGISTERED ADDRESS] ("Codeward", "we", "us", "our").</div>
+    <div className="leading-relaxed text-[14px] text-cw-txt2"><strong>Data Controller.</strong> The data controller responsible for your personal data is <span className="defined-term">Codeward Technologies</span>, a company registered under the laws of Kenya, with its registered office in Nairobi, Westlands, Kenya ("Codeward", "we", "us", "our").</div>
   </div>
   <div className="flex gap-4">
     <div className="font-semibold text-cw-blue shrink-0 pt-0.5 w-8">1.2</div>
-    <div className="leading-relaxed text-[14px] text-cw-txt2"><strong>Data Protection Contact.</strong> For all privacy-related enquiries, data subject requests, or complaints, please contact our Privacy Team at: <strong>privacy@codeward.dev</strong>. We aim to respond to all requests within 30 calendar days.</div>
+    <div className="leading-relaxed text-[14px] text-cw-txt2"><strong>Data Protection Contact.</strong> For all privacy-related enquiries, data subject requests, or complaints, please contact our Privacy Team at: <strong>privacy@codeward.cloud</strong>. Office Location: Nairobi, Westlands, Kenya. We aim to respond to all requests within 30 calendar days.</div>
   </div>
   <div className="flex gap-4">
     <div className="font-semibold text-cw-blue shrink-0 pt-0.5 w-8">1.3</div>
-    <div className="leading-relaxed text-[14px] text-cw-txt2"><strong>Data Protection Officer.</strong> [If required by applicable law] Codeward has appointed a Data Protection Officer (DPO) who can be reached at dpo@codeward.dev.</div>
+    <div className="leading-relaxed text-[14px] text-cw-txt2"><strong>Data Protection Officer.</strong> Codeward has appointed a Data Protection Officer (DPO) who can be reached at <strong>dpo@codeward.cloud</strong>.</div>
   </div>
   <div className="flex gap-4">
     <div className="font-semibold text-cw-blue shrink-0 pt-0.5 w-8">1.4</div>
@@ -89,7 +89,7 @@ export const privacyContent = [
   </div>
   <div className="flex gap-4">
     <div className="font-semibold text-cw-blue shrink-0 pt-0.5 w-8">2.2</div>
-    <div className="leading-relaxed text-[14px] text-cw-txt2">This Policy applies to: (a) individual users who register for a Codeward account; (b) Authorized Users of organisational accounts; (c) visitors to codeward.dev and its subdomains; (d) developers whose GitHub usernames or commit data appear in connected Repositories.</div>
+    <div className="leading-relaxed text-[14px] text-cw-txt2">This Policy applies to: (a) individual users who register for a Codeward account; (b) Authorized Users of organisational accounts; (c) visitors to codeward.cloud and its subdomains; (d) developers whose GitHub usernames or commit data appear in connected Repositories.</div>
   </div>
   <div className="flex gap-4">
     <div className="font-semibold text-cw-blue shrink-0 pt-0.5 w-8">2.3</div>
@@ -297,7 +297,7 @@ export const privacyContent = [
     <InformationIcon size={28} className="text-cw-blue shrink-0 mt-0.5" />
     <div>
       <h4 className="font-semibold text-cw-blue mb-1 text-base">Legitimate Interests Assessment.</h4>
-      <p className="text-cw-blue/80 text-sm leading-relaxed">Where we rely on legitimate interests, we have conducted a balancing test confirming that our interests do not override your fundamental rights. You may request a copy of our legitimate interests assessment by emailing privacy@codeward.dev.</p>
+      <p className="text-cw-blue/80 text-sm leading-relaxed">Where we rely on legitimate interests, we have conducted a balancing test confirming that our interests do not override your fundamental rights. You may request a copy of our legitimate interests assessment by emailing privacy@codeward.cloud.</p>
     </div>
   </div>
 </div>
@@ -347,7 +347,7 @@ export const privacyContent = [
   </div>
   <div className="flex gap-4">
     <div className="font-semibold text-cw-blue shrink-0 pt-0.5 w-8">6.7</div>
-    <div className="leading-relaxed text-[14px] text-cw-txt2"><strong>Enterprise On-Premises Option.</strong> Enterprise customers with compliance requirements that prevent cloud-based code transmission may request an on-premises or VPC-isolated deployment. In this configuration, no source code or code excerpts leave the customer's own infrastructure. Contact sales@codeward.dev for details.</div>
+    <div className="leading-relaxed text-[14px] text-cw-txt2"><strong>Enterprise On-Premises Option.</strong> Enterprise customers with compliance requirements that prevent cloud-based code transmission may request an on-premises or VPC-isolated deployment. In this configuration, no source code or code excerpts leave the customer's own infrastructure. Contact sales@codeward.cloud for details.</div>
   </div>
   <div className="bg-cw-green/10 border border-cw-green/30 rounded-xl p-5 flex gap-4 mt-6 mb-2">
     <Tick01Icon size={28} className="text-cw-green shrink-0 mt-0.5" />
@@ -390,7 +390,7 @@ export const privacyContent = [
   </div>
   <div className="flex gap-4">
     <div className="font-semibold text-cw-blue shrink-0 pt-0.5 w-8">7.7</div>
-    <div className="leading-relaxed text-[14px] text-cw-txt2"><strong>Marketing (with consent).</strong> To send you product updates, feature announcements, and newsletters where you have opted in. You may withdraw consent at any time by clicking "Unsubscribe" in any marketing email or by emailing privacy@codeward.dev.</div>
+    <div className="leading-relaxed text-[14px] text-cw-txt2"><strong>Marketing (with consent).</strong> To send you product updates, feature announcements, and newsletters where you have opted in. You may withdraw consent at any time by clicking "Unsubscribe" in any marketing email or by emailing privacy@codeward.cloud.</div>
   </div>
   <div className="bg-cw-amber/10 border border-cw-amber/30 rounded-xl p-5 flex gap-4 mt-6 mb-2">
     <Alert01Icon size={28} className="text-cw-amber shrink-0 mt-0.5" />
@@ -449,7 +449,7 @@ export const privacyContent = [
   </div>
   <div className="flex gap-4">
     <div className="font-semibold text-cw-blue shrink-0 pt-0.5 w-8">9.3</div>
-    <div className="leading-relaxed text-[14px] text-cw-txt2"><strong>Obtaining SCC Copies.</strong> You may request a copy of the Standard Contractual Clauses in place with our sub-processors by emailing privacy@codeward.dev.</div>
+    <div className="leading-relaxed text-[14px] text-cw-txt2"><strong>Obtaining SCC Copies.</strong> You may request a copy of the Standard Contractual Clauses in place with our sub-processors by emailing privacy@codeward.cloud.</div>
   </div>
 </div>
     )
@@ -535,7 +535,7 @@ export const privacyContent = [
     title: '12. Your Rights',
     content: (
       <div className="space-y-4">
-  <p className="leading-relaxed text-[14px] text-cw-txt2">Depending on your jurisdiction, you have the following rights regarding your personal data. To exercise any right, email privacy@codeward.dev. We will respond within 30 days and will not charge a fee for reasonable requests.</p>
+  <p className="leading-relaxed text-[14px] text-cw-txt2">Depending on your jurisdiction, you have the following rights regarding your personal data. To exercise any right, email privacy@codeward.cloud. We will respond within 30 days and will not charge a fee for reasonable requests.</p>
 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6 mb-4">
   <div className="border border-cw-bdr rounded-xl p-5 bg-cw-bg2 hover:bg-cw-bg3 transition-colors">
     <div className="flex items-center gap-3 font-bold text-cw-txt text-[14px] mb-2">
@@ -598,7 +598,7 @@ export const privacyContent = [
     <InformationIcon size={28} className="text-cw-blue shrink-0 mt-0.5" />
     <div>
       <h4 className="font-semibold text-cw-blue mb-1 text-base">Automated Decision-Making & Gate Decisions.</h4>
-      <p className="text-cw-blue/80 text-sm leading-relaxed">Codeward's Gate Decisions (PASS/BLOCK on Pull Requests) are produced by automated AI processing with no human in the loop by default. Under GDPR Article 22 and equivalent provisions, you have the right to request human review of any Gate Decision, obtain an explanation of the factors that led to it, and contest the decision. Contact support@codeward.dev with your Run ID to exercise this right.</p>
+      <p className="text-cw-blue/80 text-sm leading-relaxed">Codeward's Gate Decisions (PASS/BLOCK on Pull Requests) are produced by automated AI processing with no human in the loop by default. Under GDPR Article 22 and equivalent provisions, you have the right to request human review of any Gate Decision, obtain an explanation of the factors that led to it, and contest the decision. Contact support@codeward.cloud with your Run ID to exercise this right.</p>
     </div>
   </div>
 </div>
@@ -611,7 +611,7 @@ export const privacyContent = [
       <div className="space-y-4">
   <div className="flex gap-4">
     <div className="font-semibold text-cw-blue shrink-0 pt-0.5 w-8">13.1</div>
-    <div className="leading-relaxed text-[14px] text-cw-txt2">Codeward uses cookies and similar tracking technologies on the codeward.dev website and dashboard. The following categories are used:</div>
+    <div className="leading-relaxed text-[14px] text-cw-txt2">Codeward uses cookies and similar tracking technologies on the codeward.cloud website and dashboard. The following categories are used:</div>
   </div>
   <div className="mt-6 mb-4 border border-cw-bdr rounded-xl overflow-hidden">
     <div className="bg-cw-bg2 px-4 py-3 border-b border-cw-bdr text-xs font-bold tracking-wider uppercase text-cw-txt">Cookie Categories</div>
@@ -646,7 +646,7 @@ export const privacyContent = [
           </tr>
           <tr className="hover:bg-cw-bg2/50 transition-colors">
             <td className="px-4 py-3 align-top text-cw-txt2 "><strong>Marketing</strong></td>
-            <td className="px-4 py-3 align-top text-cw-txt2 ">Measuring conversion from marketing campaigns. Only on codeward.dev, not the dashboard.</td>
+            <td className="px-4 py-3 align-top text-cw-txt2 ">Measuring conversion from marketing campaigns. Only on codeward.cloud, not the dashboard.</td>
             <td className="px-4 py-3 align-top text-cw-txt2 "><span className="px-2 py-1 bg-cw-green/10 text-cw-green font-bold text-[10px] rounded-full uppercase tracking-wider">YES</span></td>
             <td className="px-4 py-3 align-top text-cw-txt2 ">90 days</td>
           </tr>
@@ -656,7 +656,7 @@ export const privacyContent = [
   </div>
   <div className="flex gap-4">
     <div className="font-semibold text-cw-blue shrink-0 pt-0.5 w-8">13.2</div>
-    <div className="leading-relaxed text-[14px] text-cw-txt2">You can manage cookie preferences via the Cookie Preferences Centre accessible from the footer of codeward.dev. Withdrawing consent for non-essential cookies does not affect your ability to use the Platform.</div>
+    <div className="leading-relaxed text-[14px] text-cw-txt2">You can manage cookie preferences via the Cookie Preferences Centre accessible from the footer of codeward.cloud. Withdrawing consent for non-essential cookies does not affect your ability to use the Platform.</div>
   </div>
 </div>
     )
@@ -668,7 +668,7 @@ export const privacyContent = [
       <div className="space-y-4">
   <div className="flex gap-4">
     <div className="font-semibold text-cw-blue shrink-0 pt-0.5 w-8">14.1</div>
-    <div className="leading-relaxed text-[14px] text-cw-txt2">The Platform is not directed at persons under the age of 18. Codeward does not knowingly collect personal data from children. If you believe a child has provided us with personal data, please contact privacy@codeward.dev and we will delete that data promptly.</div>
+    <div className="leading-relaxed text-[14px] text-cw-txt2">The Platform is not directed at persons under the age of 18. Codeward does not knowingly collect personal data from children. If you believe a child has provided us with personal data, please contact privacy@codeward.cloud and we will delete that data promptly.</div>
   </div>
 </div>
     )
@@ -692,7 +692,7 @@ export const privacyContent = [
   </div>
   <div className="flex gap-4">
     <div className="font-semibold text-cw-blue shrink-0 pt-0.5 w-8">15.4</div>
-    <div className="leading-relaxed text-[14px] text-cw-txt2"><strong>Model Cards &amp; System Documentation.</strong> Technical documentation describing the Agent architecture, data inputs, outputs, performance metrics, and known limitations is available to Enterprise customers and regulators upon request. Email compliance@codeward.dev.</div>
+    <div className="leading-relaxed text-[14px] text-cw-txt2"><strong>Model Cards &amp; System Documentation.</strong> Technical documentation describing the Agent architecture, data inputs, outputs, performance metrics, and known limitations is available to Enterprise customers and regulators upon request. Email compliance@codeward.cloud.</div>
   </div>
   <div className="flex gap-4">
     <div className="font-semibold text-cw-blue shrink-0 pt-0.5 w-8">15.5</div>
@@ -712,7 +712,7 @@ export const privacyContent = [
   </div>
   <div className="flex gap-4">
     <div className="font-semibold text-cw-blue shrink-0 pt-0.5 w-8">16.2</div>
-    <div className="leading-relaxed text-[14px] text-cw-txt2">The current version of this Policy is always available at codeward.dev/legal/privacy, with the version number and effective date displayed prominently. A version history is maintained at codeward.dev/legal/privacy/history.</div>
+    <div className="leading-relaxed text-[14px] text-cw-txt2">The current version of this Policy is always available at codeward.cloud/privacy, with the version number and effective date displayed prominently. A version history is maintained at codeward.cloud/privacy/history.</div>
   </div>
   <div className="flex gap-4">
     <div className="font-semibold text-cw-blue shrink-0 pt-0.5 w-8">16.3</div>

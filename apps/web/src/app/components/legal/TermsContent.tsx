@@ -560,7 +560,7 @@ export const termsContent = [
       <div className="space-y-4">
         <div className="flex gap-4">
           <div className="font-semibold text-cw-blue shrink-0 pt-0.5 w-8">15.1</div>
-          <div className="leading-relaxed text-[14px]">Governing Law. These Terms shall be governed by and construed in accordance with the laws of [JURISDICTION — e.g., Kenya / England & Wales / Delaware], without regard to its conflict of law provisions.</div>
+          <div className="leading-relaxed text-[14px]">Governing Law. These Terms shall be governed by and construed in accordance with the laws of the Republic of Kenya, without regard to its conflict of law provisions.</div>
         </div>
         <div className="flex gap-4">
           <div className="font-semibold text-cw-blue shrink-0 pt-0.5 w-8">15.2</div>
@@ -568,7 +568,7 @@ export const termsContent = [
         </div>
         <div className="flex gap-4">
           <div className="font-semibold text-cw-blue shrink-0 pt-0.5 w-8">15.3</div>
-          <div className="leading-relaxed text-[14px]">Arbitration. If the dispute is not resolved within the escalation period, it shall be finally resolved by binding arbitration under the rules of [NAIROBI CENTRE FOR INTERNATIONAL ARBITRATION / ICC / LCIA], with proceedings conducted in [CITY] in the English language. The arbitral award shall be final and enforceable in any competent court.</div>
+          <div className="leading-relaxed text-[14px]">Arbitration. If the dispute is not resolved within the escalation period, it shall be finally resolved by binding arbitration under the rules of the Nairobi Centre for International Arbitration (NCIA), with proceedings conducted in Nairobi, Kenya in the English language. The arbitral award shall be final and enforceable in any competent court.</div>
         </div>
         <div className="flex gap-4">
           <div className="font-semibold text-cw-blue shrink-0 pt-0.5 w-8">15.4</div>
@@ -588,7 +588,7 @@ export const termsContent = [
       <div className="space-y-4">
         <div className="flex gap-4">
           <div className="font-semibold text-cw-blue shrink-0 pt-0.5 w-8">16.1</div>
-          <div className="leading-relaxed text-[14px]">Codeward may update these Terms at any time. For material changes, Codeward will provide at least 30 days' notice by email to your registered address and/or a prominent in-app notification. The updated Terms will be posted at codeward.dev/legal/terms with the revised Effective Date.</div>
+          <div className="leading-relaxed text-[14px]">Codeward may update these Terms at any time. For material changes, Codeward will provide at least 30 days' notice by email to your registered address and/or a prominent in-app notification. The updated Terms will be posted at codeward.cloud/terms with the revised Effective Date.</div>
         </div>
         <div className="flex gap-4">
           <div className="font-semibold text-cw-blue shrink-0 pt-0.5 w-8">16.2</div>
@@ -624,7 +624,7 @@ export const termsContent = [
         </div>
         <div className="flex gap-4">
           <div className="font-semibold text-cw-blue shrink-0 pt-0.5 w-8">17.6</div>
-          <div className="leading-relaxed text-[14px]">Notices. Legal notices under these Terms must be in writing and delivered by email with read receipt to legal@codeward.dev (for Codeward) or to the email address on your registered account (for you). Notices are effective upon confirmed delivery.</div>
+          <div className="leading-relaxed text-[14px]">Notices. Legal notices under these Terms must be in writing and delivered by email with read receipt to legal@codeward.cloud (for Codeward) or to the email address on your registered account (for you). Notices are effective upon confirmed delivery.</div>
         </div>
         <div className="flex gap-4">
           <div className="font-semibold text-cw-blue shrink-0 pt-0.5 w-8">17.7</div>
@@ -633,6 +633,10 @@ export const termsContent = [
         <div className="flex gap-4">
           <div className="font-semibold text-cw-blue shrink-0 pt-0.5 w-8">17.8</div>
           <div className="leading-relaxed text-[14px]">Export Controls. You must not access or use the Platform in violation of any applicable export control or trade sanctions laws, including those administered by OFAC, BIS, or equivalent regulatory bodies in your jurisdiction.</div>
+        </div>
+        <div className="flex gap-4">
+          <div className="font-semibold text-cw-blue shrink-0 pt-0.5 w-8">17.9</div>
+          <div className="leading-relaxed text-[14px]">Registered Office & Contact. Codeward Technologies, Nairobi, Westlands, Kenya. Contact: legal@codeward.cloud.</div>
         </div>
       </div>
     )

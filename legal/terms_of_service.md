@@ -832,7 +832,7 @@ table.legal-table td.num-cell { font-family: var(--font-sans); font-size: 11px; 
   </div>
   <div class="sub-clause">
     <div class="sub-clause-num">16.1</div>
-    <div>Codeward may update these Terms at any time. For material changes, Codeward will provide at least 30 days' notice by email to your registered address and/or a prominent in-app notification. The updated Terms will be posted at codeward.dev/legal/terms with the revised Effective Date.</div>
+    <div>Codeward may update these Terms at any time. For material changes, Codeward will provide at least 30 days' notice by email to your registered address and/or a prominent in-app notification. The updated Terms will be posted at codeward.cloud/terms with the revised Effective Date.</div>
   </div>
   <div class="sub-clause">
     <div class="sub-clause-num">16.2</div>
@@ -870,7 +870,7 @@ table.legal-table td.num-cell { font-family: var(--font-sans); font-size: 11px; 
   </div>
   <div class="sub-clause">
     <div class="sub-clause-num">17.6</div>
-    <div><strong>Notices.</strong> Legal notices under these Terms must be in writing and delivered by email with read receipt to legal@codeward.dev (for Codeward) or to the email address on your registered account (for you). Notices are effective upon confirmed delivery.</div>
+    <div><strong>Notices.</strong> Legal notices under these Terms must be in writing and delivered by email with read receipt to legal@codeward.cloud (for Codeward) or to the email address on your registered account (for you). Notices are effective upon confirmed delivery.</div>
   </div>
   <div class="sub-clause">
     <div class="sub-clause-num">17.7</div>
@@ -917,7 +917,7 @@ table.legal-table td.num-cell { font-family: var(--font-sans); font-size: 11px; 
     <div class="schedule-label">Schedule B</div>
     <div class="schedule-title">Data Processing Addendum — Summary</div>
   </div>
-  <p style="margin-bottom:16px;">This Schedule summarises the key data processing arrangements. Enterprise customers may request the full Data Processing Agreement (DPA) from legal@codeward.dev.</p>
+  <p style="margin-bottom:16px;">This Schedule summarises the key data processing arrangements. Enterprise customers may request the full Data Processing Agreement (DPA) from legal@codeward.cloud.</p>
 
   <div class="legal-table-wrapper">
     <div class="legal-table-caption">Data Processing Summary</div>
@@ -925,13 +925,13 @@ table.legal-table td.num-cell { font-family: var(--font-sans); font-size: 11px; 
       <thead><tr><th>Parameter</th><th>Detail</th></tr></thead>
       <tbody>
         <tr><td><strong>Data Controller</strong></td><td>The User (you)</td></tr>
-        <tr><td><strong>Data Processor</strong></td><td>Codeward Limited</td></tr>
-        <tr><td><strong>Sub-processors</strong></td><td>OpenAI, Inc. (inference); [CLOUD PROVIDER] (infrastructure); [MONITORING TOOL] (observability)</td></tr>
+        <tr><td><strong>Data Processor</strong></td><td>Codeward Technologies (Nairobi, Westlands, Kenya)</td></tr>
+        <tr><td><strong>Sub-processors</strong></td><td>OpenAI, Inc. (inference); Cloudflare / Railway (infrastructure)</td></tr>
         <tr><td><strong>Processing Purpose</strong></td><td>Automated code analysis and quality gating services as described in these Terms</td></tr>
         <tr><td><strong>Data Categories</strong></td><td>Source code, commit metadata, developer usernames (from Git history), configuration files</td></tr>
         <tr><td><strong>Retention</strong></td><td>Source code: destroyed within 60 seconds of Run completion. Findings metadata: retained for duration of Subscription + 90 days post-termination.</td></tr>
-        <tr><td><strong>Transfer Mechanism</strong></td><td>Standard Contractual Clauses (SCCs) for transfers to OpenAI (USA). Data remains in [REGION] for storage.</td></tr>
-        <tr><td><strong>Data Subject Rights</strong></td><td>Requests to be forwarded to Codeward at privacy@codeward.dev within 30 days</td></tr>
+        <tr><td><strong>Transfer Mechanism</strong></td><td>Standard Contractual Clauses (SCCs) for transfers to OpenAI (USA). Data remains in isolated sandboxes for storage.</td></tr>
+        <tr><td><strong>Data Subject Rights</strong></td><td>Requests to be forwarded to Codeward at privacy@codeward.cloud within 30 days</td></tr>
         <tr><td><strong>Security Measures</strong></td><td>AES-256 at rest, TLS 1.3 in transit, network-isolated sandboxes, annual pen testing</td></tr>
         <tr><td><strong>Breach Notification</strong></td><td>Within 72 hours of confirmed incident</td></tr>
       </tbody>
@@ -942,9 +942,9 @@ table.legal-table td.num-cell { font-family: var(--font-sans); font-size: 11px; 
 <!-- FOOTER -->
 <div class="doc-footer">
   <div class="disclaimer-box">
-    <strong>Legal Notice.</strong> These Terms of Service were drafted for Codeward Limited. They do not constitute legal advice. You are strongly encouraged to have a qualified legal practitioner in your jurisdiction review these Terms before deploying them as your binding user agreement. Jurisdiction-specific requirements (e.g., EU AI Act compliance, GDPR Article 13 disclosures, Kenya DPA registration) may require additional provisions not reflected herein.
+    <strong>Legal Notice.</strong> These Terms of Service were drafted for Codeward Technologies (Nairobi, Westlands, Kenya). They do not constitute legal advice. You are strongly encouraged to have a qualified legal practitioner in your jurisdiction review these Terms before deploying them as your binding user agreement.
   </div>
-  <div class="page-number">Codeward Limited &nbsp;·&nbsp; Terms of Service v2.0 &nbsp;·&nbsp; Effective 1 October 2026 &nbsp;·&nbsp; codeward.dev/legal/terms</div>
+  <div class="page-number">Codeward Technologies &nbsp;·&nbsp; Terms of Service v2.0 &nbsp;·&nbsp; Last Updated August 11, 2026 &nbsp;·&nbsp; codeward.cloud/terms</div>
 </div>
 
 </body>

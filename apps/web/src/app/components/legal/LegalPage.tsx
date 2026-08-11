@@ -18,7 +18,8 @@ export function LegalPage({ type, onBack, theme, onCycleTheme, themeIcon }: Lega
   const isTerms = type === 'terms';
   const content = isTerms ? termsContent : privacyContent;
   const title = isTerms ? 'Terms of Service' : 'Privacy Policy';
-  const date = 'Effective Date: October 2026';
+  const lastUpdated = 'Last Updated: August 11, 2026';
+  const locationInfo = 'Codeward Technologies · Nairobi, Westlands, Kenya · codeward.cloud';
 
   const [activeSection, setActiveSection] = useState(content[0].id);
 
@@ -109,8 +110,11 @@ export function LegalPage({ type, onBack, theme, onCycleTheme, themeIcon }: Lega
                 {title}
               </div>
               <h1 className="text-[40px] leading-[1.1] font-bold text-cw-txt tracking-tight mb-6">{title}</h1>
-              <p className="text-cw-txt2 text-[15px] leading-relaxed">
-                {date} · {isTerms ? 'These Terms form a binding legal agreement between you and Codeward. Please read them carefully before using the platform.' : 'This Privacy Policy explains how we collect, use, and handle your source code and data.'}
+              <p className="text-cw-txt2 text-[15px] leading-relaxed mb-3">
+                <strong className="text-cw-txt font-semibold">{lastUpdated}</strong> · {isTerms ? 'These Terms form a binding legal agreement between you and Codeward. Please read them carefully before using the platform.' : 'This Privacy Policy explains how we collect, use, and handle your source code and data.'}
+              </p>
+              <p className="text-cw-txt2/80 text-[13px]">
+                {locationInfo}
               </p>
             </div>
 
