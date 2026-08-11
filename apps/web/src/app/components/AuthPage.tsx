@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BotIcon, TaskDone01Icon, GitPullRequestIcon, CircleArrowReload01Icon, StarsIcon, Sun01Icon, Moon01Icon, CircleIcon } from 'hugeicons-react';
+import { BotIcon, TaskDone01Icon, GitPullRequestIcon, CircleArrowReload01Icon, StarsIcon, Sun01Icon, Moon01Icon, CircleIcon, ArrowLeft01Icon } from 'hugeicons-react';
 import { CheckCircle } from 'lucide-react';
 import { signIn } from '../../lib/auth';
 import { toast } from 'sonner';
@@ -74,17 +74,29 @@ export function AuthPage({ onBack, theme: _theme, onCycleTheme, onNavigate: _onN
     }
   };
 
-  const btnClass = "w-full py-2 px-3 rounded-xl text-[14px] font-semibold flex items-center justify-center gap-3 transition-all duration-200 text-cw-txt border border-cw-bdr bg-cw-bg hover:bg-cw-bg3";
+  const btnClass = "w-full py-2.5 px-4 rounded-xl text-[14px] font-semibold flex items-center justify-center gap-3 transition-all duration-200 text-cw-txt border border-cw-bdr bg-cw-bg hover:bg-cw-bg3";
 
   return (
     <div className={`theme-${theme} min-h-screen bg-black flex items-stretch justify-center font-sans transition-colors duration-250 px-4 py-2 md:px-8 md:py-3 relative overflow-hidden`}>
       <ParticleBackground />
 
-      {/* Theme Toggle (absolute positioned) */}
+      {/* Back to Home Button (Arrow only) */}
+      <div className="absolute top-6 left-6 z-50">
+        <button
+          onClick={() => (onBack ? onBack() : navigate('/'))}
+          className="w-10 h-10 rounded-full border border-cw-bdr bg-cw-bg2 text-cw-txt2 flex items-center justify-center hover:bg-cw-bg hover:text-cw-txt transition-colors shadow-sm cursor-pointer"
+          title="Back to home"
+          aria-label="Back to home"
+        >
+          <ArrowLeft01Icon size={18} />
+        </button>
+      </div>
+
+      {/* Theme Toggle */}
       <div className="absolute top-6 right-6 z-50">
         <button
           onClick={cycleTheme}
-          className="w-10 h-10 rounded-full border border-cw-bdr bg-cw-bg2 text-cw-txt2 flex items-center justify-center hover:bg-cw-bg transition-colors shadow-sm"
+          className="w-10 h-10 rounded-full border border-cw-bdr bg-cw-bg2 text-cw-txt2 flex items-center justify-center hover:bg-cw-bg transition-colors shadow-sm cursor-pointer"
           title="Toggle Theme"
         >
           {themeIcons[theme]}
@@ -92,16 +104,16 @@ export function AuthPage({ onBack, theme: _theme, onCycleTheme, onNavigate: _onN
       </div>
 
       <div className="w-full h-full max-w-[1600px] flex gap-6 md:gap-8 flex-col md:flex-row items-stretch justify-center relative z-10" style={{ minHeight: 'calc(100vh - 24px)' }}>
-        {/* Left brand panel Ã¢â‚¬â€ centered, feature list above typing text */}
+        {/* Left brand panel */}
         <div className="w-full md:w-1/2 flex flex-col items-center justify-center px-4 md:px-12 py-12 relative text-white font-['DM_Sans']">
           <div className="relative z-10 flex flex-col items-center text-center w-full max-w-xl">
 
-            {/* Typing text Ã¢â‚¬â€ above feature list, centered */}
+            {/* Typing text */}
             <p className="text-2xl md:text-3xl text-white/60 leading-[1.35] max-w-xl font-normal whitespace-pre-line mb-32">
               {typedText}<span className={`inline-block w-[2px] h-[1.1em] ml-[1px] bg-[#5b8cff] align-middle translate-y-[-1px] transition-opacity duration-100 ${showCursor ? 'opacity-100' : 'opacity-0'}`} />
             </p>
 
-            {/* Feature list Ã¢â‚¬â€ centered, below typing text */}
+            {/* Feature list */}
             <div className="flex flex-col gap-4 w-full items-center">
               {[
               { text: '100+ debt checks on every push', Icon: TaskDone01Icon, color: 'text-red-500' },
@@ -133,7 +145,7 @@ export function AuthPage({ onBack, theme: _theme, onCycleTheme, onNavigate: _onN
           </div>
         </div>
 
-        {/* Right auth panel Ã¢â‚¬â€  tall, near-full height */}
+        {/* Right auth panel */}
         <div className="w-full md:w-1/2 bg-cw-bg border border-cw-bdr rounded-[2rem] flex flex-col items-center justify-center p-4 shadow-sm self-stretch">
           <div className="w-full max-w-[480px] flex flex-col items-center justify-center h-full">
             <img src="https://i.ibb.co/0jxSNrnp/codewrdlogo-png-removebg-preview.png" alt="Codeward Logo" className="w-40 h-40 mb-6 object-contain -mr-8" />
@@ -145,13 +157,24 @@ export function AuthPage({ onBack, theme: _theme, onCycleTheme, onNavigate: _onN
               Sign in or create your account below.
             </p>
 
-            <div className="flex items-center gap-2 text-[12px] font-medium text-cw-txt2 mt-4 opacity-70">
+            <div className="flex items-center gap-2 text-[12px] font-medium text-cw-txt2 mb-6 opacity-70">
               <CheckCircle size={14} className="text-cw-purple" />
               No credit card required
             </div>
 
-            {/* OAuth buttons */}
-            <div className="w-full flex flex-col gap-4">
+            {/* OAuth buttons: 1. Google, 2. GitHub, 3. GitLab */}
+            <div className="w-full flex flex-col gap-3">
+              {/* 1. Google */}
+              <button
+                className={btnClass + " cursor-pointer"}
+                onClick={() => handleOAuth('google')}
+                disabled={!!loading}
+              >
+                {loading === 'google' ? <div className="animate-spin w-5 h-5 border-2 border-cw-txt border-t-transparent rounded-full" /> : <img src="https://www.svgrepo.com/show/475656/google-color.svg" className="w-5 h-5" alt="Google" />}
+                <span className="text-[15px]">{loading === 'google' ? 'Connecting...' : 'Continue with Google'}</span>
+              </button>
+
+              {/* 2. GitHub */}
               <button
                 className={btnClass + " cursor-pointer"}
                 onClick={() => handleOAuth('github')}
@@ -161,21 +184,7 @@ export function AuthPage({ onBack, theme: _theme, onCycleTheme, onNavigate: _onN
                 <span className="text-[15px]">{loading === 'github' ? 'Connecting...' : 'Continue with GitHub'}</span>
               </button>
 
-              <button
-                className={btnClass + " cursor-pointer mt-2"}
-                onClick={() => handleOAuth('google')}
-                disabled={!!loading}
-              >
-                {loading === 'google' ? <div className="animate-spin w-5 h-5 border-2 border-cw-txt border-t-transparent rounded-full" /> : <img src="https://www.svgrepo.com/show/475656/google-color.svg" className="w-5 h-5" alt="Google" />}
-                <span className="text-[15px]">{loading === 'google' ? 'Connecting...' : 'Continue with Google'}</span>
-              </button>
-
-              <div className="flex items-center gap-4 my-2">
-                <div className="flex-1 h-[1px] bg-cw-bdr"></div>
-                <span className="text-[12px] text-cw-txt3 font-bold uppercase tracking-wider">or</span>
-                <div className="flex-1 h-[1px] bg-cw-bdr"></div>
-              </div>
-
+              {/* 3. GitLab */}
               <button
                 className={btnClass + " opacity-60 cursor-not-allowed"}
                 disabled={true}

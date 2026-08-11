@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Helmet } from 'react-helmet-async';
+import { FlashIcon, ArrowRight01Icon } from 'hugeicons-react';
 import { blogs } from '../data/blogs';
 import { useSession } from '../../lib/auth';
 import { LandingHeader } from './LandingHeader';
@@ -379,13 +380,28 @@ function LiveSecurityShieldWidget() {
   const [isShielding, setIsShielding] = useState(false);
   const [isShielded, setIsShielded] = useState(false);
 
-  const handleShieldSecret = () => {
-    setIsShielding(true);
-    setTimeout(() => {
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    const runLoop = () => {
+      setIsShielded(false);
       setIsShielding(false);
-      setIsShielded(true);
-    }, 2000);
-  };
+
+      timer = setTimeout(() => {
+        setIsShielding(true);
+        timer = setTimeout(() => {
+          setIsShielding(false);
+          setIsShielded(true);
+
+          timer = setTimeout(() => {
+            runLoop();
+          }, 3500);
+        }, 1800);
+      }, 2500);
+    };
+
+    runLoop();
+    return () => clearTimeout(timer);
+  }, []);
 
   return (
     <div className="w-full max-w-[620px] rounded-3xl border border-white/15 bg-[#f8f9fc] p-5 font-['DM_Sans'] text-gray-900 shadow-2xl transition-all duration-500 hover:scale-[1.01]">
@@ -512,13 +528,11 @@ function LiveSecurityShieldWidget() {
             </div>
           </div>
 
-          {/* Action Button Footer */}
+          {/* Action Status Footer */}
           <div className="pt-3 border-t border-gray-100 flex justify-end">
             {!isShielded ? (
-              <button
-                onClick={handleShieldSecret}
-                disabled={isShielding}
-                className="px-4 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 active:scale-95 text-white text-xs font-bold transition-all shadow-md cursor-pointer flex items-center gap-1.5"
+              <div
+                className="px-4 py-1.5 rounded-lg bg-rose-600 text-white text-xs font-bold transition-all shadow-md flex items-center gap-1.5"
               >
                 {isShielding ? (
                   <>
@@ -531,7 +545,7 @@ function LiveSecurityShieldWidget() {
                     <span>🛡️</span>
                   </>
                 )}
-              </button>
+              </div>
             ) : (
               <div className="px-3 py-1 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold flex items-center gap-1">
                 <span>✓ Secret Revoked & Repository Shielded</span>
@@ -548,13 +562,28 @@ function LiveTechDebtWidget() {
   const [isFixing, setIsFixing] = useState(false);
   const [isFixed, setIsFixed] = useState(false);
 
-  const handleApplyFixes = () => {
-    setIsFixing(true);
-    setTimeout(() => {
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    const runLoop = () => {
+      setIsFixed(false);
       setIsFixing(false);
-      setIsFixed(true);
-    }, 2000);
-  };
+
+      timer = setTimeout(() => {
+        setIsFixing(true);
+        timer = setTimeout(() => {
+          setIsFixing(false);
+          setIsFixed(true);
+
+          timer = setTimeout(() => {
+            runLoop();
+          }, 3500);
+        }, 1800);
+      }, 2500);
+    };
+
+    runLoop();
+    return () => clearTimeout(timer);
+  }, []);
 
   return (
     <div className="w-full max-w-[620px] rounded-3xl border border-white/15 bg-[#f8f9fc] p-5 font-['DM_Sans'] text-gray-900 shadow-2xl transition-all duration-500 hover:scale-[1.01]">
@@ -660,20 +689,18 @@ function LiveTechDebtWidget() {
                   <span>0/100 (Fail)</span>
                 </div>
               )}
-              <div className="text-purple-600 font-medium cursor-pointer" onClick={handleApplyFixes}>
+              <div className="text-purple-600 font-medium">
                 {isFixed ? "Auto-refactored" : "Race condition"}
               </div>
               <div className="text-right text-gray-400 font-mono">x1.8</div>
             </div>
           </div>
 
-          {/* Action Button Footer */}
+          {/* Action Status Footer */}
           <div className="pt-3 border-t border-gray-100 flex justify-end">
             {!isFixed ? (
-              <button
-                onClick={handleApplyFixes}
-                disabled={isFixing}
-                className="px-4 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-700 active:scale-95 text-white text-xs font-bold transition-all shadow-md cursor-pointer flex items-center gap-1.5"
+              <div
+                className="px-4 py-1.5 rounded-lg bg-purple-600 text-white text-xs font-bold transition-all shadow-md flex items-center gap-1.5"
               >
                 {isFixing ? (
                   <>
@@ -686,7 +713,7 @@ function LiveTechDebtWidget() {
                     <span>⚡</span>
                   </>
                 )}
-              </button>
+              </div>
             ) : (
               <div className="px-3 py-1 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold flex items-center gap-1">
                 <span>✓ Auto-Fixes Applied Successfully</span>
@@ -704,23 +731,27 @@ function LiveSandboxTestWidget() {
   const [isRunning, setIsRunning] = useState(true);
 
   useEffect(() => {
-    const timer1 = setTimeout(() => {
-      setConnectState('connecting');
-    }, 1000);
+    let timer: NodeJS.Timeout;
+    const runLoop = () => {
+      setConnectState('idle');
+      setIsRunning(true);
 
-    const timer2 = setTimeout(() => {
-      setConnectState('connected');
-    }, 2800);
-
-    const timer3 = setTimeout(() => {
-      setIsRunning(false);
-    }, 4500);
-
-    return () => {
-      clearTimeout(timer1);
-      clearTimeout(timer2);
-      clearTimeout(timer3);
+      timer = setTimeout(() => {
+        setConnectState('connecting');
+        timer = setTimeout(() => {
+          setConnectState('connected');
+          timer = setTimeout(() => {
+            setIsRunning(false);
+            timer = setTimeout(() => {
+              runLoop();
+            }, 3500);
+          }, 1800);
+        }, 1500);
+      }, 1500);
     };
+
+    runLoop();
+    return () => clearTimeout(timer);
   }, []);
 
   return (
@@ -989,17 +1020,38 @@ function ParticleField({ centered = false }: { centered?: boolean }) {
 
 function TypingText() {
   const fullText = "Ship AI code\nwithout the technical\ndebt";
-  const [text, setText] = useState(fullText); // Start with fullText to match server-side render
+  const [text, setText] = useState("");
   
   useEffect(() => {
-    setText("");
+    let timeout: NodeJS.Timeout;
     let i = 0;
-    const interval = setInterval(() => {
-      setText(fullText.slice(0, i + 1));
-      i++;
-      if (i >= fullText.length) clearInterval(interval);
-    }, 60);
-    return () => clearInterval(interval);
+    let isDeleting = false;
+
+    const tick = () => {
+      if (!isDeleting) {
+        setText(fullText.slice(0, i + 1));
+        i++;
+        if (i > fullText.length) {
+          isDeleting = true;
+          timeout = setTimeout(tick, 3500);
+          return;
+        }
+        timeout = setTimeout(tick, 60);
+      } else {
+        setText(fullText.slice(0, i - 1));
+        i--;
+        if (i < 0) {
+          isDeleting = false;
+          i = 0;
+          timeout = setTimeout(tick, 600);
+          return;
+        }
+        timeout = setTimeout(tick, 30);
+      }
+    };
+
+    tick();
+    return () => clearTimeout(timeout);
   }, []);
 
   return (
@@ -1014,20 +1066,38 @@ function MissionTypingText() {
   const normalText = "Codeward is your autonomous\ncode quality platform, without\n";
   const highlightedText = "the technical debt";
   const fullText = normalText + highlightedText;
-  const [text, setText] = useState(fullText); // Match server-side render
+  const [text, setText] = useState("");
   const totalLength = fullText.length;
 
   useEffect(() => {
-    setText("");
+    let timeout: NodeJS.Timeout;
     let i = 0;
-    const timeout = setTimeout(() => {
-      const interval = setInterval(() => {
+    let isDeleting = false;
+
+    const tick = () => {
+      if (!isDeleting) {
+        setText(fullText.slice(0, i + 1));
         i++;
-        setText(fullText.slice(0, i));
-        if (i >= totalLength) clearInterval(interval);
-      }, 55);
-      return () => clearInterval(interval);
-    }, 400);
+        if (i > totalLength) {
+          isDeleting = true;
+          timeout = setTimeout(tick, 4000);
+          return;
+        }
+        timeout = setTimeout(tick, 55);
+      } else {
+        setText(fullText.slice(0, i - 1));
+        i--;
+        if (i < 0) {
+          isDeleting = false;
+          i = 0;
+          timeout = setTimeout(tick, 800);
+          return;
+        }
+        timeout = setTimeout(tick, 25);
+      }
+    };
+
+    tick();
     return () => clearTimeout(timeout);
   }, []);
 
@@ -1434,35 +1504,14 @@ export default function CodewardHero() {
                 Back to app &rarr;
               </button>
             ) : (
-              <>
-                <button
-                  onClick={() => navigate('/signup')}
-                  className="rounded-full bg-white px-10 py-4 text-sm font-semibold text-black transition-all hover:bg-white/90 shadow-lg shadow-white/10 hover:scale-105 active:scale-95 duration-300 flex items-center gap-2"
-                >
-                  <svg className="w-5 h-5 text-[#8B5CF6]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
-                  Start your 14 days trial &rarr;
-                </button>
-                <button
-                  onClick={() => navigate('/login')}
-                  className="group rounded-full bg-[#8B5CF6] px-8 py-3 text-sm font-semibold text-white transition-all hover:bg-green-500 hover:scale-105 active:scale-95 duration-300 flex items-center gap-4"
-                >
-                  <div className="flex -space-x-2">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white shadow-sm ring-2 ring-[#8B5CF6] group-hover:ring-green-500 transition-colors">
-                      <svg className="h-5 w-5 text-black" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
-                      </svg>
-                    </div>
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white shadow-sm ring-2 ring-[#8B5CF6] group-hover:ring-green-500 transition-colors">
-                      <svg className="h-5 w-5 text-[#FC6D26]" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M23.955 13.587l-1.342-4.135-2.664-8.189c-.135-.423-.73-.423-.867 0L16.418 9.45H7.582L4.919 1.263c-.137-.423-.733-.423-.868 0L1.387 9.452.045 13.587c-.173.535.034 1.127.487 1.458l11.468 8.337 11.468-8.337c.453-.331.66-.923.487-1.458z" />
-                      </svg>
-                    </div>
-                  </div>
-                  Login
-                </button>
-              </>
+              <button
+                onClick={() => navigate('/signup')}
+                className="rounded-full bg-white px-9 py-4 text-sm font-semibold text-black transition-all hover:bg-white/90 shadow-lg shadow-white/10 hover:scale-105 active:scale-95 duration-300 flex items-center gap-2.5 cursor-pointer"
+              >
+                <FlashIcon className="w-5 h-5 text-[#8B5CF6]" />
+                <span>Start your 7 days trial</span>
+                <ArrowRight01Icon className="w-4 h-4 text-black/70" />
+              </button>
             )}
           </div>
 
@@ -1639,17 +1688,18 @@ export default function CodewardHero() {
           <FadeInSection delay={800} direction="up">
             <button 
               onClick={() => navigate('/signup')} 
-              className="group inline-flex items-center gap-4 rounded-full bg-white px-8 py-3.5 text-sm font-bold text-black shadow-lg shadow-white/10 transition-all hover:bg-gray-100 hover:scale-105 active:scale-95 duration-300"
+              className="group inline-flex items-center gap-2.5 rounded-full bg-white px-8 py-3.5 text-sm font-bold text-black shadow-lg shadow-white/10 transition-all hover:bg-gray-100 hover:scale-105 active:scale-95 duration-300 cursor-pointer"
             >
-              <span>See it in action &rarr;</span>
-              <div className="flex -space-x-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-black ring-2 ring-white">
-                  <svg className="h-5 w-5 text-white" viewBox="0 0 24 24" fill="currentColor">
+              <span>See it in action</span>
+              <span className="text-base font-black transition-transform group-hover:-translate-y-0.5 group-hover:-translate-x-0.5">↖</span>
+              <div className="flex items-center -space-x-2 opacity-0 max-w-0 scale-95 overflow-hidden group-hover:opacity-100 group-hover:max-w-[70px] group-hover:scale-100 transition-all duration-300 ease-out ml-1">
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-black ring-2 ring-white">
+                  <svg className="h-4 w-4 text-white" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
                   </svg>
                 </div>
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white ring-2 ring-white">
-                  <svg className="h-5 w-5 text-[#FC6D26]" viewBox="0 0 24 24" fill="currentColor">
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white ring-2 ring-white shadow-sm">
+                  <svg className="h-4 w-4 text-[#FC6D26]" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M23.955 13.587l-1.342-4.135-2.664-8.189c-.135-.423-.73-.423-.867 0L16.418 9.45H7.582L4.919 1.263c-.137-.423-.733-.423-.868 0L1.387 9.452.045 13.587c-.173.535.034 1.127.487 1.458l11.468 8.337 11.468-8.337c.453-.331.66-.923.487-1.458z" />
                   </svg>
                 </div>
