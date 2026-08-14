@@ -151,7 +151,7 @@ export function AuthPage({ onBack, theme: _theme, onCycleTheme, onNavigate: _onN
         {/* Right auth panel */}
         <div className="w-full md:w-1/2 bg-cw-bg border border-cw-bdr rounded-[2rem] flex flex-col items-center justify-center p-4 shadow-sm self-stretch">
           <div className="w-full max-w-[480px] flex flex-col items-center justify-center h-full">
-            <img src="/codeward-logo.png" alt="Codeward Logo" className="w-32 h-32 md:w-40 md:h-40 mb-6 object-contain -mr-4 md:-mr-8" />
+            <img src="/codeward-logo.png" alt="Codeward Logo" className="w-32 h-32 md:w-40 md:h-40 mb-6 object-contain" />
             
             <h2 className="text-[28px] font-bold tracking-tight text-cw-txt mb-3 text-center">
               Welcome to Codeward

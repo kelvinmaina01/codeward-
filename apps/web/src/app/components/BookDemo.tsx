@@ -272,7 +272,7 @@ export function BookDemo() {
         <div className="relative z-10 max-w-xl mx-auto flex flex-col items-center">
           {/* Logo / Title */}
           <div className="flex items-center gap-1 mb-10">
-            <img src="/codeward-logo.png" alt="Codeward Logo" className="h-10 w-auto object-contain drop-shadow-lg -mr-2" />
+            <img src="/codeward-logo.png" alt="Codeward Logo" className="h-10 w-auto object-contain drop-shadow-lg mr-2.5" />
             <span className="text-2xl font-bold text-white tracking-tight">Codeward</span>
           </div>
 

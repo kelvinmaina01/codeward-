@@ -9,7 +9,7 @@ export function LandingHeader() {
   return (
     <header className="relative z-50 flex items-center justify-between px-4 sm:px-8 py-4 sm:py-6 md:px-14 max-w-[100vw]">
       <div className="flex items-center">
-        <img src="/codeward-logo.png" alt="Codeward Logo" className="h-7 sm:h-8 w-auto object-contain -mr-2" />
+        <img src="/codeward-logo.png" alt="Codeward Logo" className="h-7 sm:h-8 w-auto object-contain mr-2.5" />
         <span className="text-xl sm:text-2xl font-bold tracking-tight text-white">
           Code<span className="text-purple-500">ward</span>
         </span>

@@ -65,7 +65,7 @@ export const ComparePage: React.FC = () => {
       {/* ── EXACT HEADER FROM LANDING PAGE ── */}
       <header className="relative z-50 flex items-center justify-between px-8 py-6 md:px-14">
         <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/')}>
-          <img src="/codeward-logo.png" alt="Codeward Logo" className="h-8 w-auto object-contain -mr-2" />
+          <img src="/codeward-logo.png" alt="Codeward Logo" className="h-8 w-auto object-contain mr-2.5" />
           <span className="text-2xl font-bold tracking-tight text-white">
             Code<span className="text-purple-500">ward</span>
           </span>
