@@ -553,11 +553,7 @@ function DocsPlaceholderPage() {
 export const routes = [
   {
     path: "/",
-    element: (
-      <RequireUnauth>
-        <CodewardHero />
-      </RequireUnauth>
-    )
+    element: <CodewardHero />
   },
   {
     path: "/pricing",
@@ -603,19 +599,11 @@ export const routes = [
   },
   {
     path: "/login",
-    element: (
-      <RequireUnauth>
-        <AuthPage onBack={() => {}} theme="dark" onCycleTheme={() => {}} onNavigate={() => {}} />
-      </RequireUnauth>
-    )
+    element: <AuthPage onBack={() => {}} theme="dark" onCycleTheme={() => {}} onNavigate={() => {}} />
   },
   {
     path: "/signup",
-    element: (
-      <RequireUnauth>
-        <AuthPage onBack={() => {}} theme="dark" onCycleTheme={() => {}} onNavigate={() => {}} />
-      </RequireUnauth>
-    )
+    element: <AuthPage onBack={() => {}} theme="dark" onCycleTheme={() => {}} onNavigate={() => {}} />
   },
   {
     path: "/connect",

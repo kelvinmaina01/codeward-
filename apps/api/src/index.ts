@@ -1,4 +1,6 @@
+import './instrument.js';
 import 'dotenv/config';
+import * as Sentry from '@sentry/node';
 import { serve } from '@hono/node-server';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
@@ -46,6 +48,8 @@ app.onError((err, c) => {
   console.error(`  Name:    ${err.name}`);
   console.error(`  Message: ${err.message}`);
   console.error(`  Stack:\n${err.stack}`);
+
+  Sentry.captureException(err);
 
   return c.json({
     error: 'Internal Server Error',

@@ -3,6 +3,10 @@ import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import App from './app/App.tsx';
 import './styles/index.css';
+import { initAnalytics, Sentry } from './lib/posthog';
+
+// Initialize PostHog & Sentry analytics
+initAnalytics();
 
 class ErrorBoundary extends Component<{children: React.ReactNode}, {hasError: boolean, error: Error | null}> {
   constructor(props: {children: React.ReactNode}) {
@@ -14,6 +18,7 @@ class ErrorBoundary extends Component<{children: React.ReactNode}, {hasError: bo
   }
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error("ErrorBoundary caught an error", error, errorInfo);
+    Sentry.captureException(error);
   }
   render() {
     if (this.state.hasError) {

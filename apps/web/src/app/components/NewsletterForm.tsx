@@ -59,19 +59,19 @@ export function NewsletterForm() {
       </div>
 
       <div className="flex flex-col gap-3 w-full lg:w-[480px] shrink-0">
-        <form onSubmit={handleSubmit} className="flex items-center bg-white rounded-full p-1.5 pl-5 shadow-sm w-full border border-black/10">
+        <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row items-stretch sm:items-center bg-white rounded-2xl sm:rounded-full p-2 sm:p-1.5 sm:pl-5 shadow-sm w-full border border-black/10 gap-2 sm:gap-0">
           <input
             type="email"
             value={email}
             onChange={(e) => { setEmail(e.target.value); setStatus('idle'); }}
             placeholder="Enter your email address"
-            className="flex-1 bg-transparent text-sm text-black outline-none placeholder:text-black/40 font-medium"
+            className="flex-1 bg-transparent text-sm text-black outline-none placeholder:text-black/40 font-medium px-3 sm:px-0 py-2 sm:py-0 min-w-0"
             required
           />
           <button
             type="submit"
             disabled={status === 'loading'}
-            className="bg-black text-white px-7 py-3 rounded-full text-sm font-bold hover:bg-black/80 transition-colors shrink-0 shadow-md flex items-center gap-2 disabled:opacity-70"
+            className="bg-black text-white px-5 sm:px-7 py-3 rounded-xl sm:rounded-full text-xs sm:text-sm font-bold hover:bg-black/80 transition-colors shrink-0 shadow-md flex items-center justify-center gap-2 disabled:opacity-70 cursor-pointer whitespace-nowrap"
           >
             {status === 'loading' ? (
               <>

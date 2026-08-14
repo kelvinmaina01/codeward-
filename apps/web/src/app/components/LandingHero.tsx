@@ -122,7 +122,7 @@ function FAQSection() {
   ];
 
   return (
-    <section className="bg-[#05060a] py-12 md:py-16 px-8 md:px-20 border-t border-white/5">
+    <section className="bg-[#05060a] py-12 md:py-16 px-4 sm:px-8 md:px-20 border-t border-white/5">
       <FadeInSection>
         <div className="mx-auto max-w-[900px]">
           <h2 className="text-2xl md:text-3xl font-bold text-white tracking-tight mb-16 text-center">Frequently Asked Questions</h2>
@@ -155,7 +155,7 @@ function FAQSection() {
 
 function SecuritySection() {
   return (
-    <section className="bg-[#05060a] pt-12 md:pt-16 pb-12 md:pb-16 px-8 md:px-20 font-['DM_Sans'] relative overflow-hidden">
+    <section className="bg-[#05060a] pt-12 md:pt-16 pb-12 md:pb-16 px-4 sm:px-8 md:px-20 font-['DM_Sans'] relative overflow-hidden">
       <FadeInSection>
         <div className="mx-auto max-w-[1200px] relative z-10">
           <div className="mb-12 text-center md:text-left">
@@ -298,14 +298,15 @@ function LiveCodewardCodeReviewWidget() {
           </div>
         </div>
 
-        <div>
-          {/* Table Header */}
-          <div className="grid grid-cols-4 text-[10px] font-bold uppercase tracking-wider text-gray-400 pb-2 border-b border-gray-100">
-            <div>REPOSITORY</div>
-            <div>STATUS</div>
-            <div>ACTION</div>
-            <div className="text-right">UPDATED</div>
-          </div>
+        <div className="overflow-x-auto w-full pb-1">
+          <div className="min-w-[460px]">
+            {/* Table Header */}
+            <div className="grid grid-cols-4 text-[10px] font-bold uppercase tracking-wider text-gray-400 pb-2 border-b border-gray-100">
+              <div>REPOSITORY</div>
+              <div>STATUS</div>
+              <div>ACTION</div>
+              <div className="text-right">UPDATED</div>
+            </div>
 
           {/* Table Rows */}
           <div className="divide-y divide-gray-50 text-xs font-medium pt-1">
@@ -368,6 +369,7 @@ function LiveCodewardCodeReviewWidget() {
                 <span className="text-purple-600 underline font-medium hover:text-purple-800 cursor-pointer">Visit report ↗</span>
               </div>
               <div className="text-right text-gray-400">1m ago</div>
+            </div>
             </div>
           </div>
         </div>
@@ -460,73 +462,76 @@ function LiveSecurityShieldWidget() {
           </div>
         )}
 
-        <div>
-          {/* Table Header */}
-          <div className="grid grid-cols-4 text-[10px] font-bold uppercase tracking-wider text-gray-400 pb-2 border-b border-gray-100">
-            <div>AGENT</div>
-            <div>STATUS</div>
-            <div>FINDINGS</div>
-            <div className="text-right">LATENCY</div>
-          </div>
+        <div className="overflow-x-auto w-full pb-1">
+          <div className="min-w-[460px]">
+            {/* Table Header */}
+            <div className="grid grid-cols-4 text-[10px] font-bold uppercase tracking-wider text-gray-400 pb-2 border-b border-gray-100">
+              <div>AGENT</div>
+              <div>STATUS</div>
+              <div>FINDINGS</div>
+              <div className="text-right">LATENCY</div>
+            </div>
 
-          {/* Table Rows */}
-          <div className="divide-y divide-gray-50 text-xs font-medium pt-1">
-            {/* Row 1 */}
-            <div className="grid grid-cols-4 py-2 items-center">
-              <div className="font-mono text-gray-900 font-bold flex items-center gap-1.5">
-                <span className="text-rose-500">🛡️</span>
-                <span>Security</span>
-              </div>
-              {isShielding ? (
-                <div className="flex items-center gap-1.5 text-amber-600 font-semibold text-[11px]">
-                  <span className="h-2 w-2 rounded-full bg-amber-500 animate-spin" />
-                  <span>Shielding secret...</span>
+            {/* Table Rows */}
+            <div className="divide-y divide-gray-50 text-xs font-medium pt-1">
+              {/* Row 1 */}
+              <div className="grid grid-cols-4 py-2 items-center">
+                <div className="font-mono text-gray-900 font-bold flex items-center gap-1.5">
+                  <span className="text-rose-500">🛡️</span>
+                  <span>Security</span>
                 </div>
-              ) : isShielded ? (
+                {isShielding ? (
+                  <div className="flex items-center gap-1.5 text-amber-600 font-semibold text-[11px]">
+                    <span className="h-2 w-2 rounded-full bg-amber-500 animate-spin" />
+                    <span>Shielding secret...</span>
+                  </div>
+                ) : isShielded ? (
+                  <div className="flex items-center gap-1.5 text-emerald-600 font-semibold text-[11px]">
+                    <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                    <span>Key Secured</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1.5 text-rose-600 font-semibold text-[11px]">
+                    <span className="h-2 w-2 rounded-full bg-rose-500" />
+                    <span>1 Critical key</span>
+                  </div>
+                )}
+                <div className="text-gray-600 font-medium">Line 14 API key</div>
+                <div className="text-right text-gray-400 font-mono">180ms</div>
+              </div>
+
+              {/* Row 2 */}
+              <div className="grid grid-cols-4 py-2 items-center">
+                <div className="font-mono text-gray-900 font-bold flex items-center gap-1.5">
+                  <span className="text-emerald-500">🗑️</span>
+                  <span>Bloat</span>
+                </div>
                 <div className="flex items-center gap-1.5 text-emerald-600 font-semibold text-[11px]">
                   <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                  <span>Key Secured</span>
+                  <span>Score: 88</span>
                 </div>
-              ) : (
-                <div className="flex items-center gap-1.5 text-rose-600 font-semibold text-[11px]">
-                  <span className="h-2 w-2 rounded-full bg-rose-500" />
-                  <span>1 Critical key</span>
+                <div className="text-emerald-600 font-medium">-38 dead lines</div>
+                <div className="text-right text-gray-400 font-mono">95ms</div>
+              </div>
+
+              {/* Row 3 */}
+              <div className="grid grid-cols-4 py-2 items-center">
+                <div className="font-mono text-gray-900 font-bold flex items-center gap-1.5">
+                  <span className="text-purple-500">⚡</span>
+                  <span>Orchestrator</span>
                 </div>
-              )}
-              <div className="text-gray-600 font-medium">Line 14 API key</div>
-              <div className="text-right text-gray-400 font-mono">180ms</div>
-            </div>
-
-            {/* Row 2 */}
-            <div className="grid grid-cols-4 py-2 items-center">
-              <div className="font-mono text-gray-900 font-bold flex items-center gap-1.5">
-                <span className="text-emerald-500">🗑️</span>
-                <span>Bloat</span>
+                <div className="flex items-center gap-1.5 font-semibold text-[11px]">
+                  <span className={`h-2 w-2 rounded-full ${isShielded ? "bg-emerald-500" : "bg-rose-500"}`} />
+                  <span className={isShielded ? "text-emerald-600" : "text-rose-600"}>
+                    {isShielded ? "Gate: ALLOW" : "Gate: BLOCK"}
+                  </span>
+                </div>
+                <div className="text-gray-600 font-medium">15 agents run</div>
+                <div className="text-right text-gray-400 font-mono">4m 18s</div>
               </div>
-              <div className="flex items-center gap-1.5 text-emerald-600 font-semibold text-[11px]">
-                <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                <span>Score: 88</span>
-              </div>
-              <div className="text-emerald-600 font-medium">-38 dead lines</div>
-              <div className="text-right text-gray-400 font-mono">95ms</div>
-            </div>
-
-            {/* Row 3 */}
-            <div className="grid grid-cols-4 py-2 items-center">
-              <div className="font-mono text-gray-900 font-bold flex items-center gap-1.5">
-                <span className="text-purple-500">⚡</span>
-                <span>Orchestrator</span>
-              </div>
-              <div className="flex items-center gap-1.5 font-semibold text-[11px]">
-                <span className={`h-2 w-2 rounded-full ${isShielded ? "bg-emerald-500" : "bg-rose-500"}`} />
-                <span className={isShielded ? "text-emerald-600" : "text-rose-600"}>
-                  {isShielded ? "Gate: ALLOW" : "Gate: BLOCK"}
-                </span>
-              </div>
-              <div className="text-gray-600 font-medium">15 agents run</div>
-              <div className="text-right text-gray-400 font-mono">4m 18s</div>
             </div>
           </div>
+        </div>
 
           {/* Action Status Footer */}
           <div className="pt-3 border-t border-gray-100 flex justify-end">
@@ -554,9 +559,8 @@ function LiveSecurityShieldWidget() {
           </div>
         </div>
       </div>
-    </div>
-  );
-}
+    );
+  }
 
 function LiveTechDebtWidget() {
   const [isFixing, setIsFixing] = useState(false);
@@ -1363,7 +1367,7 @@ function VideoPlayer() {
         <>
           <div className="absolute inset-0 bg-[#0a0a0f] flex flex-col items-center justify-center pointer-events-none">
              <div className="flex items-center opacity-40">
-               <img src="https://i.ibb.co/0jxSNrnp/codewrdlogo-png-removebg-preview.png" alt="Codeward Logo" className="h-10 w-auto object-contain -mr-3 grayscale" />
+               <img src="/codeward-logo.png" alt="Codeward Logo" className="h-10 w-auto object-contain -mr-3 grayscale" />
                <span className="text-4xl font-bold tracking-tight text-white">
                  Code<span className="text-purple-600">ward</span>
                </span>
@@ -1405,7 +1409,7 @@ export default function CodewardHero() {
             "@type": "Organization",
             "name": "Codeward",
             "url": "https://codeward.cloud",
-            "logo": "https://i.ibb.co/0jxSNrnp/codewrdlogo-png-removebg-preview.png",
+            "logo": "https://codeward.cloud/codeward-logo.png",
             "sameAs": [
               "https://github.com/codeward-ai",
               "https://twitter.com/codeward_ai",
@@ -1831,7 +1835,7 @@ export default function CodewardHero() {
                     <div className="absolute inset-0 p-6 flex flex-col justify-between z-10">
                       <div className="flex justify-start">
                         <div className="flex items-center gap-2">
-                          <img src="https://i.ibb.co/0jxSNrnp/codewrdlogo-png-removebg-preview.png" alt="Codeward" className="h-4 w-4 object-contain drop-shadow-md" />
+                          <img src="/codeward-logo.png" alt="Codeward" className="h-4 w-4 object-contain drop-shadow-md" />
                           <span className="text-sm font-bold tracking-tight text-white drop-shadow-md">Code<span className="text-purple-400">ward</span></span>
                         </div>
                       </div>

@@ -53,7 +53,7 @@ export const BlogsPage: React.FC = () => {
       {/* ── HEADER ── */}
       <header className="relative z-50 flex items-center justify-between px-8 py-6 md:px-14">
         <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/')}>
-          <img src="https://i.ibb.co/0jxSNrnp/codewrdlogo-png-removebg-preview.png" alt="Codeward Logo" className="h-8 w-auto object-contain -mr-2" />
+          <img src="/codeward-logo.png" alt="Codeward Logo" className="h-8 w-auto object-contain -mr-2" />
           <span className="text-2xl font-bold tracking-tight text-white">
             Code<span className="text-purple-500">ward</span>
           </span>
@@ -131,7 +131,7 @@ export const BlogsPage: React.FC = () => {
                   <div className="absolute inset-0 p-6 flex flex-col justify-between z-10">
                     <div className="flex justify-start">
                       <div className="flex items-center gap-2">
-                        <img src="https://i.ibb.co/0jxSNrnp/codewrdlogo-png-removebg-preview.png" alt="Codeward" className="h-4 w-4 object-contain drop-shadow-md" />
+                        <img src="/codeward-logo.png" alt="Codeward" className="h-4 w-4 object-contain drop-shadow-md" />
                         <span className="text-sm font-bold tracking-tight text-white drop-shadow-md">Code<span className="text-purple-400">ward</span></span>
                       </div>
                     </div>

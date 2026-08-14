@@ -1,17 +1,36 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { blogs } from '../data/blogs';
 
 export function LandingHeader() {
   const navigate = useNavigate();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <header className="relative z-50 flex items-center justify-between px-8 py-6 md:px-14">
+    <header className="relative z-50 flex items-center justify-between px-4 sm:px-8 py-4 sm:py-6 md:px-14 max-w-[100vw]">
       <div className="flex items-center">
-        <img src="https://i.ibb.co/0jxSNrnp/codewrdlogo-png-removebg-preview.png" alt="Codeward Logo" className="h-8 w-auto object-contain -mr-2" />
-        <span className="text-2xl font-bold tracking-tight text-white">
+        <img src="/codeward-logo.png" alt="Codeward Logo" className="h-7 sm:h-8 w-auto object-contain -mr-2" />
+        <span className="text-xl sm:text-2xl font-bold tracking-tight text-white">
           Code<span className="text-purple-500">ward</span>
         </span>
       </div>
+
+      {/* Mobile Menu Hamburger Button */}
+      <button
+        onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+        className="flex md:hidden items-center justify-center p-2 text-white/80 hover:text-white focus:outline-none cursor-pointer"
+        aria-label="Toggle Navigation Menu"
+      >
+        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          {mobileMenuOpen ? (
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          ) : (
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+          )}
+        </svg>
+      </button>
+
+      {/* Desktop Navigation */}
       <nav className="hidden gap-8 text-sm font-medium text-white/80 md:flex items-center">
         {/* Products Mega Menu */}
         <div className="group">
@@ -19,11 +38,11 @@ export function LandingHeader() {
             Products 
             <svg className="w-4 h-4 opacity-70 group-hover:rotate-180 transition-transform" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
           </button>
-          <div className="absolute top-full left-0 w-full px-8 md:px-14 mt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 transform group-hover:translate-y-0 translate-y-2 z-50">
-            <div className="bg-[#F5F5EF] rounded-3xl shadow-2xl overflow-hidden text-black flex p-8 md:p-12 gap-10 border border-black/5 relative w-full">
+          <div className="absolute top-full left-0 w-full px-4 sm:px-8 md:px-14 mt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 transform group-hover:translate-y-0 translate-y-2 z-50">
+            <div className="bg-[#F5F5EF] rounded-3xl shadow-2xl overflow-hidden text-black flex flex-col lg:flex-row p-6 sm:p-8 md:p-12 gap-8 lg:gap-10 border border-black/5 relative w-full max-w-[100vw]">
               <div className="flex-1">
-                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-8">Platform</h4>
-                <div className="grid grid-cols-3 gap-x-8 gap-y-12">
+                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-6 lg:mb-8">Platform</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-x-8 lg:gap-y-12">
                   <a href="#" className="block group/link">
                     <div className="font-bold text-[17px] mb-1.5 text-black group-hover/link:text-[#8B5CF6] transition-colors">Orchestrator Agent</div>
                     <div className="text-sm text-gray-500 font-medium">Coordinates analysis & gate decisions.</div>
@@ -50,7 +69,7 @@ export function LandingHeader() {
                   </a>
                 </div>
               </div>
-              <div className="w-[320px]">
+              <div className="w-full lg:w-[320px] shrink-0">
                 <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-6">Infrastructure</h4>
                 <a href="#" className="block h-[180px] rounded-[1.25rem] bg-gradient-to-br from-[#E2E8F0] to-[#FFFFFF] p-6 relative overflow-hidden group/card shadow-inner transition-transform hover:scale-[1.02] border border-black/5">
                   <div className="absolute inset-0 flex items-center justify-center p-4">
@@ -80,11 +99,11 @@ export function LandingHeader() {
             Solutions 
             <svg className="w-4 h-4 opacity-70 group-hover:rotate-180 transition-transform" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
           </button>
-          <div className="absolute top-full left-0 w-full px-8 md:px-14 mt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 transform group-hover:translate-y-0 translate-y-2 z-50">
-            <div className="bg-[#F5F5EF] rounded-3xl shadow-2xl overflow-hidden text-black flex p-8 md:p-12 gap-10 border border-black/5 relative w-full">
+          <div className="absolute top-full left-0 w-full px-4 sm:px-8 md:px-14 mt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 transform group-hover:translate-y-0 translate-y-2 z-50">
+            <div className="bg-[#F5F5EF] rounded-3xl shadow-2xl overflow-hidden text-black flex flex-col lg:flex-row p-6 sm:p-8 md:p-12 gap-8 lg:gap-10 border border-black/5 relative w-full max-w-[100vw]">
               <div className="flex-1">
-                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-8">Use Cases</h4>
-                <div className="grid grid-cols-3 gap-x-8 gap-y-12">
+                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-6 lg:mb-8">Use Cases</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-x-8 lg:gap-y-12">
                   <a href="#" className="block group/link">
                     <div className="font-bold text-[17px] mb-1.5 text-black group-hover/link:text-[#8B5CF6] transition-colors">CI/CD Pipeline Shield</div>
                     <div className="text-sm text-gray-500 font-medium">Block bad code automatically before merge.</div>
@@ -111,7 +130,7 @@ export function LandingHeader() {
                   </a>
                 </div>
               </div>
-              <div className="w-[320px]">
+              <div className="w-full lg:w-[320px] shrink-0">
                 <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-6">Playbook</h4>
                 <a href="#" className="block h-[180px] rounded-[1.25rem] bg-gradient-to-br from-[#2E1065] via-[#4C1D95] to-[#7C3AED] p-6 relative overflow-hidden group/card shadow-inner transition-transform hover:scale-[1.02]">
                    <div className="absolute inset-0 opacity-20 mix-blend-overlay" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noiseFilter%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.85%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noiseFilter)%22/%3E%3C/svg%3E")' }}></div>
@@ -134,11 +153,11 @@ export function LandingHeader() {
             Resources 
             <svg className="w-4 h-4 opacity-70 group-hover:rotate-180 transition-transform" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
           </button>
-          <div className="absolute top-full left-0 w-full px-8 md:px-14 mt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 transform group-hover:translate-y-0 translate-y-2 z-50">
-            <div className="bg-[#F5F5EF] rounded-3xl shadow-2xl overflow-hidden text-black flex p-8 md:p-12 gap-10 border border-black/5 relative w-full">
+          <div className="absolute top-full left-0 w-full px-4 sm:px-8 md:px-14 mt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 transform group-hover:translate-y-0 translate-y-2 z-50">
+            <div className="bg-[#F5F5EF] rounded-3xl shadow-2xl overflow-hidden text-black flex flex-col lg:flex-row p-6 sm:p-8 md:p-12 gap-8 lg:gap-10 border border-black/5 relative w-full max-w-[100vw]">
               <div className="flex-1">
-                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-8">Resources</h4>
-                <div className="grid grid-cols-3 gap-x-8 gap-y-12">
+                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-6 lg:mb-8">Resources</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-x-8 lg:gap-y-12">
                   <a href="#" className="block group/link">
                     <div className="font-bold text-[17px] mb-1.5 text-black group-hover/link:text-[#8B5CF6] transition-colors">Dashboard</div>
                     <div className="text-sm text-gray-500 font-medium">View live run feeds and health scores.</div>
@@ -165,7 +184,7 @@ export function LandingHeader() {
                   </a>
                 </div>
               </div>
-              <div className="w-[320px]">
+              <div className="w-full lg:w-[320px] shrink-0">
                 <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-6">To read</h4>
                 <a href="#" className="block h-[180px] rounded-[1.25rem] bg-gradient-to-br from-[#303833] via-[#434b41] to-[#252c23] p-6 relative overflow-hidden group/card shadow-inner transition-transform hover:scale-[1.02]">
                    <div className="absolute inset-0 opacity-40 mix-blend-overlay" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noiseFilter%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.85%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noiseFilter)%22/%3E%3C/svg%3E")' }}></div>
@@ -186,11 +205,11 @@ export function LandingHeader() {
             Developers 
             <svg className="w-4 h-4 opacity-70 group-hover:rotate-180 transition-transform" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
           </button>
-          <div className="absolute top-full left-0 w-full px-8 md:px-14 mt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 transform group-hover:translate-y-0 translate-y-2 z-50">
-            <div className="bg-[#F5F5EF] rounded-3xl shadow-2xl overflow-hidden text-black flex p-8 md:p-12 gap-10 border border-black/5 relative w-full">
+          <div className="absolute top-full left-0 w-full px-4 sm:px-8 md:px-14 mt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 transform group-hover:translate-y-0 translate-y-2 z-50">
+            <div className="bg-[#F5F5EF] rounded-3xl shadow-2xl overflow-hidden text-black flex flex-col lg:flex-row p-6 sm:p-8 md:p-12 gap-8 lg:gap-10 border border-black/5 relative w-full max-w-[100vw]">
               <div className="flex-1">
-                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-8">Developers</h4>
-                <div className="grid grid-cols-4 gap-x-8 gap-y-12">
+                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-6 lg:mb-8">Developers</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-x-8 lg:gap-y-12">
                   <a href="#" className="block group/link">
                     <div className="font-bold text-[17px] mb-1.5 text-black group-hover/link:text-[#8B5CF6] transition-colors">API Reference</div>
                     <div className="text-sm text-gray-500 font-medium">Complete API documentation and reference.</div>
@@ -209,7 +228,7 @@ export function LandingHeader() {
                   </a>
                 </div>
               </div>
-              <div className="w-[320px]">
+              <div className="w-full lg:w-[320px] shrink-0">
                 <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-6">Community</h4>
                 <a href="https://discord.com/invite/nnMH4URBsK" target="_blank" rel="noopener noreferrer" className="block h-[180px] rounded-[1.25rem] bg-gradient-to-br from-[#4A3D36] via-[#3E453A] to-[#344033] p-6 relative overflow-hidden group/card shadow-inner transition-transform hover:scale-[1.02]">
                   <div className="flex items-center gap-3 relative z-10 text-white">
@@ -234,8 +253,8 @@ export function LandingHeader() {
             Blogs 
             <svg className="w-4 h-4 opacity-70 group-hover:rotate-180 transition-transform" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
           </button>
-          <div className="absolute top-full left-0 w-full px-8 md:px-14 mt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 transform group-hover:translate-y-0 translate-y-2 z-50">
-            <div className="bg-[#F5F5EF] rounded-3xl shadow-2xl overflow-hidden text-black flex flex-col md:flex-row p-8 md:p-12 gap-10 border border-black/5 relative w-full">
+          <div className="absolute top-full left-0 w-full px-4 sm:px-8 md:px-14 mt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 transform group-hover:translate-y-0 translate-y-2 z-50">
+            <div className="bg-[#F5F5EF] rounded-3xl shadow-2xl overflow-hidden text-black flex flex-col md:flex-row p-6 sm:p-8 md:p-12 gap-8 lg:gap-10 border border-black/5 relative w-full max-w-[100vw]">
               
               {/* Left side: Advantage and Learn More */}
               <div className="w-full md:w-[350px] flex flex-col justify-between shrink-0">
@@ -254,7 +273,7 @@ export function LandingHeader() {
               {/* Right side: Featured Blogs */}
               <div className="flex-1 md:border-l border-black/10 md:pl-10">
                 <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-6">Featured Reads</h4>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
                   {blogs.slice(0, 3).map((post, idx) => (
                     <div onClick={() => navigate(`/blogs/${post.slug}`)} key={idx} className="group/blog cursor-pointer flex flex-col h-full">
                       <div className={`aspect-[16/10] overflow-hidden rounded-[1rem] mb-4 relative shadow-sm shrink-0 border border-black/5 bg-gradient-to-br ${post.gradient || 'from-purple-900 to-indigo-900'}`}>
@@ -290,6 +309,21 @@ export function LandingHeader() {
           </div>
         </div>
       </nav>
+
+      {/* Mobile Drawer Overlay */}
+      {mobileMenuOpen && (
+        <div className="absolute top-full left-0 w-full bg-[#05060a]/95 border-b border-white/10 p-6 flex flex-col gap-4 text-white z-50 md:hidden shadow-2xl backdrop-blur-lg">
+          <button onClick={() => { setMobileMenuOpen(false); navigate('/pricing'); }} className="text-left font-semibold text-lg py-2 hover:text-[#8B5CF6] border-b border-white/5">
+            Pricing
+          </button>
+          <button onClick={() => { setMobileMenuOpen(false); navigate('/blogs'); }} className="text-left font-semibold text-lg py-2 hover:text-[#8B5CF6] border-b border-white/5">
+            Blogs
+          </button>
+          <a href="#docs" onClick={() => setMobileMenuOpen(false)} className="text-left font-semibold text-lg py-2 hover:text-[#8B5CF6] border-b border-white/5">
+            Docs
+          </a>
+        </div>
+      )}
     </header>
   );
 }

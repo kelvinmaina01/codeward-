@@ -103,7 +103,7 @@ export function AuthPage({ onBack, theme: _theme, onCycleTheme, onNavigate: _onN
         </button>
       </div>
 
-      <div className="w-full h-full max-w-[1600px] flex gap-6 md:gap-8 flex-col md:flex-row items-stretch justify-center relative z-10" style={{ minHeight: 'calc(100vh - 24px)' }}>
+      <div className="w-full h-full max-w-[1600px] flex gap-6 md:gap-8 flex-col-reverse md:flex-row items-stretch justify-center relative z-10" style={{ minHeight: 'calc(100vh - 24px)' }}>
         {/* Left brand panel */}
         <div className="w-full md:w-1/2 flex flex-col items-center justify-center px-4 md:px-12 py-12 relative text-white font-['DM_Sans']">
           <div className="relative z-10 flex flex-col items-center text-center w-full max-w-xl">
@@ -148,7 +148,7 @@ export function AuthPage({ onBack, theme: _theme, onCycleTheme, onNavigate: _onN
         {/* Right auth panel */}
         <div className="w-full md:w-1/2 bg-cw-bg border border-cw-bdr rounded-[2rem] flex flex-col items-center justify-center p-4 shadow-sm self-stretch">
           <div className="w-full max-w-[480px] flex flex-col items-center justify-center h-full">
-            <img src="https://i.ibb.co/0jxSNrnp/codewrdlogo-png-removebg-preview.png" alt="Codeward Logo" className="w-40 h-40 mb-6 object-contain -mr-8" />
+            <img src="/codeward-logo.png" alt="Codeward Logo" className="w-32 h-32 md:w-40 md:h-40 mb-6 object-contain -mr-4 md:-mr-8" />
             
             <h2 className="text-[28px] font-bold tracking-tight text-cw-txt mb-3 text-center">
               Welcome to Codeward

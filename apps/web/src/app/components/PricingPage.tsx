@@ -161,7 +161,7 @@ function CreditPacksAndSecuritySection() {
 
           {/* Credit Pack Cards Grid */}
           <FadeInSection>
-            <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
               {CREDIT_PACKS.map((pack) => {
                 const isSelected = selected === pack.usd;
                 return (
@@ -195,12 +195,12 @@ function CreditPacksAndSecuritySection() {
 
           {/* Selected Top-Up Pack Action Card */}
           <FadeInSection>
-            <div className="mt-8 flex flex-col md:flex-row items-center justify-between gap-6 rounded-3xl border border-white/10 bg-black/60 backdrop-blur-xl p-6 md:p-8">
+            <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-6 rounded-3xl border border-white/10 bg-black/60 backdrop-blur-xl p-6 md:p-8">
               <div>
                 <div className="text-xs text-white/50 mb-1 font-medium">Selected Top-Up Pack</div>
-                <div className="text-2xl font-bold text-white">
+                <div className="text-xl sm:text-2xl font-bold text-white">
                   {active.credits.toLocaleString()} credits
-                  <span className="ml-3 text-white/60 font-medium text-base">for ${active.usd}.00</span>
+                  <span className="ml-2 sm:ml-3 text-white/60 font-medium text-sm sm:text-base">for ${active.usd}.00</span>
                 </div>
                 <div className="mt-1 text-xs text-white/40">
                   Instantly available · Valid for 12 months · No subscription required
@@ -211,7 +211,7 @@ function CreditPacksAndSecuritySection() {
                   toast.success(`${active.credits.toLocaleString()} credits added to cart`);
                   navigate('/signup');
                 }}
-                className="w-full md:w-auto rounded-full bg-emerald-500 px-8 py-3.5 text-sm font-bold text-black hover:bg-emerald-400 transition-all duration-300 hover:scale-[1.02] active:scale-95 shadow-lg shadow-emerald-500/25 cursor-pointer"
+                className="w-full sm:w-auto rounded-full bg-emerald-500 px-8 py-3.5 text-sm font-bold text-black hover:bg-emerald-400 transition-all duration-300 hover:scale-[1.02] active:scale-95 shadow-lg shadow-emerald-500/25 cursor-pointer shrink-0"
               >
                 Buy for ${active.usd}
               </button>
@@ -231,7 +231,7 @@ function CreditPacksAndSecuritySection() {
                 Codeward is built on a security-first foundation with the certifications and safeguards your security team expects.
               </p>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
               {badges.map((b, i) => (
                 <div
                   key={i}
@@ -369,7 +369,8 @@ function ComparePlansTable({ navigate, session }: { navigate: ReturnType<typeof 
   return (
     <section className="bg-[#05060a] py-8 px-4 md:px-14">
       <div className="w-full max-w-7xl mx-auto">
-        <div className="relative border border-white/10 rounded-2xl bg-[#07080c] shadow-2xl overflow-hidden">
+        <div className="relative border border-white/10 rounded-2xl bg-[#07080c] shadow-2xl overflow-x-auto max-w-[100vw]">
+          <div className="min-w-[640px]">
           
           {/* 1. INDEPENDENT STATIC HEADER (Pricing Cards) */}
           {/* Stays fixed at top-0 of window while layout scrolls naturally underneath */}
@@ -472,6 +473,7 @@ function ComparePlansTable({ navigate, session }: { navigate: ReturnType<typeof 
             </div>
           </div>
 
+        </div>
         </div>
       </div>
     </section>

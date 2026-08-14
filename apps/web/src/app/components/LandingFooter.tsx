@@ -25,8 +25,8 @@ export function LandingFooter() {
   };
 
   return (
-    <div className="px-4 md:px-8 pb-4 md:pb-8 bg-[#05060a]">
-      <footer className="relative bg-[#C3DBFF] rounded-[16px] pt-20 md:pt-24 pb-8 px-8 md:px-14 overflow-hidden shadow-2xl">
+    <div className="px-4 sm:px-6 md:px-8 pb-4 md:pb-8 bg-[#05060a]">
+      <footer className="relative bg-[#C3DBFF] rounded-[16px] pt-16 sm:pt-20 md:pt-24 pb-8 px-4 sm:px-8 md:px-14 overflow-hidden shadow-2xl">
         {/* Fabric Gradient Overlay */}
         <div className="absolute inset-0 bg-gradient-to-tr from-white/40 via-transparent to-black/5 mix-blend-overlay pointer-events-none" />
         
@@ -78,7 +78,7 @@ export function LandingFooter() {
           </div>
 
         {/* Links Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12 mb-16 md:mb-20">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8 md:gap-12 mb-16 md:mb-20">
           <div className="flex flex-col gap-4">
             <h4 className="text-black font-bold mb-2">Product</h4>
             <a href="#" className="text-black/70 hover:text-black transition-colors text-sm font-semibold">AI Code Builder</a>
