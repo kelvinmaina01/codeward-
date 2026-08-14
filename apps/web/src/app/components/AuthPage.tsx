@@ -77,13 +77,16 @@ export function AuthPage({ onBack, theme: _theme, onCycleTheme, onNavigate: _onN
   const btnClass = "w-full py-2.5 px-4 rounded-xl text-[14px] font-semibold flex items-center justify-center gap-3 transition-all duration-200 text-cw-txt border border-cw-bdr bg-cw-bg hover:bg-cw-bg3";
 
   return (
-    <div className={`theme-${theme} min-h-screen bg-black flex items-stretch justify-center font-sans transition-colors duration-250 px-4 py-2 md:px-8 md:py-3 relative overflow-hidden`}>
+    <div className={`theme-${theme} min-h-screen bg-black flex items-stretch justify-center font-sans transition-colors duration-250 px-4 pt-16 pb-6 md:px-8 md:py-4 relative overflow-hidden`}>
       <ParticleBackground />
 
       {/* Back to Home Button (Arrow only) */}
-      <div className="absolute top-6 left-6 z-50">
+      <div className="absolute top-4 left-4 sm:top-6 sm:left-6 z-50">
         <button
-          onClick={() => (onBack ? onBack() : navigate('/'))}
+          onClick={() => {
+            if (onBack) onBack();
+            navigate('/');
+          }}
           className="w-10 h-10 rounded-full border border-cw-bdr bg-cw-bg2 text-cw-txt2 flex items-center justify-center hover:bg-cw-bg hover:text-cw-txt transition-colors shadow-sm cursor-pointer"
           title="Back to home"
           aria-label="Back to home"
@@ -93,7 +96,7 @@ export function AuthPage({ onBack, theme: _theme, onCycleTheme, onNavigate: _onN
       </div>
 
       {/* Theme Toggle */}
-      <div className="absolute top-6 right-6 z-50">
+      <div className="absolute top-4 right-4 sm:top-6 sm:right-6 z-50">
         <button
           onClick={cycleTheme}
           className="w-10 h-10 rounded-full border border-cw-bdr bg-cw-bg2 text-cw-txt2 flex items-center justify-center hover:bg-cw-bg transition-colors shadow-sm cursor-pointer"
@@ -103,7 +106,7 @@ export function AuthPage({ onBack, theme: _theme, onCycleTheme, onNavigate: _onN
         </button>
       </div>
 
-      <div className="w-full h-full max-w-[1600px] flex gap-6 md:gap-8 flex-col-reverse md:flex-row items-stretch justify-center relative z-10" style={{ minHeight: 'calc(100vh - 24px)' }}>
+      <div className="w-full h-full max-w-[1600px] flex gap-6 md:gap-8 flex-col-reverse md:flex-row items-stretch justify-center relative z-10 mt-2 sm:mt-0" style={{ minHeight: 'calc(100vh - 48px)' }}>
         {/* Left brand panel */}
         <div className="w-full md:w-1/2 flex flex-col items-center justify-center px-4 md:px-12 py-12 relative text-white font-['DM_Sans']">
           <div className="relative z-10 flex flex-col items-center text-center w-full max-w-xl">

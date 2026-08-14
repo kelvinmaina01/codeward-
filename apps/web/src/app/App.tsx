@@ -599,11 +599,11 @@ export const routes = [
   },
   {
     path: "/login",
-    element: <AuthPage onBack={() => {}} theme="dark" onCycleTheme={() => {}} onNavigate={() => {}} />
+    element: <AuthPage onBack={() => navigate('/')} theme="dark" onCycleTheme={() => {}} onNavigate={() => {}} />
   },
   {
     path: "/signup",
-    element: <AuthPage onBack={() => {}} theme="dark" onCycleTheme={() => {}} onNavigate={() => {}} />
+    element: <AuthPage onBack={() => navigate('/')} theme="dark" onCycleTheme={() => {}} onNavigate={() => {}} />
   },
   {
     path: "/connect",
