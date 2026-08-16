@@ -1554,12 +1554,118 @@ export default function CodewardHero() {
         </div>
       </section>
 
-       {/* ── Social Proof / Trusted By Infinite Marquee Fly-Over Section ── */}
+      {/* ── Social Proof / Trusted By Infinite Marquee Fly-Over Section ── */}
       <section className="bg-[#05060a] pt-12 pb-24 px-4 sm:px-8 md:px-14 overflow-hidden relative">
         <div className="mx-auto max-w-[95%] xl:max-w-[1500px]">
           <h2 className="text-center text-2xl md:text-3xl font-bold text-white mb-12 leading-tight">
             Loved and endorsed by developers & teams from
           </h2>
+
+          {/* Marquee Track Container with Gradient Edge Fades */}
+          <div className="relative w-full overflow-hidden space-y-6">
+            {/* Left & Right Gradient Mask Overlays */}
+            <div className="absolute top-0 bottom-0 left-0 w-24 bg-gradient-to-r from-[#05060a] to-transparent z-20 pointer-events-none" />
+            <div className="absolute top-0 bottom-0 right-0 w-24 bg-gradient-to-l from-[#05060a] to-transparent z-20 pointer-events-none" />
+
+            {/* Row 1: Leftward Infinite Fly-over Marquee */}
+            <div className="overflow-hidden w-full flex">
+              <div className="animate-marquee flex items-center gap-6 py-2">
+                {[
+                  { category: 'AI', name: 'OpenAI', domain: 'openai.com' },
+                  { category: 'AI', name: 'Anthropic', domain: 'anthropic.com' },
+                  { category: 'AI', name: 'HuggingFace', domain: 'huggingface.co' },
+                  { category: 'AI', name: 'Mistral AI', domain: 'mistral.ai' },
+                  { category: 'Enterprise', name: 'Microsoft', domain: 'microsoft.com' },
+                  { category: 'Enterprise', name: 'Google', domain: 'google.com' },
+                  { category: 'Enterprise', name: 'PayPal', domain: 'paypal.com' },
+                  { category: 'Enterprise', name: 'Vercel', domain: 'vercel.com' },
+                  { category: 'IoT/Infrastructure', name: 'AWS', domain: 'aws.amazon.com' },
+                  { category: 'IoT/Infrastructure', name: 'Cloudflare', domain: 'cloudflare.com' },
+                  { category: 'IoT/Infrastructure', name: 'Safaricom', domain: 'safaricom.co.ke' },
+                  { category: 'IoT/Infrastructure', name: 'Docker', domain: 'docker.com' },
+                  { category: 'Finance', name: 'Stripe', domain: 'stripe.com' },
+                  { category: 'Finance', name: 'Plaid', domain: 'plaid.com' },
+                  { category: 'Finance', name: 'Flutterwave', domain: 'flutterwave.com' },
+                  { category: 'Finance', name: 'Paystack', domain: 'paystack.com' },
+                ].concat([
+                  { category: 'AI', name: 'OpenAI', domain: 'openai.com' },
+                  { category: 'AI', name: 'Anthropic', domain: 'anthropic.com' },
+                  { category: 'AI', name: 'HuggingFace', domain: 'huggingface.co' },
+                  { category: 'AI', name: 'Mistral AI', domain: 'mistral.ai' },
+                  { category: 'Enterprise', name: 'Microsoft', domain: 'microsoft.com' },
+                  { category: 'Enterprise', name: 'Google', domain: 'google.com' },
+                  { category: 'Enterprise', name: 'PayPal', domain: 'paypal.com' },
+                  { category: 'Enterprise', name: 'Vercel', domain: 'vercel.com' },
+                  { category: 'IoT/Infrastructure', name: 'AWS', domain: 'aws.amazon.com' },
+                  { category: 'IoT/Infrastructure', name: 'Cloudflare', domain: 'cloudflare.com' },
+                  { category: 'IoT/Infrastructure', name: 'Safaricom', domain: 'safaricom.co.ke' },
+                  { category: 'IoT/Infrastructure', name: 'Docker', domain: 'docker.com' },
+                  { category: 'Finance', name: 'Stripe', domain: 'stripe.com' },
+                  { category: 'Finance', name: 'Plaid', domain: 'plaid.com' },
+                  { category: 'Finance', name: 'Flutterwave', domain: 'flutterwave.com' },
+                  { category: 'Finance', name: 'Paystack', domain: 'paystack.com' },
+                ]).map((item, idx) => (
+                  <div key={idx} className="flex items-center gap-3 px-5 py-3 rounded-xl border border-white/10 bg-white/5 backdrop-blur-md shrink-0 shadow-sm hover:border-purple-500/50 hover:bg-white/10 transition-all duration-200">
+                    <img src={`https://www.google.com/s2/favicons?domain=${item.domain}&sz=128`} alt={item.name} className="h-6 w-6 shrink-0 object-contain drop-shadow-md" />
+                    <div className="flex flex-col">
+                      <span className="text-white font-bold text-sm tracking-wide">{item.name}</span>
+                      <span className="text-[10px] text-white/50 font-medium uppercase tracking-wider">{item.category}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Row 2: Rightward Infinite Fly-over Marquee (Reverse Track) */}
+            <div className="overflow-hidden w-full flex">
+              <div className="animate-marquee-reverse flex items-center gap-6 py-2">
+                {[
+                  { category: 'Finance', name: 'Stripe', domain: 'stripe.com' },
+                  { category: 'Finance', name: 'Paystack', domain: 'paystack.com' },
+                  { category: 'Finance', name: 'Flutterwave', domain: 'flutterwave.com' },
+                  { category: 'Finance', name: 'Plaid', domain: 'plaid.com' },
+                  { category: 'IoT/Infrastructure', name: 'Docker', domain: 'docker.com' },
+                  { category: 'IoT/Infrastructure', name: 'Safaricom', domain: 'safaricom.co.ke' },
+                  { category: 'IoT/Infrastructure', name: 'Cloudflare', domain: 'cloudflare.com' },
+                  { category: 'IoT/Infrastructure', name: 'AWS', domain: 'aws.amazon.com' },
+                  { category: 'Enterprise', name: 'Vercel', domain: 'vercel.com' },
+                  { category: 'Enterprise', name: 'PayPal', domain: 'paypal.com' },
+                  { category: 'Enterprise', name: 'Google', domain: 'google.com' },
+                  { category: 'Enterprise', name: 'Microsoft', domain: 'microsoft.com' },
+                  { category: 'AI', name: 'Mistral AI', domain: 'mistral.ai' },
+                  { category: 'AI', name: 'HuggingFace', domain: 'huggingface.co' },
+                  { category: 'AI', name: 'Anthropic', domain: 'anthropic.com' },
+                  { category: 'AI', name: 'OpenAI', domain: 'openai.com' },
+                ].concat([
+                  { category: 'Finance', name: 'Stripe', domain: 'stripe.com' },
+                  { category: 'Finance', name: 'Paystack', domain: 'paystack.com' },
+                  { category: 'Finance', name: 'Flutterwave', domain: 'flutterwave.com' },
+                  { category: 'Finance', name: 'Plaid', domain: 'plaid.com' },
+                  { category: 'IoT/Infrastructure', name: 'Docker', domain: 'docker.com' },
+                  { category: 'IoT/Infrastructure', name: 'Safaricom', domain: 'safaricom.co.ke' },
+                  { category: 'IoT/Infrastructure', name: 'Cloudflare', domain: 'cloudflare.com' },
+                  { category: 'IoT/Infrastructure', name: 'AWS', domain: 'aws.amazon.com' },
+                  { category: 'Enterprise', name: 'Vercel', domain: 'vercel.com' },
+                  { category: 'Enterprise', name: 'PayPal', domain: 'paypal.com' },
+                  { category: 'Enterprise', name: 'Google', domain: 'google.com' },
+                  { category: 'Enterprise', name: 'Microsoft', domain: 'microsoft.com' },
+                  { category: 'AI', name: 'Mistral AI', domain: 'mistral.ai' },
+                  { category: 'AI', name: 'HuggingFace', domain: 'huggingface.co' },
+                  { category: 'AI', name: 'Anthropic', domain: 'anthropic.com' },
+                  { category: 'AI', name: 'OpenAI', domain: 'openai.com' },
+                ]).map((item, idx) => (
+                  <div key={idx} className="flex items-center gap-3 px-5 py-3 rounded-xl border border-white/10 bg-white/5 backdrop-blur-md shrink-0 shadow-sm hover:border-purple-500/50 hover:bg-white/10 transition-all duration-200">
+                    <img src={`https://www.google.com/s2/favicons?domain=${item.domain}&sz=128`} alt={item.name} className="h-6 w-6 shrink-0 object-contain drop-shadow-md" />
+                    <div className="flex flex-col">
+                      <span className="text-white font-bold text-sm tracking-wide">{item.name}</span>
+                      <span className="text-[10px] text-white/50 font-medium uppercase tracking-wider">{item.category}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+          </div>
         </div>
       </section>
 
