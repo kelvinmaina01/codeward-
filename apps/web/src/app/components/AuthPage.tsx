@@ -26,7 +26,10 @@ export function AuthPage({ onBack, theme: _theme, onCycleTheme, onNavigate: _onN
   const navigate = useNavigate();
   const [theme, setTheme] = useState<Theme>('dark');
   const themeOrder: Theme[] = ['dark', 'cream', 'white'];
-  const cycleTheme = () => setTheme(t => themeOrder[(themeOrder.indexOf(t) + 1) % themeOrder.length]);
+  const cycleTheme = () => {
+    setTheme(t => themeOrder[(themeOrder.indexOf(t) + 1) % themeOrder.length]);
+    if (onCycleTheme) onCycleTheme();
+  };
   const [loading, setLoading] = useState<string | null>(null);
   const [typedText, setTypedText] = useState('');
   const [showCursor, setShowCursor] = useState(true);

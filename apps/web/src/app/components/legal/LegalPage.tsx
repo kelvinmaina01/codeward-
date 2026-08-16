@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, FileText, ArrowUp } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { ChevronLeft, FileText, ArrowUp, Moon, Sun, Circle } from 'lucide-react';
 import { Theme } from '../types';
 import { termsContent } from './TermsContent';
 import { privacyContent } from './PrivacyContent';
@@ -8,13 +9,29 @@ import { FooterTrustBadges } from '../FooterTrustBadges';
 
 interface LegalPageProps {
   type: 'terms' | 'privacy' | 'trust';
-  onBack: () => void;
-  theme: Theme;
-  onCycleTheme: () => void;
-  themeIcon: React.ReactNode;
+  onBack?: () => void;
+  theme?: Theme;
+  onCycleTheme?: () => void;
+  themeIcon?: React.ReactNode;
 }
 
-export function LegalPage({ type, onBack, theme, onCycleTheme, themeIcon }: LegalPageProps) {
+export function LegalPage({ type, onBack, theme: initialTheme = 'dark', onCycleTheme, themeIcon }: LegalPageProps) {
+  const navigate = useNavigate();
+  const [currentTheme, setCurrentTheme] = useState<Theme>(initialTheme);
+  const themeOrder: Theme[] = ['dark', 'white', 'cream'];
+
+  const cycleTheme = () => {
+    const nextTheme = themeOrder[(themeOrder.indexOf(currentTheme) + 1) % themeOrder.length];
+    setCurrentTheme(nextTheme);
+    if (onCycleTheme) onCycleTheme();
+  };
+
+  const getThemeIcon = () => {
+    if (currentTheme === 'dark') return <Moon size={14} />;
+    if (currentTheme === 'white') return <Sun size={14} />;
+    return <Circle size={14} className="text-amber-500 fill-amber-500" />;
+  };
+
   const content = type === 'terms' ? termsContent : type === 'trust' ? trustContent : privacyContent;
   const title = type === 'terms' ? 'Terms of Service' : type === 'trust' ? 'Trust & Security Center' : 'Privacy Policy';
   const lastUpdated = 'Last Updated: August 16, 2026';
@@ -69,17 +86,12 @@ export function LegalPage({ type, onBack, theme, onCycleTheme, themeIcon }: Lega
   };
 
   const handleBackClick = () => {
-    if (onBack) {
-      onBack();
-    } else if (window.history.length > 1) {
-      window.history.back();
-    } else {
-      window.location.href = '/';
-    }
+    if (onBack) onBack();
+    navigate('/');
   };
 
   return (
-    <div className={`theme-${theme} w-full h-screen bg-cw-bg transition-colors duration-300 font-sans text-cw-txt relative flex flex-col`}>
+    <div className={`theme-${currentTheme} w-full h-screen bg-cw-bg transition-colors duration-300 font-sans text-cw-txt relative flex flex-col`}>
       {/* Main Scrollable Container */}
       <div id="scroll-container" className="flex-1 overflow-y-auto overflow-x-hidden scroll-smooth relative flex flex-col justify-between">
         
@@ -93,12 +105,12 @@ export function LegalPage({ type, onBack, theme, onCycleTheme, themeIcon }: Lega
             Back
           </button>
           <button 
-            onClick={onCycleTheme} 
+            onClick={cycleTheme} 
             className="w-10 h-10 rounded-full border border-cw-bdr/60 bg-cw-bg2/80 text-cw-txt2 flex items-center justify-center hover:bg-cw-bg2 hover:text-cw-txt transition-all shadow-xs backdrop-blur-sm cursor-pointer"
             title="Toggle Theme"
             aria-label="Toggle Theme"
           >
-            {themeIcon}
+            {themeIcon || getThemeIcon()}
           </button>
         </div>
 
