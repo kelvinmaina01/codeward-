@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
+import { updateConsentPreferences } from '../../lib/telemetry';
 
 type ConsentLevel = 'necessary' | 'custom' | 'all';
 
@@ -59,7 +60,9 @@ export function CookieConsent() {
 
   const save = (level: ConsentLevel) => {
     try {
-      localStorage.setItem(STORAGE_KEY, level);
+      const analyticsEnabled = categories.find(c => c.id === 'analytics')?.enabled || false;
+      const marketingEnabled = categories.find(c => c.id === 'marketing')?.enabled || false;
+      updateConsentPreferences(level, { analytics: analyticsEnabled, marketing: marketingEnabled });
     } catch {}
     setVisible(false);
   };

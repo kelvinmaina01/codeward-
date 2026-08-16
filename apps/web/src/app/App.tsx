@@ -702,12 +702,110 @@ export const routes = [
 ];
 
 import { CookieConsent } from './components/CookieConsent';
+import { trackEvent } from '../lib/telemetry';
+
+function TelemetryTracker() {
+  const location = useLocation();
+  const dwellTimerRef = useRef<number>(0);
+  const scrollMilestonesRef = useRef<Set<number>>(new Set());
+
+  // 1. Session start & Entry landed
+  useEffect(() => {
+    trackEvent('session_start', {
+      user_agent: navigator.userAgent,
+      language: navigator.language,
+      screen_width: window.innerWidth,
+      screen_height: window.innerHeight,
+    });
+    trackEvent('entry_landed', {
+      landing_url: window.location.href,
+    });
+
+    // 10s Bounce prevention milestone
+    const bounceTimer = setTimeout(() => {
+      trackEvent('bounce_prevented', {
+        active_time_sec: 10,
+      });
+    }, 10000);
+
+    // Active Dwell Time Ticker (Heartbeat every 10 seconds)
+    const heartbeatInterval = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        dwellTimerRef.current += 10;
+        trackEvent('page_heartbeat', {
+          dwell_seconds: dwellTimerRef.current,
+        });
+      }
+    }, 10000);
+
+    // Tab visibility change
+    const handleVisibilityChange = () => {
+      trackEvent('tab_visibility_change', {
+        visibility: document.visibilityState,
+      });
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // Exit intent detection (cursor mouseleave at top)
+    const handleMouseLeave = (e: MouseEvent) => {
+      if (e.clientY <= 0) {
+        trackEvent('exit_intent_detected', {
+          top_distance: e.clientY,
+        });
+      }
+    };
+    document.addEventListener('mouseleave', handleMouseLeave);
+
+    return () => {
+      clearTimeout(bounceTimer);
+      clearInterval(heartbeatInterval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      document.removeEventListener('mouseleave', handleMouseLeave);
+    };
+  }, []);
+
+  // 2. Page View & Scroll Depth Tracker per Route
+  useEffect(() => {
+    trackEvent('page_view', {
+      path: location.pathname,
+      search: location.search,
+      title: document.title,
+    });
+
+    scrollMilestonesRef.current.clear();
+
+    const handleScroll = () => {
+      const scrollTop = window.scrollY || document.documentElement.scrollTop;
+      const scrollHeight = document.documentElement.scrollHeight - window.innerHeight;
+      if (scrollHeight <= 0) return;
+
+      const scrollPercent = Math.round((scrollTop / scrollHeight) * 100);
+      const thresholds = [25, 50, 75, 100];
+
+      thresholds.forEach(threshold => {
+        if (scrollPercent >= threshold && !scrollMilestonesRef.current.has(threshold)) {
+          scrollMilestonesRef.current.add(threshold);
+          trackEvent('scroll_depth_reached', {
+            depth_percent: threshold,
+            path: location.pathname,
+          });
+        }
+      });
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [location]);
+
+  return null;
+}
 
 export default function App() {
   const element = useRoutes(routes);
   return (
     <HelmetProvider>
       <WorkspaceProvider>
+        <TelemetryTracker />
         {element}
         <CookieConsent />
         <TeamDrawer />

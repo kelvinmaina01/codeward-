@@ -1,14 +1,27 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { blogs } from '../data/blogs';
+import { trackEvent } from '../../lib/telemetry';
 
 export function LandingHeader() {
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  const toggleMobileMenu = () => {
+    const nextState = !mobileMenuOpen;
+    setMobileMenuOpen(nextState);
+    trackEvent('mobile_menu_toggled', { open: nextState });
+  };
+
   return (
     <header className="relative z-50 flex items-center justify-between px-4 sm:px-8 py-4 sm:py-6 md:px-14 max-w-[100vw]">
-      <div className="flex items-center">
+      <div 
+        className="flex items-center cursor-pointer"
+        onClick={() => {
+          trackEvent('logo_clicked', { source: 'header' });
+          navigate('/');
+        }}
+      >
         <img src="/codeward-logo.png" alt="Codeward Logo" className="h-7 sm:h-8 w-auto object-contain mr-2.5" />
         <span className="text-xl sm:text-2xl font-bold tracking-tight text-white">
           Code<span className="text-purple-500">ward</span>
@@ -17,7 +30,7 @@ export function LandingHeader() {
 
       {/* Mobile Menu Hamburger Button */}
       <button
-        onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+        onClick={toggleMobileMenu}
         className="flex md:hidden items-center justify-center p-2 text-white/80 hover:text-white focus:outline-none cursor-pointer"
         aria-label="Toggle Navigation Menu"
       >
