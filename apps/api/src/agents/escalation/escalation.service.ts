@@ -1,5 +1,6 @@
 import type { SandboxHandle } from '../core/provider.js';
 import { createGuardianTools } from '../definitions/guardian/guardian.tools.js';
+import { renderGuardianIssueBody } from '../guardian/github-renderer.js';
 
 export interface EscalationParams {
   sandbox: SandboxHandle;
@@ -104,18 +105,22 @@ export async function escalateTaskFindings(params: {
       continue;
     }
 
-    const body = [
-      `**Agent**: ${finding.agentId}`,
-      `**Severity**: ${finding.severity}`,
-      finding.category ? `**Category**: ${finding.category}` : '',
-      finding.file ? `**Location**: \`${finding.file}${finding.line != null ? `:${finding.line}` : ''}\`` : '',
-      '',
-      `**Description**: ${finding.description}`,
-      finding.rawEvidence ? `\n**Evidence**:\n\`\`\`\n${finding.rawEvidence.slice(0, 1000)}\n\`\`\`` : '',
-      finding.suggestedFix ? `\n**Suggested fix**: ${finding.suggestedFix}` : '',
-      '',
-      `_Codeward's automated pipeline could not auto-resolve this finding and is escalating it for manual review (run #${params.runId})._`,
-    ].filter(Boolean).join('\n');
+    const body = renderGuardianIssueBody({
+      runId: params.runId,
+      autoFixReason: 'No verified auto-fix PR covered this finding, or the category requires human validation.',
+      finding: {
+        agentId: finding.agentId,
+        severity: finding.severity,
+        category: finding.category,
+        title: finding.title,
+        description: finding.description,
+        file: finding.file,
+        line: finding.line,
+        evidence: finding.rawEvidence,
+        suggestedFix: finding.suggestedFix,
+        fixStatus: 'escalated',
+      },
+    });
 
     const res: any = await params.guardianTools.create_issue.execute({
       repoId: params.repoId, title: issueTitle, body, labels: ['codeward', finding.severity.toLowerCase()],

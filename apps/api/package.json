@@ -12,6 +12,7 @@
     "test:escalation": "tsx src/test-escalation-harness.ts",
     "test:sandbox:lfs": "tsx src/test-sandbox-lfs-harness.ts",
     "test:guardian:real-pr": "tsx src/test-guardian-real-pr-review.ts",
+    "test:guardian:real-pr-open": "tsx src/test-guardian-real-pr-open.ts",
     "build": "tsc",
     "start": "node dist/index.js"
   },
@@ -22,6 +23,7 @@
     "@octokit/app": "^16.1.2",
     "@react-email/components": "^1.0.12",
     "@react-email/render": "^2.0.8",
+    "@sentry/node": "^10.70.0",
     "@types/pg": "^8.20.0",
     "ai": "^6.0.206",
     "better-auth": "^1.6.16",

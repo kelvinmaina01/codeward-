@@ -91,7 +91,7 @@ export function renderGuardianStatusComment(params: {
 
 export function renderGuardianInlineFindingComment(finding: GuardianFindingView): string {
   const lines = [
-    `**${String(finding.severity).toUpperCase()} · ${finding.agentId}**`,
+    `**${String(finding.severity).toUpperCase()} - ${finding.agentId}**`,
     '',
     finding.title,
   ];
@@ -108,18 +108,24 @@ export function renderGuardianIssueBody(params: {
 }): string {
   const f = params.finding;
   return [
-    `**Agent**: ${f.agentId}`,
-    `**Severity**: ${String(f.severity).toUpperCase()}`,
-    f.category ? `**Category**: ${f.category}` : '',
-    f.file ? `**Location**: \`${f.file}${f.line != null ? `:${f.line}` : ''}\`` : '',
+    `## Codeward Escalation - ${String(f.severity).toUpperCase()}`,
     '',
-    `**Finding**: ${f.title}`,
-    f.description ? `\n**Description**: ${f.description}` : '',
-    f.evidence ? `\n**Evidence**:\n\`\`\`\n${f.evidence.slice(0, 1000)}\n\`\`\`` : '',
-    params.autoFixReason ? `\n**Why Codeward did not auto-fix**: ${params.autoFixReason}` : '',
-    f.suggestedFix ? `\n**Suggested manual fix**: ${f.suggestedFix}` : '',
+    '| Field | Value |',
+    '| --- | --- |',
+    `| Agent | ${esc(f.agentId)} |`,
+    `| Severity | ${esc(String(f.severity).toUpperCase())} |`,
+    f.category ? `| Category | ${esc(f.category)} |` : '',
+    f.file ? `| Location | \`${f.file}${f.line != null ? `:${f.line}` : ''}\` |` : '',
+    `| Run | #${params.runId} |`,
     '',
-    `_Escalated by Codeward because the automated pipeline could not safely resolve this finding in run #${params.runId}._`,
+    '### Finding',
+    f.title,
+    f.description ? `\n### Description\n${f.description}` : '',
+    f.evidence ? `\n### Evidence\n\`\`\`\n${f.evidence.slice(0, 1000)}\n\`\`\`` : '',
+    params.autoFixReason ? `\n### Why Codeward did not auto-fix\n${params.autoFixReason}` : '',
+    f.suggestedFix ? `\n### Suggested manual fix\n${f.suggestedFix}` : '',
+    '',
+    '_Escalated by Codeward because the automated pipeline could not safely resolve this finding._',
   ].filter(Boolean).join('\n');
 }
 
@@ -132,10 +138,10 @@ export function renderGuardianFinalReview(view: GuardianRunView): string {
   const countText = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW', 'INFO']
     .filter((s) => counts[s])
     .map((s) => `${s}: ${counts[s]}`)
-    .join(' · ') || 'No findings';
+    .join(' | ') || 'No findings';
 
   const sections = [
-    `## Codeward Guardian Review — ${view.gateDecision}`,
+    `## Codeward Guardian Review - ${view.gateDecision}`,
     '',
     `Run #${view.runId} on \`${view.repoFullName}@${shortSha(view.commitSha)}\`.`,
     '',
@@ -155,7 +161,7 @@ export function renderGuardianFinalReview(view: GuardianRunView): string {
       sections.push(`Opened auto-fix PR #${view.autoFixPR.pullRequestNumber}: ${view.autoFixPR.htmlUrl}`);
       sections.push(reviewText(view.autoFixPR.guardianReview));
       for (const fix of view.autoFixPR.fixes ?? []) {
-        sections.push(`- \`${fix.filePath}\` — ${fix.rationale}${fix.verificationMethod ? ` (verified: ${fix.verificationMethod})` : ''}`);
+        sections.push(`- \`${fix.filePath}\` - ${fix.rationale}${fix.verificationMethod ? ` (verified: ${fix.verificationMethod})` : ''}`);
       }
     } else {
       sections.push(`No auto-fix PR opened: ${view.autoFixPR.reason ?? 'no eligible verified fix'}`);
@@ -170,7 +176,7 @@ export function renderGuardianFinalReview(view: GuardianRunView): string {
   if (view.escalation && view.escalation.issues.length > 0) {
     sections.push('', '### Escalated issues', '');
     for (const issue of view.escalation.issues) {
-      sections.push(`- #${issue.issueNumber}: ${issue.title} (${issue.agentId}) — ${issue.htmlUrl}`);
+      sections.push(`- #${issue.issueNumber}: ${issue.title} (${issue.agentId}) - ${issue.htmlUrl}`);
     }
   }
 
@@ -178,7 +184,7 @@ export function renderGuardianFinalReview(view: GuardianRunView): string {
   if (visibleFindings.length > 0) {
     sections.push('', '### Findings', '');
     for (const f of visibleFindings) {
-      const location = f.file ? ` — \`${f.file}${f.line != null ? `:${f.line}` : ''}\`` : '';
+      const location = f.file ? ` - \`${f.file}${f.line != null ? `:${f.line}` : ''}\`` : '';
       sections.push(`- **${String(f.severity).toUpperCase()}** ${f.title} (${f.agentId})${location}`);
     }
   }
@@ -186,7 +192,7 @@ export function renderGuardianFinalReview(view: GuardianRunView): string {
   if ((view.memoryUsed ?? []).length > 0) {
     sections.push('', '<details><summary>Context used</summary>', '');
     for (const memory of view.memoryUsed ?? []) {
-      sections.push(`- ${memory.writtenBy}${memory.filePath ? ` · \`${memory.filePath}\`` : ''}: ${memory.summary}`);
+      sections.push(`- ${memory.writtenBy}${memory.filePath ? ` - \`${memory.filePath}\`` : ''}: ${memory.summary}`);
     }
     sections.push('', '</details>');
   }

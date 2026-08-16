@@ -81,10 +81,12 @@ async function main() {
     assert.equal(tools.created.length, 1);
     assert.deepEqual(tools.created[0].labels, ['codeward', 'critical']);
     assert.equal(tools.created[0].title, '[Codeward] CRITICAL: Unsigned role cookie grants admin');
-    assert.ok(tools.created[0].body.includes('**Agent**: security'));
-    assert.ok(tools.created[0].body.includes('**Location**: `src/auth/session.ts:42`'));
+    assert.ok(tools.created[0].body.includes('## Codeward Escalation - CRITICAL'));
+    assert.ok(tools.created[0].body.includes('| Agent | security |'));
+    assert.ok(tools.created[0].body.includes('| Location | `src/auth/session.ts:42` |'));
+    assert.ok(tools.created[0].body.includes('### Why Codeward did not auto-fix'));
     assert.ok(tools.created[0].body.includes('curl /admin with role=admin returned 200'));
-    assert.ok(tools.created[0].body.includes('run #55'));
+    assert.ok(tools.created[0].body.includes('| Run | #55 |'));
   }
 
   {

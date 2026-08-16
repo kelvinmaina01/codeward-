@@ -33,7 +33,7 @@ async function main() {
     suggestedFix: 'Validate aud before accepting token claims.',
   });
   includesAll(inline, [
-    '**HIGH · security**',
+    '**HIGH - security**',
     'JWT accepted without audience validation',
     'Evidence: sandbox reproduced missing aud check',
     'Codeward action: escalated.',
@@ -56,10 +56,12 @@ async function main() {
     },
   });
   includesAll(issue, [
-    '**Agent**: security',
-    '**Severity**: CRITICAL',
-    '**Location**: `src/auth/session.ts:88`',
-    '**Why Codeward did not auto-fix**: The change affects auth behavior',
+    '## Codeward Escalation - CRITICAL',
+    '| Agent | security |',
+    '| Severity | CRITICAL |',
+    '| Location | `src/auth/session.ts:88` |',
+    '### Why Codeward did not auto-fix',
+    'The change affects auth behavior',
     '_Escalated by Codeward',
   ]);
 
@@ -103,14 +105,14 @@ async function main() {
   });
 
   includesAll(finalReview, [
-    '## Codeward Guardian Review — BLOCK',
-    '**Finding summary**: CRITICAL: 1 · LOW: 1',
+    '## Codeward Guardian Review - BLOCK',
+    '**Finding summary**: CRITICAL: 1 | LOW: 1',
     '### Checks run',
     '| FAIL | typecheck | 1 new TypeScript error after candidate fix |',
     '### Codeward action',
     'Opened auto-fix PR #52',
     'Guardian verdict: APPROVE',
-    '`src/unused.ts` — Removed unreachable helper (verified: typecheck)',
+    '`src/unused.ts` - Removed unreachable helper (verified: typecheck)',
     '<details><summary>Skipped fixes</summary>',
     '### Escalated issues',
     '#91: Session middleware trusts unsigned role claim',
