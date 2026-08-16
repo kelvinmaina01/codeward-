@@ -3,10 +3,11 @@ import { ChevronLeft, FileText, ArrowUp } from 'lucide-react';
 import { Theme } from '../types';
 import { termsContent } from './TermsContent';
 import { privacyContent } from './PrivacyContent';
+import { trustContent } from './TrustContent';
 import { FooterTrustBadges } from '../FooterTrustBadges';
 
 interface LegalPageProps {
-  type: 'terms' | 'privacy';
+  type: 'terms' | 'privacy' | 'trust';
   onBack: () => void;
   theme: Theme;
   onCycleTheme: () => void;
@@ -14,10 +15,9 @@ interface LegalPageProps {
 }
 
 export function LegalPage({ type, onBack, theme, onCycleTheme, themeIcon }: LegalPageProps) {
-  const isTerms = type === 'terms';
-  const content = isTerms ? termsContent : privacyContent;
-  const title = isTerms ? 'Terms of Service' : 'Privacy Policy';
-  const lastUpdated = 'Last Updated: August 11, 2026';
+  const content = type === 'terms' ? termsContent : type === 'trust' ? trustContent : privacyContent;
+  const title = type === 'terms' ? 'Terms of Service' : type === 'trust' ? 'Trust & Security Center' : 'Privacy Policy';
+  const lastUpdated = 'Last Updated: August 16, 2026';
   const locationInfo = 'Codeward Technologies · Nairobi, Westlands, Kenya · codeward.cloud';
 
   const [activeSection, setActiveSection] = useState(content[0].id);
@@ -143,7 +143,7 @@ export function LegalPage({ type, onBack, theme, onCycleTheme, themeIcon }: Lega
               </div>
               <h1 className="text-[40px] leading-[1.1] font-bold text-cw-txt tracking-tight mb-6">{title}</h1>
               <p className="text-cw-txt2 text-[15px] leading-relaxed mb-3">
-                <strong className="text-cw-txt font-semibold">{lastUpdated}</strong> · {isTerms ? 'These Terms form a binding legal agreement between you and Codeward. Please read them carefully before using the platform.' : 'This Privacy Policy explains how we collect, use, and handle your source code and data.'}
+                <strong className="text-cw-txt font-semibold">{lastUpdated}</strong> · {type === 'terms' ? 'These Terms form a binding legal agreement between you and Codeward. Please read them carefully before using the platform.' : type === 'trust' ? 'This Trust & Security Center outlines our security architecture, ISO 27001 & SOC 2 compliance frameworks, microVM isolation, and encryption standards.' : 'This Privacy Policy explains how we collect, use, and handle your source code and data.'}
               </p>
               <p className="text-cw-txt2/80 text-[13px]">
                 {locationInfo}

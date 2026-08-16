@@ -622,6 +622,10 @@ export const routes = [
     element: <LegalPage type="privacy" onBack={() => {}} theme="dark" onCycleTheme={() => {}} themeIcon={<Moon size={14} />} />
   },
   {
+    path: "/trust",
+    element: <LegalPage type="trust" onBack={() => {}} theme="dark" onCycleTheme={() => {}} themeIcon={<Moon size={14} />} />
+  },
+  {
     path: "/dashboard/commits",
     element: (
       <RequireAuth>
