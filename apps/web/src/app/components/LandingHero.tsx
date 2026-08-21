@@ -252,25 +252,25 @@ function LiveCodewardCodeReviewWidget() {
   }, []);
 
   return (
-    <div className="w-full max-w-[620px] rounded-3xl border border-white/15 bg-[#f8f9fc] p-5 font-['DM_Sans'] text-gray-900 shadow-2xl transition-all duration-500 hover:scale-[1.01]">
+    <div className="w-full max-w-[620px] rounded-3xl border border-white/15 bg-[#f8f9fc] p-3.5 sm:p-5 font-['DM_Sans'] text-gray-900 shadow-2xl transition-all duration-500 hover:scale-[1.01]">
       {/* 1. Terminal Top Command Bar */}
-      <div className="rounded-2xl bg-[#0a0c10] px-5 py-3.5 text-white font-mono text-sm flex items-center justify-between shadow-xl border border-white/10">
-        <div className="flex items-center gap-2">
+      <div className="rounded-2xl bg-[#0a0c10] px-3.5 sm:px-5 py-2.5 sm:py-3.5 text-white font-mono text-xs sm:text-sm flex items-center justify-between shadow-xl border border-white/10">
+        <div className="flex items-center gap-2 min-w-0">
           <span className="text-emerald-400 font-bold">$</span>
-          <span className="text-gray-100 font-medium">{typedText}</span>
-          <span className="w-2 h-4 bg-emerald-400 animate-pulse inline-block ml-0.5" />
+          <span className="text-gray-100 font-medium truncate">{typedText}</span>
+          <span className="w-2 h-4 bg-emerald-400 animate-pulse inline-block ml-0.5 shrink-0" />
         </div>
-        <span className="text-[10px] uppercase font-bold text-gray-500 bg-white/5 px-2.5 py-0.5 rounded">bash</span>
+        <span className="text-[10px] uppercase font-bold text-gray-500 bg-white/5 px-2 py-0.5 rounded shrink-0">bash</span>
       </div>
 
       {/* 2. Connecting Thread Line & Bot Status */}
-      <div className="relative pl-6 py-3 my-0.5 flex items-center gap-3">
+      <div className="relative pl-6 py-2.5 my-0.5 flex flex-wrap items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs font-medium text-gray-600 bg-[#f8f9fc]">
         <div className="absolute left-6 top-0 bottom-0 w-0.5 bg-gray-200" />
-        <div className="relative z-10 flex items-center gap-2 text-xs font-medium text-gray-600 bg-[#f8f9fc] px-1">
+        <div className="relative z-10 flex flex-wrap items-center gap-1.5 sm:gap-2 bg-[#f8f9fc] px-1">
           <img
             src="https://avatars.githubusercontent.com/in/4029840?s=41&u=2d62d6d33d7b1197056c93741230d09bd6859d15&v=4"
             alt="Codeward Bot"
-            className="h-6 w-6 rounded-full border border-gray-200 shadow-sm shrink-0"
+            className="h-5 w-5 sm:h-6 sm:w-6 rounded-full border border-gray-200 shadow-sm shrink-0"
           />
           <span className="font-bold text-gray-900">codeward-code-review</span>
           <span className="rounded bg-gray-200/80 text-gray-700 px-1.5 py-0.5 text-[10px] font-semibold">bot</span>
@@ -281,95 +281,95 @@ function LiveCodewardCodeReviewWidget() {
       </div>
 
       {/* 3. Compact Review Status Card */}
-      <div className="rounded-2xl border border-gray-200/80 bg-white p-4 shadow-sm text-gray-900 space-y-3">
+      <div className="rounded-2xl border border-gray-200/80 bg-white p-3 sm:p-4 shadow-sm text-gray-900 space-y-3">
         {/* Comment Header */}
-        <div className="flex items-center justify-between pb-2.5 border-b border-gray-100 text-xs">
-          <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-gray-100 text-xs">
+          <div className="flex items-center gap-1.5 min-w-0">
             <img
               src="https://avatars.githubusercontent.com/in/4029840?s=41&u=2d62d6d33d7b1197056c93741230d09bd6859d15&v=4"
               alt="Codeward Bot"
               className="h-5 w-5 rounded-full border border-gray-200 shadow-sm shrink-0"
             />
-            <span className="font-bold text-gray-900">Code Review by Codeward</span>
+            <span className="font-bold text-gray-900 truncate">Code Review by Codeward</span>
           </div>
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 shrink-0">
             <span className="px-2 py-0.5 rounded-full bg-rose-50 text-rose-600 border border-rose-200 text-[10px] font-semibold">🐞 3 Bugs</span>
             <span className="px-2 py-0.5 rounded-full bg-purple-50 text-purple-600 border border-purple-200 text-[10px] font-semibold">🛡️ 34 Rules</span>
           </div>
         </div>
 
-        <div className="overflow-x-auto w-full pb-1">
-          <div className="min-w-[460px]">
-            {/* Table Header */}
-            <div className="grid grid-cols-4 text-[10px] font-bold uppercase tracking-wider text-gray-400 pb-2 border-b border-gray-100">
-              <div>REPOSITORY</div>
-              <div>STATUS</div>
-              <div>ACTION</div>
-              <div className="text-right">UPDATED</div>
-            </div>
+        <div className="w-full">
+          {/* Table Header */}
+          <div className="grid grid-cols-12 text-[10px] font-bold uppercase tracking-wider text-gray-400 pb-2 border-b border-gray-100">
+            <div className="col-span-4 sm:col-span-3 truncate">REPOSITORY</div>
+            <div className="col-span-4 sm:col-span-4 truncate">STATUS</div>
+            <div className="col-span-4 sm:col-span-3 truncate">ACTION</div>
+            <div className="hidden sm:block sm:col-span-2 text-right truncate">UPDATED</div>
+          </div>
 
           {/* Table Rows */}
           <div className="divide-y divide-gray-50 text-xs font-medium pt-1">
             {/* Row 1 */}
-            <div className="grid grid-cols-4 py-2 items-center">
-              <div className="font-mono text-gray-900 font-bold flex items-center gap-1.5">
+            <div className="grid grid-cols-12 py-2 items-center text-[11px] sm:text-xs">
+              <div className="col-span-4 sm:col-span-3 font-mono text-gray-900 font-bold flex items-center gap-1 min-w-0 pr-1">
                 <svg className="w-3.5 h-3.5 text-gray-800 shrink-0" viewBox="0 0 24 24" fill="currentColor">
                   <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" />
                 </svg>
-                <span>codeward-</span>
+                <span className="truncate">codeward-</span>
               </div>
-              <div className="flex items-center gap-1.5 text-emerald-600 font-semibold text-[11px]">
-                <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                <span>34 rules passed</span>
+              <div className="col-span-4 sm:col-span-4 flex items-center gap-1 text-emerald-600 font-semibold text-[10px] sm:text-[11px] min-w-0 pr-1">
+                <span className="h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-emerald-500 shrink-0" />
+                <span className="truncate">34 rules passed</span>
               </div>
-              <div>
-                <span className="text-purple-600 underline font-medium hover:text-purple-800 cursor-pointer">Visit report ↗</span>
+              <div className="col-span-4 sm:col-span-3 min-w-0">
+                <span className="text-purple-600 underline font-medium hover:text-purple-800 cursor-pointer truncate block text-[10px] sm:text-xs">Visit report ↗</span>
               </div>
-              <div className="text-right text-gray-400">just now</div>
+              <div className="hidden sm:block sm:col-span-2 text-right text-gray-400">just now</div>
             </div>
 
             {/* Row 2 */}
-            <div className="grid grid-cols-4 py-2 items-center">
-              <div className="font-mono text-gray-900 font-bold flex items-center gap-1.5">
+            <div className="grid grid-cols-12 py-2 items-center text-[11px] sm:text-xs">
+              <div className="col-span-4 sm:col-span-3 font-mono text-gray-900 font-bold flex items-center gap-1 min-w-0 pr-1">
                 <svg className="w-3.5 h-3.5 text-gray-800 shrink-0" viewBox="0 0 24 24" fill="currentColor">
                   <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" />
                 </svg>
-                <span>compass</span>
+                <span className="truncate">compass</span>
               </div>
-              {isPatching ? (
-                <div className="flex items-center gap-1.5 text-amber-600 font-semibold text-[11px]">
-                  <span className="h-2 w-2 rounded-full bg-amber-500 animate-spin" />
-                  <span>Auto-patching...</span>
-                </div>
-              ) : (
-                <div className="flex items-center gap-1.5 text-emerald-600 font-semibold text-[11px]">
-                  <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                  <span>1 bug patched</span>
-                </div>
-              )}
-              <div>
-                <span className="text-purple-600 underline font-medium hover:text-purple-800 cursor-pointer">View diff ↗</span>
+              <div className="col-span-4 sm:col-span-4 min-w-0 pr-1">
+                {isPatching ? (
+                  <div className="flex items-center gap-1 text-amber-600 font-semibold text-[10px] sm:text-[11px]">
+                    <span className="h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-amber-500 animate-spin shrink-0" />
+                    <span className="truncate">Auto-patching...</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1 text-emerald-600 font-semibold text-[10px] sm:text-[11px]">
+                    <span className="h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-emerald-500 shrink-0" />
+                    <span className="truncate">1 bug patched</span>
+                  </div>
+                )}
               </div>
-              <div className="text-right text-gray-400">just now</div>
+              <div className="col-span-4 sm:col-span-3 min-w-0">
+                <span className="text-purple-600 underline font-medium hover:text-purple-800 cursor-pointer truncate block text-[10px] sm:text-xs">View diff ↗</span>
+              </div>
+              <div className="hidden sm:block sm:col-span-2 text-right text-gray-400">just now</div>
             </div>
 
             {/* Row 3 */}
-            <div className="grid grid-cols-4 py-2 items-center">
-              <div className="font-mono text-gray-900 font-bold flex items-center gap-1.5">
+            <div className="grid grid-cols-12 py-2 items-center text-[11px] sm:text-xs">
+              <div className="col-span-4 sm:col-span-3 font-mono text-gray-900 font-bold flex items-center gap-1 min-w-0 pr-1">
                 <svg className="w-3.5 h-3.5 text-gray-800 shrink-0" viewBox="0 0 24 24" fill="currentColor">
                   <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" />
                 </svg>
-                <span>inua360</span>
+                <span className="truncate">inua360</span>
               </div>
-              <div className="flex items-center gap-1.5 text-emerald-600 font-semibold text-[11px]">
-                <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                <span>0 vulnerabilities</span>
+              <div className="col-span-4 sm:col-span-4 flex items-center gap-1 text-emerald-600 font-semibold text-[10px] sm:text-[11px] min-w-0 pr-1">
+                <span className="h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-emerald-500 shrink-0" />
+                <span className="truncate">0 vulnerabilities</span>
               </div>
-              <div>
-                <span className="text-purple-600 underline font-medium hover:text-purple-800 cursor-pointer">Visit report ↗</span>
+              <div className="col-span-4 sm:col-span-3 min-w-0">
+                <span className="text-purple-600 underline font-medium hover:text-purple-800 cursor-pointer truncate block text-[10px] sm:text-xs">Visit report ↗</span>
               </div>
-              <div className="text-right text-gray-400">1m ago</div>
-            </div>
+              <div className="hidden sm:block sm:col-span-2 text-right text-gray-400">1m ago</div>
             </div>
           </div>
         </div>
@@ -406,16 +406,16 @@ function LiveSecurityShieldWidget() {
   }, []);
 
   return (
-    <div className="w-full max-w-[620px] rounded-3xl border border-white/15 bg-[#f8f9fc] p-5 font-['DM_Sans'] text-gray-900 shadow-2xl transition-all duration-500 hover:scale-[1.01]">
+    <div className="w-full max-w-[620px] rounded-3xl border border-white/15 bg-[#f8f9fc] p-3.5 sm:p-5 font-['DM_Sans'] text-gray-900 shadow-2xl transition-all duration-500 hover:scale-[1.01]">
       {/* 1. Command Bar (Live Run Feed / Agent Canvas Run #247) */}
-      <div className="rounded-2xl bg-[#0a0c10] px-5 py-3.5 text-white font-sans text-sm flex items-center justify-between shadow-xl border border-white/10">
-        <div className="flex items-center gap-2.5">
-          <span className="font-bold text-gray-100 text-xs">Live run feed</span>
-          <span className="text-[10px] font-bold text-purple-300 bg-purple-900/60 border border-purple-500/30 px-2 py-0.5 rounded font-mono">
+      <div className="rounded-2xl bg-[#0a0c10] px-3.5 sm:px-5 py-2.5 sm:py-3.5 text-white font-sans text-xs sm:text-sm flex flex-wrap items-center justify-between gap-2 shadow-xl border border-white/10">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="font-bold text-gray-100 text-xs truncate">Live run feed</span>
+          <span className="text-[10px] font-bold text-purple-300 bg-purple-900/60 border border-purple-500/30 px-2 py-0.5 rounded font-mono shrink-0">
             Agent Canvas Run #247
           </span>
         </div>
-        <div className="flex items-center gap-2 text-[10px] font-mono">
+        <div className="flex items-center gap-2 text-[10px] font-mono shrink-0">
           <span className="text-emerald-400 font-bold">15/15 Active</span>
           <span className="text-gray-500">•</span>
           <span className={isShielded ? "text-emerald-400 font-bold" : "text-rose-400 font-bold"}>
@@ -425,13 +425,13 @@ function LiveSecurityShieldWidget() {
       </div>
 
       {/* 2. Connecting Thread Line & Bot Status */}
-      <div className="relative pl-6 py-3 my-0.5 flex items-center gap-3">
+      <div className="relative pl-6 py-2.5 my-0.5 flex flex-wrap items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs font-medium text-gray-600 bg-[#f8f9fc]">
         <div className="absolute left-6 top-0 bottom-0 w-0.5 bg-gray-200" />
-        <div className="relative z-10 flex items-center gap-2 text-xs font-medium text-gray-600 bg-[#f8f9fc] px-1">
+        <div className="relative z-10 flex flex-wrap items-center gap-1.5 sm:gap-2 bg-[#f8f9fc] px-1">
           <img
             src="https://avatars.githubusercontent.com/in/4029840?s=41&u=2d62d6d33d7b1197056c93741230d09bd6859d15&v=4"
             alt="Codeward Bot"
-            className="h-6 w-6 rounded-full border border-gray-200 shadow-sm shrink-0"
+            className="h-5 w-5 sm:h-6 sm:w-6 rounded-full border border-gray-200 shadow-sm shrink-0"
           />
           <span className="font-bold text-gray-900">Security Agent</span>
           <span className="rounded bg-rose-100 text-rose-800 px-1.5 py-0.5 text-[10px] font-bold">haiku-4-5</span>
@@ -442,124 +442,130 @@ function LiveSecurityShieldWidget() {
       </div>
 
       {/* 3. Compact Review Status Card */}
-      <div className="rounded-2xl border border-gray-200/80 bg-white p-4 shadow-sm text-gray-900 space-y-3">
+      <div className="rounded-2xl border border-gray-200/80 bg-white p-3 sm:p-4 shadow-sm text-gray-900 space-y-3">
         {/* Banner Alert */}
         {!isShielded ? (
-          <div className="rounded-xl bg-rose-600 text-white px-3.5 py-2 text-xs font-bold flex items-center justify-between shadow-sm">
-            <div className="flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-white animate-ping" />
-              <span>SECURITY ALERT: Hardcoded Stripe Key Line 14</span>
+          <div className="rounded-xl bg-rose-600 text-white px-3 sm:px-3.5 py-2 text-[11px] sm:text-xs font-bold flex flex-wrap items-center justify-between gap-1 shadow-sm">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <span className="h-2 w-2 rounded-full bg-white animate-ping shrink-0" />
+              <span className="truncate">SECURITY ALERT: Hardcoded Stripe Key Line 14</span>
             </div>
-            <span className="text-[10px] opacity-90 font-mono">1 Critical</span>
+            <span className="text-[10px] opacity-90 font-mono shrink-0">1 Critical</span>
           </div>
         ) : (
-          <div className="rounded-xl bg-emerald-600 text-white px-3.5 py-2 text-xs font-bold flex items-center justify-between shadow-sm">
-            <div className="flex items-center gap-2">
-              <span className="text-white font-bold">🛡️</span>
-              <span>SECRET SHIELDED: Hardcoded Key Removed & Re-encrypted</span>
+          <div className="rounded-xl bg-emerald-600 text-white px-3 sm:px-3.5 py-2 text-[11px] sm:text-xs font-bold flex flex-wrap items-center justify-between gap-1 shadow-sm">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <span className="text-white font-bold shrink-0">🛡️</span>
+              <span className="truncate">SECRET SHIELDED: Key Removed & Re-encrypted</span>
             </div>
-            <span className="text-[10px] font-mono text-emerald-100">Score: 100/100</span>
+            <span className="text-[10px] font-mono text-emerald-100 shrink-0">Score: 100/100</span>
           </div>
         )}
 
-        <div className="overflow-x-auto w-full pb-1">
-          <div className="min-w-[460px]">
-            {/* Table Header */}
-            <div className="grid grid-cols-4 text-[10px] font-bold uppercase tracking-wider text-gray-400 pb-2 border-b border-gray-100">
-              <div>AGENT</div>
-              <div>STATUS</div>
-              <div>FINDINGS</div>
-              <div className="text-right">LATENCY</div>
-            </div>
+        <div className="w-full">
+          {/* Table Header */}
+          <div className="grid grid-cols-12 text-[10px] font-bold uppercase tracking-wider text-gray-400 pb-2 border-b border-gray-100">
+            <div className="col-span-4 sm:col-span-3 truncate">AGENT</div>
+            <div className="col-span-4 sm:col-span-4 truncate">STATUS</div>
+            <div className="col-span-4 sm:col-span-3 truncate">FINDINGS</div>
+            <div className="hidden sm:block sm:col-span-2 text-right truncate">LATENCY</div>
+          </div>
 
-            {/* Table Rows */}
-            <div className="divide-y divide-gray-50 text-xs font-medium pt-1">
-              {/* Row 1 */}
-              <div className="grid grid-cols-4 py-2 items-center">
-                <div className="font-mono text-gray-900 font-bold flex items-center gap-1.5">
-                  <span className="text-rose-500">🛡️</span>
-                  <span>Security</span>
-                </div>
+          {/* Table Rows */}
+          <div className="divide-y divide-gray-50 text-xs font-medium pt-1">
+            {/* Row 1 */}
+            <div className="grid grid-cols-12 py-2 items-center text-[11px] sm:text-xs">
+              <div className="col-span-4 sm:col-span-3 font-mono text-gray-900 font-bold flex items-center gap-1 min-w-0 pr-1">
+                <span className="text-rose-500 shrink-0">🛡️</span>
+                <span className="truncate">Security</span>
+              </div>
+              <div className="col-span-4 sm:col-span-4 min-w-0 pr-1">
                 {isShielding ? (
-                  <div className="flex items-center gap-1.5 text-amber-600 font-semibold text-[11px]">
-                    <span className="h-2 w-2 rounded-full bg-amber-500 animate-spin" />
-                    <span>Shielding secret...</span>
+                  <div className="flex items-center gap-1 text-amber-600 font-semibold text-[10px] sm:text-[11px]">
+                    <span className="h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-amber-500 animate-spin shrink-0" />
+                    <span className="truncate">Shielding...</span>
                   </div>
                 ) : isShielded ? (
-                  <div className="flex items-center gap-1.5 text-emerald-600 font-semibold text-[11px]">
-                    <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                    <span>Key Secured</span>
+                  <div className="flex items-center gap-1 text-emerald-600 font-semibold text-[10px] sm:text-[11px]">
+                    <span className="h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-emerald-500 shrink-0" />
+                    <span className="truncate">Key Secured</span>
                   </div>
                 ) : (
-                  <div className="flex items-center gap-1.5 text-rose-600 font-semibold text-[11px]">
-                    <span className="h-2 w-2 rounded-full bg-rose-500" />
-                    <span>1 Critical key</span>
+                  <div className="flex items-center gap-1 text-rose-600 font-semibold text-[10px] sm:text-[11px]">
+                    <span className="h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-rose-500 shrink-0" />
+                    <span className="truncate">1 Critical key</span>
                   </div>
                 )}
-                <div className="text-gray-600 font-medium">Line 14 API key</div>
-                <div className="text-right text-gray-400 font-mono">180ms</div>
               </div>
+              <div className="col-span-4 sm:col-span-3 text-gray-600 font-medium text-[10px] sm:text-xs min-w-0">
+                <span className="truncate block">Line 14 API key</span>
+              </div>
+              <div className="hidden sm:block sm:col-span-2 text-right text-gray-400 font-mono">180ms</div>
+            </div>
 
-              {/* Row 2 */}
-              <div className="grid grid-cols-4 py-2 items-center">
-                <div className="font-mono text-gray-900 font-bold flex items-center gap-1.5">
-                  <span className="text-emerald-500">🗑️</span>
-                  <span>Bloat</span>
-                </div>
-                <div className="flex items-center gap-1.5 text-emerald-600 font-semibold text-[11px]">
-                  <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                  <span>Score: 88</span>
-                </div>
-                <div className="text-emerald-600 font-medium">-38 dead lines</div>
-                <div className="text-right text-gray-400 font-mono">95ms</div>
+            {/* Row 2 */}
+            <div className="grid grid-cols-12 py-2 items-center text-[11px] sm:text-xs">
+              <div className="col-span-4 sm:col-span-3 font-mono text-gray-900 font-bold flex items-center gap-1 min-w-0 pr-1">
+                <span className="text-emerald-500 shrink-0">🗑️</span>
+                <span className="truncate">Bloat</span>
               </div>
+              <div className="col-span-4 sm:col-span-4 flex items-center gap-1 text-emerald-600 font-semibold text-[10px] sm:text-[11px] min-w-0 pr-1">
+                <span className="h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-emerald-500 shrink-0" />
+                <span className="truncate">Score: 88</span>
+              </div>
+              <div className="col-span-4 sm:col-span-3 text-emerald-600 font-medium text-[10px] sm:text-xs min-w-0">
+                <span className="truncate block">-38 dead lines</span>
+              </div>
+              <div className="hidden sm:block sm:col-span-2 text-right text-gray-400 font-mono">95ms</div>
+            </div>
 
-              {/* Row 3 */}
-              <div className="grid grid-cols-4 py-2 items-center">
-                <div className="font-mono text-gray-900 font-bold flex items-center gap-1.5">
-                  <span className="text-purple-500">⚡</span>
-                  <span>Orchestrator</span>
-                </div>
-                <div className="flex items-center gap-1.5 font-semibold text-[11px]">
-                  <span className={`h-2 w-2 rounded-full ${isShielded ? "bg-emerald-500" : "bg-rose-500"}`} />
-                  <span className={isShielded ? "text-emerald-600" : "text-rose-600"}>
-                    {isShielded ? "Gate: ALLOW" : "Gate: BLOCK"}
-                  </span>
-                </div>
-                <div className="text-gray-600 font-medium">15 agents run</div>
-                <div className="text-right text-gray-400 font-mono">4m 18s</div>
+            {/* Row 3 */}
+            <div className="grid grid-cols-12 py-2 items-center text-[11px] sm:text-xs">
+              <div className="col-span-4 sm:col-span-3 font-mono text-gray-900 font-bold flex items-center gap-1 min-w-0 pr-1">
+                <span className="text-purple-500 shrink-0">⚡</span>
+                <span className="truncate">Orchestrator</span>
               </div>
+              <div className="col-span-4 sm:col-span-4 flex items-center gap-1 font-semibold text-[10px] sm:text-[11px] min-w-0 pr-1">
+                <span className={`h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full shrink-0 ${isShielded ? "bg-emerald-500" : "bg-rose-500"}`} />
+                <span className={`truncate ${isShielded ? "text-emerald-600" : "text-rose-600"}`}>
+                  {isShielded ? "Gate: ALLOW" : "Gate: BLOCK"}
+                </span>
+              </div>
+              <div className="col-span-4 sm:col-span-3 text-gray-600 font-medium text-[10px] sm:text-xs min-w-0">
+                <span className="truncate block">15 agents run</span>
+              </div>
+              <div className="hidden sm:block sm:col-span-2 text-right text-gray-400 font-mono">4m 18s</div>
             </div>
           </div>
         </div>
 
-          {/* Action Status Footer */}
-          <div className="pt-3 border-t border-gray-100 flex justify-end">
-            {!isShielded ? (
-              <div
-                className="px-4 py-1.5 rounded-lg bg-rose-600 text-white text-xs font-bold transition-all shadow-md flex items-center gap-1.5"
-              >
-                {isShielding ? (
-                  <>
-                    <span className="h-3 w-3 rounded-full border-2 border-white border-t-transparent animate-spin" />
-                    <span>Shielding & Revoking Key...</span>
-                  </>
-                ) : (
-                  <>
-                    <span>Shield Secret & Re-scan</span>
-                    <span>🛡️</span>
-                  </>
-                )}
-              </div>
-            ) : (
-              <div className="px-3 py-1 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold flex items-center gap-1">
-                <span>✓ Secret Revoked & Repository Shielded</span>
-              </div>
-            )}
-          </div>
+        {/* Action Status Footer */}
+        <div className="pt-3 border-t border-gray-100 flex justify-end">
+          {!isShielded ? (
+            <div
+              className="px-3.5 py-1.5 rounded-lg bg-rose-600 text-white text-[11px] sm:text-xs font-bold transition-all shadow-md flex items-center gap-1.5"
+            >
+              {isShielding ? (
+                <>
+                  <span className="h-3 w-3 rounded-full border-2 border-white border-t-transparent animate-spin shrink-0" />
+                  <span>Shielding Secret...</span>
+                </>
+              ) : (
+                <>
+                  <span>Shield Secret & Re-scan</span>
+                  <span className="shrink-0">🛡️</span>
+                </>
+              )}
+            </div>
+          ) : (
+            <div className="px-3 py-1 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] sm:text-xs font-bold flex items-center gap-1">
+              <span>✓ Secret Revoked & Shielded</span>
+            </div>
+          )}
         </div>
       </div>
-    );
+    </div>
+  );
   }
 
 function LiveTechDebtWidget() {
@@ -590,27 +596,27 @@ function LiveTechDebtWidget() {
   }, []);
 
   return (
-    <div className="w-full max-w-[620px] rounded-3xl border border-white/15 bg-[#f8f9fc] p-5 font-['DM_Sans'] text-gray-900 shadow-2xl transition-all duration-500 hover:scale-[1.01]">
+    <div className="w-full max-w-[620px] rounded-3xl border border-white/15 bg-[#f8f9fc] p-3.5 sm:p-5 font-['DM_Sans'] text-gray-900 shadow-2xl transition-all duration-500 hover:scale-[1.01]">
       {/* 1. PR Command Header (Borrowed from Screenshot 1 & 2) */}
-      <div className="rounded-2xl bg-[#0a0c10] px-5 py-3.5 text-white font-sans text-sm flex items-center justify-between shadow-xl border border-white/10">
-        <div className="flex items-center gap-2 font-mono text-xs">
-          <span className="text-purple-400 font-bold">feat(ai):</span>
-          <span className="text-gray-200 truncate max-w-[280px]">integrate new streaming endpoints</span>
-          <span className="text-gray-500 font-bold">#241</span>
+      <div className="rounded-2xl bg-[#0a0c10] px-3.5 sm:px-5 py-2.5 sm:py-3.5 text-white font-sans text-xs sm:text-sm flex flex-wrap items-center justify-between gap-2 shadow-xl border border-white/10">
+        <div className="flex items-center gap-1.5 sm:gap-2 font-mono text-xs min-w-0">
+          <span className="text-purple-400 font-bold shrink-0">feat(ai):</span>
+          <span className="text-gray-200 truncate max-w-[140px] xs:max-w-[200px] sm:max-w-[280px]">integrate new streaming endpoints</span>
+          <span className="text-gray-500 font-bold shrink-0">#241</span>
         </div>
-        <span className="text-[10px] font-bold text-rose-400 bg-rose-950/60 border border-rose-500/30 px-2 py-0.5 rounded font-mono">
+        <span className="text-[10px] font-bold text-rose-400 bg-rose-950/60 border border-rose-500/30 px-2 py-0.5 rounded font-mono shrink-0">
           {isFixed ? "PASSED" : "BLOCKED"}
         </span>
       </div>
 
       {/* 2. Connecting Thread Line & Bot Status */}
-      <div className="relative pl-6 py-3 my-0.5 flex items-center gap-3">
+      <div className="relative pl-6 py-2.5 my-0.5 flex flex-wrap items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs font-medium text-gray-600 bg-[#f8f9fc]">
         <div className="absolute left-6 top-0 bottom-0 w-0.5 bg-gray-200" />
-        <div className="relative z-10 flex items-center gap-2 text-xs font-medium text-gray-600 bg-[#f8f9fc] px-1">
+        <div className="relative z-10 flex flex-wrap items-center gap-1.5 sm:gap-2 bg-[#f8f9fc] px-1">
           <img
             src="https://avatars.githubusercontent.com/in/4029840?s=41&u=2d62d6d33d7b1197056c93741230d09bd6859d15&v=4"
             alt="Codeward Bot"
-            className="h-6 w-6 rounded-full border border-gray-200 shadow-sm shrink-0"
+            className="h-5 w-5 sm:h-6 sm:w-6 rounded-full border border-gray-200 shadow-sm shrink-0"
           />
           <span className="font-bold text-gray-900">Codeward App</span>
           <span className="rounded bg-gray-200/80 text-gray-700 px-1.5 py-0.5 text-[10px] font-semibold">bot</span>
@@ -621,82 +627,88 @@ function LiveTechDebtWidget() {
       </div>
 
       {/* 3. Compact Review Status Card */}
-      <div className="rounded-2xl border border-gray-200/80 bg-white p-4 shadow-sm text-gray-900 space-y-3">
+      <div className="rounded-2xl border border-gray-200/80 bg-white p-3 sm:p-4 shadow-sm text-gray-900 space-y-3">
         {/* Banner Alert */}
         {!isFixed ? (
-          <div className="rounded-xl bg-rose-600 text-white px-3.5 py-2 text-xs font-bold flex items-center justify-between shadow-sm">
-            <div className="flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-white animate-ping" />
-              <span>MERGE BLOCKED: Critical Debt Threshold Exceeded</span>
+          <div className="rounded-xl bg-rose-600 text-white px-3 sm:px-3.5 py-2 text-[11px] sm:text-xs font-bold flex flex-wrap items-center justify-between gap-1 shadow-sm">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <span className="h-2 w-2 rounded-full bg-white animate-ping shrink-0" />
+              <span className="truncate">MERGE BLOCKED: Critical Debt Threshold Exceeded</span>
             </div>
-            <span className="text-[10px] opacity-90 font-mono">-45 Points</span>
+            <span className="text-[10px] opacity-90 font-mono shrink-0">-45 Points</span>
           </div>
         ) : (
-          <div className="rounded-xl bg-emerald-600 text-white px-3.5 py-2 text-xs font-bold flex items-center justify-between shadow-sm">
-            <div className="flex items-center gap-2">
-              <span className="text-white font-bold">✓</span>
-              <span>DEBT CLEARED: All Checks Passed & Auto-Refactored</span>
+          <div className="rounded-xl bg-emerald-600 text-white px-3 sm:px-3.5 py-2 text-[11px] sm:text-xs font-bold flex flex-wrap items-center justify-between gap-1 shadow-sm">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <span className="text-white font-bold shrink-0">✓</span>
+              <span className="truncate">DEBT CLEARED: All Checks Passed & Auto-Refactored</span>
             </div>
-            <span className="text-[10px] font-mono text-emerald-100">+100 Points</span>
+            <span className="text-[10px] font-mono text-emerald-100 shrink-0">+100 Points</span>
           </div>
         )}
 
-        <div>
+        <div className="w-full">
           {/* Table Header */}
-          <div className="grid grid-cols-4 text-[10px] font-bold uppercase tracking-wider text-gray-400 pb-2 border-b border-gray-100">
-            <div>CHECK</div>
-            <div>SCORE</div>
-            <div>ANALYSIS</div>
-            <div className="text-right">WEIGHT</div>
+          <div className="grid grid-cols-12 text-[10px] font-bold uppercase tracking-wider text-gray-400 pb-2 border-b border-gray-100">
+            <div className="col-span-4 sm:col-span-3 truncate">CHECK</div>
+            <div className="col-span-4 sm:col-span-4 truncate">SCORE</div>
+            <div className="col-span-4 sm:col-span-3 truncate">ANALYSIS</div>
+            <div className="hidden sm:block sm:col-span-2 text-right truncate">WEIGHT</div>
           </div>
 
           {/* Table Rows */}
           <div className="divide-y divide-gray-50 text-xs font-medium pt-1">
             {/* Row 1 */}
-            <div className="grid grid-cols-4 py-2 items-center">
-              <div className="font-mono text-gray-900 font-bold">Security</div>
-              <div className="flex items-center gap-1.5 text-emerald-600 font-semibold text-[11px]">
-                <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                <span>100/100 (Pass)</span>
+            <div className="grid grid-cols-12 py-2 items-center text-[11px] sm:text-xs">
+              <div className="col-span-4 sm:col-span-3 font-mono text-gray-900 font-bold truncate pr-1">Security</div>
+              <div className="col-span-4 sm:col-span-4 flex items-center gap-1 text-emerald-600 font-semibold text-[10px] sm:text-[11px] min-w-0 pr-1">
+                <span className="h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-emerald-500 shrink-0" />
+                <span className="truncate">100/100 (Pass)</span>
               </div>
-              <div className="text-gray-600 font-medium">0 findings</div>
-              <div className="text-right text-gray-400 font-mono">x2.0</div>
+              <div className="col-span-4 sm:col-span-3 text-gray-600 font-medium text-[10px] sm:text-xs min-w-0">
+                <span className="truncate block">0 findings</span>
+              </div>
+              <div className="hidden sm:block sm:col-span-2 text-right text-gray-400 font-mono">x2.0</div>
             </div>
 
             {/* Row 2 */}
-            <div className="grid grid-cols-4 py-2 items-center">
-              <div className="font-mono text-gray-900 font-bold">Architecture</div>
-              <div className="flex items-center gap-1.5 text-emerald-600 font-semibold text-[11px]">
-                <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                <span>92/100 (Pass)</span>
+            <div className="grid grid-cols-12 py-2 items-center text-[11px] sm:text-xs">
+              <div className="col-span-4 sm:col-span-3 font-mono text-gray-900 font-bold truncate pr-1">Architecture</div>
+              <div className="col-span-4 sm:col-span-4 flex items-center gap-1 text-emerald-600 font-semibold text-[10px] sm:text-[11px] min-w-0 pr-1">
+                <span className="h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-emerald-500 shrink-0" />
+                <span className="truncate">92/100 (Pass)</span>
               </div>
-              <div className="text-gray-600 font-medium">Modular</div>
-              <div className="text-right text-gray-400 font-mono">x1.0</div>
+              <div className="col-span-4 sm:col-span-3 text-gray-600 font-medium text-[10px] sm:text-xs min-w-0">
+                <span className="truncate block">Modular</span>
+              </div>
+              <div className="hidden sm:block sm:col-span-2 text-right text-gray-400 font-mono">x1.0</div>
             </div>
 
             {/* Row 3 */}
-            <div className="grid grid-cols-4 py-2 items-center">
-              <div className="font-mono text-gray-900 font-bold">Broken Code</div>
-              {isFixing ? (
-                <div className="flex items-center gap-1.5 text-amber-600 font-semibold text-[11px]">
-                  <span className="h-2 w-2 rounded-full bg-amber-500 animate-spin" />
-                  <span>Auto-fixing...</span>
-                </div>
-              ) : isFixed ? (
-                <div className="flex items-center gap-1.5 text-emerald-600 font-semibold text-[11px]">
-                  <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                  <span>100/100 (Fixed)</span>
-                </div>
-              ) : (
-                <div className="flex items-center gap-1.5 text-rose-600 font-semibold text-[11px]">
-                  <span className="h-2 w-2 rounded-full bg-rose-500" />
-                  <span>0/100 (Fail)</span>
-                </div>
-              )}
-              <div className="text-purple-600 font-medium">
-                {isFixed ? "Auto-refactored" : "Race condition"}
+            <div className="grid grid-cols-12 py-2 items-center text-[11px] sm:text-xs">
+              <div className="col-span-4 sm:col-span-3 font-mono text-gray-900 font-bold truncate pr-1">Broken Code</div>
+              <div className="col-span-4 sm:col-span-4 min-w-0 pr-1">
+                {isFixing ? (
+                  <div className="flex items-center gap-1 text-amber-600 font-semibold text-[10px] sm:text-[11px]">
+                    <span className="h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-amber-500 animate-spin shrink-0" />
+                    <span className="truncate">Auto-fixing...</span>
+                  </div>
+                ) : isFixed ? (
+                  <div className="flex items-center gap-1 text-emerald-600 font-semibold text-[10px] sm:text-[11px]">
+                    <span className="h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-emerald-500 shrink-0" />
+                    <span className="truncate">100/100 (Fixed)</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1 text-rose-600 font-semibold text-[10px] sm:text-[11px]">
+                    <span className="h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-rose-500 shrink-0" />
+                    <span className="truncate">0/100 (Fail)</span>
+                  </div>
+                )}
               </div>
-              <div className="text-right text-gray-400 font-mono">x1.8</div>
+              <div className="col-span-4 sm:col-span-3 text-purple-600 font-medium text-[10px] sm:text-xs min-w-0">
+                <span className="truncate block">{isFixed ? "Auto-refactored" : "Race condition"}</span>
+              </div>
+              <div className="hidden sm:block sm:col-span-2 text-right text-gray-400 font-mono">x1.8</div>
             </div>
           </div>
 
@@ -704,23 +716,23 @@ function LiveTechDebtWidget() {
           <div className="pt-3 border-t border-gray-100 flex justify-end">
             {!isFixed ? (
               <div
-                className="px-4 py-1.5 rounded-lg bg-purple-600 text-white text-xs font-bold transition-all shadow-md flex items-center gap-1.5"
+                className="px-3.5 py-1.5 rounded-lg bg-purple-600 text-white text-[11px] sm:text-xs font-bold transition-all shadow-md flex items-center gap-1.5"
               >
                 {isFixing ? (
                   <>
-                    <span className="h-3 w-3 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                    <span className="h-3 w-3 rounded-full border-2 border-white border-t-transparent animate-spin shrink-0" />
                     <span>Applying Auto-Fixes...</span>
                   </>
                 ) : (
                   <>
                     <span>Apply Auto-Fixes & Re-run</span>
-                    <span>⚡</span>
+                    <span className="shrink-0">⚡</span>
                   </>
                 )}
               </div>
             ) : (
-              <div className="px-3 py-1 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold flex items-center gap-1">
-                <span>✓ Auto-Fixes Applied Successfully</span>
+              <div className="px-3 py-1 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] sm:text-xs font-bold flex items-center gap-1">
+                <span>✓ Auto-Fixes Applied</span>
               </div>
             )}
           </div>
@@ -759,33 +771,33 @@ function LiveSandboxTestWidget() {
   }, []);
 
   return (
-    <div className="w-full max-w-[620px] rounded-3xl border border-white/15 bg-[#f8f9fc] p-5 font-['DM_Sans'] text-gray-900 shadow-2xl transition-all duration-500 hover:scale-[1.01]">
+    <div className="w-full max-w-[620px] rounded-3xl border border-white/15 bg-[#f8f9fc] p-3.5 sm:p-5 font-['DM_Sans'] text-gray-900 shadow-2xl transition-all duration-500 hover:scale-[1.01]">
       {/* 1. Repository Connection Top Bar (Borrowed from Screenshot) */}
-      <div className="rounded-2xl bg-[#0a0c10] px-5 py-3.5 text-white font-sans text-sm flex items-center justify-between shadow-xl border border-white/10">
-        <div className="flex items-center gap-2.5">
+      <div className="rounded-2xl bg-[#0a0c10] px-3.5 sm:px-5 py-2.5 sm:py-3.5 text-white font-sans text-xs sm:text-sm flex flex-wrap items-center justify-between gap-2 shadow-xl border border-white/10">
+        <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0">
           <svg className="w-4 h-4 text-gray-400 shrink-0" viewBox="0 0 24 24" fill="currentColor">
             <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" />
           </svg>
-          <span className="font-mono text-xs text-gray-300">kelvinmaina01 /</span>
-          <span className="font-mono text-xs font-bold text-white">CODEWARD-OS</span>
-          <span className="text-[10px] text-gray-500 bg-white/10 px-1.5 py-0.5 rounded font-mono">Private</span>
+          <span className="font-mono text-xs text-gray-300 truncate max-w-[100px] xs:max-w-[150px] sm:max-w-[200px]">kelvinmaina01 /</span>
+          <span className="font-mono text-xs font-bold text-white shrink-0">CODEWARD-OS</span>
+          <span className="text-[10px] text-gray-500 bg-white/10 px-1.5 py-0.5 rounded font-mono shrink-0">Private</span>
         </div>
 
         {/* Animated Connection Button */}
         {connectState === 'idle' && (
-          <button className="px-3 py-1 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold transition-all shadow-md cursor-pointer flex items-center gap-1">
+          <button className="px-2.5 sm:px-3 py-1 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold transition-all shadow-md cursor-pointer flex items-center gap-1 shrink-0">
             <span>Connect</span>
             <span>→</span>
           </button>
         )}
         {connectState === 'connecting' && (
-          <div className="px-3 py-1 rounded-lg bg-amber-500/20 border border-amber-500/30 text-amber-300 text-xs font-bold flex items-center gap-1.5 animate-pulse">
+          <div className="px-2.5 sm:px-3 py-1 rounded-lg bg-amber-500/20 border border-amber-500/30 text-amber-300 text-xs font-bold flex items-center gap-1.5 animate-pulse shrink-0">
             <span className="h-2 w-2 rounded-full bg-amber-400 animate-spin" />
             <span>Connecting...</span>
           </div>
         )}
         {connectState === 'connected' && (
-          <div className="px-3 py-1 rounded-lg bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-xs font-bold flex items-center gap-1.5">
+          <div className="px-2.5 sm:px-3 py-1 rounded-lg bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-xs font-bold flex items-center gap-1.5 shrink-0">
             <span className="text-emerald-400 font-bold">✓</span>
             <span>Connected</span>
           </div>
@@ -793,13 +805,13 @@ function LiveSandboxTestWidget() {
       </div>
 
       {/* 2. Connecting Thread Line & Bot Status */}
-      <div className="relative pl-6 py-3 my-0.5 flex items-center gap-3">
+      <div className="relative pl-6 py-2.5 my-0.5 flex flex-wrap items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs font-medium text-gray-600 bg-[#f8f9fc]">
         <div className="absolute left-6 top-0 bottom-0 w-0.5 bg-gray-200" />
-        <div className="relative z-10 flex items-center gap-2 text-xs font-medium text-gray-600 bg-[#f8f9fc] px-1">
+        <div className="relative z-10 flex flex-wrap items-center gap-1.5 sm:gap-2 bg-[#f8f9fc] px-1">
           <img
             src="https://avatars.githubusercontent.com/in/4029840?s=41&u=2d62d6d33d7b1197056c93741230d09bd6859d15&v=4"
             alt="Codeward Bot"
-            className="h-6 w-6 rounded-full border border-gray-200 shadow-sm shrink-0"
+            className="h-5 w-5 sm:h-6 sm:w-6 rounded-full border border-gray-200 shadow-sm shrink-0"
           />
           <span className="font-bold text-gray-900">codeward-test-agent</span>
           <span className="rounded bg-emerald-100 text-emerald-800 px-1.5 py-0.5 text-[10px] font-bold">isolated</span>
@@ -810,77 +822,85 @@ function LiveSandboxTestWidget() {
       </div>
 
       {/* 3. Compact Review Status Card */}
-      <div className="rounded-2xl border border-gray-200/80 bg-white p-4 shadow-sm text-gray-900 space-y-3">
+      <div className="rounded-2xl border border-gray-200/80 bg-white p-3 sm:p-4 shadow-sm text-gray-900 space-y-3">
         {/* Comment Header */}
-        <div className="flex items-center justify-between pb-2.5 border-b border-gray-100 text-xs">
-          <div className="flex items-center gap-2">
-            <span className="text-emerald-500 font-bold text-sm">📦</span>
-            <span className="font-bold text-gray-900">kelvinmaina01 / x-algorithm</span>
+        <div className="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-gray-100 text-xs">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className="text-emerald-500 font-bold text-sm shrink-0">📦</span>
+            <span className="font-bold text-gray-900 truncate">kelvinmaina01 / x-algorithm</span>
           </div>
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 shrink-0">
             <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold">⚡ Score: 100/100</span>
             <span className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-[10px] font-bold">🧹 Ephemeral</span>
           </div>
         </div>
 
-        <div>
+        <div className="w-full">
           {/* Table Header */}
-          <div className="grid grid-cols-4 text-[10px] font-bold uppercase tracking-wider text-gray-400 pb-2 border-b border-gray-100">
-            <div>TEST TOOL</div>
-            <div>STATUS</div>
-            <div>RESULT</div>
-            <div className="text-right">LATENCY</div>
+          <div className="grid grid-cols-12 text-[10px] font-bold uppercase tracking-wider text-gray-400 pb-2 border-b border-gray-100">
+            <div className="col-span-4 sm:col-span-3 truncate">TEST TOOL</div>
+            <div className="col-span-4 sm:col-span-4 truncate">STATUS</div>
+            <div className="col-span-4 sm:col-span-3 truncate">RESULT</div>
+            <div className="hidden sm:block sm:col-span-2 text-right truncate">LATENCY</div>
           </div>
 
           {/* Table Rows */}
           <div className="divide-y divide-gray-50 text-xs font-medium pt-1">
             {/* Row 1 */}
-            <div className="grid grid-cols-4 py-2 items-center">
-              <div className="font-mono text-gray-900 font-bold flex items-center gap-1.5">
-                <span>📦</span>
-                <span>sandbox_init</span>
+            <div className="grid grid-cols-12 py-2 items-center text-[11px] sm:text-xs">
+              <div className="col-span-4 sm:col-span-3 font-mono text-gray-900 font-bold flex items-center gap-1 min-w-0 pr-1">
+                <span className="shrink-0">📦</span>
+                <span className="truncate">sandbox_init</span>
               </div>
-              <div className="flex items-center gap-1.5 text-emerald-600 font-semibold text-[11px]">
-                <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                <span>Isolated container</span>
+              <div className="col-span-4 sm:col-span-4 flex items-center gap-1 text-emerald-600 font-semibold text-[10px] sm:text-[11px] min-w-0 pr-1">
+                <span className="h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-emerald-500 shrink-0" />
+                <span className="truncate">Isolated container</span>
               </div>
-              <div className="text-gray-600 font-medium">Cloned SHA</div>
-              <div className="text-right text-gray-400 font-mono">100ms</div>
+              <div className="col-span-4 sm:col-span-3 text-gray-600 font-medium text-[10px] sm:text-xs min-w-0">
+                <span className="truncate block">Cloned SHA</span>
+              </div>
+              <div className="hidden sm:block sm:col-span-2 text-right text-gray-400 font-mono">100ms</div>
             </div>
 
             {/* Row 2 */}
-            <div className="grid grid-cols-4 py-2 items-center">
-              <div className="font-mono text-gray-900 font-bold flex items-center gap-1.5">
-                <span>⚡</span>
-                <span>fallow_health</span>
+            <div className="grid grid-cols-12 py-2 items-center text-[11px] sm:text-xs">
+              <div className="col-span-4 sm:col-span-3 font-mono text-gray-900 font-bold flex items-center gap-1 min-w-0 pr-1">
+                <span className="shrink-0">⚡</span>
+                <span className="truncate">fallow_health</span>
               </div>
-              {isRunning ? (
-                <div className="flex items-center gap-1.5 text-amber-600 font-semibold text-[11px]">
-                  <span className="h-2 w-2 rounded-full bg-amber-500 animate-spin" />
-                  <span>Evaluating...</span>
-                </div>
-              ) : (
-                <div className="flex items-center gap-1.5 text-emerald-600 font-semibold text-[11px]">
-                  <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                  <span>Score 100/100</span>
-                </div>
-              )}
-              <div className="text-emerald-600 font-medium">No dead code</div>
-              <div className="text-right text-gray-400 font-mono">451ms</div>
+              <div className="col-span-4 sm:col-span-4 min-w-0 pr-1">
+                {isRunning ? (
+                  <div className="flex items-center gap-1 text-amber-600 font-semibold text-[10px] sm:text-[11px]">
+                    <span className="h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-amber-500 animate-spin shrink-0" />
+                    <span className="truncate">Evaluating...</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1 text-emerald-600 font-semibold text-[10px] sm:text-[11px]">
+                    <span className="h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-emerald-500 shrink-0" />
+                    <span className="truncate">Score 100/100</span>
+                  </div>
+                )}
+              </div>
+              <div className="col-span-4 sm:col-span-3 text-emerald-600 font-medium text-[10px] sm:text-xs min-w-0">
+                <span className="truncate block">No dead code</span>
+              </div>
+              <div className="hidden sm:block sm:col-span-2 text-right text-gray-400 font-mono">451ms</div>
             </div>
 
             {/* Row 3 */}
-            <div className="grid grid-cols-4 py-2 items-center">
-              <div className="font-mono text-gray-900 font-bold flex items-center gap-1.5">
-                <span>⚡</span>
-                <span>bundle_size</span>
+            <div className="grid grid-cols-12 py-2 items-center text-[11px] sm:text-xs">
+              <div className="col-span-4 sm:col-span-3 font-mono text-gray-900 font-bold flex items-center gap-1 min-w-0 pr-1">
+                <span className="shrink-0">⚡</span>
+                <span className="truncate">bundle_size</span>
               </div>
-              <div className="flex items-center gap-1.5 text-emerald-600 font-semibold text-[11px]">
-                <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                <span>Zero bloat</span>
+              <div className="col-span-4 sm:col-span-4 flex items-center gap-1 text-emerald-600 font-semibold text-[10px] sm:text-[11px] min-w-0 pr-1">
+                <span className="h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-emerald-500 shrink-0" />
+                <span className="truncate">Zero bloat</span>
               </div>
-              <div className="text-emerald-600 font-medium">Passed</div>
-              <div className="text-right text-gray-400 font-mono">60ms</div>
+              <div className="col-span-4 sm:col-span-3 text-emerald-600 font-medium text-[10px] sm:text-xs min-w-0">
+                <span className="truncate block">Passed</span>
+              </div>
+              <div className="hidden sm:block sm:col-span-2 text-right text-gray-400 font-mono">60ms</div>
             </div>
           </div>
         </div>
@@ -1715,7 +1735,7 @@ export default function CodewardHero() {
 
 
       {/* ── Specialized AI Agents Section ── */}
-      <section className="relative overflow-hidden bg-[#05060a] py-16 md:py-20 px-8 md:px-20 border-t border-white/5">
+      <section className="relative overflow-hidden bg-[#05060a] py-16 md:py-20 px-3.5 sm:px-8 md:px-20 border-t border-white/5">
         {/* Dark Cyber Aesthetic Image Background */}
         <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
           <img
@@ -1730,7 +1750,7 @@ export default function CodewardHero() {
         <div className="relative z-10 mx-auto max-w-7xl flex flex-col space-y-24 md:space-y-32">
           
           {/* Agent 1: Security Shield */}
-          <div className="flex flex-col md:flex-row items-center gap-16">
+          <div className="flex flex-col md:flex-row items-center gap-12 sm:gap-16">
             <FadeInSection direction="up" className="flex-1 max-w-xl">
               <h2 className="text-2xl md:text-4xl font-extrabold text-white mb-6 leading-tight drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)]">
                 Ironclad protection before you deploy
@@ -1748,7 +1768,7 @@ export default function CodewardHero() {
           </div>
 
           {/* Agent 2: Technical Debt */}
-          <div className="flex flex-col md:flex-row items-center gap-16">
+          <div className="flex flex-col md:flex-row items-center gap-12 sm:gap-16">
             <FadeInSection direction="up" className="flex-1 max-w-xl">
               <h2 className="text-2xl md:text-4xl font-extrabold text-white mb-6 leading-tight drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)]">
                 Crush legacy technical debt
@@ -1766,7 +1786,7 @@ export default function CodewardHero() {
           </div>
 
           {/* Agent 3: Sandbox Test */}
-          <div className="flex flex-col md:flex-row items-center gap-16">
+          <div className="flex flex-col md:flex-row items-center gap-12 sm:gap-16">
             <FadeInSection direction="up" className="flex-1 max-w-xl">
               <h2 className="text-2xl md:text-4xl font-extrabold text-white mb-6 leading-tight drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)]">
                 Real tests in live sandboxes
@@ -1784,7 +1804,7 @@ export default function CodewardHero() {
           </div>
 
           {/* Agent 4: Refactor Agent */}
-          <div className="flex flex-col md:flex-row items-center gap-16">
+          <div className="flex flex-col md:flex-row items-center gap-12 sm:gap-16">
             <FadeInSection direction="up" className="flex-1 max-w-xl">
               <h2 className="text-2xl md:text-4xl font-extrabold text-white mb-6 leading-tight drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)]">
                 Scale your architecture safely
@@ -1804,15 +1824,15 @@ export default function CodewardHero() {
         </div>
       </section>
 
-      {/* Ã¢â€â‚¬Ã¢â€â‚¬ Flow / Architecture Section Ã¢â€â‚¬Ã¢â€â‚¬ */}
+      {/* ── Flow / Architecture Section ── */}
 
 
 
-      {/* Ã¢â€â‚¬Ã¢â€â‚¬ Testimonials Section Ã¢â€â‚¬Ã¢â€â‚¬ */}
+      {/* ── Testimonials Section ── */}
       <TestimonialsSection />
 
-      {/* Ã¢â€â‚¬Ã¢â€â‚¬ Latest Insights / Blogs Section Ã¢â€â‚¬Ã¢â€â‚¬ */}
-      <InteractiveParticleGrid className="bg-[#05060a] py-20 md:py-24 px-8 md:px-20 border-t border-white/5">
+      {/* ── Latest Insights / Blogs Section ── */}
+      <InteractiveParticleGrid className="bg-[#05060a] py-20 md:py-24 px-4 sm:px-8 md:px-20 border-t border-white/5">
         <FadeInSection>
           <div className="mx-auto max-w-[1500px]">
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 md:mb-12 gap-6 md:gap-0">
@@ -1876,29 +1896,29 @@ export default function CodewardHero() {
         </FadeInSection>
       </InteractiveParticleGrid>
 
-      {/* Ã¢â€â‚¬Ã¢â€â‚¬ FAQ Section Ã¢â€â‚¬Ã¢â€â‚¬ */}
+      {/* ── FAQ Section ── */}
       <SecuritySection />
       <FAQSection />
 
-      {/* Ã¢â€â‚¬Ã¢â€â‚¬ CTA Section Ã¢â€â‚¬Ã¢â€â‚¬ */}
-      <section className="bg-[#05060a] py-20 md:py-24 px-8 md:px-20 relative overflow-hidden flex flex-col items-center justify-center text-center">
+      {/* ── CTA Section ── */}
+      <section className="bg-[#05060a] py-16 md:py-24 px-4 sm:px-8 md:px-20 relative overflow-hidden flex flex-col items-center justify-center text-center">
         {/* Abstract Background Elements */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] md:w-[800px] md:h-[800px] max-w-[100vw] bg-[radial-gradient(circle_at_center,_rgba(139,92,246,0.12)_0%,_transparent_60%)] pointer-events-none" />
         
         <FadeInSection className="relative z-10 flex flex-col items-center max-w-3xl">
-          <h2 className="text-3xl md:text-5xl font-semibold text-white mb-8 drop-shadow-lg">
+          <h2 className="text-3xl md:text-5xl font-semibold text-white mb-6 md:mb-8 drop-shadow-lg">
             Still Curious?
           </h2>
-          <p className="text-white/60 text-base md:text-lg font-medium mb-12 leading-relaxed max-w-xl">
+          <p className="text-white/60 text-base md:text-lg font-medium mb-8 sm:mb-12 leading-relaxed max-w-xl">
             The fastest way to understand Codeward is to watch it audit your own codebase. Connect it and see what it finds.
           </p>
           <button 
-            className="flex items-center gap-3 px-10 py-4 bg-white hover:bg-white/90 text-black text-lg font-bold rounded-full transition-all hover:scale-105 hover:shadow-[0_0_30px_rgba(255,255,255,0.2)]"
+            className="flex items-center gap-2.5 sm:gap-3 px-6 sm:px-10 py-3.5 sm:py-4 bg-white hover:bg-white/90 text-black text-base sm:text-lg font-bold rounded-full transition-all hover:scale-105 hover:shadow-[0_0_30px_rgba(255,255,255,0.2)] max-w-full"
           >
-            <svg height="24" aria-hidden="true" viewBox="0 0 16 16" version="1.1" width="24" data-view-component="true" className="fill-current">
+            <svg height="22" aria-hidden="true" viewBox="0 0 16 16" version="1.1" width="22" data-view-component="true" className="fill-current shrink-0">
               <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"></path>
             </svg>
-            Connect your first repo &rarr;
+            <span className="truncate">Connect your first repo &rarr;</span>
           </button>
         </FadeInSection>
       </section>
