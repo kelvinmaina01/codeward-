@@ -10,21 +10,29 @@
     <meta name="description" content="Codeward builds, tests, and optimizes your codebase automatically. Connect your repository to run AI-powered security, technical debt, and performance refactoring in sandboxed CI pipelines." />
     <meta name="robots" content="index, follow" />
 
-    <!-- Open Graph / Facebook / LinkedIn / Discord / Slack -->
+    <!-- Open Graph / WhatsApp / Facebook / LinkedIn / Discord / Slack -->
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://codeward.cloud/" />
+    <meta property="og:site_name" content="Codeward" />
     <meta property="og:title" content="Codeward — AI-powered code review &amp; architecture refactoring" />
     <meta property="og:description" content="Codeward builds, tests, and optimizes your codebase automatically. Connect your repository to run AI-powered security, technical debt, and performance refactoring." />
-    <meta property="og:image" content="https://codeward.cloud/og-preview.png" />
+    <meta property="og:image" content="https://codeward.cloud/og-preview.jpg" />
+    <meta property="og:image:secure_url" content="https://codeward.cloud/og-preview.jpg" />
+    <meta property="og:image:type" content="image/jpeg" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Codeward AI Platform Preview" />
 
-    <!-- Twitter / X -->
-    <meta property="twitter:card" content="summary_large_image" />
-    <meta property="twitter:url" content="https://codeward.cloud/" />
-    <meta property="twitter:title" content="Codeward — AI-powered code review &amp; architecture refactoring" />
-    <meta property="twitter:description" content="Codeward builds, tests, and optimizes your codebase automatically. Connect your repository to run AI-powered security, technical debt, and performance refactoring." />
-    <meta property="twitter:image" content="https://codeward.cloud/og-preview.png" />
+    <!-- WhatsApp & Legacy Social Crawler Fallback -->
+    <link rel="image_src" href="https://codeward.cloud/og-preview.jpg" />
+
+    <!-- Twitter / X Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@codeward" />
+    <meta name="twitter:url" content="https://codeward.cloud/" />
+    <meta name="twitter:title" content="Codeward — AI-powered code review &amp; architecture refactoring" />
+    <meta name="twitter:description" content="Codeward builds, tests, and optimizes your codebase automatically. Connect your repository to run AI-powered security, technical debt, and performance refactoring." />
+    <meta name="twitter:image" content="https://codeward.cloud/og-preview.jpg" />
 
     <!-- Favicon -->
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png" />
@@ -37,9 +45,13 @@
     <!-- Google Fonts: JetBrains Mono & Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+
     <!-- Instatus Status Widget -->
     <script src="https://api.dashboard.instatus.com/widget?host=codeward.instatus.com&code=2e58cdb7&locale=en"></script>
+  </head>
 
+  <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
