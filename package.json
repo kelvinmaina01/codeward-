@@ -14,17 +14,6 @@
     "dev": "concurrently \"npm run dev:web\" \"npm run dev:api\"",
     "deploy:web": "npm run deploy --prefix apps/web"
   },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "@tsparticles/engine",
-      "esbuild"
-    ],
-    "overrides": {
-      "react": "18.3.1",
-      "react-dom": "18.3.1",
-      "react-router-dom": "7.13.0"
-    }
-  },
   "devDependencies": {
     "concurrently": "^10.0.4"
   }

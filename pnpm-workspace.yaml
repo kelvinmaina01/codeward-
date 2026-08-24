@@ -2,12 +2,19 @@ packages:
   - '.'
   - 'apps/*'
 allowBuilds:
-  '@tailwindcss/oxide': true
-  '@tsparticles/engine': true
-  esbuild: true
-  msgpackr-extract: true
-  sharp: set this to true or false
-  workerd: set this to true or false
+  '@tailwindcss/oxide': set this to true or false
+  '@tsparticles/engine': set this to true or false
+  esbuild: set this to true or false
+  msgpackr-extract: set this to true or false
+  sharp: true
+  workerd: true
+onlyBuiltDependencies:
+  - '@tailwindcss/oxide'
+  - '@tsparticles/engine'
+  - esbuild
+  - msgpackr-extract
+  - sharp
+  - workerd
 overrides:
   react: '18.3.1'
   react-dom: '18.3.1'
