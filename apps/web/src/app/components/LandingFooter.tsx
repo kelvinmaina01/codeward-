@@ -178,22 +178,18 @@ export function LandingFooter() {
             </div>
           </div>
 
-          {/* All Systems Operational Instatus Link */}
-          <a
-            href="https://codeward.instatus.com"
-            target="_blank"
-            rel="noreferrer"
-            onClick={() => trackEvent('footer_link_clicked', { page: 'status_instatus' })}
-            className="flex items-center gap-2.5 px-4 py-2 rounded-full bg-emerald-950/10 border border-emerald-600/30 hover:bg-emerald-950/20 transition-all cursor-pointer group"
-          >
-            <span className="relative flex h-2.5 w-2.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-600"></span>
-            </span>
-            <span className="text-xs font-bold text-emerald-950 group-hover:text-black tracking-tight">
-              All systems operational
-            </span>
-          </a>
+          {/* Official Instatus Status Embed Iframe Badge */}
+          <div className="flex items-center">
+            <iframe 
+              src="https://codeward.instatus.com/embed-status/2e58cdb7/dark-sm" 
+              width="230" 
+              height="61" 
+              scrolling="no" 
+              style={{ border: 'none', overflow: 'hidden' }}
+              title="Codeward System Status"
+              className="rounded-lg border-0"
+            />
+          </div>
         </div>
       </div>
     </footer>
