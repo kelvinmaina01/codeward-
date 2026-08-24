@@ -151,7 +151,7 @@ export function LandingFooter() {
             <button onClick={() => handleLegalClick('terms')} className="hover:text-black transition-colors cursor-pointer">Terms</button>
             <button onClick={() => handleLegalClick('trust')} className="hover:text-black transition-colors cursor-pointer">Trust</button>
             <a 
-              href="https://status.codeward.cloud" 
+              href="https://codeward.instatus.com" 
               target="_blank" 
               rel="noreferrer" 
               onClick={() => trackEvent('footer_link_clicked', { page: 'status' })}
@@ -178,31 +178,22 @@ export function LandingFooter() {
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-4">
-            <div className="flex items-center gap-2 text-black font-bold text-sm">
-              <span>Codeward meets</span>
-              <span className="text-black font-black text-lg leading-none">✦</span>
-            </div>
-
-            {/* SSL & Accuracy Badges next to Codeward meets ✦ */}
-            <div className="flex flex-wrap items-center gap-2.5">
-              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-black/5 border border-black/10 text-black/90 text-xs font-bold">
-                <svg className="w-3.5 h-3.5 text-black shrink-0" viewBox="0 0 36 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <rect x="7" y="17" width="22" height="17" rx="3.5" stroke="currentColor" strokeWidth="2.2" fill="none"/>
-                  <path d="M12 17V12C12 8.7 14.7 6 18 6C21.3 6 24 8.7 24 12V17" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" fill="none"/>
-                </svg>
-                <span>256-bit SSL Encrypted</span>
-              </div>
-
-              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-black/5 border border-black/10 text-black/90 text-xs font-bold">
-                <svg className="w-3.5 h-3.5 text-black shrink-0" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <circle cx="20" cy="20" r="16" stroke="currentColor" strokeWidth="2" fill="none"/>
-                  <path d="M13 20L18 25L27 15" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-                <span>99% Accuracy Guarantee</span>
-              </div>
-            </div>
-          </div>
+          {/* All Systems Operational Instatus Link */}
+          <a
+            href="https://codeward.instatus.com"
+            target="_blank"
+            rel="noreferrer"
+            onClick={() => trackEvent('footer_link_clicked', { page: 'status_instatus' })}
+            className="flex items-center gap-2.5 px-4 py-2 rounded-full bg-emerald-950/10 border border-emerald-600/30 hover:bg-emerald-950/20 transition-all cursor-pointer group"
+          >
+            <span className="relative flex h-2.5 w-2.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-600"></span>
+            </span>
+            <span className="text-xs font-bold text-emerald-950 group-hover:text-black tracking-tight">
+              All systems operational
+            </span>
+          </a>
         </div>
       </div>
     </footer>

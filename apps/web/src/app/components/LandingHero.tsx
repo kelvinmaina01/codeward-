@@ -1144,168 +1144,356 @@ function MissionTypingText() {
 }
 
 function TestimonialsSection() {
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [isHovered, setIsHovered] = useState(false);
 
   const testimonials = [
     {
       id: 1,
-      bgColor: "bg-[#e0f7fa]", // Light cyan
-      icon: "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Symbols/Warning.png",
-      text: (
-        <>
-          Most AI tools just autocomplete mistakes faster. <span className="bg-yellow-300 text-black px-1 rounded-sm">Codeward</span> is the first platform we've used that actually understands our entire architecture, proactively finding and fixing deep logic flaws before they ever reach our main branch.
-        </>
-      ),
+      company: "Medpace",
+      category: "health tech · medpace",
       author: "Durgesh Sharma",
       role: "Technology Leader, Medpace",
-      avatar: "https://media.licdn.com/dms/image/v2/D4D35AQEUzFOssgYIdw/profile-framedphoto-shrink_800_800/B4DZ..ehuLIwAY-/0/1785607101828?e=1786640400&v=beta&t=pkS8EQYj6CMRo9mvnf-q-GB2t9jyMkKHIOhD9vF6T98"
+      avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&h=120&auto=format&fit=crop&q=70&fm=webp",
+      bgImage: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=800&auto=format&fit=crop&q=65&fm=webp", // Misty lake & mountains
+      metric: "11.4x",
+      metricLabel: "refactor velocity in 10 weeks",
+      text: (
+        <>
+          Most AI tools just autocomplete mistakes faster. <span className="bg-yellow-400/90 text-black px-1.5 py-0.5 rounded font-semibold">Codeward</span> is the first platform we've used that actually understands our entire architecture, proactively finding and fixing deep logic flaws before they ever reach our main branch.
+        </>
+      ),
+      rawQuote: "Most AI tools just autocomplete mistakes faster. Codeward is the first platform we've used that actually understands our entire architecture, proactively finding and fixing deep logic flaws before they ever reach our main branch."
     },
     {
       id: 2,
-      bgColor: "bg-[#fce4ec]", // Light pink
-      icon: "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Symbols/Check%20Mark%20Button.png",
-      text: (
-        <>
-          It's not just another chatbot that you have to micromanage. Codeward acts like a true senior engineer—<span className="bg-yellow-300 text-black px-1 rounded-sm">autonomously refactoring</span> legacy code and writing comprehensive test suites without needing constant supervision.
-        </>
-      ),
+      company: "Baywoods",
+      category: "full-stack · baywoods",
       author: "Brian Nyakundi",
       role: "Founder @ Baywoods | Full-Stack Developer",
-      avatar: "https://media.licdn.com/dms/image/v2/D5635AQF1mFVZpCHP3w/profile-framedphoto-shrink_800_800/profile-framedphoto-shrink_800_800/0/1738869935517?e=1786640400&v=beta&t=qxB5EDlmp4MFHQbyZCRDjKwnUzz53ydSSvjFNOvLvM4"
+      avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120&h=120&auto=format&fit=crop&q=70&fm=webp",
+      bgImage: "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=800&auto=format&fit=crop&q=65&fm=webp", // Foggy pine forest
+      metric: "5.7x",
+      metricLabel: "legacy code upgrade speed",
+      text: (
+        <>
+          It's not just another chatbot that you have to micromanage. Codeward acts like a true senior engineer—<span className="bg-yellow-400/90 text-black px-1.5 py-0.5 rounded font-semibold">autonomously refactoring</span> legacy code and writing comprehensive test suites without needing constant supervision.
+        </>
+      ),
+      rawQuote: "It's not just another chatbot that you have to micromanage. Codeward acts like a true senior engineer—autonomously refactoring legacy code and writing comprehensive test suites without needing constant supervision."
     },
     {
       id: 3,
-      bgColor: "bg-[#e8eaf6]", // Light blue
-      icon: "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Travel%20and%20places/Rocket.png",
-      text: (
-        <>
-          Our technical debt was becoming unmanageable. Within weeks of deploying <span className="bg-yellow-300 text-black px-1 rounded-sm">Codeward</span>, it systematically eliminated thousands of lines of legacy code and upgraded our core modules, all while passing our strictest CI/CD pipelines.
-        </>
-      ),
+      company: "Riara University",
+      category: "cybersecurity · riara",
       author: "Renee (Wanjiru) Njuwa",
       role: "Web Security & Blue Team Specialist, Riara University",
-      avatar: "https://media.licdn.com/dms/image/v2/D4E03AQGsAiWh07j-sw/profile-displayphoto-crop_800_800/B4EZxwGisdIsAI-/0/1771407317853?e=1787788800&v=beta&t=KI0yPtkcQXAc4bi5Yfs54WAewdVnpM-nOkvihK4pg-Y"
+      avatar: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=120&h=120&auto=format&fit=crop&q=70&fm=webp",
+      bgImage: "https://images.unsplash.com/photo-1518837695005-2083093ee35b?w=800&auto=format&fit=crop&q=65&fm=webp", // Ocean coast
+      metric: "2.63M",
+      metricLabel: "lines scanned & patched",
+      text: (
+        <>
+          Our technical debt was becoming unmanageable. Within weeks of deploying <span className="bg-yellow-400/90 text-black px-1.5 py-0.5 rounded font-semibold">Codeward</span>, it systematically eliminated thousands of lines of legacy code and upgraded our core modules, all while passing our strictest CI/CD pipelines.
+        </>
+      ),
+      rawQuote: "Our technical debt was becoming unmanageable. Within weeks of deploying Codeward, it systematically eliminated thousands of lines of legacy code and upgraded our core modules, all while passing our strictest CI/CD pipelines."
     },
     {
       id: 4,
-      bgColor: "bg-[#a9b0b7]", // Grey
-      icon: "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Objects/Light%20Bulb.png",
-      text: (
-        <>
-          Codeward has completely transformed how our engineering teams scale. It doesn't just leave vague PR comments—it <span className="bg-yellow-300 text-black px-1 rounded-sm">spins up sandboxes</span>, runs failing tests, and commits self-healing patches instantly.
-        </>
-      ),
+      company: "Mistral AI",
+      category: "infrastructure · mistral ai",
       author: "Cynthia Saraiva",
       role: "Senior Infrastructure Engineer @ Mistral AI",
-      avatar: "https://media.licdn.com/dms/image/v2/D4D35AQGAqffvt9ifig/profile-framedphoto-shrink_800_800/B4DZ8420RJI4AY-/0/1783365322734?e=1786640400&v=beta&t=gQxjhRqbzMZ9Mn9cWFnJMKFQPs1W196UfIUoQI4fsS4"
+      avatar: "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=120&h=120&auto=format&fit=crop&q=70&fm=webp",
+      bgImage: "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=800&auto=format&fit=crop&q=65&fm=webp", // Sunlit forest trail
+      metric: "5.2x",
+      metricLabel: "inbound test coverage",
+      text: (
+        <>
+          Codeward has completely transformed how our engineering teams scale. It doesn't just leave vague PR comments—it <span className="bg-yellow-400/90 text-black px-1.5 py-0.5 rounded font-semibold">spins up sandboxes</span>, runs failing tests, and commits self-healing patches instantly.
+        </>
+      ),
+      rawQuote: "Codeward has completely transformed how our engineering teams scale. It doesn't just leave vague PR comments—it spins up sandboxes, runs failing tests, and commits self-healing patches instantly."
     },
     {
       id: 5,
-      bgColor: "bg-[#f1f8e9]", // Light green
-      icon: "https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Symbols/Cross%20Mark.png",
-      text: (
-        <>
-          Maintaining consistent code standards across fast-growing teams used to take weeks. <span className="bg-yellow-300 text-black px-1 rounded-sm">Codeward</span> enforces architectural rules automatically across all repositories so developers focus purely on building.
-        </>
-      ),
+      company: "Zavu.dev",
+      category: "systems architecture · zavu",
       author: "Anna Wellerdiek",
       role: "Staff Systems Architect @ Zavu.dev",
-      avatar: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&auto=format&fit=crop&q=80"
+      avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=120&h=120&auto=format&fit=crop&q=70&fm=webp",
+      bgImage: "https://images.unsplash.com/photo-1472214103451-9374bd1c798e?w=800&auto=format&fit=crop&q=65&fm=webp", // Alpine valley fields
+      metric: "31.7x",
+      metricLabel: "architecture rule compliance",
+      text: (
+        <>
+          Maintaining consistent code standards across fast-growing teams used to take weeks. <span className="bg-yellow-400/90 text-black px-1.5 py-0.5 rounded font-semibold">Codeward</span> enforces architectural rules automatically across all repositories so developers focus purely on building.
+        </>
+      ),
+      rawQuote: "Maintaining consistent code standards across fast-growing teams used to take weeks. Codeward enforces architectural rules automatically across all repositories so developers focus purely on building."
+    },
+    {
+      id: 6,
+      company: "Flyrank",
+      category: "ai platform · flyrank",
+      author: "Vikram Patel",
+      role: "Principal Architect @ Flyrank",
+      avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=120&h=120&auto=format&fit=crop&q=70&fm=webp",
+      bgImage: "https://images.unsplash.com/photo-1426604966848-d7adac402bff?w=800&auto=format&fit=crop&q=65&fm=webp", // Sunset mountain lake
+      metric: "2x",
+      metricLabel: "deployment frequency growth",
+      text: (
+        <>
+          Codeward autonomously eliminated friction in our deployment pipeline. What used to take days of manual code reviews is now resolved in minutes with <span className="bg-yellow-400/90 text-black px-1.5 py-0.5 rounded font-semibold">self-healing PRs</span>.
+        </>
+      ),
+      rawQuote: "Codeward autonomously eliminated friction in our deployment pipeline. What used to take days of manual code reviews is now resolved in minutes with self-healing PRs."
+    },
+    {
+      id: 7,
+      company: "Instatus",
+      category: "reliability · instatus",
+      author: "Ali Farhadi",
+      role: "Founder @ Instatus",
+      avatar: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=120&h=120&auto=format&fit=crop&q=70&fm=webp",
+      bgImage: "https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=800&auto=format&fit=crop&q=65&fm=webp", // Emerald mountain lake
+      metric: "2,300",
+      metricLabel: "automated patches merged",
+      text: (
+        <>
+          Instatus requires 99.99% reliability and clean architecture. Codeward monitors our repositories around the clock, automatically cleaning <span className="bg-yellow-400/90 text-black px-1.5 py-0.5 rounded font-semibold">technical debt</span> before it hits production.
+        </>
+      ),
+      rawQuote: "Instatus requires 99.99% reliability and clean architecture. Codeward monitors our repositories around the clock, automatically cleaning technical debt before it hits production."
+    },
+    {
+      id: 8,
+      company: "Razorpay",
+      category: "fintech · razorpay",
+      author: "Aarav Mehta",
+      role: "Engineering Director @ Razorpay",
+      avatar: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=120&h=120&auto=format&fit=crop&q=70&fm=webp",
+      bgImage: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800&auto=format&fit=crop&q=65&fm=webp", // Alpine peak ridge
+      metric: "21.9x",
+      metricLabel: "debt backlog clearance",
+      text: (
+        <>
+          Integrating Codeward cut our technical debt backlog by <span className="bg-yellow-400/90 text-black px-1.5 py-0.5 rounded font-semibold">80% in four weeks</span>. It works seamlessly alongside our core engineers without requiring hand-holding.
+        </>
+      ),
+      rawQuote: "Integrating Codeward cut our technical debt backlog by 80% in four weeks. It works seamlessly alongside our core engineers without requiring hand-holding."
     }
   ];
 
-  const scrollLeft = () => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollBy({ left: -650, behavior: 'smooth' });
-    }
+  const currentActive = testimonials[activeIndex];
+
+  const handleNext = () => {
+    setActiveIndex((prev) => (prev + 1) % testimonials.length);
   };
 
-  const scrollRight = () => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollBy({ left: 650, behavior: 'smooth' });
-    }
+  const handlePrev = () => {
+    setActiveIndex((prev) => (prev - 1 + testimonials.length) % testimonials.length);
   };
 
   useEffect(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    
-    let direction = 1;
-    let isHovered = false;
-    let animationFrameId: number;
-
-    const handleMouseEnter = () => { isHovered = true; };
-    const handleMouseLeave = () => { isHovered = false; };
-     const step = () => {
-      if (!isHovered) {
-        const maxScroll = el.scrollWidth - el.clientWidth;
-        if (direction === 1 && el.scrollLeft >= maxScroll - 5) {
-          direction = -1;
-        } else if (direction === -1 && el.scrollLeft <= 5) {
-          direction = 1;
-        }
-        el.scrollLeft += 2.2 * direction;
-      }
-      animationFrameId = requestAnimationFrame(step);
-    };
-    
-    animationFrameId = requestAnimationFrame(step);
-
-    return () => {
-      cancelAnimationFrame(animationFrameId);
-      el.removeEventListener('mouseenter', handleMouseEnter);
-      el.removeEventListener('mouseleave', handleMouseLeave);
-    };
-  }, []);
+    if (isHovered) return;
+    const interval = setInterval(() => {
+      setActiveIndex((prev) => (prev + 1) % testimonials.length);
+    }, 7000);
+    return () => clearInterval(interval);
+  }, [isHovered, testimonials.length]);
 
   return (
-    <section className="bg-[#05060a] py-16 pl-8 md:pl-20 border-t border-white/5 overflow-hidden">
-      <div className="w-full">
-        <div className="max-w-[1500px] mr-auto">
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 md:mb-12 gap-6 md:gap-0 pr-8 md:pr-20">
-            <h2 className="text-3xl md:text-5xl font-bold text-white tracking-tight">What developers are saying</h2>
-            <div className="flex gap-4">
-              <button onClick={scrollLeft} aria-label="Scroll left" className="h-14 w-14 rounded-full border border-white/20 flex items-center justify-center text-white hover:bg-white/10 active:scale-95 transition-all shrink-0 cursor-pointer">
-                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+    <section 
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      className="bg-[#05060a] py-16 sm:py-20 px-4 sm:px-8 md:px-16 lg:px-20 relative overflow-hidden"
+    >
+      <div className="max-w-[1500px] mx-auto">
+        {/* Section Header */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 md:mb-12 gap-4">
+          <div>
+            <h2 className="text-3xl md:text-5xl font-bold text-white tracking-tight">
+              What developers are saying
+            </h2>
+          </div>
+
+          <div className="flex items-center gap-4">
+            <span className="text-sm font-semibold text-white/50 tracking-wider">
+              <span className="text-purple-400">{String(activeIndex + 1).padStart(2, '0')}</span> / {String(testimonials.length).padStart(2, '0')}
+            </span>
+            <div className="flex gap-2">
+              <button 
+                onClick={handlePrev} 
+                aria-label="Previous testimonial" 
+                className="h-11 w-11 rounded-full border border-white/20 flex items-center justify-center text-white hover:bg-white/10 hover:border-purple-400/60 active:scale-95 transition-all cursor-pointer"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
               </button>
-              <button onClick={scrollRight} aria-label="Scroll right" className="h-14 w-14 rounded-full border border-white/20 flex items-center justify-center text-white hover:bg-white/10 active:scale-95 transition-all shrink-0 cursor-pointer">
-                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+              <button 
+                onClick={handleNext} 
+                aria-label="Next testimonial" 
+                className="h-11 w-11 rounded-full border border-white/20 flex items-center justify-center text-white hover:bg-white/10 hover:border-purple-400/60 active:scale-95 transition-all cursor-pointer"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
               </button>
             </div>
           </div>
+        </div>
 
-          <div 
-            ref={scrollRef}
-            className="flex gap-8 overflow-x-auto pb-12 pr-[20vw] hide-scrollbar"
-            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', scrollBehavior: 'smooth' }}
-          >
-            {testimonials.map((t) => (
-              <div 
-                key={t.id} 
-                className={`${t.bgColor} shrink-0 w-[85vw] md:w-[480px] h-[380px] rounded-2xl p-8 flex flex-col justify-between relative shadow-2xl transition-transform hover:scale-[1.02]`}
-              >
-                <div>
-                  <p className="text-xl md:text-2xl text-black font-medium leading-[1.3] mb-8 tracking-tight">
-                    {t.text}
-                  </p>
-                  <div className="flex items-center gap-4">
-                    <img src={t.avatar} alt={t.author} className="h-16 w-16 rounded-full border-4 border-white object-cover shadow-md" />
-                    <div>
-                      <div className="text-black font-bold text-lg">{t.author}</div>
-                      <div className="text-black/60 text-sm font-medium">{t.role}</div>
-                    </div>
+        {/* Main Grid: Left Featured Card + Right Small Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+          
+          {/* Large Featured Card (Left Column) */}
+          <div className="lg:col-span-5 flex flex-col">
+            <div 
+              key={currentActive.id}
+              className="relative w-full h-full min-h-[480px] lg:min-h-[520px] rounded-2xl overflow-hidden border border-white/15 p-7 sm:p-9 flex flex-col justify-between shadow-2xl transition-all duration-500 group"
+            >
+              {/* Nature Background Image with Scrim */}
+              <img 
+                src={currentActive.bgImage} 
+                alt={currentActive.company}
+                loading="eager"
+                decoding="async"
+                className="absolute inset-0 w-full h-full object-cover object-center transition-transform duration-700 group-hover:scale-105"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#05060a] via-[#05060a]/85 to-[#05060a]/50" />
+
+              {/* Top Section: Category & Lowered Metric */}
+              <div className="relative z-10">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-xs font-semibold text-emerald-400 tracking-wider">
+                    {currentActive.category}
+                  </span>
+                  <span className="text-xs text-white/50 font-semibold uppercase tracking-widest">
+                    Featured
+                  </span>
+                </div>
+
+                {/* Lowered Metric Block */}
+                <div className="pt-2 flex items-baseline gap-3">
+                  <div className="text-3xl sm:text-4xl md:text-5xl font-black text-white tracking-tight drop-shadow-md">
+                    {currentActive.metric}
+                  </div>
+                  <div className="text-xs sm:text-sm font-semibold text-emerald-400">
+                    {currentActive.metricLabel}
                   </div>
                 </div>
               </div>
-            ))}
+
+              {/* Middle Section: Centered Quote with Increased Height/Size */}
+              <div className="relative z-10 my-auto py-4 flex flex-col justify-center">
+                <p className="text-lg sm:text-xl lg:text-2xl text-white/95 font-medium leading-relaxed sm:leading-relaxed tracking-tight drop-shadow-md">
+                  "{currentActive.text}"
+                </p>
+              </div>
+
+              {/* Bottom Author Section */}
+              <div className="relative z-10 pt-4 border-t border-white/10 flex items-center justify-between">
+                <div className="flex items-center gap-3.5">
+                  <img 
+                    src={currentActive.avatar} 
+                    alt={currentActive.author} 
+                    loading="lazy"
+                    decoding="async"
+                    className="h-14 w-14 rounded-full border-2 border-purple-400/80 object-cover shadow-lg shrink-0" 
+                  />
+                  <div>
+                    <div className="text-white font-bold text-base sm:text-lg leading-snug">
+                      {currentActive.author}
+                    </div>
+                    <div className="text-white/70 text-xs sm:text-sm font-medium">
+                      {currentActive.role}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="hidden sm:flex items-center gap-1 text-xs font-bold text-purple-400 bg-purple-950/60 border border-purple-500/30 px-3 py-1.5 rounded-full">
+                  <span>Active</span>
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+              </div>
+            </div>
           </div>
+
+          {/* Small Cards Grid (Right Column: 4 cols x 2 rows = 8 cards) */}
+          <div className="lg:col-span-7 grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3.5">
+            {testimonials.map((item, idx) => {
+              const isActive = idx === activeIndex;
+              return (
+                <div
+                  key={item.id}
+                  onClick={() => setActiveIndex(idx)}
+                  className={`relative h-[155px] rounded-2xl overflow-hidden p-4 flex flex-col justify-between cursor-pointer transition-all duration-300 group ${
+                    isActive 
+                      ? 'ring-2 ring-purple-500 border-purple-400 shadow-[0_0_25px_rgba(168,85,247,0.35)] scale-[1.02]' 
+                      : 'border border-white/15 hover:border-white/40 hover:scale-[1.03] hover:shadow-lg'
+                  }`}
+                >
+                  {/* Background Nature Image */}
+                  <img 
+                    src={item.bgImage} 
+                    alt={item.company}
+                    loading="lazy"
+                    decoding="async"
+                    className="absolute inset-0 w-full h-full object-cover object-center transition-transform duration-500 group-hover:scale-110"
+                  />
+                  <div className={`absolute inset-0 transition-colors duration-300 ${
+                    isActive 
+                      ? 'bg-gradient-to-t from-black/95 via-black/80 to-purple-950/40' 
+                      : 'bg-gradient-to-t from-black/90 via-black/75 to-black/40 group-hover:via-black/65'
+                  }`} />
+
+                  {/* Card Content */}
+                  <div className="relative z-10 flex items-center justify-between">
+                    <span className={`text-xs sm:text-sm font-bold tracking-wider ${isActive ? 'text-purple-300' : 'text-white/90'}`}>
+                      {item.company}
+                    </span>
+                    {isActive && (
+                      <span className="w-2 h-2 rounded-full bg-purple-400 animate-pulse" />
+                    )}
+                  </div>
+
+                  <div className="relative z-10">
+                    <div className="text-2xl sm:text-3xl font-black text-white tracking-tight leading-tight">
+                      {item.metric}
+                    </div>
+                    <div className="text-[11px] sm:text-xs font-medium text-white/70 line-clamp-1 mt-0.5">
+                      {item.metricLabel}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
         </div>
+
+        {/* Bottom Pagination Indicators */}
+        <div className="flex items-center justify-center gap-2 mt-8 md:mt-10">
+          {testimonials.map((_, idx) => (
+            <button
+              key={idx}
+              onClick={() => setActiveIndex(idx)}
+              aria-label={`Go to testimonial ${idx + 1}`}
+              className={`transition-all duration-300 cursor-pointer ${
+                idx === activeIndex
+                  ? 'w-8 h-2.5 bg-gradient-to-r from-purple-500 to-emerald-400 rounded-full shadow-[0_0_12px_rgba(168,85,247,0.6)]'
+                  : 'w-2.5 h-2.5 bg-white/20 hover:bg-white/50 rounded-full'
+              }`}
+            />
+          ))}
+        </div>
+
       </div>
-      <style>{`
-        .hide-scrollbar::-webkit-scrollbar {
-          display: none;
-        }
-      `}</style>
     </section>
   );
 }
