@@ -1300,7 +1300,7 @@ function TestimonialsSection() {
     if (isHovered) return;
     const interval = setInterval(() => {
       setActiveIndex((prev) => (prev + 1) % testimonials.length);
-    }, 7000);
+    }, 3000);
     return () => clearInterval(interval);
   }, [isHovered, testimonials.length]);
 
