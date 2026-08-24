@@ -1431,6 +1431,7 @@ function TestimonialsSection() {
               return (
                 <div
                   key={item.id}
+                  onMouseEnter={() => setActiveIndex(idx)}
                   onClick={() => setActiveIndex(idx)}
                   className={`relative h-[242px] rounded-2xl overflow-hidden p-4 sm:p-5 flex flex-col justify-between cursor-pointer transition-all duration-300 group ${
                     isActive 
