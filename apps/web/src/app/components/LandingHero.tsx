@@ -1425,14 +1425,14 @@ function TestimonialsSection() {
           </div>
 
           {/* Small Cards Grid (Right Column: 4 cols x 2 rows = 8 cards) */}
-          <div className="lg:col-span-7 grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3.5">
+          <div className="lg:col-span-7 grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-4 items-stretch">
             {testimonials.map((item, idx) => {
               const isActive = idx === activeIndex;
               return (
                 <div
                   key={item.id}
                   onClick={() => setActiveIndex(idx)}
-                  className={`relative h-[155px] rounded-2xl overflow-hidden p-4 flex flex-col justify-between cursor-pointer transition-all duration-300 group ${
+                  className={`relative h-[242px] rounded-2xl overflow-hidden p-4 sm:p-5 flex flex-col justify-between cursor-pointer transition-all duration-300 group ${
                     isActive 
                       ? 'ring-2 ring-purple-500 border-purple-400 shadow-[0_0_25px_rgba(168,85,247,0.35)] scale-[1.02]' 
                       : 'border border-white/15 hover:border-white/40 hover:scale-[1.03] hover:shadow-lg'
@@ -1458,7 +1458,7 @@ function TestimonialsSection() {
                       {item.company}
                     </span>
                     {isActive && (
-                      <span className="w-2 h-2 rounded-full bg-purple-400 animate-pulse" />
+                      <span className="w-2.5 h-2.5 rounded-full bg-purple-400 animate-pulse shadow-[0_0_8px_rgba(168,85,247,0.8)]" />
                     )}
                   </div>
 
@@ -1466,7 +1466,7 @@ function TestimonialsSection() {
                     <div className="text-2xl sm:text-3xl font-black text-white tracking-tight leading-tight">
                       {item.metric}
                     </div>
-                    <div className="text-[11px] sm:text-xs font-medium text-white/70 line-clamp-1 mt-0.5">
+                    <div className="text-xs font-medium text-white/75 line-clamp-2 mt-1 leading-snug">
                       {item.metricLabel}
                     </div>
                   </div>
