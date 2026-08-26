@@ -1155,7 +1155,7 @@ function TestimonialsSection() {
       author: "Durgesh Sharma",
       role: "Technology Leader, Medpace",
       avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&h=120&auto=format&fit=crop&q=70&fm=webp",
-      bgImage: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=800&auto=format&fit=crop&q=65&fm=webp", // Misty lake & mountains
+      bgImage: "/bg.png",
       metric: "11.4x",
       metricLabel: "refactor velocity in 10 weeks",
       text: (
@@ -1172,7 +1172,7 @@ function TestimonialsSection() {
       author: "Brian Nyakundi",
       role: "Founder @ Baywoods | Full-Stack Developer",
       avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120&h=120&auto=format&fit=crop&q=70&fm=webp",
-      bgImage: "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=800&auto=format&fit=crop&q=65&fm=webp", // Foggy pine forest
+      bgImage: "/bg.png",
       metric: "5.7x",
       metricLabel: "legacy code upgrade speed",
       text: (
@@ -1189,7 +1189,7 @@ function TestimonialsSection() {
       author: "Renee (Wanjiru) Njuwa",
       role: "Web Security & Blue Team Specialist, Riara University",
       avatar: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=120&h=120&auto=format&fit=crop&q=70&fm=webp",
-      bgImage: "https://images.unsplash.com/photo-1518837695005-2083093ee35b?w=800&auto=format&fit=crop&q=65&fm=webp", // Ocean coast
+      bgImage: "/bg.png",
       metric: "2.63M",
       metricLabel: "lines scanned & patched",
       text: (
@@ -1206,7 +1206,7 @@ function TestimonialsSection() {
       author: "Cynthia Saraiva",
       role: "Senior Infrastructure Engineer @ Mistral AI",
       avatar: "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=120&h=120&auto=format&fit=crop&q=70&fm=webp",
-      bgImage: "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=800&auto=format&fit=crop&q=65&fm=webp", // Sunlit forest trail
+      bgImage: "/bg.png",
       metric: "5.2x",
       metricLabel: "inbound test coverage",
       text: (
@@ -1223,7 +1223,7 @@ function TestimonialsSection() {
       author: "Anna Wellerdiek",
       role: "Staff Systems Architect @ Zavu.dev",
       avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=120&h=120&auto=format&fit=crop&q=70&fm=webp",
-      bgImage: "https://images.unsplash.com/photo-1472214103451-9374bd1c798e?w=800&auto=format&fit=crop&q=65&fm=webp", // Alpine valley fields
+      bgImage: "/bg.png",
       metric: "31.7x",
       metricLabel: "architecture rule compliance",
       text: (
@@ -1240,7 +1240,7 @@ function TestimonialsSection() {
       author: "Vikram Patel",
       role: "Principal Architect @ Flyrank",
       avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=120&h=120&auto=format&fit=crop&q=70&fm=webp",
-      bgImage: "https://images.unsplash.com/photo-1426604966848-d7adac402bff?w=800&auto=format&fit=crop&q=65&fm=webp", // Sunset mountain lake
+      bgImage: "/bg.png",
       metric: "2x",
       metricLabel: "deployment frequency growth",
       text: (
@@ -1257,7 +1257,7 @@ function TestimonialsSection() {
       author: "Ali Farhadi",
       role: "Founder @ Instatus",
       avatar: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=120&h=120&auto=format&fit=crop&q=70&fm=webp",
-      bgImage: "https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=800&auto=format&fit=crop&q=65&fm=webp", // Emerald mountain lake
+      bgImage: "/bg.png",
       metric: "2,300",
       metricLabel: "automated patches merged",
       text: (
@@ -1274,7 +1274,7 @@ function TestimonialsSection() {
       author: "Aarav Mehta",
       role: "Engineering Director @ Razorpay",
       avatar: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=120&h=120&auto=format&fit=crop&q=70&fm=webp",
-      bgImage: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800&auto=format&fit=crop&q=65&fm=webp", // Alpine peak ridge
+      bgImage: "/bg.png",
       metric: "21.9x",
       metricLabel: "debt backlog clearance",
       text: (
@@ -1355,15 +1355,15 @@ function TestimonialsSection() {
               key={currentActive.id}
               className="relative w-full h-full min-h-[480px] lg:min-h-[520px] rounded-2xl overflow-hidden border border-white/15 p-7 sm:p-9 flex flex-col justify-between shadow-2xl transition-all duration-500 group"
             >
-              {/* Nature Background Image with Scrim */}
+              {/* Plain Background Image at 100% width */}
               <img 
                 src={currentActive.bgImage} 
                 alt={currentActive.company}
                 loading="eager"
                 decoding="async"
-                className="absolute inset-0 w-full h-full object-cover object-center transition-transform duration-700 group-hover:scale-105"
+                className="absolute inset-0 w-full h-full object-cover object-center"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#05060a] via-[#05060a]/85 to-[#05060a]/50" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/20" />
 
               {/* Top Section: Category & Lowered Metric */}
               <div className="relative z-10">
@@ -1439,18 +1439,18 @@ function TestimonialsSection() {
                       : 'border border-white/15 hover:border-white/40 hover:scale-[1.03] hover:shadow-lg'
                   }`}
                 >
-                  {/* Background Nature Image */}
+                  {/* Background Image at 100% width */}
                   <img 
                     src={item.bgImage} 
                     alt={item.company}
                     loading="lazy"
                     decoding="async"
-                    className="absolute inset-0 w-full h-full object-cover object-center transition-transform duration-500 group-hover:scale-110"
+                    className="absolute inset-0 w-full h-full object-cover object-center"
                   />
                   <div className={`absolute inset-0 transition-colors duration-300 ${
                     isActive 
-                      ? 'bg-gradient-to-t from-black/95 via-black/80 to-purple-950/40' 
-                      : 'bg-gradient-to-t from-black/90 via-black/75 to-black/40 group-hover:via-black/65'
+                      ? 'bg-gradient-to-t from-black/70 via-black/40 to-purple-950/20' 
+                      : 'bg-gradient-to-t from-black/60 via-black/30 to-transparent'
                   }`} />
 
                   {/* Card Content */}
@@ -1502,7 +1502,7 @@ function TestimonialsSection() {
 function VideoPlayer() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
-  const [scrollStyles, setScrollStyles] = useState({ scale: 0.85, opacity: 0 });
+  const [scrollStyles, setScrollStyles] = useState({ scale: 0.88, opacity: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -1517,7 +1517,7 @@ function VideoPlayer() {
       progress = Math.max(0, Math.min(progress, 1));
       
       setScrollStyles({
-        scale: 0.85 + (progress * 0.20),
+        scale: 0.88 + (progress * 0.12),
         opacity: progress
       });
     };
@@ -1559,7 +1559,7 @@ function VideoPlayer() {
         opacity: scrollStyles.opacity,
         transition: 'transform 0.1s ease-out, opacity 0.2s ease-out'
       }}
-      className="relative aspect-video w-full rounded-2xl bg-[#0a0a0f] border-2 border-white/80 shadow-[0_0_120px_rgba(139,92,246,0.3)] ring-4 ring-white/10 overflow-hidden cursor-none group hover:shadow-[0_0_160px_rgba(139,92,246,0.5)] hover:border-white"
+      className="relative aspect-video w-full rounded-2xl md:rounded-3xl bg-[#08090d] border border-white/10 shadow-2xl shadow-black/80 overflow-hidden cursor-pointer group hover:border-white/20 transition-all duration-300"
     >
       {isPlaying ? (
         <iframe
@@ -1574,27 +1574,47 @@ function VideoPlayer() {
         ></iframe>
       ) : (
         <>
-          <div className="absolute inset-0 bg-[#0a0a0f] flex flex-col items-center justify-center pointer-events-none">
-             <div className="flex items-center opacity-40">
-               <img src="/codeward-logo.png" alt="Codeward Logo" className="h-10 w-auto object-contain -mr-3 grayscale" />
-               <span className="text-4xl font-bold tracking-tight text-white">
-                 Code<span className="text-purple-600">ward</span>
-               </span>
-             </div>
-             <p className="text-white/40 mt-4 text-sm font-medium tracking-wider uppercase">Code Review Demonstration</p>
+          {/* Background overlay with subtle dark gradient */}
+          <div className="absolute inset-0 bg-gradient-to-tr from-[#050609] via-[#090a10] to-[#0d0e17] pointer-events-none" />
+          
+          {/* Subtle grid pattern */}
+          <div className="absolute inset-0 opacity-20 pointer-events-none bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:24px_24px]" />
+
+          {/* Left-Aligned Text & Logo Card Overlay (Image 1 positioning + Image 2 content & Codeward Theme) */}
+          <div className="absolute left-6 sm:left-10 md:left-14 top-1/2 -translate-y-1/2 flex flex-col items-start text-left z-20 pointer-events-none max-w-[85%] sm:max-w-[55%]">
+            {/* Logo & Brand Name */}
+            <div className="flex items-center gap-2.5 sm:gap-3 mb-1">
+              <img 
+                src="/codeward-logo.png" 
+                alt="Codeward Logo" 
+                className="h-7 sm:h-9 md:h-11 w-auto object-contain shrink-0" 
+              />
+              <span className="text-xl sm:text-3xl md:text-4xl font-bold tracking-tight text-white font-['DM_Sans']">
+                Code<span className="text-[#8B5CF6]">ward</span>
+              </span>
+            </div>
+
+            {/* Subtext as in Image 2 */}
+            <p className="text-[#a855f7] font-medium text-xs sm:text-sm md:text-base tracking-normal font-['DM_Sans'] pl-0.5">
+              AI code review, runtime-tested
+            </p>
+
+            {/* Plain divider line (as in Image 1 reference) */}
+            <div className="w-32 sm:w-48 md:w-56 h-[1px] bg-white/20 my-2.5 sm:my-3.5" />
+
+            {/* Section label */}
+            <p className="text-white/60 text-[10px] sm:text-xs md:text-sm font-medium tracking-wider uppercase font-['DM_Sans'] pl-0.5">
+              Code Review Demonstration
+            </p>
           </div>
-          <div 
-            className="absolute z-50 flex items-center gap-2 rounded-full bg-[#8B5CF6] px-5 py-2 text-sm font-semibold text-white shadow-md pointer-events-none transition-transform duration-75 ease-out opacity-0 group-hover:opacity-100"
-            style={{ 
-              left: mousePos.x, 
-              top: mousePos.y,
-              transform: 'translate(-50%, -50%)'
-            }}
-          >
-            <svg className="h-4 w-4 text-white" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M8 5v14l11-7z" />
-            </svg>
-            Play intro
+
+          {/* Centered Play Button (Image 1 style) */}
+          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-20 pointer-events-none">
+            <div className="w-12 h-12 sm:w-16 sm:h-16 md:w-18 md:h-18 rounded-full bg-black/60 border border-white/20 backdrop-blur-md text-white flex items-center justify-center shadow-2xl group-hover:scale-110 group-hover:bg-[#8B5CF6] group-hover:border-[#8B5CF6] transition-all duration-300">
+              <svg className="h-5 w-5 sm:h-7 sm:w-7 md:h-8 md:w-8 text-white translate-x-0.5" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M8 5v14l11-7z" />
+              </svg>
+            </div>
           </div>
         </>
       )}
@@ -1756,9 +1776,9 @@ export default function CodewardHero() {
       </section>
 
       {/* Video Demo Section */}
-      <section className="relative bg-[#05060a] py-20 md:py-24 px-8 md:px-14 overflow-hidden perspective-[1000px]">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(139,92,246,0.15)_0%,_transparent_50%)] mix-blend-screen pointer-events-none" />
-        <div className="mx-auto max-w-[700px] relative z-10">
+      <section className="relative bg-[#05060a] py-16 md:py-24 px-4 sm:px-8 md:px-14 lg:px-16 overflow-hidden perspective-[1000px]">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(139,92,246,0.1)_0%,_transparent_60%)] mix-blend-screen pointer-events-none" />
+        <div className="mx-auto max-w-4xl lg:max-w-5xl relative z-10">
           <VideoPlayer />
         </div>
       </section>
