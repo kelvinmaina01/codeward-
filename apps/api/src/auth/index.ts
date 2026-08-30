@@ -15,6 +15,12 @@ export const auth = betterAuth({
   }),
   baseURL: process.env.API_URL || "http://localhost:3000",
   secret: process.env.BETTER_AUTH_SECRET || "development-secret-key-change-in-prod",
+  advanced: {
+    defaultCookieAttributes: {
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      secure: process.env.NODE_ENV === "production",
+    }
+  },
   trustedOrigins: (request?: Request) => {
     const origin = request?.headers.get("origin") || "";
     if (origin.startsWith("http://localhost:") || origin.startsWith("http://127.0.0.1:")) {
@@ -25,8 +31,8 @@ export const auth = betterAuth({
       "http://localhost:5173", 
       "http://localhost:5174", 
       "http://localhost:5175",
-      "https://codeward-frontend-production.up.railway.app",
-      process.env.FRONTEND_URL || ""
+      process.env.FRONTEND_URL || "",
+      process.env.API_URL || ""
     ].filter(Boolean);
   },
   socialProviders: {

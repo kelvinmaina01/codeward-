@@ -31,5 +31,6 @@ githubRouter.get('/install', async (c) => {
   // securely via the user/installations GitHub endpoint.
   
   // Redirect back to the frontend dashboard or connect page
-  return c.redirect('http://localhost:5173/dashboard?installation=success');
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+  return c.redirect(`${frontendUrl}/dashboard?installation=success`);
 });

@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Search, Loader, ShieldAlert, ArrowRight, ChevronDown, Check, Sun, Moon, Circle, Shield, FileWarning, Zap, Server, Cpu, BarChart2, Lock, GitBranch } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Search, Loader, ShieldAlert, ArrowRight, ChevronDown, Check, Sun, Moon, Circle, Shield, FileWarning, Zap, Server, Cpu, BarChart2, Lock, GitBranch, RotateCw, Settings } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '../../lib/api';
 import { authClient } from '../../lib/auth';
@@ -129,43 +129,52 @@ export function ConnectRepo({ user, onConnect, onSkip, activeOrg, setActiveOrg, 
   const [connecting, setConnecting] = useState(false);
 
   // Fetch repositories
-  useEffect(() => {
-    const fetchRepos = async () => {
-      setLoadingRepos(true);
-      setRepoError(null);
-      try {
-        const res = await api.api.repos.$get();
-        if (!res.ok) {
-          const errData = await res.json() as any;
-          throw new Error(errData.error || 'Failed to fetch repos');
-        }
-        const data = await res.json() as any;
-        
-        // Setup initial org
-        const firstOrg = data.orgs[0];
-        const isPersonal = typeof firstOrg === 'string' ? firstOrg === 'personal' : firstOrg?.name === 'personal';
-        const githubUser = isPersonal ? user.name?.split(' ')[0] : (typeof firstOrg === 'string' ? firstOrg : firstOrg?.name);
-        
-        const restOrgs = data.orgs.slice(1).map((o: any) => typeof o === 'string' ? o : o.name);
-        const actualOrgs = [githubUser, ...restOrgs].filter(Boolean);
-        
-        setLocalOrgs(actualOrgs);
-        if (!activeOrg && setActiveOrg) setActiveOrg(actualOrgs[0] || '');
-
-        setRepos(data.repos || []);
-        
-        // If we successfully fetched repos, we are connected to GitHub, so we can jump to Step 3
-        setAuthProvider('github');
-        setActiveStep(STEPS.SELECT_REPOSITORY);
-      } catch (err: any) {
-        setRepoError(err.message || 'Failed to load repositories');
-        // If "No GitHub account linked", stay on step 1
-      } finally {
-        setLoadingRepos(false);
+  // Fetch repositories function
+  const fetchRepos = useCallback(async (showToast = false) => {
+    setLoadingRepos(true);
+    setRepoError(null);
+    try {
+      const res = await api.api.repos.$get();
+      if (!res.ok) {
+        const errData = await res.json() as any;
+        throw new Error(errData.error || 'Failed to fetch repos');
       }
-    };
-    fetchRepos();
+      const data = await res.json() as any;
+      
+      // Setup initial org
+      const firstOrg = data.orgs?.[0];
+      const isPersonal = typeof firstOrg === 'string' ? firstOrg === 'personal' : firstOrg?.name === 'personal';
+      const githubUser = isPersonal ? user.name?.split(' ')[0] : (typeof firstOrg === 'string' ? firstOrg : firstOrg?.name);
+      
+      const restOrgs = (data.orgs || []).slice(1).map((o: any) => typeof o === 'string' ? o : o.name);
+      const actualOrgs = [githubUser, ...restOrgs].filter(Boolean);
+      
+      setLocalOrgs(actualOrgs);
+      if (!activeOrg && setActiveOrg) setActiveOrg(actualOrgs[0] || '');
+
+      setRepos(data.repos || []);
+      
+      // If we successfully fetched repos, we are connected to GitHub, so jump to Step 3
+      setAuthProvider('github');
+      setActiveStep(STEPS.SELECT_REPOSITORY);
+
+      if (showToast) {
+        toast.success('Repositories refreshed successfully!');
+      }
+    } catch (err: any) {
+      const errMsg = err.message || 'Failed to load repositories';
+      setRepoError(errMsg);
+      if (showToast) {
+        toast.error(errMsg);
+      }
+    } finally {
+      setLoadingRepos(false);
+    }
   }, [user.name, activeOrg, setActiveOrg]);
+
+  useEffect(() => {
+    fetchRepos(false);
+  }, [fetchRepos]);
 
   const handleCycleTheme = () => {
     const themes: ('dark' | 'white' | 'cream')[] = ['dark', 'white', 'cream'];
@@ -306,8 +315,24 @@ export function ConnectRepo({ user, onConnect, onSkip, activeOrg, setActiveOrg, 
                 <p className="text-[13px] text-cw-txt2 mt-1">Select your provider to link repositories to Codeward.</p>
                 
                 {repoError && repoError !== 'No GitHub account linked' && (
-                  <div className="mt-4 p-3 bg-red-900/10 border border-red-500/20 rounded-lg text-red-400 text-[13px] flex items-center gap-2">
-                    <ShieldAlert size={16} /> {repoError}
+                  <div className="mt-4 p-3 bg-red-900/10 border border-red-500/20 rounded-lg text-red-400 text-[13px] space-y-2">
+                    <div className="flex items-center gap-2">
+                      <ShieldAlert size={16} className="shrink-0" /> <span>{repoError}</span>
+                    </div>
+                    <div className="flex items-center gap-2 pt-1">
+                      <button 
+                        onClick={() => fetchRepos(true)}
+                        className="px-2.5 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded text-xs font-medium transition inline-flex items-center gap-1 cursor-pointer"
+                      >
+                        <RotateCw size={11} className={loadingRepos ? "animate-spin" : ""} /> Retry Refresh
+                      </button>
+                      <button 
+                        onClick={() => handleLinkAccount('github')}
+                        className="px-2.5 py-1 bg-cw-purple/20 hover:bg-cw-purple/30 text-cw-purple rounded text-xs font-medium transition inline-flex items-center gap-1 cursor-pointer"
+                      >
+                        Re-connect GitHub Account
+                      </button>
+                    </div>
                   </div>
                 )}
 
@@ -384,8 +409,37 @@ export function ConnectRepo({ user, onConnect, onSkip, activeOrg, setActiveOrg, 
           {activeStep === STEPS.SELECT_REPOSITORY && (
             <div className="space-y-4 flex-1 flex flex-col justify-between animate-in fade-in slide-in-from-right-2 duration-300">
               <div>
-                <h3 className="text-lg font-bold text-cw-txt">Select repositories</h3>
-                <p className="text-[13px] text-cw-txt2">Choose connected repositories to protect with Codeward agents.</p>
+                {/* Header Action Bar with Configure GitHub App and Refresh button */}
+                <div className="flex items-start justify-between gap-3 mb-1">
+                  <div>
+                    <h3 className="text-lg font-bold text-cw-txt">Select repositories</h3>
+                    <p className="text-[13px] text-cw-txt2">Choose connected repositories to protect with Codeward agents.</p>
+                  </div>
+                  
+                  {/* Configure GitHub App & Refresh buttons bar (matching user screenshot) */}
+                  <div className="flex items-center gap-2 shrink-0">
+                    <a
+                      href="https://github.com/apps/codeward-guardian/installations/new"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-cw-bg border border-cw-bdr hover:border-cw-purple/60 text-cw-txt2 hover:text-cw-txt rounded-lg text-xs font-medium transition cursor-pointer"
+                      title="Configure GitHub App permissions or grant access to more repositories"
+                    >
+                      <Settings size={13} className="text-cw-txt3" />
+                      <span>Configure GitHub App</span>
+                    </a>
+
+                    <button
+                      onClick={() => fetchRepos(true)}
+                      disabled={loadingRepos}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-cw-bg border border-cw-bdr hover:border-cw-purple text-cw-txt rounded-lg text-xs font-medium transition cursor-pointer disabled:opacity-50"
+                      title="Refresh repository list"
+                    >
+                      <RotateCw size={13} className={loadingRepos ? "animate-spin text-cw-purple" : "text-cw-txt2"} />
+                      <span>Refresh</span>
+                    </button>
+                  </div>
+                </div>
                 
                 <div className="flex gap-2 mt-4 relative">
                   {/* Custom Workspace Dropdown (simplified for this UI) */}

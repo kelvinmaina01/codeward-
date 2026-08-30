@@ -17,15 +17,15 @@ const app = new Hono();
 
 const allowedOrigins = [
   'http://localhost:5173',
-  'https://codeward-frontend-production.up.railway.app',
+  'http://localhost:5174',
   process.env.FRONTEND_URL
 ].filter(Boolean) as string[];
 
 const corsConfig = {
   origin: (origin: string | undefined) => {
-    // Unconditionally reflect the origin back to satisfy credentials: true dynamically
-    // If undefined (e.g., server-side fetch), fallback to the production URL
-    return origin || process.env.FRONTEND_URL || 'https://codeward-frontend-production.up.railway.app';
+    // Unconditionally reflect the incoming origin back to satisfy credentials: true dynamically
+    // If undefined (e.g., server-side fetch), fallback to process.env.FRONTEND_URL
+    return origin || process.env.FRONTEND_URL || 'http://localhost:5173';
   },
   allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowHeaders: ['Content-Type', 'Authorization'],
@@ -72,6 +72,7 @@ app.route('/api/leads', leadsRouter);
 // constructing a new Response() discards what Hono's cors middleware wrote.
 app.on(['POST', 'GET', 'OPTIONS'], '/api/auth/*', async (c) => {
   const origin = c.req.header('Origin') || '';
+  const defaultFrontend = process.env.FRONTEND_URL || 'http://localhost:5173';
 
   // Respond to OPTIONS preflight immediately with CORS headers — don't even
   // bother calling better-auth for a preflight; it doesn't need to.
@@ -79,7 +80,7 @@ app.on(['POST', 'GET', 'OPTIONS'], '/api/auth/*', async (c) => {
     return new Response(null, {
       status: 204,
       headers: {
-        'Access-Control-Allow-Origin': origin || 'https://codeward-frontend-production.up.railway.app',
+        'Access-Control-Allow-Origin': origin || defaultFrontend,
         'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
         'Access-Control-Allow-Headers': 'Content-Type, Authorization',
         'Access-Control-Allow-Credentials': 'true',
@@ -92,7 +93,7 @@ app.on(['POST', 'GET', 'OPTIONS'], '/api/auth/*', async (c) => {
 
   // Rebuild the response with mutable headers and always inject CORS headers.
   const headers = new Headers(res.headers);
-  headers.set('Access-Control-Allow-Origin', origin || 'https://codeward-frontend-production.up.railway.app');
+  headers.set('Access-Control-Allow-Origin', origin || defaultFrontend);
   headers.set('Access-Control-Allow-Credentials', 'true');
   headers.set('Vary', 'Origin');
 

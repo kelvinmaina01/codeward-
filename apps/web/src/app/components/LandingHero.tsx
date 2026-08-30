@@ -1559,7 +1559,7 @@ function VideoPlayer() {
         opacity: scrollStyles.opacity,
         transition: 'transform 0.1s ease-out, opacity 0.2s ease-out'
       }}
-      className="relative aspect-video w-full rounded-2xl md:rounded-3xl bg-[#08090d] border border-white/10 shadow-2xl shadow-black/80 overflow-hidden cursor-pointer group hover:border-white/20 transition-all duration-300"
+      className="relative aspect-[16/10] sm:aspect-video min-h-[200px] sm:min-h-[260px] w-full rounded-2xl md:rounded-3xl bg-[#08090d] border border-white/10 shadow-2xl shadow-black/80 overflow-hidden cursor-pointer group hover:border-white/20 transition-all duration-300"
     >
       {isPlaying ? (
         <iframe
@@ -1578,40 +1578,40 @@ function VideoPlayer() {
           <div className="absolute inset-0 bg-gradient-to-tr from-[#050609] via-[#090a10] to-[#0d0e17] pointer-events-none" />
           
           {/* Subtle grid pattern */}
-          <div className="absolute inset-0 opacity-20 pointer-events-none bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:24px_24px]" />
+          <div className="absolute inset-0 opacity-20 pointer-events-none bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:16px_16px] sm:[background-size:24px_24px]" />
 
-          {/* Left-Aligned Text & Logo Card Overlay (Image 1 positioning + Image 2 content & Codeward Theme) */}
-          <div className="absolute left-6 sm:left-10 md:left-14 top-1/2 -translate-y-1/2 flex flex-col items-start text-left z-20 pointer-events-none max-w-[85%] sm:max-w-[55%]">
+          {/* Left-Aligned Text & Logo Card Overlay (Mobile-optimized max-width to avoid play button overlap) */}
+          <div className="absolute left-3.5 xs:left-5 sm:left-10 md:left-14 top-1/2 -translate-y-1/2 flex flex-col items-start text-left z-20 pointer-events-none max-w-[44%] xs:max-w-[46%] sm:max-w-[52%]">
             {/* Logo & Brand Name */}
-            <div className="flex items-center gap-2.5 sm:gap-3 mb-1">
+            <div className="flex items-center gap-1.5 xs:gap-2 sm:gap-3 mb-0.5 sm:mb-1">
               <img 
                 src="/codeward-logo.png" 
                 alt="Codeward Logo" 
-                className="h-7 sm:h-9 md:h-11 w-auto object-contain shrink-0" 
+                className="h-5 xs:h-6 sm:h-9 md:h-11 w-auto object-contain shrink-0" 
               />
-              <span className="text-xl sm:text-3xl md:text-4xl font-bold tracking-tight text-white font-['DM_Sans']">
+              <span className="text-sm xs:text-base sm:text-3xl md:text-4xl font-bold tracking-tight text-white font-['DM_Sans'] leading-tight">
                 Code<span className="text-[#8B5CF6]">ward</span>
               </span>
             </div>
 
-            {/* Subtext as in Image 2 */}
-            <p className="text-[#a855f7] font-medium text-xs sm:text-sm md:text-base tracking-normal font-['DM_Sans'] pl-0.5">
+            {/* Subtext */}
+            <p className="text-[#a855f7] font-medium text-[9px] xs:text-[11px] sm:text-sm md:text-base tracking-normal font-['DM_Sans'] pl-0.5 leading-tight">
               AI code review, runtime-tested
             </p>
 
-            {/* Plain divider line (as in Image 1 reference) */}
-            <div className="w-32 sm:w-48 md:w-56 h-[1px] bg-white/20 my-2.5 sm:my-3.5" />
+            {/* Plain divider line */}
+            <div className="w-14 xs:w-24 sm:w-44 md:w-56 h-[1px] bg-white/20 my-1.5 xs:my-2 sm:my-3.5" />
 
             {/* Section label */}
-            <p className="text-white/60 text-[10px] sm:text-xs md:text-sm font-medium tracking-wider uppercase font-['DM_Sans'] pl-0.5">
+            <p className="text-white/60 text-[7px] xs:text-[9px] sm:text-xs md:text-sm font-medium tracking-wider uppercase font-['DM_Sans'] pl-0.5 leading-tight">
               Code Review Demonstration
             </p>
           </div>
 
-          {/* Centered Play Button (Image 1 style) */}
+          {/* Centered Play Button (Matching Codeward purple theme) */}
           <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-20 pointer-events-none">
-            <div className="w-12 h-12 sm:w-16 sm:h-16 md:w-18 md:h-18 rounded-full bg-black/60 border border-white/20 backdrop-blur-md text-white flex items-center justify-center shadow-2xl group-hover:scale-110 group-hover:bg-[#8B5CF6] group-hover:border-[#8B5CF6] transition-all duration-300">
-              <svg className="h-5 w-5 sm:h-7 sm:w-7 md:h-8 md:w-8 text-white translate-x-0.5" fill="currentColor" viewBox="0 0 24 24">
+            <div className="w-10 h-10 xs:w-12 xs:h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full bg-[#8B5CF6] text-white flex items-center justify-center shadow-lg shadow-[#8B5CF6]/40 ring-4 ring-[#8B5CF6]/30 group-hover:scale-110 group-hover:bg-[#7c3aed] group-hover:shadow-xl group-hover:shadow-[#8B5CF6]/60 transition-all duration-300">
+              <svg className="h-4 w-4 xs:h-5 xs:w-5 sm:h-7 sm:w-7 md:h-8 md:w-8 text-white translate-x-0.5" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M8 5v14l11-7z" />
               </svg>
             </div>
