@@ -16,6 +16,7 @@ export function createRedisConnection(): Redis {
 
   const redis = new Redis(url, {
     maxRetriesPerRequest: null,
+    retryStrategy: (times) => Math.min(times * 2000, 30000),
     ...(isTLS ? { tls: {} } : {}),
   });
 
