@@ -73,7 +73,7 @@ export const privacyContent = [
   </div>
   <div className="flex gap-4">
     <div className="font-semibold text-cw-blue shrink-0 pt-0.5 w-8">1.4</div>
-    <div className="leading-relaxed text-[14px] text-cw-txt2"><strong>EU/UK Representative.</strong> For users in the European Economic Area or United Kingdom, Codeward's designated representative for GDPR purposes is [EU REPRESENTATIVE NAME AND ADDRESS].</div>
+    <div className="leading-relaxed text-[14px] text-cw-txt2"><strong>EU/UK Representative.</strong> For users in the European Economic Area or United Kingdom, privacy inquiries can be directed to our data protection contact at <strong>privacy@codeward.cloud</strong>.</div>
   </div>
 </div>
     )
@@ -441,7 +441,7 @@ export const privacyContent = [
       <div className="space-y-4">
   <div className="flex gap-4">
     <div className="font-semibold text-cw-blue shrink-0 pt-0.5 w-8">9.1</div>
-    <div className="leading-relaxed text-[14px] text-cw-txt2"><strong>Transfer Destinations.</strong> Your data may be transferred to and processed in countries outside your country of residence, including the United States (OpenAI, Inc.) and [CLOUD PROVIDER REGION]. These countries may not have data protection laws equivalent to those in your jurisdiction.</div>
+    <div className="leading-relaxed text-[14px] text-cw-txt2"><strong>Transfer Destinations.</strong> Your data may be transferred to and processed in countries outside your country of residence, including the United States and the European Union across our secure cloud infrastructure providers. These countries may not have data protection laws equivalent to those in your jurisdiction.</div>
   </div>
   <div className="flex gap-4">
     <div className="font-semibold text-cw-blue shrink-0 pt-0.5 w-8">9.2</div>
@@ -696,7 +696,7 @@ export const privacyContent = [
   </div>
   <div className="flex gap-4">
     <div className="font-semibold text-cw-blue shrink-0 pt-0.5 w-8">15.5</div>
-    <div className="leading-relaxed text-[14px] text-cw-txt2"><strong>Bias &amp; Accuracy.</strong> Codeward tests Agent accuracy across diverse programming languages, frameworks, and coding styles. Known limitations include reduced accuracy on: proprietary domain-specific languages, codebases with unconventional architecture patterns, and very large monorepos exceeding [X]M lines of code. These limitations are documented in our system documentation.</div>
+    <div className="leading-relaxed text-[14px] text-cw-txt2"><strong>Bias &amp; Accuracy.</strong> Codeward tests Agent accuracy across diverse programming languages, frameworks, and coding styles. Known limitations include reduced accuracy on: proprietary domain-specific languages, codebases with unconventional architecture patterns, and very large monorepos exceeding 5 million lines of code. These limitations are documented in our system documentation.</div>
   </div>
 </div>
     )

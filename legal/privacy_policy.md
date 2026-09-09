@@ -156,7 +156,7 @@ p { margin-bottom: 12px; }
     <div class="version-badge">VERSION 1.0</div><br/>
     Document Type: Privacy Policy<br/>
     Effective Date: 1 October 2026<br/>
-    Contact: privacy@codeward.dev
+    Contact: privacy@codeward.cloud
   </div>
 </div>
 
@@ -198,7 +198,7 @@ p { margin-bottom: 12px; }
     </div>
     <div class="summary-item">
       <div class="summary-icon">✉️</div>
-      <div class="summary-text"><strong>Contact Us Anytime</strong>For data requests, questions, or complaints: privacy@codeward.dev. We respond within 30 days.</div>
+      <div class="summary-text"><strong>Contact Us Anytime</strong>For data requests, questions, or complaints: privacy@codeward.cloud. We respond within 30 days.</div>
     </div>
   </div>
 </div>
@@ -236,19 +236,19 @@ p { margin-bottom: 12px; }
   </div>
   <div class="sub-clause">
     <div class="sub-clause-num">1.1</div>
-    <div><strong>Data Controller.</strong> The data controller responsible for your personal data is <span class="defined-term">Codeward Limited</span>, a company incorporated under the laws of [JURISDICTION], with its registered office at [REGISTERED ADDRESS] ("Codeward", "we", "us", "our").</div>
+    <div><strong>Data Controller.</strong> The data controller responsible for your personal data is <span class="defined-term">Codeward Limited</span>, a company incorporated under the laws of Kenya, with its registered office in Nairobi, Westlands, Kenya ("Codeward", "we", "us", "our").</div>
   </div>
   <div class="sub-clause">
     <div class="sub-clause-num">1.2</div>
-    <div><strong>Data Protection Contact.</strong> For all privacy-related enquiries, data subject requests, or complaints, please contact our Privacy Team at: <strong>privacy@codeward.dev</strong>. We aim to respond to all requests within 30 calendar days.</div>
+    <div><strong>Data Protection Contact.</strong> For all privacy-related enquiries, data subject requests, or complaints, please contact our Privacy Team at: <strong>privacy@codeward.cloud</strong>. We aim to respond to all requests within 30 calendar days.</div>
   </div>
   <div class="sub-clause">
     <div class="sub-clause-num">1.3</div>
-    <div><strong>Data Protection Officer.</strong> [If required by applicable law] Codeward has appointed a Data Protection Officer (DPO) who can be reached at dpo@codeward.dev.</div>
+    <div><strong>Data Protection Officer.</strong> Codeward has appointed a Data Protection Officer (DPO) who can be reached at <strong>dpo@codeward.cloud</strong>.</div>
   </div>
   <div class="sub-clause">
     <div class="sub-clause-num">1.4</div>
-    <div><strong>EU/UK Representative.</strong> For users in the European Economic Area or United Kingdom, Codeward's designated representative for GDPR purposes is [EU REPRESENTATIVE NAME AND ADDRESS].</div>
+    <div><strong>EU/UK Representative.</strong> For users in the European Economic Area or United Kingdom, privacy inquiries can be directed to our data protection contact at <strong>privacy@codeward.cloud</strong>.</div>
   </div>
 </div>
 
@@ -264,7 +264,7 @@ p { margin-bottom: 12px; }
   </div>
   <div class="sub-clause">
     <div class="sub-clause-num">2.2</div>
-    <div>This Policy applies to: (a) individual users who register for a Codeward account; (b) Authorized Users of organisational accounts; (c) visitors to codeward.dev and its subdomains; (d) developers whose GitHub usernames or commit data appear in connected Repositories.</div>
+    <div>This Policy applies to: (a) individual users who register for a Codeward account; (b) Authorized Users of organisational accounts; (c) visitors to codeward.cloud and its subdomains; (d) developers whose GitHub usernames or commit data appear in connected Repositories.</div>
   </div>
   <div class="sub-clause">
     <div class="sub-clause-num">2.3</div>
@@ -453,7 +453,7 @@ p { margin-bottom: 12px; }
 
   <div class="notice-box info">
     <div class="notice-icon">ℹ️</div>
-    <div><strong>Legitimate Interests Assessment.</strong> Where we rely on legitimate interests, we have conducted a balancing test confirming that our interests do not override your fundamental rights. You may request a copy of our legitimate interests assessment by emailing privacy@codeward.dev.</div>
+    <div><strong>Legitimate Interests Assessment.</strong> Where we rely on legitimate interests, we have conducted a balancing test confirming that our interests do not override your fundamental rights. You may request a copy of our legitimate interests assessment by emailing privacy@codeward.cloud.</div>
   </div>
 </div>
 
@@ -494,7 +494,7 @@ p { margin-bottom: 12px; }
   </div>
   <div class="sub-clause">
     <div class="sub-clause-num">6.7</div>
-    <div><strong>Enterprise On-Premises Option.</strong> Enterprise customers with compliance requirements that prevent cloud-based code transmission may request an on-premises or VPC-isolated deployment. In this configuration, no source code or code excerpts leave the customer's own infrastructure. Contact sales@codeward.dev for details.</div>
+    <div><strong>Enterprise On-Premises Option.</strong> Enterprise customers with compliance requirements that prevent cloud-based code transmission may request an on-premises or VPC-isolated deployment. In this configuration, no source code or code excerpts leave the customer's own infrastructure. Contact sales@codeward.cloud for details.</div>
   </div>
   <div class="notice-box success">
     <div class="notice-icon">✅</div>
@@ -534,7 +534,7 @@ p { margin-bottom: 12px; }
   </div>
   <div class="sub-clause">
     <div class="sub-clause-num">7.7</div>
-    <div><strong>Marketing (with consent).</strong> To send you product updates, feature announcements, and newsletters where you have opted in. You may withdraw consent at any time by clicking "Unsubscribe" in any marketing email or by emailing privacy@codeward.dev.</div>
+    <div><strong>Marketing (with consent).</strong> To send you product updates, feature announcements, and newsletters where you have opted in. You may withdraw consent at any time by clicking "Unsubscribe" in any marketing email or by emailing privacy@codeward.cloud.</div>
   </div>
   <div class="notice-box warning">
     <div class="notice-icon">⚠️</div>
@@ -582,7 +582,7 @@ p { margin-bottom: 12px; }
   </div>
   <div class="sub-clause">
     <div class="sub-clause-num">9.1</div>
-    <div><strong>Transfer Destinations.</strong> Your data may be transferred to and processed in countries outside your country of residence, including the United States (OpenAI, Inc.) and [CLOUD PROVIDER REGION]. These countries may not have data protection laws equivalent to those in your jurisdiction.</div>
+    <div><strong>Transfer Destinations.</strong> Your data may be transferred to and processed in countries outside your country of residence, including the United States and the European Union across our secure cloud infrastructure providers. These countries may not have data protection laws equivalent to those in your jurisdiction.</div>
   </div>
   <div class="sub-clause">
     <div class="sub-clause-num">9.2</div>
@@ -590,7 +590,7 @@ p { margin-bottom: 12px; }
   </div>
   <div class="sub-clause">
     <div class="sub-clause-num">9.3</div>
-    <div><strong>Obtaining SCC Copies.</strong> You may request a copy of the Standard Contractual Clauses in place with our sub-processors by emailing privacy@codeward.dev.</div>
+    <div><strong>Obtaining SCC Copies.</strong> You may request a copy of the Standard Contractual Clauses in place with our sub-processors by emailing privacy@codeward.cloud.</div>
   </div>
 </div>
 
@@ -635,7 +635,7 @@ p { margin-bottom: 12px; }
   <div class="sub-sub-clause"><div class="sub-sub-label">(e)</div><div><strong>Audit logging:</strong> Immutable audit logs for all administrative access to production systems;</div></div>
   <div class="sub-sub-clause"><div class="sub-sub-label">(f)</div><div><strong>Penetration testing:</strong> Annual third-party penetration tests with findings remediated within defined SLAs;</div></div>
   <div class="sub-sub-clause"><div class="sub-sub-label">(g)</div><div><strong>Employee training:</strong> Annual security awareness training for all staff with access to personal data;</div></div>
-  <div class="sub-sub-clause"><div class="sub-sub-label">(h)</div><div><strong>Vulnerability disclosure:</strong> A public responsible disclosure programme at codeward.dev/security.</div></div>
+  <div class="sub-sub-clause"><div class="sub-sub-label">(h)</div><div><strong>Vulnerability disclosure:</strong> A public responsible disclosure programme at codeward.cloud/security.</div></div>
   <div class="sub-clause">
     <div class="sub-clause-num">11.2</div>
     <div><strong>Breach Response.</strong> In the event of a personal data breach, Codeward will: (a) contain and assess the breach within 24 hours of discovery; (b) notify affected users and relevant supervisory authorities within 72 hours of confirming the breach, where required by applicable law; (c) provide a full incident report within 30 days.</div>
@@ -652,7 +652,7 @@ p { margin-bottom: 12px; }
     <span class="clause-number">12</span>
     <span class="clause-title">Your Rights</span>
   </div>
-  <p>Depending on your jurisdiction, you have the following rights regarding your personal data. To exercise any right, email privacy@codeward.dev. We will respond within 30 days and will not charge a fee for reasonable requests.</p>
+  <p>Depending on your jurisdiction, you have the following rights regarding your personal data. To exercise any right, email privacy@codeward.cloud. We will respond within 30 days and will not charge a fee for reasonable requests.</p>
 
   <div class="rights-grid">
     <div class="right-card">
@@ -691,7 +691,7 @@ p { margin-bottom: 12px; }
 
   <div class="notice-box info">
     <div class="notice-icon">ℹ️</div>
-    <div><strong>Automated Decision-Making &amp; Gate Decisions.</strong> Codeward's Gate Decisions (PASS/BLOCK on Pull Requests) are produced by automated AI processing with no human in the loop by default. Under GDPR Article 22 and equivalent provisions, you have the right to request human review of any Gate Decision, obtain an explanation of the factors that led to it, and contest the decision. Contact support@codeward.dev with your Run ID to exercise this right.</div>
+    <div><strong>Automated Decision-Making &amp; Gate Decisions.</strong> Codeward's Gate Decisions (PASS/BLOCK on Pull Requests) are produced by automated AI processing with no human in the loop by default. Under GDPR Article 22 and equivalent provisions, you have the right to request human review of any Gate Decision, obtain an explanation of the factors that led to it, and contest the decision. Contact support@codeward.cloud with your Run ID to exercise this right.</div>
   </div>
 </div>
 
@@ -703,7 +703,7 @@ p { margin-bottom: 12px; }
   </div>
   <div class="sub-clause">
     <div class="sub-clause-num">13.1</div>
-    <div>Codeward uses cookies and similar tracking technologies on the codeward.dev website and dashboard. The following categories are used:</div>
+    <div>Codeward uses cookies and similar tracking technologies on the codeward.cloud website and dashboard. The following categories are used:</div>
   </div>
 
   <div class="legal-table-wrapper">
@@ -714,14 +714,14 @@ p { margin-bottom: 12px; }
         <tr><td><strong>Strictly Necessary</strong></td><td>Session management, authentication, CSRF protection. Cannot be disabled without breaking the Platform.</td><td><span class="tag-no">NO</span></td><td>Session / 7 days</td></tr>
         <tr><td><strong>Functional</strong></td><td>Remembering your preferences (theme, dashboard layout, notification settings).</td><td><span class="tag-no">NO</span></td><td>1 year</td></tr>
         <tr><td><strong>Analytics</strong></td><td>Understanding how users navigate the dashboard to improve UX. Anonymised before storage.</td><td><span class="tag-yes">YES</span></td><td>90 days</td></tr>
-        <tr><td><strong>Marketing</strong></td><td>Measuring conversion from marketing campaigns. Only on codeward.dev, not the dashboard.</td><td><span class="tag-yes">YES</span></td><td>90 days</td></tr>
+        <tr><td><strong>Marketing</strong></td><td>Measuring conversion from marketing campaigns. Only on codeward.cloud, not the dashboard.</td><td><span class="tag-yes">YES</span></td><td>90 days</td></tr>
       </tbody>
     </table>
   </div>
 
   <div class="sub-clause">
     <div class="sub-clause-num">13.2</div>
-    <div>You can manage cookie preferences via the Cookie Preferences Centre accessible from the footer of codeward.dev. Withdrawing consent for non-essential cookies does not affect your ability to use the Platform.</div>
+    <div>You can manage cookie preferences via the Cookie Preferences Centre accessible from the footer of codeward.cloud. Withdrawing consent for non-essential cookies does not affect your ability to use the Platform.</div>
   </div>
 </div>
 
@@ -733,7 +733,7 @@ p { margin-bottom: 12px; }
   </div>
   <div class="sub-clause">
     <div class="sub-clause-num">14.1</div>
-    <div>The Platform is not directed at persons under the age of 18. Codeward does not knowingly collect personal data from children. If you believe a child has provided us with personal data, please contact privacy@codeward.dev and we will delete that data promptly.</div>
+    <div>The Platform is not directed at persons under the age of 18. Codeward does not knowingly collect personal data from children. If you believe a child has provided us with personal data, please contact privacy@codeward.cloud and we will delete that data promptly.</div>
   </div>
 </div>
 
@@ -757,11 +757,11 @@ p { margin-bottom: 12px; }
   </div>
   <div class="sub-clause">
     <div class="sub-clause-num">15.4</div>
-    <div><strong>Model Cards &amp; System Documentation.</strong> Technical documentation describing the Agent architecture, data inputs, outputs, performance metrics, and known limitations is available to Enterprise customers and regulators upon request. Email compliance@codeward.dev.</div>
+    <div><strong>Model Cards &amp; System Documentation.</strong> Technical documentation describing the Agent architecture, data inputs, outputs, performance metrics, and known limitations is available to Enterprise customers and regulators upon request. Email compliance@codeward.cloud.</div>
   </div>
   <div class="sub-clause">
     <div class="sub-clause-num">15.5</div>
-    <div><strong>Bias &amp; Accuracy.</strong> Codeward tests Agent accuracy across diverse programming languages, frameworks, and coding styles. Known limitations include reduced accuracy on: proprietary domain-specific languages, codebases with unconventional architecture patterns, and very large monorepos exceeding [X]M lines of code. These limitations are documented in our system documentation.</div>
+    <div><strong>Bias &amp; Accuracy.</strong> Codeward tests Agent accuracy across diverse programming languages, frameworks, and coding styles. Known limitations include reduced accuracy on: proprietary domain-specific languages, codebases with unconventional architecture patterns, and very large monorepos exceeding 5 million lines of code. These limitations are documented in our system documentation.</div>
   </div>
 </div>
 
@@ -777,7 +777,7 @@ p { margin-bottom: 12px; }
   </div>
   <div class="sub-clause">
     <div class="sub-clause-num">16.2</div>
-    <div>The current version of this Policy is always available at codeward.dev/legal/privacy, with the version number and effective date displayed prominently. A version history is maintained at codeward.dev/legal/privacy/history.</div>
+    <div>The current version of this Policy is always available at codeward.cloud/legal/privacy, with the version number and effective date displayed prominently. A version history is maintained at codeward.cloud/legal/privacy/history.</div>
   </div>
   <div class="sub-clause">
     <div class="sub-clause-num">16.3</div>
@@ -813,32 +813,32 @@ p { margin-bottom: 12px; }
           <td>EU SCCs; Stripe DPA</td>
         </tr>
         <tr>
-          <td><strong>[CLOUD PROVIDER]</strong></td>
-          <td>[REGION]</td>
+          <td><strong>Fly.io, Inc. / AWS</strong></td>
+          <td>USA &amp; EU</td>
           <td>Cloud infrastructure, database hosting, Sandbox compute</td>
           <td>All platform data at rest and in transit</td>
-          <td>[SCCs / Adequacy Decision]</td>
+          <td>EU SCCs; Infrastructure DPA</td>
         </tr>
         <tr>
-          <td><strong>[EMAIL PROVIDER]</strong></td>
-          <td>[COUNTRY]</td>
+          <td><strong>Resend, Inc.</strong></td>
+          <td>USA</td>
           <td>Transactional email delivery (receipts, alerts, notifications)</td>
           <td>Email address, name, email content</td>
-          <td>[SCCs]</td>
+          <td>EU SCCs; Resend DPA</td>
         </tr>
         <tr>
-          <td><strong>[MONITORING TOOL]</strong></td>
-          <td>[COUNTRY]</td>
+          <td><strong>Sentry (Functional Software, Inc.)</strong></td>
+          <td>USA</td>
           <td>Application performance monitoring and error tracking</td>
           <td>Anonymised error logs, stack traces, performance metrics</td>
-          <td>[SCCs]</td>
+          <td>EU SCCs; Sentry DPA</td>
         </tr>
         <tr>
-          <td><strong>[SUPPORT PLATFORM]</strong></td>
-          <td>[COUNTRY]</td>
-          <td>Customer support ticket management</td>
-          <td>Name, email address, support communication content</td>
-          <td>[SCCs]</td>
+          <td><strong>PostHog, Inc.</strong></td>
+          <td>USA &amp; EU</td>
+          <td>Product telemetry and error analytics</td>
+          <td>Anonymised usage events, telemetry metadata</td>
+          <td>EU SCCs; PostHog DPA</td>
         </tr>
       </tbody>
     </table>
@@ -922,7 +922,7 @@ p { margin-bottom: 12px; }
     <strong>Legal Notice</strong>
     This Privacy Policy was drafted for Codeward Limited. It does not constitute legal advice. Data protection law is jurisdiction-specific and evolving rapidly, particularly regarding AI systems. You are strongly encouraged to have a qualified data protection practitioner review this Policy before publication, particularly to ensure compliance with the EU AI Act (2024), GDPR, Kenya DPA 2019, and any other laws applicable to your user base. Jurisdiction-specific obligations (e.g., ODPC registration in Kenya, Art. 13/14 GDPR notices, UK ICO registration) may require additional measures not fully reflected herein.
   </div>
-  <div class="page-number">Codeward Limited &nbsp;·&nbsp; Privacy Policy v1.0 &nbsp;·&nbsp; Effective 1 October 2026 &nbsp;·&nbsp; codeward.dev/legal/privacy</div>
+  <div class="page-number">Codeward Limited &nbsp;·&nbsp; Privacy Policy v1.0 &nbsp;·&nbsp; Effective 1 October 2026 &nbsp;·&nbsp; codeward.cloud/legal/privacy</div>
 </div>
 
 </body>
