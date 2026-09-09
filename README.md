@@ -52,6 +52,7 @@
 - [What is Codeward?](#what-is-codeward)
 - [Why Codeward](#why-codeward)
 - [Open Source vs. Managed Cloud](#open-source-vs-managed-cloud)
+- [Repository Structure](#repository-structure)
 - [How It Works](#how-it-works)
 - [The 8 Agents](#the-8-agents)
   - [Orchestrator Agent](#orchestrator-agent)
@@ -151,6 +152,65 @@ Codeward is built with an **open core ethos**. The full multi-agent review engin
 | **GitHub App Integration** | Self-registered GitHub App | 1-click GitHub marketplace install |
 | **Team Collaboration & SSO** | Standard auth | SAML / Okta SSO, team audit logs |
 | **Support** | GitHub Discussions & Discord | Priority SLA & dedicated engineering |
+
+---
+
+## Repository Structure
+
+The Codeward monorepo is cleanly decoupled into modular workspaces separating the backend agent orchestrator, frontend client dashboard, documentation, and community health assets:
+
+```
+codeward-project/
+├── .github/                       # GitHub community templates & issue forms
+│   ├── ISSUE_TEMPLATE/            # Bug report, feature request, new check proposal
+│   └── PULL_REQUEST_TEMPLATE.md
+├── apps/
+│   ├── api/                       # Backend service (@codeward/api)
+│   │   ├── src/                   # Pure production server source code (tsc outDir: dist/)
+│   │   │   ├── agents/            # All 8 review agents + orchestrator phases
+│   │   │   │   ├── definitions/   # Guardian, bloat, broken code, architecture, etc.
+│   │   │   │   ├── escalation/    # Automated issue/PR escalation services
+│   │   │   │   ├── fixer/         # Verification harnesses & gates
+│   │   │   │   └── index.ts       # Central barrel export for all agents
+│   │   │   ├── auth/              # Better-auth and session configuration
+│   │   │   ├── db/                # Drizzle ORM schemas and client
+│   │   │   ├── github/            # Octokit client and webhook receivers
+│   │   │   ├── mcp/               # Model Context Protocol servers (Postgres, Redis, GitHub, etc.)
+│   │   │   ├── routes/            # Hono API routes
+│   │   │   ├── sandbox/           # Fly.io Machines & Local execution sandboxes
+│   │   │   └── index.ts           # Hono server entrypoint
+│   │   ├── test/                  # Isolated backend tests (44 test suites)
+│   │   └── scripts/               # Maintenance, migration & database setup scripts
+│   └── web/                       # Frontend application (@codeward/web)
+│       └── src/
+│           ├── app/
+│           │   ├── admin/         # Isolated Admin Portal (20 admin components & dashboards)
+│           │   ├── pages/         # High-level route pages grouped by domain
+│           │   │   ├── auth/      # AuthPage, ConnectRepo, InviteAcceptPage
+│           │   │   ├── dashboard/ # User Dashboard, LiveFeed, DebtReport, AIAgent, etc.
+│           │   │   └── marketing/ # LandingHero, Pricing, Blogs, BookDemo, Compare
+│           │   ├── components/    # Reusable UI primitives & widgets
+│           │   │   ├── drawers/   # Slide-out drawers (McpConnection, IntegrationSettings, Help)
+│           │   │   ├── legal/     # LegalPage, TermsContent, PrivacyContent, TrustContent
+│           │   │   ├── modals/    # CookieConsent, DeleteAccount, Popovers, WorkspaceSwitcher
+│           │   │   ├── shared/    # DiffViewer, AgentCanvas, ArchitectureFlow, RepoSelector
+│           │   │   ├── ui/        # Clean Shadcn / Radix primitives
+│           │   │   └── index.ts   # Central component barrel export
+│           │   ├── contexts/      # WorkspaceContext, SessionContext
+│           │   ├── data/          # Static blogs & comparison metadata
+│           │   └── App.tsx        # Top-level router with clean, grouped imports
+│           ├── lib/               # Client utilities (api, auth, telemetry)
+│           └── assets/            # Static assets and images
+├── docs/                          # Consolidated documentation hub
+│   ├── agents/                    # Agent skills reference specifications
+│   ├── architecture/              # 12 Parallel Analyzers & Technical Debt blueprints
+│   └── archive/                   # Archived prototypes and HTML blueprints
+├── CONTRIBUTING.md                # Community contributor guide & debt check tutorial
+├── CODE_OF_CONDUCT.md             # Contributor Covenant v2.1
+├── SECURITY.md                    # Vulnerability disclosure policy
+├── LICENSE                        # Apache License 2.0
+└── package.json                   # Root monorepo workspace configuration
+```
 
 ---
 
