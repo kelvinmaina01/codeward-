@@ -221,7 +221,16 @@ chatRouter.get('/repos', async (c) => {
   // `source` drives the provider logo in the picker. Every repo today is ingested through the
   // GitHub App, so it's derived as 'github'; when GitLab ingestion lands, set the distinguishing
   // signal here and the UI shows the GitLab logo automatically — no client change needed.
-  return c.json({ repos: rows.map((r) => ({ ...r, source: 'github' as const })) });
+  return c.json({
+    repos: rows.map((r) => {
+      const isGl = r.fullName.toLowerCase().includes('gitlab');
+      return {
+        ...r,
+        source: isGl ? ('gitlab' as const) : ('github' as const),
+        provider: isGl ? ('gitlab' as const) : ('github' as const),
+      };
+    }),
+  });
 });
 
 chatRouter.get('/branches/:repoId', async (c) => {

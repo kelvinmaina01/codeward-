@@ -1,25 +1,55 @@
 import { useState, useRef, useEffect } from 'react';
-import { ChevronDown, Github, Search, Check } from 'lucide-react';
+import { ChevronDown, Github, Gitlab, Search, Check } from 'lucide-react';
 
 export interface RepoOption {
   id: number | string;
   fullName: string;
   provider?: 'github' | 'gitlab' | 'bitbucket';
+  source?: 'github' | 'gitlab' | 'bitbucket';
 }
 
-function RepoIcon({ fullName, provider, size = 14, className = '' }: { fullName?: string; provider?: string; size?: number; className?: string }) {
+export function isGitlabRepo(fullName?: string, provider?: string): boolean {
+  if (provider === 'gitlab') return true;
+  if (provider === 'github') return false;
+  if (fullName && fullName !== 'All') {
+    const lower = fullName.toLowerCase();
+    if (lower.includes('gitlab') || lower.startsWith('gl/')) return true;
+  }
+  if (typeof window !== 'undefined') {
+    const saved = localStorage.getItem('cw_provider') || localStorage.getItem('cw_git_provider') || localStorage.getItem('cw_connected_provider');
+    if (saved === 'gitlab') return true;
+  }
+  return false;
+}
+
+function RepoIcon({
+  fullName,
+  provider,
+  size = 14,
+  className = '',
+}: {
+  fullName?: string;
+  provider?: string;
+  size?: number;
+  className?: string;
+}) {
   const [error, setError] = useState(false);
-  
+  const isGitLab = isGitlabRepo(fullName, provider);
+
   if (!fullName || fullName === 'All') {
-    return <Github size={size} className={className} />;
+    return isGitLab ? (
+      <Gitlab size={size} className={`text-[#FC6D26] shrink-0 ${className}`} />
+    ) : (
+      <Github size={size} className={`shrink-0 ${className}`} />
+    );
   }
 
   if (!error) {
     const owner = fullName.split('/')[0];
-    const src = provider === 'gitlab' ? `https://gitlab.com/${owner}.png` : `https://github.com/${owner}.png`;
+    const src = isGitLab ? `https://gitlab.com/${owner}.png` : `https://github.com/${owner}.png`;
     return (
-      <img 
-        src={src} 
+      <img
+        src={src}
         alt={owner}
         width={size}
         height={size}
@@ -29,7 +59,11 @@ function RepoIcon({ fullName, provider, size = 14, className = '' }: { fullName?
     );
   }
 
-  return <Github size={size} className={className} />;
+  return isGitLab ? (
+    <Gitlab size={size} className={`text-[#FC6D26] shrink-0 ${className}`} />
+  ) : (
+    <Github size={size} className={`shrink-0 ${className}`} />
+  );
 }
 
 interface RepoSelectorProps {
@@ -58,6 +92,15 @@ export function RepoSelector({
   const isAllSelected = value === 'All' || value === '';
   const selected = options.find((o) => String(o.id) === String(value) || o.fullName === String(value));
 
+  // Determine provider for "All" option dynamically from options or saved preference
+  const hasGitlabRepos = options.some((o) => isGitlabRepo(o.fullName, o.provider || o.source));
+  const hasGithubRepos = options.some((o) => !isGitlabRepo(o.fullName, o.provider || o.source));
+  const allGitlab = hasGitlabRepos && !hasGithubRepos;
+
+  const currentIsGitlab = isAllSelected
+    ? (allGitlab || isGitlabRepo('All'))
+    : isGitlabRepo(selected?.fullName, selected?.provider || selected?.source);
+
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
@@ -75,9 +118,14 @@ export function RepoSelector({
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-cw-bg2 border border-cw-bdr hover:border-cw-purple/50 text-cw-txt text-[11px] font-mono transition-all duration-150 shadow-sm group active:scale-98"
+        className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-cw-bg2 border border-cw-bdr hover:border-cw-purple/50 text-cw-txt text-[11px] font-mono transition-all duration-150 shadow-sm group active:scale-98 cursor-pointer"
       >
-        <RepoIcon fullName={isAllSelected ? 'All' : selected?.fullName} provider={selected?.provider} size={14} className="text-cw-purple shrink-0 group-hover:scale-110 transition-transform" />
+        <RepoIcon
+          fullName={isAllSelected ? 'All' : selected?.fullName}
+          provider={currentIsGitlab ? 'gitlab' : 'github'}
+          size={14}
+          className={`${currentIsGitlab ? 'text-[#FC6D26]' : 'text-cw-purple'} shrink-0 group-hover:scale-110 transition-transform`}
+        />
         <span className="truncate max-w-[210px] font-semibold">
           {isAllSelected ? allOptionLabel : selected ? selected.fullName : placeholder}
         </span>
@@ -85,7 +133,7 @@ export function RepoSelector({
       </button>
 
       {open && (
-        <div className="absolute left-0 mt-1.5 w-72 bg-cw-bg2 border border-cw-bdr rounded-xl shadow-2xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
+        <div className="absolute right-0 sm:right-auto sm:left-0 mt-1.5 w-72 bg-cw-bg2 border border-cw-bdr rounded-xl shadow-2xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
           {/* Search box */}
           <div className="p-2 border-b border-cw-bdr bg-cw-bg3/50 flex items-center gap-2">
             <Search size={13} className="text-cw-txt3 shrink-0 ml-1" />
@@ -105,16 +153,20 @@ export function RepoSelector({
               <button
                 type="button"
                 onClick={() => {
-                  onChange('All', 'All connected repositories');
+                  onChange('All', allOptionLabel);
                   setOpen(false);
                   setSearch('');
                 }}
-                className={`flex items-center justify-between px-3 py-2 rounded-lg text-[11px] font-mono transition-colors text-left w-full ${
+                className={`flex items-center justify-between px-3 py-2 rounded-lg text-[11px] font-mono transition-colors text-left w-full cursor-pointer ${
                   isAllSelected ? 'bg-cw-purple/15 text-cw-purple font-bold' : 'text-cw-txt hover:bg-cw-bg3 hover:text-white'
                 }`}
               >
                 <div className="flex items-center gap-2 truncate">
-                  <Github size={14} className="text-cw-purple" />
+                  {allGitlab || isGitlabRepo('All') ? (
+                    <Gitlab size={14} className="text-[#FC6D26] shrink-0" />
+                  ) : (
+                    <Github size={14} className="text-cw-purple shrink-0" />
+                  )}
                   <span className="truncate">{allOptionLabel}</span>
                 </div>
                 {isAllSelected && <Check size={13} className="text-cw-purple shrink-0" />}
@@ -135,12 +187,17 @@ export function RepoSelector({
                       setOpen(false);
                       setSearch('');
                     }}
-                    className={`flex items-center justify-between px-3 py-2 rounded-lg text-[11px] font-mono transition-colors text-left w-full ${
+                    className={`flex items-center justify-between px-3 py-2 rounded-lg text-[11px] font-mono transition-colors text-left w-full cursor-pointer ${
                       isSelected ? 'bg-cw-purple/15 text-cw-purple font-bold' : 'text-cw-txt hover:bg-cw-bg3 hover:text-white'
                     }`}
                   >
                     <div className="flex items-center gap-2.5 truncate">
-                      <RepoIcon fullName={r.fullName} provider={r.provider} size={14} className={isSelected ? 'text-cw-purple ring-1 ring-cw-purple/20' : 'text-cw-txt3'} />
+                      <RepoIcon
+                        fullName={r.fullName}
+                        provider={r.provider || r.source}
+                        size={14}
+                        className={isSelected ? 'text-cw-purple ring-1 ring-cw-purple/20' : 'text-cw-txt3'}
+                      />
                       <span className="truncate">{r.fullName}</span>
                     </div>
                     {isSelected && <Check size={13} className="text-cw-purple shrink-0" />}

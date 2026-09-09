@@ -1,11 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
 import * as HugeIcons from 'hugeicons-react';
 import { agentCanvasData, AgentData } from './AgentCanvasData';
+import { RepoSelector, RepoOption } from './RepoSelector';
 import { API_URL } from '../../../lib/api';
 import './AgentCanvas.css';
 
 export interface AgentCanvasProps {
   repoId?: string;
+  repoFilter?: string;
+  onRepoChange?: (repoId: string) => void;
+  repoList?: RepoOption[];
 }
 
 function formatLogTimestamp(ts: string | number | undefined, idx = 0): string {
@@ -37,7 +41,9 @@ function formatLogTimestamp(ts: string | number | undefined, idx = 0): string {
   return String(ts);
 }
 
-export function AgentCanvas({ repoId }: AgentCanvasProps = {}) {
+export function AgentCanvas({ repoId, repoFilter, onRepoChange, repoList }: AgentCanvasProps = {}) {
+  const [internalRepoList, setInternalRepoList] = useState<RepoOption[]>(repoList || []);
+  const [activeFilter, setActiveFilter] = useState<string>(repoFilter || repoId || 'All');
   const [agents, setAgents] = useState<AgentData[]>(agentCanvasData);
   const [activeAgentId, setActiveAgentId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'logs' | 'findings' | 'sandbox' | 'config' | 'summary'>('logs');
@@ -52,10 +58,45 @@ export function AgentCanvas({ repoId }: AgentCanvasProps = {}) {
   const activeAgent = agents.find(a => a.id === activeAgentId);
   const logsEndRef = useRef<HTMLDivElement>(null);
 
+  // Sync activeFilter with prop changes
+  useEffect(() => {
+    if (repoFilter !== undefined) {
+      setActiveFilter(repoFilter);
+    } else if (repoId !== undefined) {
+      setActiveFilter(repoId);
+    }
+  }, [repoFilter, repoId]);
+
+  useEffect(() => {
+    if (repoList && repoList.length > 0) {
+      setInternalRepoList(repoList);
+    }
+  }, [repoList]);
+
+  // Load connected repositories if not passed from parent
+  useEffect(() => {
+    if (!repoList || repoList.length === 0) {
+      fetch(`${API_URL}/api/chat/repos`, { credentials: 'include' })
+        .then((r) => (r.ok ? r.json() : { repos: [] }))
+        .then((d) => {
+          if (d.repos && Array.isArray(d.repos)) {
+            setInternalRepoList(d.repos);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [repoList]);
+
+  const handleRepoChange = (val: string) => {
+    setActiveFilter(val);
+    onRepoChange?.(val);
+  };
+
   // Fetch real agent canvas data from API
   useEffect(() => {
     let cancelled = false;
-    const query = repoId ? `?repoId=${repoId}` : '';
+    const targetId = activeFilter !== 'All' ? activeFilter : undefined;
+    const query = targetId ? `?repoId=${targetId}` : '';
     fetch(`${API_URL}/api/reports/canvas${query}`, { credentials: 'include' })
       .then((res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -80,7 +121,7 @@ export function AgentCanvas({ repoId }: AgentCanvasProps = {}) {
     return () => {
       cancelled = true;
     };
-  }, [repoId]);
+  }, [activeFilter]);
 
   // Auto-scroll logs
   useEffect(() => {
@@ -152,6 +193,15 @@ export function AgentCanvas({ repoId }: AgentCanvasProps = {}) {
             <div className="top-left">
               <div className="logo">Agent <span>Canvas</span></div>
               <div className="run-badge">Run #{runInfo.id}</div>
+            </div>
+            <div className="top-right">
+              <RepoSelector
+                options={internalRepoList}
+                value={activeFilter}
+                onChange={(val) => handleRepoChange(String(val))}
+                showAllOption={true}
+                allOptionLabel="All connected repositories"
+              />
             </div>
           </div>
           <div className="top-stats">

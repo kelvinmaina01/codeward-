@@ -229,7 +229,12 @@ export function LiveFeed({ viewMode }: LiveFeedProps) {
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden bg-cw-bg text-cw-txt">
       {viewMode === 'canvas' ? (
-        <AgentCanvas repoId={repoFilter !== 'All' ? repoFilter : undefined} />
+        <AgentCanvas
+          repoId={repoFilter !== 'All' ? repoFilter : undefined}
+          repoFilter={repoFilter}
+          onRepoChange={(val) => setRepoFilter(String(val))}
+          repoList={repoList}
+        />
       ) : (
         <div className="flex-1 flex flex-col h-full overflow-hidden px-6 py-4">
           
