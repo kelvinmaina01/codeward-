@@ -95,6 +95,10 @@ export const agentTasks = pgTable('agent_tasks', {
   startedAt: timestamp('started_at'),
   completedAt: timestamp('completed_at'),
   createdAt: timestamp('created_at').defaultNow(),
+}, (table) => {
+  return {
+    runIdIdx: index('agent_tasks_run_id_idx').on(table.runId),
+  };
 });
 
 export const mergeApprovals = pgTable('merge_approvals', {
