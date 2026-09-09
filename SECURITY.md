@@ -21,7 +21,7 @@ Only the latest release and the current active development branch receive securi
 
 Instead, please report vulnerabilities directly to our security team via email:
 
-📧 **security@codeward.io**
+📧 **security@codeward.cloud**
 
 ### What to include in your report:
 - A clear description of the vulnerability, including type (e.g., SSRF, RCE, token leakage, auth bypass).

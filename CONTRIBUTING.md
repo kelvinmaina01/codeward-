@@ -21,7 +21,7 @@ Codeward is an autonomous, multi-agent AI code review platform built to eliminat
 
 ## Code of Conduct
 
-All contributors and maintainers are expected to adhere to our [Code of Conduct](CODE_OF_CONDUCT.md). Please report unacceptable behavior to `community@codeward.io`.
+All contributors and maintainers are expected to adhere to our [Code of Conduct](CODE_OF_CONDUCT.md). Please report unacceptable behavior to `community@codeward.cloud`.
 
 ---
 

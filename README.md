@@ -41,7 +41,7 @@
 <br/>
 
 
-[**Get Started →**](https://codeward.io) · [**Documentation**](https://docs.codeward.io) · [**Self-Hosting**](#self-hosting--local-development) · [**Discord**](https://discord.gg/codeward) · [**Report an Issue**](https://github.com/kelvinmaina01/codeward-/issues)
+[**Get Started →**](https://codeward.cloud) · [**Documentation**](https://docs.codeward.cloud) · [**Self-Hosting**](#self-hosting--local-development) · [**Discord**](https://discord.gg/codeward) · [**Report an Issue**](https://github.com/kelvinmaina01/codeward-/issues)
 
 </div>
 
@@ -142,7 +142,7 @@ PR comment with annotated findings + suggested diffs
 
 Codeward is built with an **open core ethos**. The full multi-agent review engine, sandboxed analysis runtime, and web dashboard are 100% open source under the Apache 2.0 license.
 
-| Feature | Open Source (Self-Hosted) | Managed Cloud ([Codeward.io](https://codeward.io)) |
+| Feature | Open Source (Self-Hosted) | Managed Cloud ([Codeward.cloud](https://codeward.cloud)) |
 |:---|:---:|:---:|
 | **All 8 AI Agents & 100+ Debt Checks** | ✅ Included | ✅ Included |
 | **Full Source Code Access** | ✅ Apache 2.0 | Hosted |
@@ -157,7 +157,11 @@ Codeward is built with an **open core ethos**. The full multi-agent review engin
 
 ## Repository Structure
 
-The Codeward monorepo is cleanly decoupled into modular workspaces separating the backend agent orchestrator, frontend client dashboard, documentation, and community health assets:
+The **Codeward** codebase has been comprehensively cleaned up, restructured, and validated. The repository now follows industry standard monorepo patterns with complete separation of concerns, zero clutter, and verified production builds.
+
+---
+
+### 1. High-Level Architecture & Clean Directory Structure
 
 ```
 codeward-project/
@@ -211,6 +215,53 @@ codeward-project/
 ├── LICENSE                        # Apache License 2.0
 └── package.json                   # Root monorepo workspace configuration
 ```
+
+---
+
+### 2. Key Changes Completed
+
+#### A. Admin Panel Isolation
+- All 20 Admin Panel components previously mixed into the generic components directory have been moved into their own dedicated directory: [`apps/web/src/app/admin/`](apps/web/src/app/admin).
+- Admin routes are cleanly segregated from user workspace dashboards.
+
+#### B. Frontend Page & Component Organization
+- **Pages**: Grouped by feature area into [`apps/web/src/app/pages/auth/`](apps/web/src/app/pages/auth), [`apps/web/src/app/pages/dashboard/`](apps/web/src/app/pages/dashboard), and [`apps/web/src/app/pages/marketing/`](apps/web/src/app/pages/marketing).
+- **Components**: Categorized into `drawers/`, `modals/`, `shared/`, `legal/`, and `ui/`.
+- Created [`apps/web/src/app/components/index.ts`](apps/web/src/app/components/index.ts) exporting all UI primitives cleanly.
+- Restructured [`apps/web/src/app/App.tsx`](apps/web/src/app/App.tsx) with organized import blocks.
+
+#### C. Backend Test & Script Isolation
+- Removed all 44 test files from `apps/api/src/` into [`apps/api/test/`](apps/api/test).
+- Updated test import paths to reference `../src/...` and verified they run successfully.
+- Moved operational and maintenance scripts (`create_tables.ts`, `migrate.ts`, `clear.ts`, `test-email.ts`, etc.) into [`apps/api/scripts/`](apps/api/scripts).
+- Created [`apps/api/src/agents/index.ts`](apps/api/src/agents/index.ts) exporting all 8 agents cleanly.
+- Configured `apps/api/tsconfig.json` so production `tsc` compiles only production server code in `src/`.
+
+#### D. Documentation Hub
+- Consolidated scattered agent skill files from `apps/api/src/AGENTS SKILLS REFERENCE.MD/` into [`docs/agents/`](docs/agents).
+- Consolidated architecture specs from `guidelines/` into [`docs/architecture/`](docs/architecture).
+- Archived legacy prototype files into [`docs/archive/blueprints/`](docs/archive/blueprints).
+
+#### E. Root Clutter Removal
+- Deleted stray scratch and temporary files from root: `apply.js`, `tick.js`, `query.sql`, `fix-encoding.js`, `fix-logo*.js`, `old_dashboard.txt`, `Untitled-1.txt`, and redundant `package-lock.json` files.
+
+#### F. Replaced Personal Testimonial Quotes with Solution & Concept Templates
+- In [`README.md`](README.md) and [`apps/web/src/app/pages/marketing/BookDemo.tsx`](apps/web/src/app/pages/marketing/BookDemo.tsx), removed all headshot images and personal attributions (`Melisah Jenkins`, `Peter Franklin Vance`).
+- Replaced them with engineering workflow templates highlighting real capabilities: **Concurrency & Memory Leak Isolation**, **Pre-Merge Race Condition Detection**, and **Autonomous CI/CD Code Guardian**.
+
+---
+
+### 3. Verification & Build Results
+
+| Test / Build Command | Result | Verification Output |
+| :--- | :---: | :--- |
+| `npm run build:api` | **PASS (Code 0)** | TypeScript compiler (`tsc`) compiled cleanly with 0 errors. |
+| `npm run build:web` | **PASS (Code 0)** | Vite production build compiled all 7,653 modules in 36s. |
+| `npm run build` | **PASS (Code 0)** | End-to-end monorepo build (`build:api && build:web`) succeeded. |
+| `npm run test:guardian:mock` | **PASS (Code 0)** | Octokit harness verified PRs, issues, reviews, comments. |
+| `npm run test:guardian:renderer` | **PASS (Code 0)** | Markdown review renderer verified. |
+| `npm run test:escalation` | **PASS (Code 0)** | Escalation harness verified issue filtering and duplicate suppression. |
+| `git status` | **CLEAN** | Working tree clean; changes committed to `main`. |
 
 ---
 
@@ -734,7 +785,7 @@ const gateDecision = computeWeightedScore(results);
 All endpoints require a Bearer token from GitHub OAuth flow.
 
 ```
-Base URL: https://api.codeward.io/v1
+Base URL: https://api.codeward.cloud/v1
 ```
 
 | Method | Endpoint | Description |
@@ -751,7 +802,7 @@ Base URL: https://api.codeward.io/v1
 
 **Example — trigger a run:**
 ```bash
-curl -X POST https://api.codeward.io/v1/repos/payments-service/runs \
+curl -X POST https://api.codeward.cloud/v1/repos/payments-service/runs \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"commitSHA": "4f2a8c1", "agents": ["security", "bloat"]}'
@@ -759,7 +810,7 @@ curl -X POST https://api.codeward.io/v1/repos/payments-service/runs \
 
 **Example — get a report:**
 ```bash
-curl https://api.codeward.io/v1/runs/run_01HX7K2M/report \
+curl https://api.codeward.cloud/v1/runs/run_01HX7K2M/report \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
@@ -767,7 +818,7 @@ curl https://api.codeward.io/v1/runs/run_01HX7K2M/report \
 
 ## Dashboard
 
-The Codeward React dashboard is available at `https://codeward.io/dashboard` once you connect a repository.
+The Codeward React dashboard is available at `https://codeward.cloud/dashboard` once you connect a repository.
 
 **Screens:**
 
@@ -876,7 +927,7 @@ Codeward takes the security of codebases and sandbox environments with utmost pr
 
 - **Please DO NOT open a public GitHub issue.**
 - Review our full vulnerability reporting process in [SECURITY.md](SECURITY.md).
-- Email responsible disclosures directly to `security@codeward.io` (PGP key: [keybase.io/codeward](https://keybase.io/codeward)).
+- Email responsible disclosures directly to `security@codeward.cloud` (PGP key: [keybase.io/codeward](https://keybase.io/codeward)).
 - We acknowledge reports within 48 hours and coordinate prompt patched releases.
 
 ---
@@ -907,7 +958,7 @@ The Codeward name, logo, and brand assets are protected trademarks. They may not
 
 <div align="center">
 
-Built with 8 agents · [codeward.io](https://codeward.io) · [@codeward_io](https://twitter.com/codeward_io)
+Built with 8 agents · [codeward.cloud](https://codeward.cloud) · [@codeward_cloud](https://twitter.com/codeward_cloud)
 
 *"The code your team forgot to delete, found and removed."*
 
