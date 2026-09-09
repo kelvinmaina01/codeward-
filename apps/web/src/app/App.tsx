@@ -8,62 +8,74 @@ import {
   LayoutGrid, TerminalSquare, Sparkles, FileText, BadgeCheck, GitPullRequest
 } from 'lucide-react';
 import { Theme, Screen } from './components/types';
-import { AuthPage } from './components/AuthPage';
-import { ConnectRepo } from './components/ConnectRepo';
-import { Dashboard } from './components/Dashboard';
-import { GordonIcon } from './components/GordonIcon';
-import { LiveFeed } from './components/LiveFeed';
-import { DiffViewer } from './components/DiffViewer';
-import { Security } from './components/Security';
-import { DebtReport } from './components/DebtReport';
-import { AIAgent } from './components/AIAgent';
-import { Staging } from './components/Staging';
-import { DeployHistory } from './components/DeployHistory';
-import { Repositories } from './components/Repositories';
-import { Certificate } from './components/Certificate';
-import { Settings } from './components/Settings';
-import { Integrations } from './components/Integrations';
-import { Alerts } from './components/Alerts';
-import { IssuesAndPRs } from './components/IssuesAndPRs';
-import { RunDetail } from './components/RunDetail';
-import { CommitHistory } from './components/CommitHistory';
+
+// Auth Pages
+import { AuthPage } from './pages/auth/AuthPage';
+import { ConnectRepo } from './pages/auth/ConnectRepo';
+import { InviteAcceptPage } from './pages/auth/InviteAcceptPage';
+
+// Marketing Pages
+import CodewardHero from './pages/marketing/LandingHero';
+import PricingPage from './pages/marketing/PricingPage';
+import { BlogsPage } from './pages/marketing/BlogsPage';
+import { SingleBlogPage } from './pages/marketing/SingleBlogPage';
+import { ComparePage } from './pages/marketing/ComparePage';
+import { BookDemo } from './pages/marketing/BookDemo';
+
+// Dashboard Pages
+import { Dashboard } from './pages/dashboard/Dashboard';
+import { LiveFeed } from './pages/dashboard/LiveFeed';
+import { Security } from './pages/dashboard/Security';
+import { DebtReport } from './pages/dashboard/DebtReport';
+import { AIAgent } from './pages/dashboard/AIAgent';
+import { Staging } from './pages/dashboard/Staging';
+import { DeployHistory } from './pages/dashboard/DeployHistory';
+import { Repositories } from './pages/dashboard/Repositories';
+import { Certificate } from './pages/dashboard/Certificate';
+import { Settings } from './pages/dashboard/Settings';
+import { Integrations } from './pages/dashboard/Integrations';
+import { Alerts } from './pages/dashboard/Alerts';
+import { IssuesAndPRs } from './pages/dashboard/IssuesAndPRs';
+import { RunDetail } from './pages/dashboard/RunDetail';
+import { CommitHistory } from './pages/dashboard/CommitHistory';
+
+// Shared Components & Drawers
+import { GordonIcon } from './components/shared/GordonIcon';
+import { DiffViewer } from './components/shared/DiffViewer';
 import { LegalPage } from './components/legal/LegalPage';
+import { WorkspaceSwitcher } from './components/modals/WorkspaceSwitcher';
+import { TeamDrawer } from './components/drawers/TeamDrawer';
+import { InviteDrawer } from './components/drawers/InviteDrawer';
+import { HelpDrawer } from './components/drawers/HelpDrawer';
+import { UserProfilePopover } from './components/modals/UserProfilePopover';
+import { NotificationsPopover } from './components/modals/NotificationsPopover';
+import { CookieConsent } from './components/modals/CookieConsent';
+
+// Admin Portal Pages
+import { AdminLayout } from './admin/AdminLayout';
+import { AdminOverview } from './admin/AdminOverview';
+import { AdminFeed } from './admin/AdminFeed';
+import { AdminRuns } from './admin/AdminRuns';
+import { AdminRepos } from './admin/AdminRepos';
+import { AdminSecurity } from './admin/AdminSecurity';
+import { AdminBloat } from './admin/AdminBloat';
+import { AdminBroken } from './admin/AdminBroken';
+import { AdminArchitecture } from './admin/AdminArchitecture';
+import { AdminCompliance } from './admin/AdminCompliance';
+import { AdminAgents } from './admin/AdminAgents';
+import { AdminRevenue } from './admin/AdminRevenue';
+import { AdminCustomers } from './admin/AdminCustomers';
+import { AdminGrowth } from './admin/AdminGrowth';
+import { AdminBilling } from './admin/AdminBilling';
+import { AdminSandbox } from './admin/AdminSandbox';
+import { AdminGitHubApp } from './admin/AdminGitHubApp';
+import { AdminAlerts } from './admin/AdminAlerts';
+import { AdminSettings } from './admin/AdminSettings';
+
 import { useSession, signOut } from '../lib/auth';
 import { Toaster } from 'sonner';
 import { API_URL } from '../lib/api';
-import CodewardHero from './components/LandingHero';
-import PricingPage from './components/PricingPage';
 import { WorkspaceProvider } from './contexts/WorkspaceContext';
-import { WorkspaceSwitcher } from './components/WorkspaceSwitcher';
-import { TeamDrawer } from './components/drawers/TeamDrawer';
-import { InviteDrawer } from './components/drawers/InviteDrawer';
-import { HelpDrawer } from './components/HelpDrawer';
-import { ComparePage } from './components/ComparePage';
-import { BlogsPage } from './components/BlogsPage';
-import { SingleBlogPage } from './components/SingleBlogPage';
-import { BookDemo } from './components/BookDemo';
-import { UserProfilePopover } from './components/UserProfilePopover';
-import { NotificationsPopover } from './components/NotificationsPopover';
-import { AdminLayout } from './components/admin/AdminLayout';
-import { AdminOverview } from './components/admin/AdminOverview';
-import { AdminFeed } from './components/admin/AdminFeed';
-import { AdminRuns } from './components/admin/AdminRuns';
-import { AdminRepos } from './components/admin/AdminRepos';
-import { AdminSecurity } from './components/admin/AdminSecurity';
-import { AdminBloat } from './components/admin/AdminBloat';
-import { AdminBroken } from './components/admin/AdminBroken';
-import { AdminArchitecture } from './components/admin/AdminArchitecture';
-import { AdminCompliance } from './components/admin/AdminCompliance';
-import { AdminAgents } from './components/admin/AdminAgents';
-import { AdminRevenue } from './components/admin/AdminRevenue';
-import { AdminCustomers } from './components/admin/AdminCustomers';
-import { AdminGrowth } from './components/admin/AdminGrowth';
-import { AdminBilling } from './components/admin/AdminBilling';
-import { AdminSandbox } from './components/admin/AdminSandbox';
-import { AdminGitHubApp } from './components/admin/AdminGitHubApp';
-import { AdminAlerts } from './components/admin/AdminAlerts';
-import { AdminSettings } from './components/admin/AdminSettings';
-import { InviteAcceptPage } from './components/InviteAcceptPage';
 import { blogs } from './data/blogs';
 import { comparisons } from './data/comparisons';
 
@@ -701,7 +713,6 @@ export const routes = [
   }
 ];
 
-import { CookieConsent } from './components/CookieConsent';
 import { trackEvent } from '../lib/telemetry';
 
 function TelemetryTracker() {

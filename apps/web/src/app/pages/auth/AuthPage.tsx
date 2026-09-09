@@ -1,0 +1,214 @@
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { BotIcon, TaskDone01Icon, GitPullRequestIcon, CircleArrowReload01Icon, StarsIcon, Sun01Icon, Moon01Icon, CircleIcon, ArrowLeft01Icon } from 'hugeicons-react';
+import { CheckCircle } from 'lucide-react';
+import { signIn } from '../../../lib/auth';
+import { toast } from 'sonner';
+import { Theme } from '../../components/types';
+import { ParticleBackground } from '../marketing/ParticleBackground';
+
+interface Props {
+  onBack?: () => void;
+  theme?: Theme;
+  onCycleTheme?: () => void;
+  onNavigate?: (page: 'terms' | 'privacy') => void;
+}
+
+const themeIcons: Record<Theme, React.ReactNode> = {
+  cream: <CircleIcon size={14} fill="#c5a882" color="#c5a882" />,
+  dark: <Moon01Icon size={14} />,
+  white: <Sun01Icon size={14} />,
+};
+
+const TYPED_TEXT = "Codeward is your autonomous\ncode quality platform, without\nthe technical debt!";
+
+export function AuthPage({ onBack, theme: _theme, onCycleTheme, onNavigate: _onNavigate }: Props) {
+  const navigate = useNavigate();
+  const [theme, setTheme] = useState<Theme>('dark');
+  const themeOrder: Theme[] = ['dark', 'cream', 'white'];
+  const cycleTheme = () => {
+    setTheme(t => themeOrder[(themeOrder.indexOf(t) + 1) % themeOrder.length]);
+    if (onCycleTheme) onCycleTheme();
+  };
+  const [loading, setLoading] = useState<string | null>(null);
+  const [typedText, setTypedText] = useState('');
+  const [showCursor, setShowCursor] = useState(true);
+
+  useEffect(() => {
+    let i = 0;
+    const timeout = setTimeout(() => {
+      const interval = setInterval(() => {
+        if (i < TYPED_TEXT.length) {
+          setTypedText(TYPED_TEXT.slice(0, i + 1));
+          i++;
+        } else {
+          clearInterval(interval);
+        }
+      }, 28);
+      return () => clearInterval(interval);
+    }, 1000);
+    return () => clearTimeout(timeout);
+  }, []);
+
+  useEffect(() => {
+    const blink = setInterval(() => setShowCursor(c => !c), 530);
+    return () => clearInterval(blink);
+  }, []);
+
+  const handleOAuth = async (provider: 'github' | 'gitlab' | 'google') => {
+    if (provider === 'gitlab') return;
+    setLoading(provider);
+    try {
+      await signIn.social({
+        provider,
+        callbackURL: window.location.origin + '/dashboard',
+      });
+    } catch (err: unknown) {
+      console.error('[Auth] OAuth sign-in failed:', err);
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      const isNetwork = message.toLowerCase().includes('fetch') || message.toLowerCase().includes('network');
+      toast.error(
+        isNetwork
+          ? '⚠️ Cannot reach the server. Please check your connection and try again.'
+          : `Sign-in failed: ${message}`,
+        { description: 'If this keeps happening, contact support.', duration: 6000 }
+      );
+      setLoading(null);
+    }
+  };
+
+  const btnClass = "w-full py-2.5 px-4 rounded-xl text-[14px] font-semibold flex items-center justify-center gap-3 transition-all duration-200 text-cw-txt border border-cw-bdr bg-cw-bg hover:bg-cw-bg3";
+
+  return (
+    <div className={`theme-${theme} min-h-screen bg-black flex items-stretch justify-center font-sans transition-colors duration-250 px-4 pt-16 pb-6 md:px-8 md:py-4 relative overflow-hidden`}>
+      <ParticleBackground />
+
+      {/* Back to Home Button (Arrow only) */}
+      <div className="absolute top-4 left-4 sm:top-6 sm:left-6 z-50">
+        <button
+          onClick={() => {
+            if (onBack) onBack();
+            navigate('/');
+          }}
+          className="w-10 h-10 rounded-full border border-cw-bdr bg-cw-bg2 text-cw-txt2 flex items-center justify-center hover:bg-cw-bg hover:text-cw-txt transition-colors shadow-sm cursor-pointer"
+          title="Back to home"
+          aria-label="Back to home"
+        >
+          <ArrowLeft01Icon size={18} />
+        </button>
+      </div>
+
+      {/* Theme Toggle */}
+      <div className="absolute top-4 right-4 sm:top-6 sm:right-6 z-50">
+        <button
+          onClick={cycleTheme}
+          className="w-10 h-10 rounded-full border border-cw-bdr bg-cw-bg2 text-cw-txt2 flex items-center justify-center hover:bg-cw-bg transition-colors shadow-sm cursor-pointer"
+          title="Toggle Theme"
+        >
+          {themeIcons[theme]}
+        </button>
+      </div>
+
+      <div className="w-full h-full max-w-[1600px] flex gap-6 md:gap-8 flex-col-reverse md:flex-row items-stretch justify-center relative z-10 mt-2 sm:mt-0" style={{ minHeight: 'calc(100vh - 48px)' }}>
+        {/* Left brand panel */}
+        <div className="w-full md:w-1/2 flex flex-col items-center justify-center px-4 md:px-12 py-12 relative text-white font-['DM_Sans']">
+          <div className="relative z-10 flex flex-col items-center text-center w-full max-w-xl">
+
+            {/* Typing text */}
+            <p className="text-2xl md:text-3xl text-white/60 leading-[1.35] max-w-xl font-normal whitespace-pre-line mb-32">
+              {typedText}<span className={`inline-block w-[2px] h-[1.1em] ml-[1px] bg-[#5b8cff] align-middle translate-y-[-1px] transition-opacity duration-100 ${showCursor ? 'opacity-100' : 'opacity-0'}`} />
+            </p>
+
+            {/* Feature list */}
+            <div className="flex flex-col gap-4 w-full items-center">
+              {[
+              { text: '100+ debt checks on every push', Icon: TaskDone01Icon, color: 'text-red-500' },
+              { text: '8 specialised Claude AI agents', Icon: BotIcon, color: 'text-blue-500' },
+              { text: 'Auto-refactor, not rewrite', Icon: GitPullRequestIcon, color: 'text-green-500' },
+              { text: 'Instant rollback on failure', Icon: CircleArrowReload01Icon, color: 'text-purple-500' },
+            ].map((f, i) => (
+              <div key={i} className="flex items-center gap-3.5">
+                <f.Icon size={26} className={`${f.color} shrink-0`} strokeWidth={2} />
+                <span className="text-[18px] font-medium text-white">{f.text}</span>
+              </div>
+            ))}
+            
+            {/* Dev Community Card */}
+            <a 
+              href="https://discord.com/invite/nnMH4URBsK" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="mt-16 flex items-center gap-3.5 bg-[#5865F2] hover:bg-[#4752C4] border border-white/20 rounded-full py-3.5 px-6 shadow-2xl hover:scale-105 transition-all w-max group cursor-pointer"
+            >
+              <svg className="w-6 h-6 text-white shrink-0 group-hover:scale-110 transition-transform" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M20.317 4.37a19.791 19.791 0 00-4.885-1.515.074.074 0 00-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 00-5.487 0 12.64 12.64 0 00-.617-1.25.077.077 0 00-.079-.037A19.736 19.736 0 003.677 4.37a.07.07 0 00-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 00.031.057 19.9 19.9 0 005.993 3.03.078.078 0 00.084-.028 14.09 14.09 0 001.226-1.994.076.076 0 00-.041-.106 13.107 13.107 0 01-1.872-.892.077.077 0 01-.008-.128 10.2 10.2 0 00.372-.292.074.074 0 01.077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 01.078.01c.12.098.246.198.373.292a.077.077 0 01-.006.127 12.299 12.299 0 01-1.873.892.077.077 0 00-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 00.084.028 19.839 19.839 0 006.002-3.03.077.077 0 00.032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 00-.031-.028zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/>
+              </svg>
+              <span className="text-[15px] font-bold text-white">
+                Join our developer community on Discord
+              </span>
+            </a>
+            </div>
+          </div>
+        </div>
+
+        {/* Right auth panel */}
+        <div className="w-full md:w-1/2 bg-cw-bg border border-cw-bdr rounded-[2rem] flex flex-col items-center justify-center p-4 shadow-sm self-stretch">
+          <div className="w-full max-w-[480px] flex flex-col items-center justify-center h-full">
+            <img src="/codeward-logo.png" alt="Codeward Logo" className="w-32 h-32 md:w-40 md:h-40 mb-6 object-contain" />
+            
+            <h2 className="text-[28px] font-bold tracking-tight text-cw-txt mb-3 text-center">
+              Welcome to Codeward
+            </h2>
+            <p className="text-[15px] text-cw-txt2 mb-6 text-center font-medium">
+              Sign in or create your account below.
+            </p>
+
+            <div className="flex items-center gap-2 text-[12px] font-medium text-cw-txt2 mb-6 opacity-70">
+              <CheckCircle size={14} className="text-cw-purple" />
+              No credit card required
+            </div>
+
+            {/* OAuth buttons: 1. Google, 2. GitHub, 3. GitLab */}
+            <div className="w-full flex flex-col gap-3">
+              {/* 1. Google */}
+              <button
+                className={btnClass + " cursor-pointer"}
+                onClick={() => handleOAuth('google')}
+                disabled={!!loading}
+              >
+                {loading === 'google' ? <div className="animate-spin w-5 h-5 border-2 border-cw-txt border-t-transparent rounded-full" /> : <img src="https://www.svgrepo.com/show/475656/google-color.svg" className="w-5 h-5" alt="Google" />}
+                <span className="text-[15px]">{loading === 'google' ? 'Connecting...' : 'Continue with Google'}</span>
+              </button>
+
+              {/* 2. GitHub */}
+              <button
+                className={btnClass + " cursor-pointer"}
+                onClick={() => handleOAuth('github')}
+                disabled={!!loading}
+              >
+                {loading === 'github' ? <div className="animate-spin w-5 h-5 border-2 border-cw-txt border-t-transparent rounded-full" /> : <img src="https://upload.wikimedia.org/wikipedia/commons/9/91/Octicons-mark-github.svg" className="w-5 h-5" style={{ filter: theme === 'dark' ? 'invert(1)' : 'none' }} alt="GitHub" />}
+                <span className="text-[15px]">{loading === 'github' ? 'Connecting...' : 'Continue with GitHub'}</span>
+              </button>
+
+              {/* 3. GitLab */}
+              <button
+                className={btnClass + " opacity-60 cursor-not-allowed"}
+                disabled={true}
+              >
+                <img src="https://i.ibb.co/SDsmVD5S/GITLABLOGO-removebg-preview.png" className="w-5 h-5 object-contain -mr-1" alt="GitLab" />
+                <span className="text-[15px]">Continue with GitLab</span>
+              </button>
+            </div>
+
+            <div className="text-center mt-6 text-[13px] text-cw-txt3 leading-[1.6]">
+              By continuing you agree to Codeward's<br />
+              <span onClick={() => navigate('/terms')} className="text-cw-txt2 cursor-pointer hover:underline font-semibold hover:text-cw-txt transition-colors">Terms of Service</span> and <span onClick={() => navigate('/privacy')} className="text-cw-txt2 cursor-pointer hover:underline font-semibold hover:text-cw-txt transition-colors">Privacy Policy</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+

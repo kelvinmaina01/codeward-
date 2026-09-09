@@ -5,7 +5,7 @@ import { Theme } from '../types';
 import { termsContent } from './TermsContent';
 import { privacyContent } from './PrivacyContent';
 import { trustContent } from './TrustContent';
-import { FooterTrustBadges } from '../FooterTrustBadges';
+import { FooterTrustBadges } from '../shared/FooterTrustBadges';
 
 interface LegalPageProps {
   type: 'terms' | 'privacy' | 'trust';
