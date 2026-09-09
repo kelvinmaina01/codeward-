@@ -23,19 +23,19 @@
 <br/>
 
 <blockquote>
-  <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=96&h=96&fit=crop&crop=face" align="left" width="48" height="48" style="border-radius: 50%; margin-right: 15px;" alt="Melisah Jenkins">
-  <strong>"We used to waste hours tracking down memory leaks in production. We plugged Codeward into our pipeline, and its AI isolated a fatal deadlock in our cart service within minutes. Absolute lifesaver."</strong>
+  <strong>🛡️ Concurrency & Memory Leak Isolation</strong><br/>
+  <em>Automated deep analysis in CI/CD pipelines isolates fatal deadlocks, thread-safety regressions, and microservice memory leaks within minutes before code merge.</em>
   <br />
-  <small>— <strong>Melisah Jenkins</strong>, Principal Architect at <em>PayPulse Systems</em></small>
+  <small><strong>Workflow Template: Production Reliability & Concurrency Analysis</strong></small>
 </blockquote>
 
 <br/>
 
 <blockquote>
-  <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=96&h=96&fit=crop&crop=face" align="left" width="48" height="48" style="border-radius: 50%; margin-right: 15px;" alt="Peter Vance">
-  <strong>"Codeward caught a hard-to-reproduce race condition right in the PR stage. It saved our frontend team from shipping a broken checkout UI to 50k active users on Black Friday."</strong>
+  <strong>⚡ Pre-Merge Race Condition Detection</strong><br/>
+  <em>Autonomous AST and execution analysis catches hard-to-reproduce race conditions and state flaws at the PR stage, preventing broken checkout and UI flows from reaching users.</em>
   <br />
-  <small>— <strong>Peter Franklin Vance</strong>, VP of Engineering at <em>CartFlow Commerce</em></small>
+  <small><strong>Workflow Template: High-Concurrency & PR Gate Analysis</strong></small>
 </blockquote>
 
 <br/>

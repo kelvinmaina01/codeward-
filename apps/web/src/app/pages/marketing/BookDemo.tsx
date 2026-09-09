@@ -10,24 +10,24 @@ const gitProviders = [
   { id: 'other', name: 'Other', icon: 'https://cdn.simpleicons.org/git/white' }
 ];
 
-const testimonials = [
+const solutionTemplates = [
   {
-    quote: "We used to waste hours tracking down memory leaks in production. We plugged Codeward into our pipeline, and its AI isolated a fatal deadlock in our cart service within minutes. Absolute lifesaver.",
-    author: "Melisah Jenkins",
-    role: "Principal Architect, PayPulse Systems",
-    initials: "MJ"
+    title: "Deadlock & Memory Leak Isolation",
+    badge: "Reliability Template",
+    tag: "Production Concurrency",
+    description: "Instead of wasting developer hours tracking down elusive memory leaks in production, Codeward isolates fatal deadlocks and microservice synchronization flaws within minutes before merge."
   },
   {
-    quote: "Codeward caught a hard-to-reproduce race condition right in the PR stage. It saved our frontend team from shipping a broken checkout UI to 50k active users on Black Friday.",
-    author: "Peter F. Vance",
-    role: "VP of Engineering, CartFlow Commerce",
-    initials: "PV"
+    title: "Pre-Merge Race Condition Detection",
+    badge: "Concurrency Template",
+    tag: "PR Review Gate",
+    description: "Autonomous AST and execution path analysis catches hard-to-reproduce race conditions and UI state regressions at the PR stage, preventing broken checkout flows from shipping to production."
   },
   {
-    quote: "Codeward has fundamentally transformed our CI/CD pipeline. The autonomous agent caught critical security flaws before they reached staging, saving us countless hours. Absolutely indispensable.",
-    author: "Alex Dev",
-    role: "Lead Engineer, Vercel",
-    initials: "AD"
+    title: "Autonomous CI/CD Code Guardian",
+    badge: "Security & Quality Template",
+    tag: "Automated Review",
+    description: "Continuous multi-agent reviews inspect every pull request, systematically eliminating critical security vulnerabilities, secret leaks, and architectural debt before staging deployments."
   }
 ];
 
@@ -56,7 +56,7 @@ export function BookDemo() {
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setCurrentTestimonial((prev) => (prev + 1) % testimonials.length);
+      setCurrentTestimonial((prev) => (prev + 1) % solutionTemplates.length);
     }, 6000);
     return () => clearInterval(timer);
   }, []);
@@ -300,27 +300,35 @@ export function BookDemo() {
             </div>
           </div>
 
-          {/* Testimonial Carousel */}
-          <div className="bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-2xl p-8 text-left relative overflow-hidden group hover:bg-white/[0.05] transition-colors w-full h-[220px]">
+          {/* Solution Templates Carousel */}
+          <div className="bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-2xl p-7 text-left relative overflow-hidden group hover:bg-white/[0.05] transition-colors w-full h-[220px]">
             <div className="absolute top-0 left-0 w-1 h-full bg-blue-500 rounded-l-2xl shadow-[0_0_10px_rgba(59,130,246,0.8)]"></div>
             
             <div className="relative h-full flex flex-col justify-between">
-              {testimonials.map((t, idx) => (
+              {solutionTemplates.map((t, idx) => (
                 <div 
                   key={idx}
                   className={`absolute inset-0 flex flex-col justify-between transition-opacity duration-1000 ${currentTestimonial === idx ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}
                 >
-                  <p className="text-lg lg:text-[17px] font-medium text-white/90 mb-6 leading-relaxed">
-                    "{t.quote}"
-                  </p>
-                  <div className="flex items-center gap-4 mt-auto">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm shrink-0 shadow-lg border border-white/20">
-                      {t.initials}
+                  <div>
+                    <div className="flex items-center gap-2 mb-2.5">
+                      <span className="text-[11px] font-semibold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-blue-500/15 text-blue-400 border border-blue-500/30">
+                        {t.badge}
+                      </span>
+                      <span className="text-[11px] text-white/40 font-mono">
+                        {t.tag}
+                      </span>
                     </div>
-                    <div>
-                      <h4 className="text-white font-bold text-sm">{t.author}</h4>
-                      <p className="text-white/50 text-xs">{t.role}</p>
-                    </div>
+                    <h3 className="text-base font-semibold text-white mb-2">
+                      {t.title}
+                    </h3>
+                    <p className="text-sm text-white/75 leading-relaxed">
+                      {t.description}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-blue-400/90 font-medium mt-auto">
+                    <span className="h-1.5 w-1.5 rounded-full bg-blue-400 animate-pulse"></span>
+                    <span>Codeward Engineering Template</span>
                   </div>
                 </div>
               ))}
@@ -328,10 +336,11 @@ export function BookDemo() {
 
             {/* Carousel Dots */}
             <div className="absolute bottom-6 right-8 flex gap-2 z-20">
-              {testimonials.map((_, idx) => (
+              {solutionTemplates.map((_, idx) => (
                 <button 
                   key={idx}
                   onClick={() => setCurrentTestimonial(idx)}
+                  aria-label={`Go to template ${idx + 1}`}
                   className={`w-2 h-2 rounded-full transition-all ${currentTestimonial === idx ? 'bg-blue-500 w-4' : 'bg-white/30 hover:bg-white/50'}`}
                 />
               ))}
