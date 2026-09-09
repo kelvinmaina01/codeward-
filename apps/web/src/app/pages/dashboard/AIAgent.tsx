@@ -7,6 +7,7 @@ import {
   Send, ChevronRight, Loader2, Wrench, CheckCircle2, AlertTriangle,
   History, Plus, Search, Pencil, Trash2, X, Square, MessageSquare,
   GitFork, ChevronDown, Check, Ban, Radio, Zap, FileSpreadsheet, Hand, ShieldCheck,
+  PanelLeftClose,
 } from 'lucide-react';
 import {
   SecurityCheckIcon, Analytics01Icon, SourceCodeIcon, GitPullRequestIcon, Rocket01Icon, Time04Icon,
@@ -383,10 +384,9 @@ function HistoryDrawer({ sessions, activeId, onSelect, onRename, onDelete, onClo
           onClick={onClose}
           title="Collapse panel"
           aria-label="Collapse panel"
-          className="ml-auto flex items-center gap-1 px-2 py-1 rounded-md border border-cw-bdr bg-cw-bg3/60 hover:bg-cw-bg3 hover:border-cw-blue/50 text-cw-txt2 hover:text-cw-txt transition-all text-[11px] font-medium group"
+          className="ml-auto flex items-center justify-center p-1.5 rounded-lg border border-cw-bdr bg-cw-bg3/60 hover:bg-cw-bg3 hover:border-cw-blue/50 text-cw-txt2 hover:text-cw-txt transition-all shadow-xs active:scale-95"
         >
-          <ChevronRight size={13} className="text-cw-blue transition-transform group-hover:translate-x-0.5" />
-          <span>Collapse</span>
+          <PanelLeftClose size={15} className="text-cw-blue" />
         </button>
       </div>
       <div className="px-3 py-2 border-b border-cw-bdr">
@@ -553,7 +553,7 @@ function LogsDrawer({ onClose }: { onClose: () => void }) {
         <div className="flex items-center gap-2.5 px-5 py-3.5 border-b border-cw-bdr">
           <ListViewIcon size={18} className="text-cw-purple" />
           <div>
-            <div className="text-sm font-semibold text-cw-txt flex items-center gap-2">Gordon logs <span className="text-[9px] px-[6px] py-[1px] rounded-full border border-cw-purple text-cw-purple font-semibold">ACCOUNTABILITY</span></div>
+            <div className="text-sm font-semibold text-cw-txt flex items-center gap-2">Gordon trajectory <span className="text-[9px] px-[6px] py-[1px] rounded-full border border-cw-purple text-cw-purple font-semibold">ACCOUNTABILITY</span></div>
             <div className="text-[11px] text-cw-txt3">Every real action Gordon took, on your account. {total} total{successRate != null ? ` · ${successRate}% succeeded` : ''}.</div>
           </div>
           <div className="ml-auto flex items-center gap-2">
@@ -564,12 +564,11 @@ function LogsDrawer({ onClose }: { onClose: () => void }) {
             <button onClick={load} title="Refresh" className="p-1.5 text-cw-txt3 hover:text-cw-txt transition-colors"><RefreshIcon size={15} /></button>
             <button
               onClick={onClose}
-              title="Collapse logs panel"
+              title="Collapse trajectory panel"
               aria-label="Collapse panel"
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-cw-bdr bg-cw-bg3/70 hover:bg-cw-bg3 hover:border-cw-purple/50 text-cw-txt2 hover:text-cw-txt transition-all text-[11px] font-medium shadow-xs active:scale-95 group ml-1"
+              className="flex items-center justify-center p-1.5 rounded-lg border border-cw-bdr bg-cw-bg3/70 hover:bg-cw-bg3 hover:border-cw-purple/50 text-cw-txt2 hover:text-cw-txt transition-all shadow-xs active:scale-95 ml-1"
             >
-              <ChevronRight size={14} className="text-cw-purple transition-transform group-hover:translate-x-0.5" />
-              <span>Collapse</span>
+              <PanelLeftClose size={16} className="text-cw-purple" />
             </button>
           </div>
         </div>
@@ -577,11 +576,11 @@ function LogsDrawer({ onClose }: { onClose: () => void }) {
         {/* table */}
         <div className="flex-1 overflow-auto">
           {loading ? (
-            <div className="flex items-center justify-center gap-2 text-[12px] text-cw-txt3 py-16"><Loader2 size={15} className="animate-spin" /> Loading real activity…</div>
+            <div className="flex items-center justify-center gap-2 text-[12px] text-cw-txt3 py-16"><Loader2 size={15} className="animate-spin" /> Loading trajectory…</div>
           ) : filtered.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-2 text-cw-txt3 py-16">
               <ListViewIcon size={30} className="opacity-40" />
-              <div className="text-[12px]">{query ? 'No entries match your filter.' : 'No actions logged yet. Ask Gordon to do something and it’ll appear here.'}</div>
+              <div className="text-[12px]">{query ? 'No entries match your filter.' : 'No trajectory recorded yet. Ask Gordon to do something and it’ll appear here.'}</div>
             </div>
           ) : (
             <table className="w-full text-[11.5px] border-collapse">
@@ -810,7 +809,7 @@ export function AIAgent() {
         <div className="flex items-center gap-2 mb-3">
           <div className="flex-1" />
           <button onClick={newChat} title="New chat" className="shrink-0 flex items-center gap-1.5 px-2.5 py-2 border border-cw-bdr rounded-lg text-[11px] text-cw-txt2 hover:border-cw-blue hover:text-cw-blue transition-colors"><Plus size={13} /> New</button>
-          <button onClick={() => setLogsOpen(true)} title="Gordon logs" className="shrink-0 flex items-center gap-1.5 px-2.5 py-2 border border-cw-bdr rounded-lg text-[11px] text-cw-txt2 hover:border-cw-purple hover:text-cw-purple transition-colors"><ListViewIcon size={14} /> Logs</button>
+          <button onClick={() => setLogsOpen(true)} title="Gordon trajectory" className="shrink-0 flex items-center gap-1.5 px-2.5 py-2 border border-cw-bdr rounded-lg text-[11px] text-cw-txt2 hover:border-cw-purple hover:text-cw-purple transition-colors"><ListViewIcon size={14} /> Trajectory</button>
           <button onClick={() => setDrawerOpen((o) => !o)} title="Chat history" className={`shrink-0 flex items-center gap-1.5 px-2.5 py-2 border rounded-lg text-[11px] transition-colors ${drawerOpen ? 'border-cw-blue text-cw-blue bg-cw-blue/5' : 'border-cw-bdr text-cw-txt2 hover:border-cw-blue hover:text-cw-blue'}`}><History size={13} /> History</button>
         </div>
 
