@@ -16,6 +16,9 @@ export class LocalExecSandbox implements SandboxHandle {
   private destroyed: boolean = false;
 
   constructor() {
+    if (process.env.NODE_ENV === 'production' && process.env.SANDBOX_PROVIDER !== 'fly') {
+      throw new Error("FATAL: Local execution forbidden in production");
+    }
     // Create a temporary directory for this sandbox instance
     const tmpBase = os.tmpdir();
     this.workDir = path.join(tmpBase, `codeward-sandbox-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`);

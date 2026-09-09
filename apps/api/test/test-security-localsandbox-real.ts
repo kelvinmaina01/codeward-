@@ -1,3 +1,4 @@
+process.env.NODE_ENV = 'test';
 import { LocalExecSandbox } from '../src/sandbox/local-exec.js';
 import { securityAgent } from '../src/agents/definitions/security.agent.js';
 import { NativeOpenAIProvider } from '../src/providers/openai.provider.js';
