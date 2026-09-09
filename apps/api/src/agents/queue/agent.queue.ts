@@ -623,7 +623,7 @@ Use these EXACT values for any tool parameter named runId/repoId — never inven
 
 }, {
   connection: connection as any,
-  concurrency: 5,   // Run up to 5 agents in parallel (matches Promise.all pattern)
+  concurrency: process.env.WORKER_CONCURRENCY ? parseInt(process.env.WORKER_CONCURRENCY, 10) : 10,   // Created a scalable system to scale the usage of agents in parallel just by using an enviroment variable
 });
 
 // ---------------------------------------------------------------------------
