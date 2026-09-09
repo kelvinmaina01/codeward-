@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
-const localExec = fs.readFileSync(new URL('./sandbox/local-exec.ts', import.meta.url), 'utf8');
-const flyMachine = fs.readFileSync(new URL('./sandbox/fly-machine.ts', import.meta.url), 'utf8');
+const localExec = fs.readFileSync(new URL('../src/sandbox/local-exec.ts', import.meta.url), 'utf8');
+const flyMachine = fs.readFileSync(new URL('../src/sandbox/fly-machine.ts', import.meta.url), 'utf8');
 
 assert.ok(
   localExec.includes('GIT_LFS_SKIP_SMUDGE=1 git clone'),
