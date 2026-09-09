@@ -11,19 +11,20 @@
 
 **The automated principal engineer sitting on every pull request.**
 
-[![License: All Rights Reserved](https://img.shields.io/badge/License-All%20Rights%20Reserved-red.svg)](LICENSE)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
+[![GitHub stars](https://img.shields.io/github/stars/kelvinmaina01/codeward-?style=flat&color=3fb950)](https://github.com/kelvinmaina01/codeward-)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-3fb950.svg)](CONTRIBUTING.md)
 [![Node.js](https://img.shields.io/badge/Node.js-22-3fb950.svg)](https://nodejs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178c6.svg)](https://typescriptlang.org)
 [![Powered by Claude](https://img.shields.io/badge/Powered%20by-Claude%20Sonnet%204.5-7c6fff.svg)](https://anthropic.com)
-[![GitHub App](https://img.shields.io/badge/GitHub-App-24292e.svg)](https://github.com/apps/codeward)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-3fb950.svg)](CONTRIBUTING.md)
-[![Status](https://img.shields.io/badge/Status-Beta-e3b341.svg)](#)
+[![Discord](https://img.shields.io/badge/Discord-Join%20Community-5865F2.svg)](https://discord.gg/codeward)
+[![Status](https://img.shields.io/badge/Status-Public%20Beta-e3b341.svg)](#)
 
 <br/>
 
 <blockquote>
-  <img src="https://unsplash.com" align="left" width="48" height="48" style="border-radius: 50%; margin-right: 15px;" alt="Sarah Jenkins">
-  <strong>"We used to waste hours tracking down memory leaks in production. We plugged SnapOrange into our pipeline, and its AI isolated a fatal deadlock in our cart service within minutes. Absolute lifesaver."</strong>
+  <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=96&h=96&fit=crop&crop=face" align="left" width="48" height="48" style="border-radius: 50%; margin-right: 15px;" alt="Melisah Jenkins">
+  <strong>"We used to waste hours tracking down memory leaks in production. We plugged Codeward into our pipeline, and its AI isolated a fatal deadlock in our cart service within minutes. Absolute lifesaver."</strong>
   <br />
   <small>— <strong>Melisah Jenkins</strong>, Principal Architect at <em>PayPulse Systems</em></small>
 </blockquote>
@@ -31,16 +32,16 @@
 <br/>
 
 <blockquote>
-  <img src="https://unsplash.com" align="left" width="48" height="48" style="border-radius: 50%; margin-right: 15px;" alt="Marcus Vance">
-  <strong>"ClockworkOrange caught a hard-to-reproduce race condition right in the PR stage. It saved our frontend team from shipping a broken checkout UI to 50k active users on Black Friday."</strong>
+  <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=96&h=96&fit=crop&crop=face" align="left" width="48" height="48" style="border-radius: 50%; margin-right: 15px;" alt="Peter Vance">
+  <strong>"Codeward caught a hard-to-reproduce race condition right in the PR stage. It saved our frontend team from shipping a broken checkout UI to 50k active users on Black Friday."</strong>
   <br />
-  <small>— <strong>peter Franklin Vance</strong>, VP of Engineering at <em>CartFlow Commerce</em></small>
+  <small>— <strong>Peter Franklin Vance</strong>, VP of Engineering at <em>CartFlow Commerce</em></small>
 </blockquote>
 
 <br/>
 
 
-[**Get Started →**](https://codeward.io) · [**Documentation**](https://docs.codeward.io) · [**Live Demo**](#demo) · [**Discord**](https://discord.gg/codeward) · [**Report a Bug**](https://github.com/codeward-io/codeward/issues)
+[**Get Started →**](https://codeward.io) · [**Documentation**](https://docs.codeward.io) · [**Self-Hosting**](#self-hosting--local-development) · [**Discord**](https://discord.gg/codeward) · [**Report an Issue**](https://github.com/kelvinmaina01/codeward-/issues)
 
 </div>
 
@@ -50,6 +51,7 @@
 
 - [What is Codeward?](#what-is-codeward)
 - [Why Codeward](#why-codeward)
+- [Open Source vs. Managed Cloud](#open-source-vs-managed-cloud)
 - [How It Works](#how-it-works)
 - [The 8 Agents](#the-8-agents)
   - [Orchestrator Agent](#orchestrator-agent)
@@ -64,7 +66,7 @@
 - [The 100+ Debt Checks](#the-100-debt-checks)
 - [System Architecture](#system-architecture)
 - [Tech Stack](#tech-stack)
-- [Getting Started](#getting-started)
+- [Self-Hosting & Local Development](#self-hosting--local-development)
   - [Prerequisites](#prerequisites)
   - [Installation](#installation)
   - [Environment Variables](#environment-variables)
@@ -132,6 +134,23 @@ PR comment with annotated findings + suggested diffs
 | Chat agent with full codebase access | ❌ | ❌ | ❌ | ✅ |
 | Average analysis time | Hours | ~5 min | ~10 min | **< 6 min** |
 | Cost per commit analysis | Engineer time | $20k+/yr | CI minutes | **~$0.08** |
+
+---
+
+## Open Source vs. Managed Cloud
+
+Codeward is built with an **open core ethos**. The full multi-agent review engine, sandboxed analysis runtime, and web dashboard are 100% open source under the Apache 2.0 license.
+
+| Feature | Open Source (Self-Hosted) | Managed Cloud ([Codeward.io](https://codeward.io)) |
+|:---|:---:|:---:|
+| **All 8 AI Agents & 100+ Debt Checks** | ✅ Included | ✅ Included |
+| **Full Source Code Access** | ✅ Apache 2.0 | Hosted |
+| **Ephemeral Sandboxing** | ✅ Local Docker / Fly.io Machines | ✅ Zero-ops auto-scaling MicroVMs |
+| **Hosting & Infrastructure** | Self-managed (Postgres, Redis, Node) | Fully managed & redundant |
+| **LLM Inference** | Bring your own API keys (Anthropic) | Included / pooled tokens |
+| **GitHub App Integration** | Self-registered GitHub App | 1-click GitHub marketplace install |
+| **Team Collaboration & SSO** | Standard auth | SAML / Okta SSO, team audit logs |
+| **Support** | GitHub Discussions & Discord | Priority SLA & dedicated engineering |
 
 ---
 
@@ -457,27 +476,26 @@ The Chat Agent is the Codeward sidebar interface. It is not a chatbot with knowl
 
 ---
 
-## Getting Started
+## Self-Hosting & Local Development
 
 ### Prerequisites
 
-```bash
-node >= 22.0.0
-docker >= 24.0.0
-git >= 2.40.0
-```
-
-You will need accounts at: Anthropic · GitHub (for App registration) · Supabase · Upstash · Cloudflare · Fly.io · Resend
+- **Node.js**: `>= 22.0.0`
+- **pnpm**: `>= 10.0.0`
+- **Docker**: `>= 24.0.0` (for sandboxes and local container isolation)
+- **Git**: `>= 2.40.0`
+- **PostgreSQL**: `>= 15.0` (with `pgvector` extension)
+- **Redis**: `>= 7.0` (for BullMQ job queues)
 
 ### Installation
 
 ```bash
-# Clone the repository
-git clone https://github.com/codeward-io/codeward.git
-cd codeward
+# Clone the open-source repository
+git clone https://github.com/kelvinmaina01/codeward-.git
+cd codeward-
 
-# Install dependencies
-npm install
+# Install dependencies across all monorepo packages
+pnpm install
 
 # Copy environment template
 cp .env.example .env.local
@@ -565,19 +583,15 @@ STRIPE_WEBHOOK_SECRET=whsec_...
 ### Running Locally
 
 ```bash
-# Run database migrations
-npm run db:migrate
+# Run database migrations (Drizzle)
+pnpm run build:api
 
-# Seed development database
-npm run db:seed
-
-# Start all services (API + frontend + worker)
-npm run dev
+# Start all services concurrently (API + frontend)
+pnpm dev
 
 # Or start services individually
-npm run dev:api      # Hono.js API on :3000
-npm run dev:worker   # BullMQ job processor
-npm run dev:web      # Vite React on :3000
+pnpm dev:api      # Hono.js API on :3000
+pnpm dev:web      # Vite React on :5173
 ```
 
 To test the full webhook flow locally, use [smee.io](https://smee.io) or ngrok to forward GitHub webhooks to your local server:
@@ -771,63 +785,63 @@ The Codeward React dashboard is available at `https://codeward.io/dashboard` onc
 
 ## Contributing
 
-We welcome contributions. The best place to start is the [good first issue](https://github.com/codeward-io/codeward/labels/good%20first%20issue) label.
+We love contributions! Codeward is open-source and built for the developer community. The best place to get started is by browsing issues labeled [good first issue](https://github.com/kelvinmaina01/codeward-/labels/good%20first%20issue).
 
 ```bash
-# Fork and clone
-git clone https://github.com/YOUR_USERNAME/codeward.git
+# 1. Fork the repo and clone your fork
+git clone https://github.com/YOUR_USERNAME/codeward-.git
+cd codeward-
 
-# Create a feature branch
-git checkout -b feat/your-feature-name
+# 2. Create a feature branch
+git checkout -b feat/my-new-check
 
-# Make your changes, add tests
-npm run test
+# 3. Install dependencies & make your changes
+pnpm install
 
-# Lint and type-check
-npm run lint
-npm run typecheck
+# 4. Run tests and typechecks
+pnpm run build:api
+pnpm run build:web
 
-# Open a pull request
-# Codeward will run on your own PR automatically
+# 5. Commit using Conventional Commits and open a PR!
 ```
 
-**Before contributing a new debt check:**
-1. Open an issue describing the check, its tool, and its expected output format
-2. Add the check definition to `packages/checks/src/definitions/`
-3. Write a test fixture (a small repo that should trigger the check)
-4. Add it to the relevant agent's tool list in `packages/agents/src/`
-5. Update this README under the relevant agent section
-
-Please read [CONTRIBUTING.md](CONTRIBUTING.md) and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) before opening a PR.
+**Interested in adding a new debt check?**
+Check out the step-by-step guide in [CONTRIBUTING.md](CONTRIBUTING.md). Please also review our [Code of Conduct](CODE_OF_CONDUCT.md) before participating.
 
 ---
 
 ## Security
 
-Codeward takes security seriously. If you discover a vulnerability, please **do not open a public GitHub issue**.
+Codeward takes the security of codebases and sandbox environments with utmost priority. If you discover a vulnerability or potential exploit:
 
-**Responsible disclosure:**
-- Email: `security@codeward.io`
-- PGP key: [keybase.io/codeward](https://keybase.io/codeward)
-- Response time: within 48 hours
-
-**Data handling:**
-- Source code is cloned into ephemeral sandboxes and destroyed after each run
-- We store run results and annotated diffs — never raw source code
-- All data in transit is encrypted via TLS 1.3
-- Sandbox VMs have no external network access during execution
-- See our full [Data Processing Agreement](https://codeward.io/dpa)
+- **Please DO NOT open a public GitHub issue.**
+- Review our full vulnerability reporting process in [SECURITY.md](SECURITY.md).
+- Email responsible disclosures directly to `security@codeward.io` (PGP key: [keybase.io/codeward](https://keybase.io/codeward)).
+- We acknowledge reports within 48 hours and coordinate prompt patched releases.
 
 ---
 
 ## License
 
-Copyright (c) 2026 Codeward. **All rights reserved.**
+Codeward is free and open-source software licensed under the **[Apache License, Version 2.0](LICENSE)**.
 
-This software is proprietary. Copying, reproduction, distribution, and modification are strictly and severely prohibited. 
-See the [LICENSE](LICENSE) file for the full proprietary terms.
+```
+Copyright 2026 Kelvin Maina & Codeward Contributors
 
-The Codeward name, logo, and brand assets may not be used without written permission.
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+```
+
+The Codeward name, logo, and brand assets are protected trademarks. They may not be used without prior written authorization.
 
 ---
 

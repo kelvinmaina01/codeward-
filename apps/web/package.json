@@ -1,7 +1,8 @@
 {
-  "name": "@figma/my-make-file",
+  "name": "@codeward/web",
   "private": true,
-  "version": "0.0.1",
+  "version": "1.0.0",
+  "license": "Apache-2.0",
   "type": "module",
   "scripts": {
     "build": "node generate-sitemap.js && vite build",
