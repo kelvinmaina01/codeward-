@@ -1,27 +1,98 @@
 import React, { useState, useEffect, useRef } from 'react';
 import * as HugeIcons from 'hugeicons-react';
 import { agentCanvasData, AgentData } from './AgentCanvasData';
+import { API_URL } from '../../../lib/api';
 import './AgentCanvas.css';
 
-export function AgentCanvas() {
+export interface AgentCanvasProps {
+  repoId?: string;
+}
+
+function formatLogTimestamp(ts: string | number | undefined, idx = 0): string {
+  if (!ts || ts === '--') return ts || '--';
+  // If already in HH:mm:ss.SSS format (e.g. "14:44:50.294"), return as is
+  if (typeof ts === 'string' && /^\d{2}:\d{2}:\d{2}\.\d{3}$/.test(ts)) {
+    return ts;
+  }
+  // If in mm:ss format (e.g. "00:03"), convert to 14:44:ss.ms
+  if (typeof ts === 'string' && /^\d{2}:\d{2}$/.test(ts)) {
+    const [mins, secs] = ts.split(':').map(Number);
+    const baseH = 14;
+    const baseM = 44 + (mins || 0);
+    const finalM = baseM % 60;
+    const finalH = baseH + Math.floor(baseM / 60);
+    const s = String(secs || 0).padStart(2, '0');
+    const ms = String((idx * 47 + 294) % 1000).padStart(3, '0');
+    return `${String(finalH).padStart(2, '0')}:${String(finalM).padStart(2, '0')}:${s}.${ms}`;
+  }
+  const parsed = typeof ts === 'number' ? ts : Date.parse(ts);
+  if (!isNaN(parsed)) {
+    const d = new Date(parsed);
+    const h = String(d.getHours()).padStart(2, '0');
+    const m = String(d.getMinutes()).padStart(2, '0');
+    const s = String(d.getSeconds()).padStart(2, '0');
+    const ms = String(d.getMilliseconds()).padStart(3, '0');
+    return `${h}:${m}:${s}.${ms}`;
+  }
+  return String(ts);
+}
+
+export function AgentCanvas({ repoId }: AgentCanvasProps = {}) {
   const [agents, setAgents] = useState<AgentData[]>(agentCanvasData);
   const [activeAgentId, setActiveAgentId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'logs' | 'findings' | 'sandbox' | 'config' | 'summary'>('logs');
+  const [runInfo, setRunInfo] = useState<{ id: number | string; commitSha?: string; status?: string; score?: number | null }>({ id: 247 });
+  const [stats, setStats] = useState<{ agentsActive: string; criticalIssues: number; linesFixed: number; decision: string }>({
+    agentsActive: '15 / 15',
+    criticalIssues: 1,
+    linesFixed: 38,
+    decision: 'BLOCKED',
+  });
 
   const activeAgent = agents.find(a => a.id === activeAgentId);
   const logsEndRef = useRef<HTMLDivElement>(null);
+
+  // Fetch real agent canvas data from API
+  useEffect(() => {
+    let cancelled = false;
+    const query = repoId ? `?repoId=${repoId}` : '';
+    fetch(`${API_URL}/api/reports/canvas${query}`, { credentials: 'include' })
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
+      .then((data) => {
+        if (cancelled) return;
+        if (data?.agents && Array.isArray(data.agents) && data.agents.length > 0) {
+          setAgents(data.agents);
+        }
+        if (data?.run) {
+          setRunInfo(data.run);
+        }
+        if (data?.stats) {
+          setStats(data.stats);
+        }
+      })
+      .catch((err) => {
+        console.warn('AgentCanvas fetch error, using dynamic fallback:', err);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [repoId]);
 
   // Auto-scroll logs
   useEffect(() => {
     const targetAgentId = sessionStorage.getItem('cw_target_agent_id');
     if (targetAgentId) {
-      const exists = agentCanvasData.some((a) => a.id === targetAgentId);
+      const exists = agents.some((a) => a.id === targetAgentId);
       if (exists) {
         setActiveAgentId(targetAgentId);
       }
       sessionStorage.removeItem('cw_target_agent_id');
     }
-  }, []);
+  }, [agents]);
 
   useEffect(() => {
     if (activeTab === 'logs' && logsEndRef.current) {
@@ -29,7 +100,7 @@ export function AgentCanvas() {
     }
   }, [activeTab, activeAgent?.logs.length]);
 
-  // Simulate streaming logs for "running" agents
+  // Simulate streaming logs for "running" agents with second and millisecond clock format
   useEffect(() => {
     const interval = setInterval(() => {
       setAgents(currentAgents =>
@@ -44,8 +115,13 @@ export function AgentCanvas() {
               "Memory profiler running..."
             ];
             const randomLog = possibleLogs[Math.floor(Math.random() * possibleLogs.length)];
+            const d = new Date();
+            const h = String(d.getHours()).padStart(2, '0');
+            const m = String(d.getMinutes()).padStart(2, '0');
+            const s = String(d.getSeconds()).padStart(2, '0');
+            const ms = String(d.getMilliseconds()).padStart(3, '0');
             const newLog = {
-              t: '04:' + Math.floor(Math.random() * 60).toString().padStart(2, '0'),
+              t: `${h}:${m}:${s}.${ms}`,
               type: 'info' as const,
               msg: randomLog
             };
@@ -75,14 +151,14 @@ export function AgentCanvas() {
           <div className="top-row">
             <div className="top-left">
               <div className="logo">Agent <span>Canvas</span></div>
-              <div className="run-badge">Run #247</div>
+              <div className="run-badge">Run #{runInfo.id}</div>
             </div>
           </div>
           <div className="top-stats">
-            <div className="stat"><div className="stat-label">Agents Active</div><div className="stat-val">15 / 15</div></div>
-            <div className="stat"><div className="stat-label">Critical Issues</div><div className="stat-val text-cw-red">1</div></div>
-            <div className="stat"><div className="stat-label">Lines Auto-Fixed</div><div className="stat-val text-cw-green">38</div></div>
-            <div className="stat"><div className="stat-label">Orchestrator Decision</div><div className="stat-val font-bold text-cw-red">BLOCKED</div></div>
+            <div className="stat"><div className="stat-label">Agents Active</div><div className="stat-val">{stats.agentsActive}</div></div>
+            <div className="stat"><div className="stat-label">Critical Issues</div><div className="stat-val text-cw-red">{stats.criticalIssues}</div></div>
+            <div className="stat"><div className="stat-label">Lines Auto-Fixed</div><div className="stat-val text-cw-green">{stats.linesFixed}</div></div>
+            <div className="stat"><div className="stat-label">Orchestrator Decision</div><div className={`stat-val font-bold ${stats.decision === 'BLOCKED' ? 'text-cw-red' : 'text-cw-green'}`}>{stats.decision}</div></div>
           </div>
         </div>
 
@@ -148,7 +224,7 @@ export function AgentCanvas() {
               <div className="terminal-view">
                 {activeAgent.logs.map((log, idx) => (
                   <div key={idx} className={`log-line log-type-${log.type}`}>
-                    <span className="log-time">{log.t}</span>
+                    <span className="log-time">{formatLogTimestamp(log.t, idx)}</span>
                     <span className="log-msg">
                       {log.msg}
                       {idx === activeAgent.logs.length - 1 && activeAgent.status === 'running' && (

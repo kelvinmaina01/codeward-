@@ -330,7 +330,7 @@
   gap: 8px;
   line-height: 1.5;
 }
-.log-time { color: var(--cw-txt3); width: 35px; flex-shrink: 0; }
+.log-time { color: var(--cw-txt3); min-width: 86px; flex-shrink: 0; font-variant-numeric: tabular-nums; }
 .log-msg { flex: 1; word-break: break-all; }
 
 .log-type-info .log-msg { color: var(--cw-txt); }
