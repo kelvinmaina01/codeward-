@@ -510,18 +510,7 @@ export function Dashboard({ onRunClick }: Props) {
           <button onClick={() => navigate('/dashboard/cert')} className="px-3 py-1.5 bg-cw-bg2 border border-cw-bdr rounded-lg text-[12px] font-medium text-cw-txt hover:bg-cw-bg3 transition-colors flex items-center gap-2 cursor-pointer shadow-sm">
             <Award01Icon size={15} className="text-amber-400" /> Share certificate
           </button>
-          <button onClick={() => navigate('/dashboard/integrations')} className="px-3 py-1.5 bg-cw-bg2 border border-cw-bdr rounded-lg text-[12px] font-medium text-cw-txt hover:bg-cw-bg3 transition-colors flex items-center gap-2 cursor-pointer shadow-sm">
-            <svg viewBox="0 0 24.1 24.1" width="15" height="15" xmlns="http://www.w3.org/2000/svg">
-              <path d="M5.1 14.8a2.5 2.5 0 1 1-2.5-2.5h2.5v2.5z" fill="#E01E5A"/>
-              <path d="M6.3 14.8a2.5 2.5 0 1 1 5 0v6.2a2.5 2.5 0 1 1-5 0v-6.2z" fill="#E01E5A"/>
-              <path d="M9.3 5.1a2.5 2.5 0 1 1 2.5-2.5v2.5H9.3z" fill="#36C5F0"/>
-              <path d="M9.3 6.3a2.5 2.5 0 1 1 0 5H3.1a2.5 2.5 0 1 1 0-5h6.2z" fill="#36C5F0"/>
-              <path d="M19 9.3a2.5 2.5 0 1 1 2.5 2.5h-2.5V9.3z" fill="#2EB67D"/>
-              <path d="M17.8 9.3a2.5 2.5 0 1 1-5 0V3.1a2.5 2.5 0 1 1 5 0v6.2z" fill="#2EB67D"/>
-              <path d="M14.8 19a2.5 2.5 0 1 1-2.5 2.5v-2.5h2.5z" fill="#ECB22E"/>
-              <path d="M14.8 17.8a2.5 2.5 0 1 1 0-5h6.2a2.5 2.5 0 1 1 0 5h-6.2z" fill="#ECB22E"/>
-            </svg> Export to Slack
-          </button>
+
         </div>
       </div>
 
@@ -1079,63 +1068,7 @@ export function Dashboard({ onRunClick }: Props) {
           </div>
         </div>
 
-        {/* Section: Integration Health */}
-        <div className="bg-cw-bg2 border border-cw-bdr rounded-lg p-5 flex flex-col justify-between md:col-span-2">
-          <div>
-            <div className="text-[11px] font-semibold tracking-wider text-cw-txt3 mb-4">INTEGRATION HEALTH</div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {(() => {
-                const PROVIDER_LOGOS: Record<string, string> = {
-                  slack: 'https://upload.wikimedia.org/wikipedia/commons/d/d5/Slack_icon_2019.svg',
-                  sentry: 'https://upload.wikimedia.org/wikipedia/commons/2/29/Sentry_logo.svg',
-                  supabase: 'https://upload.wikimedia.org/wikipedia/commons/0/00/Supabase_logo.svg',
-                  jira: 'https://upload.wikimedia.org/wikipedia/commons/8/82/Jira_%28Software%29_logo.svg',
-                  github: 'https://upload.wikimedia.org/wikipedia/commons/9/91/Octicons-mark-github.svg',
-                  gmail: 'https://upload.wikimedia.org/wikipedia/commons/7/7e/Gmail_icon_%282020%29.svg',
-                  calendar: 'https://upload.wikimedia.org/wikipedia/commons/a/a5/Google_Calendar_icon_%282020%29.svg',
-                  linear: 'https://upload.wikimedia.org/wikipedia/commons/c/c8/Linear_logo.svg',
-                  figma: 'https://upload.wikimedia.org/wikipedia/commons/3/33/Figma-logo.svg',
-                };
-                const getProviderLogo = (provider: string) => PROVIDER_LOGOS[provider.toLowerCase()] || PROVIDER_LOGOS.github;
 
-                if (integrations.length === 0) {
-                  return (
-                    <div className="col-span-full text-[12px] text-cw-txt3 text-center py-4 bg-cw-bg rounded-md border border-cw-bdr border-dashed">
-                      No integrations configured yet.
-                    </div>
-                  );
-                }
-
-                return integrations.map(int => (
-                  <div key={int.provider} className="flex items-start justify-between p-3 border border-cw-bdr rounded-md bg-cw-bg group hover:border-cw-bdr/80 transition-colors">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <img src={getProviderLogo(int.provider)} alt={int.provider} className="w-6 h-6 object-contain shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <div className="text-[13px] font-bold text-cw-txt truncate capitalize">{int.provider}</div>
-                        <div className="flex items-center gap-1 mt-0.5">
-                          <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${int.status === 'connected' ? 'bg-cw-green' : 'bg-cw-amber'}`} />
-                          <div className="text-[10px] text-cw-txt3 truncate capitalize">{int.status}</div>
-                        </div>
-                        {int.updatedAt && (
-                          <div className="text-[9px] text-cw-txt3 truncate mt-1">Last used: {new Date(int.updatedAt).toLocaleDateString()}</div>
-                        )}
-                      </div>
-                    </div>
-                    <button onClick={() => navigate('/dashboard/settings?tab=integrations')} className="text-cw-txt3 hover:text-cw-purple transition-colors p-1 opacity-0 group-hover:opacity-100 flex-shrink-0 cursor-pointer" title="Settings">
-                      <Settings size={14} />
-                    </button>
-                  </div>
-                ));
-              })()}
-            </div>
-          </div>
-          <button 
-            onClick={() => navigate('/dashboard/integrations')}
-            className="mt-5 px-4 py-2 bg-cw-blue text-white hover:brightness-110 rounded-lg text-[12px] font-semibold transition-all shadow-sm w-fit flex items-center gap-2 cursor-pointer"
-          >
-            <Blocks size={14} /> Manage integrations &rarr;
-          </button>
-        </div>
 
       </div>
       

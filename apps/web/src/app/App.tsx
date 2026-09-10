@@ -119,13 +119,13 @@ const nav: NavGroup[] = [
   ]},
   { group: 'Deploy', items: [
     { id: 'staging', label: 'Staging', dot: 'a', icon: Monitor, path: '/dashboard/staging' },
-    { id: 'history', label: 'Audit log', dot: '', icon: Clock, path: '/dashboard/history' },
+    { id: 'history', label: 'Runs', dot: '', icon: Clock, path: '/dashboard/history' },
   ]},
   { group: 'Health', items: [
     { id: 'repos', label: 'Repositories', dot: '', icon: GitFork, path: '/dashboard/repos' },
     { id: 'cert', label: 'Certificate', dot: 'g', icon: Award, path: '/dashboard/cert' },
     { id: 'settings', label: 'Settings', dot: '', icon: SettingsIcon, path: '/dashboard/settings' },
-    { id: 'integrations', label: 'Integrations', dot: 'b', icon: Blocks, path: '/dashboard/integrations' },
+    // { id: 'integrations', label: 'Integrations', dot: 'b', icon: Blocks, path: '/dashboard/integrations' },
   ]},
 ];
 
@@ -137,7 +137,7 @@ const topbarConfig: Partial<Record<string, { title: string; sub: string }>> = {
   debt:      { title: 'Debt report', sub: 'Codebase health and technical debt' },
   agent:     { title: 'Gordon', sub: 'Your principal-engineer agent — answers from real run data, not guesses' },
   staging:   { title: 'Staging', sub: 'Deployments awaiting approval' },
-  history:   { title: 'Audit Log', sub: 'Autonomous interventions and checks' },
+  history:   { title: 'Runs', sub: 'Autonomous interventions and agent run history' },
   repos:     { title: 'Repositories', sub: 'Connected GitHub repositories' },
   cert:      { title: 'Health certificate', sub: 'Shareable health status' },
   settings:  { title: 'Settings', sub: 'Manage your Codeward preferences' },
@@ -162,6 +162,7 @@ const pathToScreen = (pathname: string): string => {
     '/dashboard/agent': 'agent',
     '/dashboard/staging': 'staging',
     '/dashboard/history': 'history',
+    '/dashboard/runs': 'history',
     '/dashboard/repos': 'repos',
     '/dashboard/cert': 'cert',
     '/dashboard/settings': 'settings',
@@ -262,7 +263,7 @@ function DashboardLayout() {
 
     switch (screen) {
       case 'dashboard':    return <Dashboard onRunClick={(repoId, runId) => setRunDetailTarget({ repoId, runId })} />;
-      case 'livefeed':     return <LiveFeed viewMode={liveFeedView} />;
+      case 'livefeed':     return <LiveFeed viewMode={liveFeedView} onViewModeChange={setLiveFeedView} />;
       case 'diff':         return <DiffViewer />;
       case 'issuesprs':    return <IssuesAndPRs />;
       case 'security':     return <Security />;
@@ -403,34 +404,6 @@ function DashboardLayout() {
                 >
                   <Plus size={14} /> <span className="hidden sm:inline">Connect new repo</span><span className="sm:hidden">Connect</span>
                 </button>
-              )}
-              {screen === 'livefeed' && (
-                <div className="inline-flex items-center gap-1 bg-cw-bg2 border border-cw-bdr p-1 rounded-xl shrink-0 whitespace-nowrap shadow-sm">
-                  <button
-                    type="button"
-                    onClick={() => setLiveFeedView('stream')}
-                    className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[11px] sm:text-[12px] font-semibold transition-all shrink-0 whitespace-nowrap cursor-pointer ${
-                      liveFeedView === 'stream'
-                        ? 'bg-cw-purple text-white shadow-md'
-                        : 'text-cw-txt2 hover:text-cw-txt hover:bg-cw-bg3/50'
-                    }`}
-                  >
-                    <TerminalSquare size={13} className="shrink-0" />
-                    <span className="whitespace-nowrap font-semibold">Stream</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setLiveFeedView('canvas')}
-                    className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[11px] sm:text-[12px] font-semibold transition-all shrink-0 whitespace-nowrap cursor-pointer ${
-                      liveFeedView === 'canvas'
-                        ? 'bg-cw-purple text-white shadow-md'
-                        : 'text-cw-txt2 hover:text-cw-txt hover:bg-cw-bg3/50'
-                    }`}
-                  >
-                    <LayoutGrid size={13} className="shrink-0" />
-                    <span className="whitespace-nowrap font-semibold">Agent Canvas</span>
-                  </button>
-                </div>
               )}
 
               <button onClick={() => setIsGlobalFeedOpen(true)} className="px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-md border border-cw-bdr bg-cw-bg2 text-cw-txt text-[12px] sm:text-[13px] font-medium hover:bg-cw-bg3 transition-colors flex items-center gap-1.5 whitespace-nowrap shrink-0">

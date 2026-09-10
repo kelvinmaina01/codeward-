@@ -10,6 +10,8 @@ export interface AgentCanvasProps {
   repoFilter?: string;
   onRepoChange?: (repoId: string) => void;
   repoList?: RepoOption[];
+  viewMode?: 'stream' | 'canvas';
+  onViewModeChange?: (mode: 'stream' | 'canvas') => void;
 }
 
 function formatLogTimestamp(ts: string | number | undefined, idx = 0): string {
@@ -41,7 +43,7 @@ function formatLogTimestamp(ts: string | number | undefined, idx = 0): string {
   return String(ts);
 }
 
-export function AgentCanvas({ repoId, repoFilter, onRepoChange, repoList }: AgentCanvasProps = {}) {
+export function AgentCanvas({ repoId, repoFilter, onRepoChange, repoList, viewMode = 'canvas', onViewModeChange }: AgentCanvasProps = {}) {
   const [internalRepoList, setInternalRepoList] = useState<RepoOption[]>(repoList || []);
   const [activeFilter, setActiveFilter] = useState<string>(repoFilter || repoId || 'All');
   const [agents, setAgents] = useState<AgentData[]>(agentCanvasData);
@@ -194,7 +196,33 @@ export function AgentCanvas({ repoId, repoFilter, onRepoChange, repoList }: Agen
               <div className="logo">Agent <span>Canvas</span></div>
               <div className="run-badge">Run #{runInfo.id}</div>
             </div>
-            <div className="top-right">
+            <div className="top-right flex items-center gap-2.5">
+              {onViewModeChange && (
+                <div className="inline-flex p-0.5 bg-cw-bg2 border border-cw-bdr rounded-lg items-center shadow-xs">
+                  <button
+                    type="button"
+                    onClick={() => onViewModeChange('stream')}
+                    className={`px-2.5 py-1 rounded-md text-[11px] sm:text-[12px] font-medium transition-all cursor-pointer ${
+                      viewMode === 'stream'
+                        ? 'bg-cw-purple text-white font-semibold shadow-xs'
+                        : 'text-cw-txt2 hover:text-cw-txt'
+                    }`}
+                  >
+                    Stream
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onViewModeChange('canvas')}
+                    className={`px-2.5 py-1 rounded-md text-[11px] sm:text-[12px] font-medium transition-all cursor-pointer ${
+                      viewMode === 'canvas'
+                        ? 'bg-cw-purple text-white font-semibold shadow-xs'
+                        : 'text-cw-txt2 hover:text-cw-txt'
+                    }`}
+                  >
+                    Agent Canvas
+                  </button>
+                </div>
+              )}
               <RepoSelector
                 options={internalRepoList}
                 value={activeFilter}

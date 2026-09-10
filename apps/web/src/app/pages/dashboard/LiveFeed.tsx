@@ -30,7 +30,8 @@ export type LogItem = {
 };
 
 interface LiveFeedProps {
-  viewMode: 'stream' | 'canvas';
+  viewMode?: 'stream' | 'canvas';
+  onViewModeChange?: (mode: 'stream' | 'canvas') => void;
 }
 
 function formatMillisTimestamp(tsMs: number): string {
@@ -42,7 +43,7 @@ function formatMillisTimestamp(tsMs: number): string {
   return `${h}:${m}:${s}.${ms}`;
 }
 
-export function LiveFeed({ viewMode }: LiveFeedProps) {
+export function LiveFeed({ viewMode = 'canvas', onViewModeChange }: LiveFeedProps) {
   const navigate = useNavigate();
   const bottomRef = useRef<HTMLDivElement>(null);
   const [logs, setLogs] = useState<LogItem[]>([]);
@@ -234,6 +235,8 @@ export function LiveFeed({ viewMode }: LiveFeedProps) {
           repoFilter={repoFilter}
           onRepoChange={(val) => setRepoFilter(String(val))}
           repoList={repoList}
+          viewMode={viewMode}
+          onViewModeChange={onViewModeChange}
         />
       ) : (
         <div className="flex-1 flex flex-col h-full overflow-hidden px-6 py-4">
@@ -256,6 +259,33 @@ export function LiveFeed({ viewMode }: LiveFeedProps) {
 
             {/* Filter & Terminal Actions Bar */}
             <div className="flex items-center gap-2.5 flex-wrap">
+              {onViewModeChange && (
+                <div className="inline-flex p-0.5 bg-cw-bg2 border border-cw-bdr rounded-lg items-center shadow-xs">
+                  <button
+                    type="button"
+                    onClick={() => onViewModeChange('stream')}
+                    className={`px-2.5 py-1 rounded-md text-[11px] sm:text-[12px] font-medium transition-all cursor-pointer ${
+                      viewMode === 'stream'
+                        ? 'bg-cw-purple text-white font-semibold shadow-xs'
+                        : 'text-cw-txt2 hover:text-cw-txt'
+                    }`}
+                  >
+                    Stream
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onViewModeChange('canvas')}
+                    className={`px-2.5 py-1 rounded-md text-[11px] sm:text-[12px] font-medium transition-all cursor-pointer ${
+                      viewMode === 'canvas'
+                        ? 'bg-cw-purple text-white font-semibold shadow-xs'
+                        : 'text-cw-txt2 hover:text-cw-txt'
+                    }`}
+                  >
+                    Agent Canvas
+                  </button>
+                </div>
+              )}
+
               <RepoSelector
                 options={repoList}
                 value={repoFilter}
