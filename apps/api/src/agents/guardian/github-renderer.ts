@@ -1,3 +1,5 @@
+import { renderCoachingPrompt } from '../escalation/render-coaching-prompt.js';
+
 export interface GuardianFindingView {
   agentId: string;
   severity: string;
@@ -128,35 +130,132 @@ export function renderGuardianIssueBody(params: {
   autoFixReason?: string | null;
   reason?: EscalationReason | null;
   reasonDetail?: string | null;
+  fixPrUrl?: string | null;
 }): string {
   const f = params.finding;
+  const severity = String(f.severity).toUpperCase();
+  const categoryStr = f.category ? esc(f.category) : 'Unknown';
+  
+  // Severity emoji map
+  const severityEmojis: Record<string, string> = {
+    CRITICAL: '🚨',
+    HIGH: '🟠',
+    MEDIUM: '🟡',
+    LOW: '🔵',
+    INFO: '⚪',
+  };
+  const icon = severityEmojis[severity] || '⚠️';
+
+  // Determine reason text
   const baseDesc = params.reason && ESCALATION_REASON_DESCRIPTIONS[params.reason]
     ? ESCALATION_REASON_DESCRIPTIONS[params.reason](params.reasonDetail)
     : params.autoFixReason || 'No verified auto-fix PR covered this finding, or the category requires human validation.';
+
   const whyNotFixed = params.reasonDetail && !baseDesc.includes(params.reasonDetail)
     ? `${baseDesc}\n\n**Additional context:** ${params.reasonDetail}`
     : baseDesc;
 
-  return [
-    `## Codeward Escalation - ${String(f.severity).toUpperCase()}`,
+  // Render the coaching prompt if we have a category and reason
+  let coachingPromptSection = '';
+  if (f.category && params.reason) {
+    const promptText = renderCoachingPrompt({
+      category: f.category,
+      severity,
+      location: f.file ? `${f.file}${f.line != null ? `:${f.line}` : ''}` : 'Unknown',
+      description: f.description || f.title,
+      rawEvidence: f.evidence || '',
+      reason: params.reason,
+      reasonDetail: params.reasonDetail,
+      fixPrUrl: params.fixPrUrl,
+    });
+
+    coachingPromptSection = `
+### 🤖 Fix this with your coding agent
+
+Copy the prompt below into Claude Code, Cursor, or any coding agent with repo access:
+
+<details>
+<summary><strong>📋 Copy-paste fix prompt</strong></summary>
+
+\`\`\`text
+${promptText}
+\`\`\`
+
+</details>
+`;
+  }
+
+  const lines = [
+    `## ${icon} ${severity} · ${categoryStr}`,
     '',
-    '| Field | Value |',
-    '| --- | --- |',
-    `| Agent | ${esc(f.agentId)} |`,
-    `| Severity | ${esc(String(f.severity).toUpperCase())} |`,
-    f.category ? `| Category | ${esc(f.category)} |` : '',
-    f.file ? `| Location | \`${f.file}${f.line != null ? `:${f.line}` : ''}\` |` : '',
-    `| Run | #${params.runId} |`,
+    f.description ? f.description : f.title,
     '',
-    '### Finding',
-    f.title,
-    f.description ? `\n### Description\n${f.description}` : '',
-    f.evidence ? `\n### Evidence\n\`\`\`\n${f.evidence.slice(0, 1000)}\n\`\`\`` : '',
-    `\n### Why Codeward did not auto-fix\n${whyNotFixed}`,
-    f.suggestedFix ? `\n### Suggested manual fix\n${f.suggestedFix}` : '',
+    '| | |',
+    '|---|---|',
+    `| **Agent** | \`${esc(f.agentId)}\` |`,
+    `| **Run** | #${params.runId} |`,
+    `| **Status** | 🔴 Escalated — needs manual review |`,
     '',
-    '_Escalated by Codeward because the automated pipeline could not safely resolve this finding._',
-  ].filter(Boolean).join('\n');
+    '---',
+    '',
+    '### Why this needed a human',
+    '',
+    `> ${whyNotFixed.split('\n').join('\n> ')}`,
+    '',
+    '---',
+    '',
+    '### Details',
+    '',
+  ];
+
+  if (f.file) {
+    lines.push(`**Location**: \`${f.file}${f.line != null ? `:${f.line}` : ''}\``, '');
+  }
+
+  if (f.evidence) {
+    lines.push(
+      '<details>',
+      '<summary><strong>🔍 Raw tool evidence</strong></summary>',
+      '',
+      '```text',
+      f.evidence.slice(0, 2000), // increased slice a bit
+      '```',
+      '',
+      '</details>',
+      ''
+    );
+  }
+
+  lines.push('---', '');
+
+  if (f.suggestedFix) {
+    lines.push(
+      '### Suggested next step',
+      '',
+      f.suggestedFix,
+      '',
+      '---'
+    );
+  } else {
+    // Generic next step
+    lines.push(
+      '### Suggested next step',
+      '',
+      'Review the finding details and either apply a fix manually, or close this issue if the finding is a false positive or intentionally accepted.',
+      '',
+      '---'
+    );
+  }
+
+  if (coachingPromptSection) {
+    lines.push(coachingPromptSection.trim(), '', '---', '');
+  }
+
+  lines.push(
+    `<sub>🤖 Opened by [Codeward](https://github.com/apps/codeward-guardian) · Run #${params.runId}</sub>`
+  );
+
+  return lines.join('\n');
 }
 
 export function renderGuardianFinalReview(view: GuardianRunView): string {
