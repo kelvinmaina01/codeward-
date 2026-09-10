@@ -5,6 +5,7 @@
  * faithful stand-in for the real Fly.io ephemeral sandbox available right now (FLY_API_TOKEN
  * is dead — 401 on every Machines API call, confirmed independently of any code issue).
  */
+process.env.NODE_ENV = 'test';
 import { LocalExecSandbox } from '../src/sandbox/local-exec.js';
 import { bloatAgent } from '../src/agents/definitions/bloat.agent.js';
 import { NativeOpenAIProvider } from '../src/providers/openai.provider.js';

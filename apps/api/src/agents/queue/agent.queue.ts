@@ -166,6 +166,9 @@ registerAgent(chatAgent);
  * deployment sets the env var.
  */
 function createSandbox(): LocalExecSandbox | FlySandbox {
+  if (process.env.NODE_ENV === 'production' && process.env.SANDBOX_PROVIDER !== 'fly') {
+    throw new Error("FATAL: Local execution forbidden in production");
+  }
   if (process.env.SANDBOX_PROVIDER === 'fly') {
     const image = process.env.FLY_SANDBOX_IMAGE || 'registry.fly.io/codeward-sandboxes-v2:deployment-01KV13ANZ9AJNNPAXN4A75G44Y';
     return new FlySandbox({ image });

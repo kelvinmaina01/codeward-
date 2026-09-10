@@ -1,3 +1,4 @@
+process.env.NODE_ENV = 'test';
 import { LocalExecSandbox } from '../src/sandbox/local-exec.js';
 import { brokenCodeAgent } from '../src/agents/definitions/broken_code.agent.js';
 import { NativeOpenAIProvider } from '../src/providers/openai.provider.js';
