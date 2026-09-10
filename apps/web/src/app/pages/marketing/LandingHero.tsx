@@ -1043,7 +1043,7 @@ function ParticleField({ centered = false }: { centered?: boolean }) {
 }
 
 function TypingText() {
-  const fullText = "Ship AI code\nwithout the technical\ndebt";
+  const fullText = "Ship AI code\nwithout the technical debt";
   const [text, setText] = useState("");
   
   useEffect(() => {
@@ -1079,9 +1079,17 @@ function TypingText() {
   }, []);
 
   return (
-    <span className="whitespace-pre-wrap text-white">
-      {text}
-      <span className="ml-1 inline-block h-[0.9em] w-[3px] translate-y-[0.1em] bg-white animate-pulse align-middle" />
+    <span className="relative inline-block text-left text-white">
+      {/* Ghost text: invisible structural container holding the exact size of 2 lines */}
+      <span className="whitespace-pre-wrap opacity-0 pointer-events-none select-none block">
+        {fullText}
+        <span className="ml-1 inline-block h-[0.9em] w-[3px]" />
+      </span>
+      {/* Absolute text: typing visually on top of the ghost container without reflowing the DOM */}
+      <span className="absolute top-0 left-0 whitespace-pre-wrap block w-full h-full">
+        {text}
+        <span className="ml-1 inline-block h-[0.9em] w-[3px] translate-y-[0.1em] bg-white animate-pulse align-middle" />
+      </span>
     </span>
   );
 }
@@ -1742,27 +1750,27 @@ export default function CodewardHero() {
                 className="rounded-full bg-white px-9 py-4 text-sm font-semibold text-black transition-all hover:bg-white/90 shadow-lg shadow-white/10 hover:scale-105 active:scale-95 duration-300 flex items-center gap-2.5 cursor-pointer"
               >
                 <FlashIcon className="w-5 h-5 text-[#8B5CF6]" />
-                <span>Start your 7 days trial</span>
+                <span>Start Free</span>
                 <ArrowRight01Icon className="w-4 h-4 text-black/70" />
               </button>
             )}
           </div>
 
           <div className="mt-10 flex flex-wrap items-center gap-8 text-sm font-medium text-white/80">
-            <div className="flex items-center">
+            <div className="flex items-center gap-2">
               <svg className="h-6 w-6 text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.5)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
               </svg>
               <span>No credit card</span>
             </div>
-            <div className="flex items-center">
+            <div className="flex items-center gap-2">
               <svg className="h-6 w-6 text-green-500 drop-shadow-[0_0_8px_rgba(34,197,94,0.5)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              <span>Free 50 runs/month</span>
+              <span>Free 10 runs/month</span>
             </div>
-            <div className="flex items-center">
+            <div className="flex items-center gap-2">
               <svg className="h-6 w-6 text-purple-500 drop-shadow-[0_0_8px_rgba(168,85,247,0.5)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
               </svg>
@@ -1915,7 +1923,7 @@ export default function CodewardHero() {
       >
         <div className="absolute inset-0 bg-black/10 mix-blend-overlay" />
         <div className="mx-auto max-w-6xl relative z-10 flex flex-col items-start">
-          <p className="text-3xl md:text-5xl font-semibold leading-[1.25] tracking-tight text-white drop-shadow-lg mb-10">
+          <p className="text-3xl md:text-5xl font-semibold leading-[1.25] tracking-tight text-white drop-shadow-lg mb-10 min-h-[140px] md:min-h-[190px]">
             <MissionTypingText />
           </p>
           <FadeInSection delay={800} direction="up">

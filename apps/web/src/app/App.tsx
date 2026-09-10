@@ -611,11 +611,11 @@ export const routes = [
   },
   {
     path: "/login",
-    element: <AuthPage onBack={() => navigate('/')} theme="dark" onCycleTheme={() => {}} onNavigate={() => {}} />
+    element: <AuthPage theme="dark" onCycleTheme={() => {}} onNavigate={() => {}} />
   },
   {
     path: "/signup",
-    element: <AuthPage onBack={() => navigate('/')} theme="dark" onCycleTheme={() => {}} onNavigate={() => {}} />
+    element: <AuthPage theme="dark" onCycleTheme={() => {}} onNavigate={() => {}} />
   },
   {
     path: "/connect",
