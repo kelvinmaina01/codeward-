@@ -104,7 +104,7 @@ export class NotificationService {
   static async sendAccountDeletionQueued(to: string, userName: string, dataSummary: Record<string, number>) {
     return this.sendEmail(
       to,
-      'Your Codeward account deletion has been queued',
+      'Your Codeward account deletion has been queued complete removal of your data will complete in  30 days time,we will notify you',
       React.createElement(AccountDeletionEmail, { userName, dataSummary })
     );
   }
