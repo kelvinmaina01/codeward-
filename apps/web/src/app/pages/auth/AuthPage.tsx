@@ -111,13 +111,15 @@ export function AuthPage({ onBack, theme: _theme, onCycleTheme, onNavigate: _onN
 
       <div className="w-full h-full max-w-[1600px] flex gap-6 md:gap-8 flex-col-reverse md:flex-row items-stretch justify-center relative z-10 mt-2 sm:mt-0" style={{ minHeight: 'calc(100vh - 48px)' }}>
         {/* Left brand panel */}
-        <div className="w-full md:w-1/2 flex flex-col items-center justify-center px-4 md:px-12 py-12 relative text-white font-['DM_Sans']">
+        <div className="w-full md:w-1/2 flex flex-col items-center justify-center px-4 md:px-12 py-12 relative text-white font-sans">
           <div className="relative z-10 flex flex-col items-center text-center w-full max-w-xl">
 
-            {/* Typing text */}
-            <p className="text-2xl md:text-3xl text-white/60 leading-[1.35] max-w-xl font-normal whitespace-pre-line mb-32">
-              {typedText}<span className={`inline-block w-[2px] h-[1.1em] ml-[1px] bg-[#5b8cff] align-middle translate-y-[-1px] transition-opacity duration-100 ${showCursor ? 'opacity-100' : 'opacity-0'}`} />
-            </p>
+            {/* Typing text (Fixed Height Architecture) */}
+            <div className="text-2xl md:text-3xl text-white/60 leading-[1.35] max-w-xl font-normal whitespace-pre-line mb-32 min-h-[120px] md:min-h-[125px] flex items-start justify-center text-center">
+              <span>
+                {typedText}<span className={`inline-block w-[2px] h-[1.1em] ml-[1px] bg-[#5b8cff] align-middle translate-y-[-1px] transition-opacity duration-100 ${showCursor ? 'opacity-100' : 'opacity-0'}`} />
+              </span>
+            </div>
 
             {/* Feature list */}
             <div className="flex flex-col gap-4 w-full items-center">
