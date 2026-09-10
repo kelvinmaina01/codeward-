@@ -1,3 +1,4 @@
+process.env.NODE_ENV = 'test';
 import { LocalExecSandbox } from '../src/sandbox/local-exec.js';
 import { complianceAgent } from '../src/agents/definitions/compliance.agent.js';
 import { dataDxAgent } from '../src/agents/definitions/data_dx.agent.js';
