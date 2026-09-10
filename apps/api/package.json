@@ -18,6 +18,7 @@
     "test:guardian:real-pr-open": "tsx test/test-guardian-real-pr-open.ts",
     "test:bullmq:concurrency": "tsx test/test-bullmq-concurrency.ts",
     "test:bullmq:fairness": "tsx test/test-bullmq-fairness.ts",
+    "test:model:dynamic": "tsx test/test-dynamic-model-routing.ts",
     "benchmark:fly": "tsx test/benchmark-fly-concurrent-boot.ts",
     "build": "tsc",
     "start": "node dist/index.js"

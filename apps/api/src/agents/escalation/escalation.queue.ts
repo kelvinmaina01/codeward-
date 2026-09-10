@@ -84,7 +84,8 @@ export function startEscalationWorker(customOpts?: any): Worker<EscalationJobDat
                 `${outcome.escalated.length} unresolved finding(s) across ${new Set(outcome.escalated.map((e) => e.agentId)).size} agent(s)`,
                 String(runId)
               );
-              console.log(`[EscalationWorker] Real escalation alert email sent to ${owner.email}`);
+              const redactedEmail = owner.email.replace(/(.{1,2})(.*)(?=@)/, (_, a, b) => a + '*'.repeat(Math.max(b.length, 3)));
+              console.log(`[EscalationWorker] Real escalation alert email sent to ${redactedEmail}`);
             }
           } catch (emailErr) {
             console.error(`[EscalationWorker] Failed to send escalation email:`, (emailErr as Error).message);

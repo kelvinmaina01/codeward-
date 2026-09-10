@@ -186,19 +186,24 @@ ${promptText}
   }
 
   const lines = [
-    `## ${icon} ${severity} · ${categoryStr}`,
+    `## Codeward Escalation - ${severity}`,
+    '',
+    `### ${icon} ${severity} · ${categoryStr}`,
     '',
     f.description ? f.description : f.title,
     '',
-    '| | |',
+    '| Field | Value |',
     '|---|---|',
-    `| **Agent** | \`${esc(f.agentId)}\` |`,
-    `| **Run** | #${params.runId} |`,
-    `| **Status** | 🔴 Escalated — needs manual review |`,
+    `| Agent | ${esc(f.agentId)} |`,
+    `| Severity | ${severity} |`,
+    f.category ? `| Category | ${esc(f.category)} |` : '',
+    f.file ? `| Location | \`${f.file}${f.line != null ? `:${f.line}` : ''}\` |` : '',
+    `| Run | #${params.runId} |`,
+    `| Status | 🔴 Escalated — needs manual review |`,
     '',
     '---',
     '',
-    '### Why this needed a human',
+    '### Why Codeward did not auto-fix',
     '',
     `> ${whyNotFixed.split('\n').join('\n> ')}`,
     '',
@@ -206,7 +211,7 @@ ${promptText}
     '',
     '### Details',
     '',
-  ];
+  ].filter(Boolean);
 
   if (f.file) {
     lines.push(`**Location**: \`${f.file}${f.line != null ? `:${f.line}` : ''}\``, '');
@@ -218,7 +223,7 @@ ${promptText}
       '<summary><strong>🔍 Raw tool evidence</strong></summary>',
       '',
       '```text',
-      f.evidence.slice(0, 2000), // increased slice a bit
+      f.evidence.slice(0, 2000),
       '```',
       '',
       '</details>',
@@ -237,7 +242,6 @@ ${promptText}
       '---'
     );
   } else {
-    // Generic next step
     lines.push(
       '### Suggested next step',
       '',
@@ -252,6 +256,8 @@ ${promptText}
   }
 
   lines.push(
+    '_Escalated by Codeward because the automated pipeline could not safely resolve this finding._',
+    '',
     `<sub>🤖 Opened by [Codeward](https://github.com/apps/codeward-guardian) · Run #${params.runId}</sub>`
   );
 

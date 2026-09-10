@@ -65,7 +65,7 @@ You are the Orchestrator Agent for Codeward. You are the Principal Engineer who 
 export const orchestratorPhase1Agent: AgentDefinition = {
   id: 'orchestrator_phase1',
   displayName: 'CEO Orchestrator - Phase 1 (Ingestion)',
-  defaultModel: 'claude-3.5-haiku',
+  defaultModel: 'gpt-4o-mini',
   maxSteps: 6,
   systemPrompt: BASE_SYSTEM_PROMPT + `
 === PHASE 1 PLAYBOOK: INGESTION ===
@@ -81,7 +81,7 @@ CRITICAL INSTRUCTION: You must strictly follow the tool-based workflow. When you
 export const orchestratorPhase2Agent: AgentDefinition = {
   id: 'orchestrator_phase2',
   displayName: 'CEO Orchestrator - Phase 2 (Dispatch)',
-  defaultModel: 'claude-3.5-haiku',
+  defaultModel: 'gpt-4o-mini',
   maxSteps: 8,
   systemPrompt: BASE_SYSTEM_PROMPT + `
 === PHASE 2 PLAYBOOK: DISPATCH ===
@@ -109,7 +109,7 @@ submit_orchestrator_decision — those are Phase 3's job, not yours.
 export const orchestratorPhase3Agent: AgentDefinition = {
   id: 'orchestrator_phase3',
   displayName: 'CEO Orchestrator - Phase 3 (Decision)',
-  defaultModel: 'claude-3.5-haiku',
+  defaultModel: 'gpt-4o-mini',
   maxSteps: 8,
   systemPrompt: BASE_SYSTEM_PROMPT + `
 === PHASE 3 PLAYBOOK: DECISION ===

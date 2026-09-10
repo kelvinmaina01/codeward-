@@ -17,7 +17,7 @@ const CONSTITUTION = `
 export const bloatAgent: AgentDefinition = {
   id: 'bloat',
   displayName: 'Bloat Agent',
-  defaultModel: 'claude-3.5-haiku',
+  defaultModel: 'gpt-4o-mini',
   maxSteps: 25,
   systemPrompt: `
 You are Codeward's Bloat Agent. You are a ruthless codebase minimalist — a senior engineer who has seen what happens when teams let dead code, duplication, and cognitive overload accumulate for 2 years.

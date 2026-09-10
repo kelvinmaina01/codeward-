@@ -4,6 +4,8 @@
  * ============================================================================
  * 
  * Maps provider names to their implementations.
+ * All providers use the OpenAI-compatible API format, allowing dynamic
+ * routing to OpenAI, AgentRouter, DeepSeek, Kimi, or any compatible endpoint.
  * 
  * To add a new provider:
  * 1. Create the provider file in ./providers/
@@ -13,7 +15,6 @@
  */
 
 import type { AgentProvider } from './provider.js';
-import { AnthropicProvider } from './providers/anthropic.provider.js';
 import { OpenAIProvider } from './providers/openai.provider.js';
 
 // ---------------------------------------------------------------------------
@@ -22,14 +23,10 @@ import { OpenAIProvider } from './providers/openai.provider.js';
 
 const providers: Record<string, AgentProvider> = {
   openai: new OpenAIProvider(),
-  // AnthropicProvider actually routes through OpenRouter (OPENROUTER_API_KEY), which is
-  // unset in this environment — every call to it fails at the provider layer. Kept
-  // registered (so an explicit override still resolves) but no longer the default.
-  anthropic: new AnthropicProvider(),
   // -------------------------------------------------------------------------
   // Future providers — add here when ready:
-  // ollama: new OllamaProvider(),
-  // custom: new CustomProvider(),
+  // deepseek: new DeepSeekProvider(),
+  // kimi: new KimiProvider(),
   // -------------------------------------------------------------------------
 };
 
@@ -40,7 +37,7 @@ const DEFAULT_PROVIDER = 'openai';
  * Get a provider by name. Falls back to the default provider.
  * 
  * Usage:
- *   const provider = getProvider('anthropic');
+ *   const provider = getProvider('openai');
  *   const result = await provider.execute(config);
  * 
  * Or from repo config:

@@ -217,8 +217,8 @@ let _agentWorker: Worker<AgentJobData> | null = null;
 export function startAgentWorker(customOpts?: any): Worker<AgentJobData> {
   if (_agentWorker) return _agentWorker;
 
-  const concurrency = process.env.WORKER_CONCURRENCY ? parseInt(process.env.WORKER_CONCURRENCY, 10) : 10;
-  const repoConcurrencyMax = parseInt(process.env.REPO_CONCURRENCY_MAX || '3', 10);
+  const parsedConcurrency = Number(process.env.WORKER_CONCURRENCY);
+  const concurrency = Number.isSafeInteger(parsedConcurrency) && parsedConcurrency > 0 ? parsedConcurrency : 10;
 
   _agentWorker = new Worker('agent-jobs', async (job: Job<AgentJobData>) => {
   const { agentId, commitSHA, repoFullName, runId, provider: providerName, model } = job.data;
@@ -618,11 +618,6 @@ Use these EXACT values for any tool parameter named runId/repoId — never inven
   }, {
     connection: connection as any,
     concurrency,
-    limiter: {
-      max: repoConcurrencyMax,
-      duration: 1000,
-      groupKey: 'repoFullName',
-    },
     settings: {
       backoffStrategies: {
         custom(attemptsMade: number) {

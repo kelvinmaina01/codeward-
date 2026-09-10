@@ -9,6 +9,10 @@ import { reposRouter } from './routes/repos.js';
 import { prRouter } from './routes/pr.js';
 import { auth } from './auth/index.js';
 import { leadsRouter } from './routes/leads.js';
+import { NativeOpenAIProvider } from './providers/openai.provider.js';
+
+// Validate AI provider configuration at startup so missing keys fail loudly and early
+NativeOpenAIProvider.validateConfiguration();
 
 // NOTE: agentWorker is started dynamically AFTER the HTTP server is up.
 // This ensures a Redis/BullMQ failure at startup cannot crash the server.
