@@ -16,9 +16,11 @@ import { createMemoryTools } from './memory.tools.js';
 
 /**
  * Create security-specific tools for a given sandbox instance.
+ * By default, only static analysis tools (including Semgrep & Gitleaks) are enabled.
+ * Live DAST tools (14–19) are gated behind options.enableDast until dynamic preview environments are online.
  */
-export function createSecurityTools(sandbox: SandboxHandle) {
-  return {
+export function createSecurityTools(sandbox: SandboxHandle, options?: { enableDast?: boolean }) {
+  const tools: Record<string, any> = {
 
     run_trufflehog: {
       description: 'Scan the repository for leaked secrets, API keys, tokens, and passwords using TruffleHog. Run this FIRST.',
@@ -65,6 +67,82 @@ export function createSecurityTools(sandbox: SandboxHandle) {
       },
     },
 
+    run_gitleaks: {
+      description: 'Run Gitleaks deterministic high-speed secret detection across repository files and git history.',
+      parameters: z.object({
+        noGit: z.boolean().optional().describe('Scan working files without git history if true. Default: false')
+      }),
+      execute: async ({ noGit }: { noGit?: boolean }) => {
+        const which = await sandbox.exec('which gitleaks 2>/dev/null');
+        if (!which.stdout.trim()) {
+          return { applicable: false, reason: 'gitleaks binary not found in this sandbox image.' };
+        }
+        const gitFlag = noGit ? '--no-git' : '';
+        const cmd = `gitleaks detect --source=. ${gitFlag} -f json 2>/dev/null | head -200`;
+        const result = await sandbox.exec(cmd);
+        let parsed: any[] = [];
+        try {
+          parsed = JSON.parse(result.stdout);
+        } catch {
+          parsed = [];
+        }
+        const findings = (Array.isArray(parsed) ? parsed : []).map((leak: any) => ({
+          file: leak.File || 'unknown',
+          line: Number(leak.StartLine) || null,
+          toolName: 'gitleaks',
+          ruleId: leak.RuleID || 'leaked-secret',
+          secretType: leak.Description || 'Detected secret',
+          commit: leak.Commit || '',
+          rawEvidence: leak.Match ? `[DETECTED MATCH: ${leak.Match.slice(0, 80)}]` : `Secret detected in ${leak.File}:${leak.StartLine}`,
+        }));
+        return {
+          applicable: true,
+          secretsCount: findings.length,
+          findings: findings.slice(0, 50),
+          rawOutput: parsed.length === 0 && result.stdout.trim() ? result.stdout.substring(0, 4000) : undefined,
+          exitCode: result.exitCode,
+        };
+      },
+    },
+
+    run_semgrep: {
+      description: 'Run Semgrep static analysis inside the sandbox for AST security, OWASP top 10, SQLi, and crypto anti-patterns. Returns structured findings.',
+      parameters: z.object({
+        ruleset: z.string().optional().describe('Ruleset or config (default: "p/security-audit" and "p/owasp-top-ten")')
+      }),
+      execute: async ({ ruleset }: { ruleset?: string }) => {
+        const which = await sandbox.exec('which semgrep 2>/dev/null');
+        if (!which.stdout.trim()) {
+          return { applicable: false, reason: 'semgrep binary not found in this sandbox image.' };
+        }
+        const cfg = ruleset ? `--config "${ruleset}"` : '--config "p/security-audit" --config "p/owasp-top-ten"';
+        const cmd = `semgrep scan ${cfg} --json --quiet 2>/dev/null | head -300`;
+        const result = await sandbox.exec(cmd);
+        let parsed: any = null;
+        try {
+          parsed = JSON.parse(result.stdout);
+        } catch {
+          parsed = null;
+        }
+        const findings = (parsed?.results || []).map((r: any) => ({
+          file: r.path || 'unknown',
+          line: Number(r.start?.line) || null,
+          toolName: 'semgrep',
+          ruleId: r.check_id || 'semgrep-rule',
+          message: r.extra?.message || '',
+          severity: r.extra?.severity || 'WARNING',
+          rawEvidence: r.extra?.lines ? r.extra.lines.slice(0, 300) : `Semgrep finding at ${r.path}:${r.start?.line}`,
+        }));
+        return {
+          applicable: true,
+          findingsCount: findings.length,
+          findings: findings.slice(0, 50),
+          rawOutput: !parsed ? result.stdout.substring(0, 5000) : undefined,
+          exitCode: result.exitCode,
+        };
+      },
+    },
+
     run_npm_audit: {
       description: 'Run npm audit to check for known vulnerabilities in Node.js dependencies.',
       parameters: z.object({}),
@@ -77,22 +155,6 @@ export function createSecurityTools(sandbox: SandboxHandle) {
         return {
           raw: result.stdout.substring(0, 8000),
           exitCode: result.exitCode,
-        };
-      },
-    },
-
-    scan_env_files: {
-      description: 'Scan for .env files committed to the repo and hardcoded sensitive patterns in source code.',
-      parameters: z.object({}),
-      execute: async () => {
-        const [envFiles, hardcoded] = await Promise.all([
-          sandbox.exec('find . -name ".env*" -not -path "*/node_modules/*" -not -path "*/.git/*" -not -name ".env.example" -not -name ".env.template" 2>/dev/null'),
-          sandbox.exec('grep -rn "password\\s*=\\|api_key\\s*=\\|secret\\s*=\\|DATABASE_URL\\s*=\\|PRIVATE_KEY" . --include="*.ts" --include="*.js" --include="*.py" --include="*.go" --include="*.java" --include="*.rb" --exclude-dir=node_modules --exclude-dir=.git 2>/dev/null | head -50'),
-        ]);
-        return {
-          envFilesFound: envFiles.stdout.trim().split('\n').filter(Boolean),
-          hardcodedSecrets: hardcoded.stdout.substring(0, 6000),
-          envFilesCommitted: envFiles.stdout.trim().length > 0,
         };
       },
     },
@@ -160,33 +222,6 @@ export function createSecurityTools(sandbox: SandboxHandle) {
       },
     },
 
-    check_crypto_patterns: {
-      description: 'Static grep for deprecated/weak cryptographic algorithms (MD5, SHA1, DES, RC4) in real code.',
-      parameters: z.object({}),
-      execute: async () => {
-        const result = await sandbox.exec(`grep -rn --include="*.ts" --include="*.js" --include="*.py" -E "createHash\\(.(md5|sha1)|DES|RC4|Math\\.random\\(\\).*password|Math\\.random\\(\\).*token" --exclude-dir=node_modules --exclude-dir=.git . 2>/dev/null | head -50`);
-        const matches = result.stdout.split('\n').filter(Boolean);
-        return { findingsCount: matches.length, findings: matches.map(line => { const [file, lineNo, ...rest] = line.split(':'); return { file, line: Number(lineNo) || null, snippet: rest.join(':').trim().slice(0, 200) }; }) };
-      },
-    },
-
-    scan_for_sqli_patterns: {
-      description: 'Static grep for raw string-concatenated/template-literal SQL queries (potential SQL injection), as opposed to parameterized queries.',
-      parameters: z.object({}),
-      execute: async () => {
-        // Deliberately simple: matching real template-literal interpolation syntax (`${`)
-        // precisely needs a regex with backtick + $ + { all shell-escaped through a JS template
-        // literal — a real stress test showed that's fragile enough to break the whole exec
-        // call outright (unescaped ` got read as shell command substitution: "body is missing
-        // command: EOF found when expecting closing quote"). This catches "query("/"execute("
-        // followed by a backtick anywhere before the closing paren — a real, if looser, signal
-        // for template-literal-built queries — plus the string-concatenation case separately.
-        const result = await sandbox.exec(`grep -rn --include="*.ts" --include="*.js" --include="*.py" -E "(query|execute)\\([^)]*\\\`|(query|execute)\\(\\s*['\\"].*['\\"]\\s*\\+" --exclude-dir=node_modules --exclude-dir=.git . 2>/dev/null | head -50`);
-        const matches = result.stdout.split('\n').filter(Boolean);
-        return { findingsCount: matches.length, findings: matches.map(line => { const [file, lineNo, ...rest] = line.split(':'); return { file, line: Number(lineNo) || null, snippet: rest.join(':').trim().slice(0, 200) }; }) };
-      },
-    },
-
     check_sbom_integrity: {
       description: 'Static check of GitHub Actions workflows for excessive permissions and unpinned third-party actions (real supply-chain hygiene signal).',
       parameters: z.object({}),
@@ -208,16 +243,6 @@ export function createSecurityTools(sandbox: SandboxHandle) {
       },
     },
 
-    scan_nhi_tokens: {
-      description: 'Static grep for likely long-lived non-human-identity tokens/PATs hardcoded in CI config or source (not secret-manager references).',
-      parameters: z.object({}),
-      execute: async () => {
-        const result = await sandbox.exec(`grep -rn --include="*.yml" --include="*.yaml" --include="*.ts" --include="*.js" -E "gh[pousr]_[A-Za-z0-9]{20,}|ghp_[A-Za-z0-9]{20,}|glpat-[A-Za-z0-9_-]{20,}" --exclude-dir=node_modules --exclude-dir=.git . 2>/dev/null | head -30`);
-        const matches = result.stdout.split('\n').filter(Boolean);
-        return { findingsCount: matches.length, findings: matches.map(line => { const [file, lineNo] = line.split(':'); return { file, line: Number(lineNo) || null }; }) };
-      },
-    },
-
     scan_ci_logs_for_leaks: {
       description: 'Static grep of CI/CD config files for accidentally leaked secrets or dangerous echo/print of secret env vars.',
       parameters: z.object({}),
@@ -226,30 +251,6 @@ export function createSecurityTools(sandbox: SandboxHandle) {
         const matches = result.stdout.split('\n').filter(Boolean);
         return { findingsCount: matches.length, findings: matches.map(line => { const [file, lineNo, ...rest] = line.split(':'); return { file, line: Number(lineNo) || null, snippet: rest.join(':').trim().slice(0, 200) }; }) };
       },
-    },
-
-    run_owasp_zap: {
-      description: 'Requires a running deployed instance to actively scan. This pipeline only clones and statically analyzes the repo.',
-      parameters: z.object({ targetUrl: z.string().optional() }),
-      execute: async () => ({ applicable: false, reason: 'No running instance available — this pipeline does not deploy the app.' })
-    },
-
-    check_auth_on_routes: {
-      description: 'Requires firing live unauthenticated HTTP requests at every route. Not available without a deployed instance.',
-      parameters: z.object({ baseUrl: z.string().optional() }),
-      execute: async () => ({ applicable: false, reason: 'No running instance available to fire live requests at.' })
-    },
-
-    check_rate_limiting: {
-      description: 'Requires firing rapid live requests at a running app. Not available without a deployed instance.',
-      parameters: z.object({ baseUrl: z.string().optional() }),
-      execute: async () => ({ applicable: false, reason: 'No running instance available to test rate limiting against.' })
-    },
-
-    probe_ssrf_endpoints: {
-      description: 'Requires firing live SSRF probe payloads at a running app. Not available without a deployed instance.',
-      parameters: z.object({ baseUrl: z.string().optional() }),
-      execute: async () => ({ applicable: false, reason: 'No running instance available to probe.' })
     },
 
     check_multitenant_isolation: {
@@ -272,24 +273,91 @@ export function createSecurityTools(sandbox: SandboxHandle) {
       }
     },
 
-    check_mfa_on_destructive_routes: {
+    ...createMemoryTools('security')
+  };
+
+  // DAST / Dynamic Application Security Testing tools (steps 14-19):
+  // These tools require a running deployed instance / preview URL to fire active HTTP requests at.
+  // In static PR scans, these are gated off by default so the agent does not waste LLM token budget.
+  if (options?.enableDast) {
+    tools.run_owasp_zap = {
+      description: 'Requires a running deployed instance to actively scan. This pipeline only clones and statically analyzes the repo.',
+      parameters: z.object({ targetUrl: z.string().optional() }),
+      execute: async () => ({ applicable: false, reason: 'No running instance available — this pipeline does not deploy the app.' })
+    };
+
+    tools.check_auth_on_routes = {
+      description: 'Requires firing live unauthenticated HTTP requests at every route. Not available without a deployed instance.',
+      parameters: z.object({ baseUrl: z.string().optional() }),
+      execute: async () => ({ applicable: false, reason: 'No running instance available to fire live requests at.' })
+    };
+
+    tools.check_rate_limiting = {
+      description: 'Requires firing rapid live requests at a running app. Not available without a deployed instance.',
+      parameters: z.object({ baseUrl: z.string().optional() }),
+      execute: async () => ({ applicable: false, reason: 'No running instance available to test rate limiting against.' })
+    };
+
+    tools.probe_ssrf_endpoints = {
+      description: 'Requires firing live SSRF probe payloads at a running app. Not available without a deployed instance.',
+      parameters: z.object({ baseUrl: z.string().optional() }),
+      execute: async () => ({ applicable: false, reason: 'No running instance available to probe.' })
+    };
+
+    tools.check_mfa_on_destructive_routes = {
       description: 'Requires firing live requests at admin/destructive routes to verify step-up auth. Not available without a deployed instance.',
       parameters: z.object({ baseUrl: z.string().optional() }),
       execute: async () => ({ applicable: false, reason: 'No running instance available to test against.' })
-    },
+    };
 
-    test_error_information_leakage: {
+    tools.test_error_information_leakage = {
       description: 'Requires fuzzing a running app to trigger 500s and inspect responses. Not available without a deployed instance.',
       parameters: z.object({ baseUrl: z.string().optional() }),
       execute: async () => ({ applicable: false, reason: 'No running instance available to fuzz.' })
-    },
+    };
 
-    check_business_logic_bypass: {
+    tools.check_business_logic_bypass = {
       description: 'Requires firing live requests against a running app to test flow-skip attempts. Not available without a deployed instance.',
       parameters: z.object({ baseUrl: z.string().optional() }),
       execute: async () => ({ applicable: false, reason: 'No running instance available to test against.' })
-    },
+    };
+  }
 
-    ...createMemoryTools('security')
-  };
+  return tools;
 }
+
+// Retain standalone exports for legacy/deprecated regex tools so existing unit test harnesses remain compatible
+export const legacyRegexTools = {
+  scan_env_files: {
+    description: '[Deprecated: use run_gitleaks] Scan for .env files committed to the repo.',
+    parameters: z.object({}),
+    execute: async (sandbox: SandboxHandle) => {
+      const res = await sandbox.exec('find . -name ".env*" -not -path "*/node_modules/*" -not -path "*/.git/*" -not -name ".env.example" 2>/dev/null');
+      return { envFiles: res.stdout.trim().split('\n').filter(Boolean) };
+    }
+  },
+  check_crypto_patterns: {
+    description: '[Deprecated: use run_semgrep] Static grep for deprecated crypto.',
+    parameters: z.object({}),
+    execute: async (sandbox: SandboxHandle) => {
+      const res = await sandbox.exec(`grep -rn --include="*.ts" --include="*.js" -E "createHash\\(.(md5|sha1)" . 2>/dev/null | head -30`);
+      return { findings: res.stdout.trim().split('\n').filter(Boolean) };
+    }
+  },
+  scan_for_sqli_patterns: {
+    description: '[Deprecated: use run_semgrep] Static grep for raw string SQL queries.',
+    parameters: z.object({}),
+    execute: async (sandbox: SandboxHandle) => {
+      const res = await sandbox.exec(`grep -rn --include="*.ts" --include="*.js" -E "(query|execute)\\([^)]*\\\`" . 2>/dev/null | head -30`);
+      return { findings: res.stdout.trim().split('\n').filter(Boolean) };
+    }
+  },
+  scan_nhi_tokens: {
+    description: '[Deprecated: use run_gitleaks] Static grep for non-human-identity tokens.',
+    parameters: z.object({}),
+    execute: async (sandbox: SandboxHandle) => {
+      const res = await sandbox.exec(`grep -rn --include="*.yml" -E "ghp_[A-Za-z0-9]{20,}" . 2>/dev/null | head -30`);
+      return { findings: res.stdout.trim().split('\n').filter(Boolean) };
+    }
+  }
+};
