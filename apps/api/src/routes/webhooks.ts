@@ -143,19 +143,26 @@ webhookRouter.post('/github', async (c) => {
         return c.json({ status: 'ignored', reason: 'global_budget_exceeded' }, 429);
       }
 
+      let runRecord: any;
       if (repo.orgId) {
-        const isPrLimitOk = await BudgetService.checkOrgPrLimit(repo.orgId);
-        if (!isPrLimitOk) {
+        const reservation = await BudgetService.reserveOrgPrRun(repo.orgId, {
+          repoId: repo.id,
+          commitSha: commitSHA,
+          prNumber,
+        });
+        if (!reservation.allowed) {
           return c.json({ status: 'ignored', reason: 'free_plan_limit_exceeded' }, 403);
         }
+        runRecord = reservation.runRecord;
+      } else {
+        const [inserted] = await db.insert(runs).values({
+          repoId: repo.id,
+          commitSha: commitSHA,
+          status: 'queued',
+          prNumber,
+        }).returning();
+        runRecord = inserted;
       }
-
-      const [runRecord] = await db.insert(runs).values({
-        repoId: repo.id,
-        commitSha: commitSHA,
-        status: 'queued',
-        prNumber,
-      }).returning();
 
       // Enqueue Phase 1 of the Orchestrator. After Phase 3, because this run carries a prNumber,
       // guardian will post a real review on the human's PR (wired in agent.queue.ts).

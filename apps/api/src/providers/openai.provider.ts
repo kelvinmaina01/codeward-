@@ -305,17 +305,29 @@ export class NativeOpenAIProvider implements AgentProvider {
                 ? parsedRetryAfter + jitter
                 : (attempt * 2500) + jitter;
 
+              const remaining = Math.max(0, totalCascadeBudgetMs - (Date.now() - cascadeStartTime));
+              const clampedDelay = Math.min(delay, remaining);
+              if (clampedDelay <= 0) {
+                throw new Error(`Cascade timeout budget (${totalCascadeBudgetMs}ms) exhausted during 429 backoff`);
+              }
+
               console.warn(
-                `[NativeOpenAIProvider] Rate limit (429) from ${candidate.name}. Backing off with jitter (${delay}ms) before retry #${attempt + 1}...`
+                `[NativeOpenAIProvider] Rate limit (429) from ${candidate.name}. Backing off with jitter (${clampedDelay}ms) before retry #${attempt + 1}...`
               );
-              await new Promise(res => setTimeout(res, delay));
+              await new Promise(res => setTimeout(res, clampedDelay));
               continue;
             }
 
             if ([502, 503, 504].includes(status) && attempt < maxAttempts) {
               const delay = (attempt * 2000) + Math.floor(Math.random() * 1000);
-              console.warn(`[NativeOpenAIProvider] Transient error ${status} from ${candidate.name}. Retrying in ${delay}ms...`);
-              await new Promise(res => setTimeout(res, delay));
+              const remaining = Math.max(0, totalCascadeBudgetMs - (Date.now() - cascadeStartTime));
+              const clampedDelay = Math.min(delay, remaining);
+              if (clampedDelay <= 0) {
+                throw new Error(`Cascade timeout budget (${totalCascadeBudgetMs}ms) exhausted during transient retry`);
+              }
+
+              console.warn(`[NativeOpenAIProvider] Transient error ${status} from ${candidate.name}. Retrying in ${clampedDelay}ms...`);
+              await new Promise(res => setTimeout(res, clampedDelay));
               continue;
             }
 
@@ -355,8 +367,13 @@ export class NativeOpenAIProvider implements AgentProvider {
           // Retry on network abort/timeout or transient failures on same provider
           if (attempt < maxAttempts && (err.name === 'AbortError' || err.message?.includes('fetch failed'))) {
             const delay = (attempt * 2000) + Math.floor(Math.random() * 1000);
-            console.warn(`[NativeOpenAIProvider] Network/Timeout error from ${candidate.name}. Retrying in ${delay}ms...`);
-            await new Promise(res => setTimeout(res, delay));
+            const remaining = Math.max(0, totalCascadeBudgetMs - (Date.now() - cascadeStartTime));
+            const clampedDelay = Math.min(delay, remaining);
+            if (clampedDelay <= 0) {
+              throw new Error(`Cascade timeout budget (${totalCascadeBudgetMs}ms) exhausted during network/timeout retry`);
+            }
+            console.warn(`[NativeOpenAIProvider] Network/Timeout error from ${candidate.name}. Retrying in ${clampedDelay}ms...`);
+            await new Promise(res => setTimeout(res, clampedDelay));
             continue;
           }
 
@@ -398,24 +415,26 @@ export class NativeOpenAIProvider implements AgentProvider {
     }
     const message = choice.message || {};
 
-    let toolCalls = (message.tool_calls || []).map((call: any) => {
-      let input: any = {};
-      try {
-        input = typeof call.function.arguments === 'string'
-          ? JSON.parse(call.function.arguments)
-          : (call.function.arguments || {});
-      } catch {
-        input = {};
-      }
-      return {
-        id: call.id || `call_${Math.random().toString(36).substring(2, 9)}`,
-        name: call.function.name,
-        input,
-      };
-    });
+    let toolCalls = (message.tool_calls || [])
+      .filter((call: any) => call && call.function && typeof call.function.name === 'string')
+      .map((call: any) => {
+        let input: any = {};
+        try {
+          input = typeof call.function.arguments === 'string'
+            ? JSON.parse(call.function.arguments)
+            : (call.function.arguments || {});
+        } catch {
+          input = {};
+        }
+        return {
+          id: call.id || `call_${Math.random().toString(36).substring(2, 9)}`,
+          name: call.function.name,
+          input,
+        };
+      });
 
     // Fallback: If no tool_calls array, check if model embedded function call in text or markdown
-    if (toolCalls.length === 0 && message.content) {
+    if (toolCalls.length === 0 && typeof message.content === 'string') {
       const text = message.content.trim();
       // Case A: <tool_call> JSON </tool_call>
       const xmlMatch = text.match(/<tool_call>([\s\S]*?)<\/tool_call>/);
@@ -457,8 +476,12 @@ export class NativeOpenAIProvider implements AgentProvider {
       }
     }
 
+    const textContent = typeof message.content === 'string'
+      ? message.content
+      : (typeof message.reasoning_content === 'string' ? message.reasoning_content : '');
+
     return {
-      text: message.content || message.reasoning_content || '',
+      text: textContent,
       toolCalls,
       rawContent: message,
       usage: {

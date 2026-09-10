@@ -37,7 +37,7 @@ const DEFAULT_PROVIDER = 'openai';
  * Get a provider by name. Falls back to the default provider.
  * 
  * Usage:
- *   const provider = getProvider('anthropic');
+ *   const provider = getProvider('openai');
  *   const result = await provider.execute(config);
  * 
  * Or from repo config:

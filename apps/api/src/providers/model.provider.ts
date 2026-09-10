@@ -6,17 +6,19 @@ export function getModel(phase?: "orchestrator" | "analyzer", requestedModel?: s
   const primaryKey = process.env.OPENAI_API_KEY;
   const kimiKey = process.env.KIMI_API_KEY || process.env.MOONSHOT_API_KEY;
 
-  const isTokenRouter = Boolean(tokenRouterKey) || Boolean(process.env.OPENAI_BASE_URL?.includes('tokenrouter'));
+  const customBaseUrl = process.env.OPENAI_BASE_URL;
+  const tokenRouterBaseUrl = process.env.TOKENROUTER_BASE_URL;
+  const isTokenRouter = Boolean(tokenRouterKey) && (Boolean(tokenRouterBaseUrl) || !customBaseUrl || customBaseUrl.includes('tokenrouter'));
   const useAgentRouterDirectly = process.env.USE_AGENTROUTER_DIRECTLY === 'true';
   const isAgentRouter = !isTokenRouter && (useAgentRouterDirectly || (!primaryKey && Boolean(agentRouterKey)));
 
-  let baseURL = process.env.OPENAI_BASE_URL;
-  let apiKey = tokenRouterKey || primaryKey || agentRouterKey || kimiKey;
+  let baseURL = customBaseUrl;
+  let apiKey = primaryKey || agentRouterKey || kimiKey;
   let headers: Record<string, string> | undefined = undefined;
 
   if (isTokenRouter) {
-    baseURL = baseURL || "https://api.tokenrouter.com/v1";
-    apiKey = tokenRouterKey || apiKey;
+    baseURL = tokenRouterBaseUrl || (customBaseUrl?.includes('tokenrouter') ? customBaseUrl : "https://api.tokenrouter.com/v1");
+    apiKey = tokenRouterKey || primaryKey;
     headers = { "User-Agent": "Cline/3.0.0" };
   } else if (isAgentRouter) {
     baseURL = "https://agentrouter.org/v1";
@@ -34,21 +36,24 @@ export function getModel(phase?: "orchestrator" | "analyzer", requestedModel?: s
     ...(baseURL ? { baseURL } : {})
   });
 
-  const selectedModel = requestedModel || process.env.OPENAI_MODEL;
-  if (selectedModel) {
-    return openai(selectedModel);
+  if (requestedModel) {
+    return openai(requestedModel);
   }
 
   if (isTokenRouter) {
-    return openai(process.env.TOKENROUTER_MODEL || "z-ai/glm-5.3-free");
+    return openai(process.env.TOKENROUTER_MODEL || process.env.OPENAI_MODEL || "z-ai/glm-5.3-free");
   }
 
   if (isAgentRouter) {
-    return openai(process.env.AGENTROUTER_MODEL || "gpt-5.6-sol");
+    return openai(process.env.AGENTROUTER_MODEL || process.env.OPENAI_MODEL || "gpt-5.6-sol");
   }
 
   if (process.env.KIMI_API_KEY || process.env.MOONSHOT_API_KEY) {
-    return openai("moonshot-v1-8k");
+    return openai(process.env.KIMI_MODEL || "moonshot-v1-8k");
+  }
+
+  if (process.env.OPENAI_MODEL) {
+    return openai(process.env.OPENAI_MODEL);
   }
 
   if (phase === "orchestrator") {

@@ -24,6 +24,7 @@ export interface UnresolvedFinding {
   reason?: EscalationReason;
   reasonDetail?: string | null;
   fingerprint?: string;
+  legacyFingerprint?: string;
 }
 
 export interface EscalatedIssue {
@@ -134,6 +135,7 @@ export async function escalateTaskFindings(params: {
       }
 
       const fp = computeFindingFingerprint(params.repoId, `${f.category ?? 'UNKNOWN'}:${f.title ?? ''}`, [f.file]);
+      const legacyFp = computeFindingFingerprint(params.repoId, f.category, [f.file]);
 
       unresolved.push({
         agentId: task.agentId,
@@ -148,6 +150,7 @@ export async function escalateTaskFindings(params: {
         reason,
         reasonDetail,
         fingerprint: fp,
+        legacyFingerprint: legacyFp,
       });
     }
   }
@@ -201,7 +204,11 @@ export async function escalateTaskFindings(params: {
 
   // Build full fingerprint set of all unresolved findings in this run BEFORE applying MAX_ISSUES_PER_RUN.
   // This prevents capped findings from looking "missing" and being falsely auto-closed during the sweep.
-  const currentRunFingerprints = new Set<string>(unresolved.map((f) => f.fingerprint!));
+  const currentRunFingerprints = new Set<string>();
+  for (const f of unresolved) {
+    if (f.fingerprint) currentRunFingerprints.add(f.fingerprint);
+    if (f.legacyFingerprint) currentRunFingerprints.add(f.legacyFingerprint);
+  }
   const analyzedAgents = new Set<string>(params.tasks.map((t) => t.agentId));
   const scannedFilesSet = params.scannedFiles && params.scannedFiles.length > 0
     ? new Set<string>(params.scannedFiles)
@@ -224,7 +231,7 @@ export async function escalateTaskFindings(params: {
     const issueTitle = `[Codeward] ${finding.severity}: ${finding.title}`.slice(0, 250);
     const titleKey = issueTitle.toLowerCase().trim();
 
-    const trackedRow = existingByFingerprint.get(fp);
+    const trackedRow = existingByFingerprint.get(fp) || (finding.legacyFingerprint ? existingByFingerprint.get(finding.legacyFingerprint) : null);
     const existingIssueNum = trackedRow?.githubIssueNumber ?? existingTitles.get(titleKey);
 
     if (trackedRow || existingTitles.has(titleKey)) {
@@ -235,6 +242,7 @@ export async function escalateTaskFindings(params: {
         return (Date.now() - new Date(trackedRow.lastCommentedAt).getTime()) >= COMMENT_THROTTLE_MS;
       })();
 
+      let commentPosted = false;
       if (shouldComment && existingIssueNum && params.guardianTools.add_issue_comment) {
         try {
           await params.guardianTools.add_issue_comment.execute({
@@ -242,6 +250,7 @@ export async function escalateTaskFindings(params: {
             issueNumber: existingIssueNum,
             body: `[Codeward] Finding remains unresolved as of run #${params.runId}.\nLocation: \`${finding.file || 'codebase'}${finding.line != null ? `:${finding.line}` : ''}\`\nSeverity: **${finding.severity}**`,
           });
+          commentPosted = true;
         } catch (commentErr) {
           console.warn(`[Escalation] Could not comment on existing issue #${existingIssueNum}:`, (commentErr as Error).message);
         }
@@ -253,7 +262,7 @@ export async function escalateTaskFindings(params: {
           const { eq } = await import('drizzle-orm');
           await db.update(escalatedFindings).set({
             lastSeenAt: new Date(),
-            ...(shouldComment ? { lastCommentedAt: new Date() } : {}),
+            ...(commentPosted ? { lastCommentedAt: new Date() } : {}),
             runId: params.runId,
             reason: finding.reason || 'NOT_ELIGIBLE',
             reasonDetail: finding.reasonDetail,
@@ -288,12 +297,16 @@ export async function escalateTaskFindings(params: {
         const reserved = Array.isArray(insertRes) ? insertRes[0] : insertRes;
         reservedRowId = reserved?.id ?? null;
       } catch (reserveErr: any) {
-        console.warn(`[Escalation] Fingerprint ${fp} already claimed/open in DB, skipping duplicate create_issue:`, reserveErr?.message);
-        skipped.push({
-          title: issueTitle,
-          reason: 'Already claimed by an active or concurrent escalation run.',
-        });
-        continue;
+        const isUniqueConstraint = reserveErr?.code === '23505' || reserveErr?.message?.includes('unique') || reserveErr?.message?.includes('duplicate');
+        if (isUniqueConstraint) {
+          console.warn(`[Escalation] Fingerprint ${fp} already claimed/open in DB, skipping duplicate create_issue:`, reserveErr?.message);
+          skipped.push({
+            title: issueTitle,
+            reason: 'Already claimed by an active or concurrent escalation run.',
+          });
+          continue;
+        }
+        throw reserveErr;
       }
     }
 
@@ -321,12 +334,24 @@ export async function escalateTaskFindings(params: {
       },
     });
 
-    const res: any = await params.guardianTools.create_issue.execute({
-      repoId: params.repoId,
-      title: issueTitle,
-      body,
-      labels: ['codeward', finding.severity.toLowerCase()],
-    });
+    let res: any;
+    try {
+      res = await params.guardianTools.create_issue.execute({
+        repoId: params.repoId,
+        title: issueTitle,
+        body,
+        labels: ['codeward', finding.severity.toLowerCase()],
+      });
+    } catch (createErr) {
+      if (db && reservedRowId != null) {
+        try {
+          const { escalatedFindings } = await import('../../db/schema.js');
+          const { eq } = await import('drizzle-orm');
+          await db.delete(escalatedFindings).where(eq(escalatedFindings.id, reservedRowId));
+        } catch { /* non-fatal DB delete */ }
+      }
+      throw createErr;
+    }
 
     if (res.success) {
       escalated.push({
@@ -358,7 +383,10 @@ export async function escalateTaskFindings(params: {
           await db.delete(escalatedFindings).where(eq(escalatedFindings.id, reservedRowId));
         } catch { /* non-fatal delete */ }
       }
-      skipped.push({ title: issueTitle, reason: `create_issue failed: ${res.error ?? 'unknown error'}` });
+      skipped.push({
+        title: issueTitle,
+        reason: res.reason || 'GitHub create_issue failed without explicit reason',
+      });
     }
   }
 
@@ -376,12 +404,12 @@ export async function escalateTaskFindings(params: {
       }
 
       // If analyzedAgents is populated and row has an agentId, ensure that agent actually ran
-      if (analyzedAgents.size > 0 && row.agentId && !analyzedAgents.has(row.agentId)) {
+      if (analyzedAgents.size > 0 && (!row.agentId || !analyzedAgents.has(row.agentId))) {
         continue;
       }
 
       // If scannedFilesSet is populated and row has a file, ensure that file was actually scanned
-      if (scannedFilesSet && row.file && !scannedFilesSet.has(row.file)) {
+      if (scannedFilesSet && (!row.file || !scannedFilesSet.has(row.file))) {
         continue;
       }
 
@@ -413,18 +441,22 @@ export async function escalateTaskFindings(params: {
 
           resolved.push({ issueNumber: row.githubIssueNumber, fingerprint: fp });
         } catch (updateErr) {
-          console.warn(`[Escalation] Failed to update DB finding #${row.id} to resolved:`, (updateErr as Error).message);
+          console.warn(`[Escalation] Could not update escalatedFindings status to resolved:`, (updateErr as Error).message);
         }
       }
     }
   }
 
-  return { escalated, skipped, resolved };
+  return {
+    escalated,
+    skipped,
+    resolved,
+  };
 }
 
 export async function escalateUnresolvedFindings(params: EscalationParams): Promise<EscalationResult> {
   const { db } = await import('../../db/index.js');
-  const { agentTasks, repositories } = await import('../../db/schema.js');
+  const { agentTasks, repositories, runs } = await import('../../db/schema.js');
   const { eq, and, notLike } = await import('drizzle-orm');
 
   const tasks = await db.select().from(agentTasks).where(
@@ -436,11 +468,18 @@ export async function escalateUnresolvedFindings(params: EscalationParams): Prom
     ? await db.select().from(repositories).where(eq(repositories.id, numericRepoId))
     : [];
 
+  const [runRow] = await db.select({ scope: runs.scope }).from(runs).where(eq(runs.id, params.runId));
+  const runScope = runRow?.scope as { incremental?: boolean; changedFiles?: string[] } | null;
+  const scannedFiles = (runScope?.incremental && Array.isArray(runScope.changedFiles))
+    ? runScope.changedFiles
+    : undefined;
+
   return escalateTaskFindings({
     guardianTools: createGuardianTools(params.sandbox),
     repoId: params.repoId,
     runId: params.runId,
     tasks,
+    scannedFiles,
     autoFixEnabled: repoRow?.autoFixEnabled !== false,
     dbClient: db,
   });

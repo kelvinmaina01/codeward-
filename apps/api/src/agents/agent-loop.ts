@@ -28,9 +28,7 @@ export async function runAgentLoop(config: AgentRunConfig, provider: AgentProvid
     const stepConfig = { ...config, messages: currentMessages };
     if (isLastStep) {
       const terminalTools = config.tools?.filter(t => t.name.startsWith("submit_"));
-      if (terminalTools && terminalTools.length > 0) {
-        stepConfig.tools = terminalTools;
-      }
+      stepConfig.tools = terminalTools ?? [];
       currentMessages.push({
         role: "user",
         content: "⚠️ SYSTEM: You have reached the maximum allowed steps. You MUST call your submit_* tool NOW with whatever findings you have. All exploration tools are now closed."

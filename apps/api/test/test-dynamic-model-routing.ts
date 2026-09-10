@@ -197,12 +197,24 @@ async function testCascadeTimeoutBudget() {
   process.env.AI_CASCADE_TIMEOUT_MS = "300"; // 300ms total cascade budget
 
   try {
-    globalThis.fetch = (async () => {
-      // Simulate 400ms delay to blow budget
-      await new Promise(res => setTimeout(res, 400));
-      return new Response(JSON.stringify({ error: { message: "Too slow" } }), { status: 504 });
+    let abortedCount = 0;
+    globalThis.fetch = (async (_url: string, opts?: any) => {
+      return new Promise((resolve, reject) => {
+        const timer = setTimeout(() => {
+          resolve(new Response(JSON.stringify({ error: { message: "Too slow" } }), { status: 504 }));
+        }, 400);
+
+        if (opts?.signal) {
+          opts.signal.addEventListener('abort', () => {
+            clearTimeout(timer);
+            abortedCount++;
+            reject(new DOMException('The operation was aborted.', 'AbortError'));
+          });
+        }
+      });
     }) as any;
 
+    const startTime = Date.now();
     await assert.rejects(
       async () => {
         await mock.execute({
@@ -219,8 +231,10 @@ async function testCascadeTimeoutBudget() {
         return true;
       }
     );
+    const elapsed = Date.now() - startTime;
+    assert.ok(elapsed <= 450, `Expected total cascade duration <= 450ms, took ${elapsed}ms`);
 
-    console.log("  ✅ Wall-clock cascade budget enforcement verified.");
+    console.log("  ✅ Wall-clock cascade budget enforcement and abort signal verified.");
   } finally {
     process.env.AI_CASCADE_TIMEOUT_MS = oldEnv;
     globalThis.fetch = originalFetch;
