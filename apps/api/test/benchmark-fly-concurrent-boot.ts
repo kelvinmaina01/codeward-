@@ -113,6 +113,13 @@ function summarizeBenchmark(results: BootMeasurement[], maxAcceptableMs: number,
   console.log(`p95 Latency:       ${p95}ms`);
   console.log(`Max Latency:       ${max}ms`);
 
+  if (successful.length === 0) {
+    console.error(`\n❌ FAIL: 0 / ${results.length} machine boots succeeded.`);
+    process.exit(1);
+  } else if (successful.length < results.length) {
+    console.warn(`\n⚠️  WARNING: Only ${successful.length} / ${results.length} machines booted successfully.`);
+  }
+
   const exceedsThreshold = durations.some((d) => d > maxAcceptableMs);
   if (exceedsThreshold) {
     console.warn(`\n⚠️  WARNING: At least one machine boot exceeded ${maxAcceptableMs}ms.`);

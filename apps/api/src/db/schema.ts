@@ -1,4 +1,5 @@
-import { pgTable, serial, text, varchar, timestamp, integer, boolean, jsonb, real, uuid, bigint, index } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, varchar, timestamp, integer, boolean, jsonb, real, uuid, bigint, index, uniqueIndex } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 
 export interface Finding {
   severity: "info" | "low" | "medium" | "high" | "critical";
@@ -12,6 +13,9 @@ export interface Finding {
 export const organization = pgTable('organization', {
   id: serial('id').primaryKey(),
   githubLogin: varchar('github_login', { length: 255 }).notNull().unique(),
+  planType: varchar('plan_type', { length: 50 }).notNull().default('free'),
+  stripeCustomerId: varchar('stripe_customer_id', { length: 255 }),
+  stripeSubscriptionId: varchar('stripe_subscription_id', { length: 255 }),
   createdAt: timestamp('created_at').defaultNow(),
 });
 
@@ -374,11 +378,14 @@ export const escalatedFindings = pgTable('escalated_findings', {
   repoId: integer('repo_id').notNull().references(() => repositories.id, { onDelete: 'cascade' }),
   fingerprint: varchar('fingerprint', { length: 64 }).notNull(),
   githubIssueNumber: integer('github_issue_number'),
+  agentId: varchar('agent_id', { length: 100 }),
+  file: text('file'),
   status: varchar('status', { length: 20 }).notNull().default('open'), // 'open' | 'resolved' | 'stale'
   reason: varchar('reason', { length: 50 }).notNull(),
   reasonDetail: text('reason_detail'),
   firstEscalatedAt: timestamp('first_escalated_at').notNull().defaultNow(),
   lastSeenAt: timestamp('last_seen_at').notNull().defaultNow(),
+  lastCommentedAt: timestamp('last_commented_at'),
   resolvedAt: timestamp('resolved_at'),
   runId: integer('run_id').references(() => runs.id, { onDelete: 'set null' }),
   createdAt: timestamp('created_at').notNull().defaultNow(),
@@ -386,6 +393,9 @@ export const escalatedFindings = pgTable('escalated_findings', {
   return {
     fingerprintIdx: index('escalated_findings_fingerprint_idx').on(table.fingerprint),
     repoStatusIdx: index('escalated_findings_repo_status_idx').on(table.repoId, table.status),
+    uniqueOpenFindingIdx: uniqueIndex('escalated_findings_repo_fingerprint_open_idx')
+      .on(table.repoId, table.fingerprint)
+      .where(sql`status = 'open'`),
   };
 });
 

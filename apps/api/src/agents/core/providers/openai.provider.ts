@@ -30,7 +30,7 @@ export class OpenAIProvider implements AgentProvider {
   readonly name = 'openai';
 
   async execute(config: AgentRunConfig): Promise<AgentResult> {
-    const model = config.model && !config.model.startsWith('claude') ? config.model : 'gpt-4o-mini';
+    const model = config.model || 'gpt-4o-mini';
     const startTime = Date.now();
     const provider = new NativeOpenAIProvider();
 

@@ -4,11 +4,12 @@ import * as Sentry from '@sentry/node';
 import { startAgentWorker } from './agents/queue/agent.queue.js';
 import { startEscalationWorker } from './agents/escalation/escalation.queue.js';
 import { startMergeWorker } from './agents/merge/merge.queue.js';
+import { NativeOpenAIProvider } from './providers/openai.provider.js';
 
 console.log(`[Codeward Worker] 🚀 Initializing standalone worker process...`);
+NativeOpenAIProvider.validateConfiguration();
 console.log(`  Environment: ${process.env.NODE_ENV || 'development'}`);
 console.log(`  Agent Worker Concurrency: ${process.env.WORKER_CONCURRENCY || '10'}`);
-console.log(`  Per-Repo Rate Limiter: ${process.env.REPO_CONCURRENCY_MAX || '4'} jobs/sec`);
 console.log(`  Escalation Concurrency: ${process.env.ESCALATION_CONCURRENCY || '3'}`);
 console.log(`  GitHub Issue Rate Max: ${process.env.GITHUB_ISSUE_RATE_MAX || '20'}/min`);
 
@@ -57,6 +58,8 @@ process.on('uncaughtException', (err: Error) => {
   console.error(`\n[${new Date().toISOString()}] 💥 Worker Uncaught Exception:`, err.message);
   console.error(err.stack);
   Sentry.captureException(err);
+  // Terminate the process — workers must not continue in an undefined state
+  void handleShutdown('uncaughtException').finally(() => process.exit(1));
 });
 
 process.on('unhandledRejection', (reason: unknown) => {

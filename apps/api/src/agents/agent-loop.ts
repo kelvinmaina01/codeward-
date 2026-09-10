@@ -24,17 +24,22 @@ export async function runAgentLoop(config: AgentRunConfig, provider: AgentProvid
   for (let step = 0; step < maxSteps; step++) {
     const isLastStep = step === maxSteps - 1;
 
-    // On the very last step, inject a system nudge forcing the agent to submit
+    // On the very last step, inject a system nudge and restrict tools to terminal submission only
+    const stepConfig = { ...config, messages: currentMessages };
     if (isLastStep) {
+      const terminalTools = config.tools?.filter(t => t.name.startsWith("submit_"));
+      if (terminalTools && terminalTools.length > 0) {
+        stepConfig.tools = terminalTools;
+      }
       currentMessages.push({
         role: "user",
-        content: "⚠️ SYSTEM: You have reached the maximum allowed steps. You MUST call your submit_* tool NOW with whatever findings you have. Do NOT make any more exploration calls."
+        content: "⚠️ SYSTEM: You have reached the maximum allowed steps. You MUST call your submit_* tool NOW with whatever findings you have. All exploration tools are now closed."
       });
     }
 
     let result;
     try {
-      result = await provider.execute({ ...config, messages: currentMessages });
+      result = await provider.execute(stepConfig);
       addUsage(result.usage);
     } catch (error: any) {
       error.checkpointState = currentMessages;

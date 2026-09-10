@@ -15,7 +15,7 @@ const CONSTITUTION = `
 export const aiEraAgent: AgentDefinition = {
   id: 'ai_era',
   displayName: 'AI-Era Agent',
-  defaultModel: 'claude-3.5-sonnet', // Upgrading to Sonnet per playbook for adversarial reasoning
+  defaultModel: 'gpt-4o', // Needs strong adversarial reasoning
   maxSteps: 20,
   systemPrompt: `
 You are Codeward's AI-Era Agent. You specialize in the vulnerabilities unique to AI-augmented codebases.

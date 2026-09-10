@@ -6,6 +6,7 @@ import { triggerComprehensiveAudit } from '../agents/audit-trigger.js';
 import { db } from '../db/index.js';
 import { runs, repositories } from '../db/schema.js';
 import { eq } from 'drizzle-orm';
+import { BudgetService } from '../services/budget.service.js';
 
 export const webhookRouter = new Hono<{ Variables: { rawBody: string } }>();
 
@@ -59,6 +60,11 @@ webhookRouter.post('/github', async (c) => {
       if (repo.paused) {
         console.log(`[Webhook] Ignoring push for ${repoName} — repo is paused by the user.`);
         return c.json({ status: 'ignored', reason: 'repo paused' });
+      }
+
+      const isBudgetOk = await BudgetService.checkGlobalBudget();
+      if (!isBudgetOk) {
+        return c.json({ status: 'ignored', reason: 'global_budget_exceeded' }, 429);
       }
 
       const [runRecord] = await db.insert(runs).values({
@@ -130,6 +136,18 @@ webhookRouter.post('/github', async (c) => {
       if (!repo) {
         console.log(`[Webhook] Ignoring PR for ${repoName} — repo is not connected.`);
         return c.json({ status: 'ignored', reason: 'repo not connected' });
+      }
+
+      const isBudgetOk = await BudgetService.checkGlobalBudget();
+      if (!isBudgetOk) {
+        return c.json({ status: 'ignored', reason: 'global_budget_exceeded' }, 429);
+      }
+
+      if (repo.orgId) {
+        const isPrLimitOk = await BudgetService.checkOrgPrLimit(repo.orgId);
+        if (!isPrLimitOk) {
+          return c.json({ status: 'ignored', reason: 'free_plan_limit_exceeded' }, 403);
+        }
       }
 
       const [runRecord] = await db.insert(runs).values({

@@ -15,7 +15,7 @@ const CONSTITUTION = `
 export const dataDxAgent: AgentDefinition = {
   id: 'data_dx',
   displayName: 'Data & DX Agent',
-  defaultModel: 'claude-3.5-haiku', // Haiku is sufficient for pattern analysis and metric aggregation
+  defaultModel: 'gpt-4o-mini', // Sufficient for pattern analysis and metric aggregation
   maxSteps: 15,
   systemPrompt: `
 You are Codeward's Data & DX Agent. You run weekly and produce a team health report.
