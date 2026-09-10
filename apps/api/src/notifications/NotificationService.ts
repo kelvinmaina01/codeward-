@@ -1,5 +1,4 @@
 import { Resend } from 'resend';
-import { render } from '@react-email/render';
 import * as React from 'react';
 import { WelcomeVerificationEmail } from './templates/WelcomeVerificationEmail.js';
 import { EscalationEmail } from './templates/EscalationEmail.js';
@@ -18,6 +17,7 @@ export class NotificationService {
     const isMock = !process.env.RESEND_API_KEY || process.env.RESEND_API_KEY === 're_mock';
     
     // Convert the React component to raw HTML table string for Gmail safety
+    const { render } = await import('@react-email/render');
     const html = await render(reactComponent);
 
     if (isMock) {
@@ -104,7 +104,7 @@ export class NotificationService {
   static async sendAccountDeletionQueued(to: string, userName: string, dataSummary: Record<string, number>) {
     return this.sendEmail(
       to,
-      'Your Codeward account deletion has been queued',
+      'Your Codeward account deletion has been queued complete removal of your data will complete in  30 days time,we will notify you',
       React.createElement(AccountDeletionEmail, { userName, dataSummary })
     );
   }

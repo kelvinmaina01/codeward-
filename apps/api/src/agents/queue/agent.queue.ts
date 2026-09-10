@@ -21,7 +21,6 @@ import { Queue, Worker, Job, UnrecoverableError } from 'bullmq';
 import dotenv from 'dotenv';
 import { createRedisConnection } from '../../lib/redis.js';
 import { db } from '../../db/index.js';
-import { NotificationService } from '../../notifications/NotificationService.js';
 import { agentTasks, runs, repositories, runLogs, user } from '../../db/schema.js';
 import { eq, and, notLike } from 'drizzle-orm';
 import { getProvider } from '../core/registry.js';
@@ -101,10 +100,11 @@ export const agentQueue = new Queue('agent-jobs', {
   defaultJobOptions: {
     attempts: 3,
     backoff: {
-      type: 'exponential',
-      delay: 5000,
-    }
-  }
+      type: 'custom',
+    },
+    removeOnComplete: { count: 1000, age: 24 * 3600 },
+    removeOnFail: { count: 5000, age: 7 * 24 * 3600 },
+  },
 });
 
 // ---------------------------------------------------------------------------
@@ -212,7 +212,15 @@ async function claimTaskRow(runId: number, agentId: string, providerName?: strin
 // Worker
 // ---------------------------------------------------------------------------
 
-export const agentWorker = new Worker('agent-jobs', async (job: Job<AgentJobData>) => {
+let _agentWorker: Worker<AgentJobData> | null = null;
+
+export function startAgentWorker(customOpts?: any): Worker<AgentJobData> {
+  if (_agentWorker) return _agentWorker;
+
+  const concurrency = process.env.WORKER_CONCURRENCY ? parseInt(process.env.WORKER_CONCURRENCY, 10) : 10;
+  const repoConcurrencyMax = parseInt(process.env.REPO_CONCURRENCY_MAX || '3', 10);
+
+  _agentWorker = new Worker('agent-jobs', async (job: Job<AgentJobData>) => {
   const { agentId, commitSHA, repoFullName, runId, provider: providerName, model } = job.data;
 
   console.log(`[AgentWorker] Starting ${agentId} for ${repoFullName}@${commitSHA} (run #${runId})`);
@@ -409,37 +417,19 @@ Use these EXACT values for any tool parameter named runId/repoId — never inven
     let escalation: any = null;
     if (agentId === 'orchestrator_phase3' && result.gateDecision === 'BLOCK' && runRow?.repoId != null) {
       try {
-        const { escalateUnresolvedFindings } = await import('../escalation/escalation.service.js');
-        const outcome = await escalateUnresolvedFindings({ sandbox: sandbox!, repoId: String(runRow.repoId), runId });
-        escalation = outcome;
-        console.log(`[AgentWorker] escalation for run #${runId}: ${outcome.escalated.length} real issue(s) opened, ${outcome.skipped.length} skipped.`);
-
-        if (outcome.escalated.length > 0) {
-          try {
-            const { db: db2 } = await import('../../db/index.js');
-            const { repositories: repositories2, user: user2 } = await import('../../db/schema.js');
-            const { eq: eq2 } = await import('drizzle-orm');
-            const [repo] = await db2.select().from(repositories2).where(eq2(repositories2.id, runRow.repoId));
-            const [owner] = repo ? await db2.select().from(user2).where(eq2(user2.id, repo.userId)) : [];
-            if (owner?.email) {
-              const { NotificationService } = await import('../../notifications/NotificationService.js');
-              const first = outcome.escalated[0];
-              await NotificationService.sendEscalation(
-                owner.email, repoFullName, first.issueNumber, first.title,
-                `${outcome.escalated.length} unresolved finding(s) across ${new Set(outcome.escalated.map((e: any) => e.agentId)).size} agent(s)`,
-                String(runId)
-              );
-              console.log(`[AgentWorker] real escalation alert sent to ${owner.email}`);
-            } else {
-              console.warn(`[AgentWorker] escalation issues created but no real owner email found for repoId ${runRow.repoId} — alert not sent.`);
-            }
-          } catch (emailError) {
-            console.error(`[AgentWorker] escalation email failed (non-fatal, issues were still created):`, (emailError as Error).message);
-          }
-        }
-      } catch (escalationError) {
-        console.error(`[AgentWorker] escalation step threw (non-fatal, orchestrator decision is unaffected):`, (escalationError as Error).message);
-        escalation = { escalated: [], skipped: [], error: (escalationError as Error).message };
+        const { escalationQueue } = await import('../escalation/escalation.queue.js');
+        const escalationJob = await escalationQueue.add(`escalate-${runId}`, {
+          runId,
+          repoId: runRow.repoId,
+          repoFullName,
+        }, {
+          jobId: `escalate-${runId}`,
+        });
+        escalation = { queued: true, jobId: escalationJob.id, runId };
+        console.log(`[AgentWorker] Enqueued escalation job #${escalationJob.id} to escalationQueue for run #${runId}.`);
+      } catch (enqueueError) {
+        console.error(`[AgentWorker] Failed to enqueue escalation job for run #${runId}:`, (enqueueError as Error).message);
+        escalation = { queued: false, error: (enqueueError as Error).message };
       }
     }
 
@@ -585,6 +575,7 @@ Use these EXACT values for any tool parameter named runId/repoId — never inven
             .where(eq(repositories.id, runRowCatch.repoId));
 
           if (repoOwner?.email) {
+            const { NotificationService } = await import('../../notifications/NotificationService.js');
             await NotificationService.sendRunFailure(
               repoOwner.email,
               repoFullName,
@@ -624,120 +615,120 @@ Use these EXACT values for any tool parameter named runId/repoId — never inven
     }
   }
 
-}, {
-  connection: connection as any,
-  concurrency: 5,   // Run up to 5 agents in parallel (matches Promise.all pattern)
-});
-
-// ---------------------------------------------------------------------------
-// Event Logging & Real-time Broadcast
-// ---------------------------------------------------------------------------
-
-agentWorker.on('active', (job) => {
-  broadcast('agent_active', {
-    repo: job.data.repoFullName,
-    sha: job.data.commitSHA,
-    agent: job.data.agentId,
-    status: 'Running'
-  });
-});
-
-/**
- * Real Phase 2 -> Phase 3 handoff. Previously nothing triggered Phase 3 at all — the comment
- * here literally said "a separate coordinator will trigger Phase 3" and none existed. Runs
- * after every sub-agent's terminal state (completed OR failed — a failed agent shouldn't hang
- * the pipeline forever) and checks whether any sibling sub-agent for this run is still
- * queued/running. If none, enqueues Phase 3. jobId is deterministic per run so a race between
- * two sub-agents finishing at nearly the same moment can't double-enqueue it.
- *
- * Also requires Phase 2's OWN task row to be terminal first: Phase 2's LLM loop dispatches
- * sub-agents one spawn_agent tool call at a time, so a fast sub-agent (5x worker concurrency
- * means one can start immediately) can finish before Phase 2 has finished calling spawn_agent
- * for its remaining siblings — without this guard, that read "0 pending" and fired Phase 3
- * while agents Phase 2 hadn't dispatched yet were still to come.
- */
-// Mandatory agents that must run on EVERY commit, enforced in code — not left to Phase 2's
-// discretion. Real evidence this backstop is needed: a live run dispatched every agent it
-// felt like on a 1-file docs change, so "the model will surely remember" isn't a safe
-// assumption for a non-negotiable rule. Keep this list in sync with analyse_commit_diff's
-// mandatory:true entries in orchestrator.tools.ts.
-const MANDATORY_AGENTS = ['security'];
-
-async function ensureMandatoryAgentsSpawned(runId: number, repoFullName: string, commitSHA: string): Promise<boolean> {
-  const existing = await db.select().from(agentTasks).where(eq(agentTasks.runId, runId));
-  const existingIds = new Set(existing.map((t: any) => t.agentId));
-  const missing = MANDATORY_AGENTS.filter((a) => !existingIds.has(a));
-  if (missing.length === 0) return false;
-
-  for (const agentId of missing) {
-    console.warn(`[Orchestrator] Phase 2 did not spawn mandatory agent '${agentId}' for run #${runId} — spawning it now as a code-level backstop (this should be rare; check Phase 2's reasoning if it happens often).`);
-    await agentQueue.add(`agent-${agentId}`, { agentId, commitSHA, repoFullName, runId }, { jobId: `mandatory-${agentId}-${runId}` });
-  }
-  return true;
-}
-
-// Exported (not just internal) so the mandatory-agent backstop can be exercised directly in a
-// real test without paying for a full LLM-driven Phase 2 run just to prove a pure DB-logic path.
-export async function checkAndTriggerPhase3(runId: number, repoFullName: string, commitSHA: string) {
-  const [phase2] = await db.select().from(agentTasks).where(and(eq(agentTasks.runId, runId), eq(agentTasks.agentId, 'orchestrator_phase2')));
-  if (!phase2 || phase2.status === 'queued' || phase2.status === 'running') return;
-
-  const spawnedMandatory = await ensureMandatoryAgentsSpawned(runId, repoFullName, commitSHA);
-  if (spawnedMandatory) return; // let the newly-spawned job's own completion event re-trigger this check
-
-  const remaining = await db.select().from(agentTasks).where(
-    and(eq(agentTasks.runId, runId), notLike(agentTasks.agentId, 'orchestrator%'))
-  );
-  const stillPending = remaining.filter((t: any) => t.status === 'queued' || t.status === 'running');
-  if (stillPending.length > 0 || remaining.length === 0) return;
-
-  console.log(`[Orchestrator] All ${remaining.length} sub-agents terminal for run #${runId}. Triggering Phase 3 (Decision).`);
-  await agentQueue.add('orchestrator-phase3', {
-    agentId: 'orchestrator_phase3',
-    commitSHA,
-    repoFullName,
-    runId
-  }, { jobId: `phase3-${runId}` });
-}
-
-agentWorker.on('completed', async (job) => {
-  console.log(`[AgentQueue] Job ${job.id} completed (${job.data.agentId})`);
-  broadcast('agent_completed', {
-    repo: job.data.repoFullName,
-    sha: job.data.commitSHA,
-    agent: job.data.agentId,
-    status: 'Completed',
-    score: job.returnvalue?.score
+  }, {
+    connection: connection as any,
+    concurrency,
+    limiter: {
+      max: repoConcurrencyMax,
+      duration: 1000,
+      groupKey: 'repoFullName',
+    },
+    settings: {
+      backoffStrategies: {
+        custom(attemptsMade: number) {
+          const base = 5000 * Math.pow(2, attemptsMade - 1);
+          const jitter = Math.random() * base * 0.3; // up to 30% randomized jitter
+          return Math.round(base + jitter);
+        },
+      },
+    },
+    ...customOpts,
   });
 
-  // Orchestrator State Transitions
-  if (job.data.agentId === 'orchestrator_phase1') {
-    console.log(`[Orchestrator] Phase 1 complete. Triggering Phase 2 (Dispatch).`);
-    // Enqueue Phase 2, passing the Phase 1 findings in payload if needed
-    await agentQueue.add('orchestrator-phase2', {
-      agentId: 'orchestrator_phase2',
-      commitSHA: job.data.commitSHA,
-      repoFullName: job.data.repoFullName,
-      runId: job.data.runId
+  _agentWorker.on('active', (job) => {
+    broadcast('agent_active', {
+      repo: job.data.repoFullName,
+      sha: job.data.commitSHA,
+      agent: job.data.agentId,
+      status: 'Running'
     });
-  } else if (job.data.agentId === 'orchestrator_phase2') {
-    console.log(`[Orchestrator] Phase 2 complete. Checking whether any dispatched sub-agents already finished before this handler ran.`);
-    await checkAndTriggerPhase3(job.data.runId, job.data.repoFullName, job.data.commitSHA);
-  } else if (!job.data.agentId.startsWith('orchestrator')) {
-    await checkAndTriggerPhase3(job.data.runId, job.data.repoFullName, job.data.commitSHA);
-  }
-});
-
-agentWorker.on('failed', async (job, err) => {
-  console.error(`[AgentQueue] Job ${job?.id} failed (${job?.data?.agentId}):`, err.message);
-  if (job?.data && !job.data.agentId.startsWith('orchestrator')) {
-    await checkAndTriggerPhase3(job.data.runId, job.data.repoFullName, job.data.commitSHA);
-  }
-  broadcast('agent_failed', {
-    repo: job?.data?.repoFullName || 'unknown',
-    sha: job?.data?.commitSHA || 'unknown',
-    agent: job?.data?.agentId || 'unknown',
-    status: 'Failed',
-    error: err.message
   });
+
+  const MANDATORY_AGENTS = ['security'];
+
+  async function ensureMandatoryAgentsSpawned(runId: number, repoFullName: string, commitSHA: string): Promise<boolean> {
+    const existing = await db.select().from(agentTasks).where(eq(agentTasks.runId, runId));
+    const existingIds = new Set(existing.map((t: any) => t.agentId));
+    const missing = MANDATORY_AGENTS.filter((a) => !existingIds.has(a));
+    if (missing.length === 0) return false;
+
+    for (const agentId of missing) {
+      console.warn(`[Orchestrator] Phase 2 did not spawn mandatory agent '${agentId}' for run #${runId} — spawning it now as a code-level backstop (this should be rare; check Phase 2's reasoning if it happens often).`);
+      await agentQueue.add(`agent-${agentId}`, { agentId, commitSHA, repoFullName, runId }, { jobId: `mandatory-${agentId}-${runId}` });
+    }
+    return true;
+  }
+
+  async function checkAndTriggerPhase3(runId: number, repoFullName: string, commitSHA: string) {
+    const [phase2] = await db.select().from(agentTasks).where(and(eq(agentTasks.runId, runId), eq(agentTasks.agentId, 'orchestrator_phase2')));
+    if (!phase2 || phase2.status === 'queued' || phase2.status === 'running') return;
+
+    const spawnedMandatory = await ensureMandatoryAgentsSpawned(runId, repoFullName, commitSHA);
+    if (spawnedMandatory) return;
+
+    const remaining = await db.select().from(agentTasks).where(
+      and(eq(agentTasks.runId, runId), notLike(agentTasks.agentId, 'orchestrator%'))
+    );
+    const stillPending = remaining.filter((t: any) => t.status === 'queued' || t.status === 'running');
+    if (stillPending.length > 0 || remaining.length === 0) return;
+
+    console.log(`[Orchestrator] All ${remaining.length} sub-agents terminal for run #${runId}. Triggering Phase 3 (Decision).`);
+    await agentQueue.add('orchestrator-phase3', {
+      agentId: 'orchestrator_phase3',
+      commitSHA,
+      repoFullName,
+      runId
+    }, { jobId: `phase3-${runId}` });
+  }
+
+  _agentWorker.on('completed', async (job) => {
+    console.log(`[AgentQueue] Job ${job.id} completed (${job.data.agentId})`);
+    broadcast('agent_completed', {
+      repo: job.data.repoFullName,
+      sha: job.data.commitSHA,
+      agent: job.data.agentId,
+      status: 'Completed',
+      score: job.returnvalue?.score
+    });
+
+    // Orchestrator State Transitions
+    if (job.data.agentId === 'orchestrator_phase1') {
+      console.log(`[Orchestrator] Phase 1 complete. Triggering Phase 2 (Dispatch).`);
+      await agentQueue.add('orchestrator-phase2', {
+        agentId: 'orchestrator_phase2',
+        commitSHA: job.data.commitSHA,
+        repoFullName: job.data.repoFullName,
+        runId: job.data.runId
+      });
+    } else if (job.data.agentId === 'orchestrator_phase2') {
+      console.log(`[Orchestrator] Phase 2 complete. Checking whether any dispatched sub-agents already finished before this handler ran.`);
+      await checkAndTriggerPhase3(job.data.runId, job.data.repoFullName, job.data.commitSHA);
+    } else if (!job.data.agentId.startsWith('orchestrator')) {
+      await checkAndTriggerPhase3(job.data.runId, job.data.repoFullName, job.data.commitSHA);
+    }
+  });
+
+  _agentWorker.on('failed', async (job, err) => {
+    console.error(`[AgentQueue] Job ${job?.id} failed (${job?.data?.agentId}):`, err.message);
+    if (job?.data && !job.data.agentId.startsWith('orchestrator')) {
+      await checkAndTriggerPhase3(job.data.runId, job.data.repoFullName, job.data.commitSHA);
+    }
+    broadcast('agent_failed', {
+      repo: job?.data?.repoFullName || 'unknown',
+      sha: job?.data?.commitSHA || 'unknown',
+      agent: job?.data?.agentId || 'unknown',
+      status: 'Failed',
+      error: err.message
+    });
+  });
+
+  return _agentWorker;
+}
+
+export const agentWorker = new Proxy({} as Worker<AgentJobData>, {
+  get(target, prop, receiver) {
+    const worker = startAgentWorker();
+    const val = Reflect.get(worker, prop, receiver);
+    return typeof val === 'function' ? val.bind(worker) : val;
+  },
 });

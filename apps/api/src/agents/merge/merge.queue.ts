@@ -17,19 +17,46 @@ interface MergeJobData {
  * at fire time (row still pending, repo still in auto mode, severity still eligible) — the
  * schedule is a trigger, never an authorization by itself.
  */
-export const mergeQueue = new Queue<MergeJobData>('merge-jobs', { connection: connection as any });
+export const mergeQueue = new Queue<MergeJobData>('merge-jobs', {
+  connection: connection as any,
+  defaultJobOptions: {
+    attempts: 3,
+    removeOnComplete: { count: 500, age: 24 * 3600 },
+    removeOnFail: { count: 1000, age: 7 * 24 * 3600 },
+  },
+});
 
-export const mergeWorker = new Worker<MergeJobData>('merge-jobs', async (job: Job<MergeJobData>) => {
-  const { approvalId } = job.data;
-  console.log(`[MergeWorker] Deadline reached for approval #${approvalId} — attempting timeout auto-merge.`);
-  const outcome = await executeMerge(approvalId, 'timeout');
-  if (outcome.merged) {
-    console.log(`[MergeWorker] Approval #${approvalId} auto-merged for real: ${outcome.sha}`);
-  } else {
-    console.log(`[MergeWorker] Approval #${approvalId} did NOT auto-merge: ${outcome.reason}`);
-  }
-  return outcome;
-}, { connection: connection as any, concurrency: 2 });
+let _mergeWorker: Worker<MergeJobData> | null = null;
+
+export function startMergeWorker(customOpts?: any): Worker<MergeJobData> {
+  if (_mergeWorker) return _mergeWorker;
+
+  _mergeWorker = new Worker<MergeJobData>('merge-jobs', async (job: Job<MergeJobData>) => {
+    const { approvalId } = job.data;
+    console.log(`[MergeWorker] Deadline reached for approval #${approvalId} — attempting timeout auto-merge.`);
+    const outcome = await executeMerge(approvalId, 'timeout');
+    if (outcome.merged) {
+      console.log(`[MergeWorker] Approval #${approvalId} auto-merged for real: ${outcome.sha}`);
+    } else {
+      console.log(`[MergeWorker] Approval #${approvalId} did NOT auto-merge: ${outcome.reason}`);
+    }
+    return outcome;
+  }, {
+    connection: connection as any,
+    concurrency: 2,
+    ...customOpts,
+  });
+
+  return _mergeWorker;
+}
+
+export const mergeWorker = new Proxy({} as Worker<MergeJobData>, {
+  get(target, prop, receiver) {
+    const worker = startMergeWorker();
+    const val = Reflect.get(worker, prop, receiver);
+    return typeof val === 'function' ? val.bind(worker) : val;
+  },
+});
 
 export interface CreateApprovalParams {
   repoId: number;

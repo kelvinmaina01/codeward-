@@ -156,24 +156,35 @@ const server = serve({
 
 injectWebSocket(server);
 
-// ─── Start agent worker safely AFTER HTTP server is live ─────────────────────
-// Dynamic import isolates Redis/BullMQ failures — the HTTP server stays up
-// even if the worker cannot connect to Redis.
-(async () => {
-  try {
-    await import('./agents/queue/agent.queue.js');
-    console.log(`[AgentSystem] ✅ Worker started — listening for agent-jobs on BullMQ`);
-    // The merge worker must be alive from boot, not lazily on first approval — a delayed
-    // auto-merge job scheduled before a restart would otherwise sit unprocessed until some
-    // unrelated approval happened to import the module.
-    await import('./agents/merge/merge.queue.js');
-    console.log(`[AgentSystem] ✅ Merge worker started — listening for delayed auto-merge jobs`);
-  } catch (err) {
-    console.error(`[AgentSystem] ⚠️  Worker failed to start (Redis may be unavailable):`);
-    console.error(err instanceof Error ? err.stack : String(err));
-    console.log(`[AgentSystem] HTTP server remains running — queue features disabled.`);
-  }
-})();
+// ─── Worker process initialization ───────────────────────────────────────────
+// In production, workers run as a dedicated, horizontally scalable service ('src/worker.ts').
+// For local development convenience, RUN_WORKER_INLINE defaults to true in non-production.
+const shouldRunWorkerInline = process.env.RUN_WORKER_INLINE === 'true' || 
+  (process.env.NODE_ENV !== 'production' && process.env.RUN_WORKER_INLINE !== 'false');
+
+if (shouldRunWorkerInline) {
+  (async () => {
+    try {
+      const { startAgentWorker } = await import('./agents/queue/agent.queue.js');
+      startAgentWorker();
+      console.log(`[AgentSystem] ✅ Agent worker started inline — listening for agent-jobs`);
+
+      const { startEscalationWorker } = await import('./agents/escalation/escalation.queue.js');
+      startEscalationWorker();
+      console.log(`[AgentSystem] ✅ Escalation worker started inline — listening for escalation-jobs`);
+
+      const { startMergeWorker } = await import('./agents/merge/merge.queue.js');
+      startMergeWorker();
+      console.log(`[AgentSystem] ✅ Merge worker started inline — listening for merge-jobs`);
+    } catch (err) {
+      console.error(`[AgentSystem] ⚠️ Worker failed to start inline (Redis may be unavailable):`);
+      console.error(err instanceof Error ? err.stack : String(err));
+      console.log(`[AgentSystem] HTTP server remains running — queue features disabled.`);
+    }
+  })();
+} else {
+  console.log(`[AgentSystem] Standalone worker mode active. Workers decoupled from HTTP server (RUN_WORKER_INLINE=false).`);
+}
 
 
 // ─── Process-level crash guards ───────────────────────────────────────────────

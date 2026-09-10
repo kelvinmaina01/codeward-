@@ -97,6 +97,7 @@ async function main() {
     assert.equal(tools.created.length, 0);
     assert.deepEqual(result.skipped, [{
       title: '[Codeward] CRITICAL: Unsigned role cookie grants admin',
+      issueNumber: 1,
       reason: 'An open issue with this exact title already exists — not creating a duplicate.',
     }]);
   }
