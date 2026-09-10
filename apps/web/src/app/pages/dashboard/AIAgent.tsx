@@ -932,7 +932,7 @@ export function AIAgent() {
 
             {/* Unified Control Footer Bar inside the card */}
             <div className="flex flex-wrap items-center justify-between gap-2 pt-2.5 mt-1 border-t border-cw-bdr/60">
-              {/* Left Side Controls: Attachment (+) Button, Tool Badges, Tag Repo Dropdown, Branch Dropdown */}
+              {/* Left Side Controls: Attachment (+) Button, Tag Repo Dropdown, Branch Dropdown */}
               <div className="flex items-center flex-wrap gap-2 min-w-0">
                 <GordonAttachmentMenu
                   onAttachFile={(file) => setAttachedFiles((prev) => [...prev, file])}
@@ -940,9 +940,6 @@ export function AIAgent() {
                   onAttachTask={(task) => setInput(`Analyze task outcome: "${task.title}" - ${task.excerpt}`)}
                   onTogglePlanMode={() => setIsPlanMode((prev) => !prev)}
                   isPlanMode={isPlanMode}
-                  onOpenIntegrationSettings={() => {
-                    window.location.href = '/dashboard/integrations';
-                  }}
                 />
 
                 <div className="h-4 w-[1px] bg-cw-bdr shrink-0 mx-0.5" />
