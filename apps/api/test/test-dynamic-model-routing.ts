@@ -170,10 +170,10 @@ async function testFatalPayloadFailFast() {
 async function testApiKeySanitization() {
   console.log("[TEST] 4. Verifying zero API key leakage in error logs...");
 
-  const rawMessage = "Provider failed: Bearer sk-1234567890abcdef1234567890 or apiKey=sk-abcdef9876543210fedcba";
+  const rawMessage = "Provider failed: Bearer sample-token-1234567890abcdef or apiKey=sample-token-9876543210fedcba";
   const sanitized = sanitizeErrorLog(rawMessage);
 
-  assert.ok(!sanitized.includes("sk-1234567890abcdef"), "Sanitizer must redact sk- keys");
+  assert.ok(!sanitized.includes("sample-token-1234567890abcdef"), "Sanitizer must redact bearer keys");
   assert.ok(sanitized.includes("[REDACTED"), "Sanitizer must include redaction placeholder");
 
   console.log("  ✅ Error log key sanitization verified.");

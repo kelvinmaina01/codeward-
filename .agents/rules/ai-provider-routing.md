@@ -33,7 +33,7 @@ When working with multi-provider AI model execution (e.g. `NativeOpenAIProvider`
 
 ### 6. Zero Key Leakage in Logs
 - All logged error messages and exceptions must pass through `sanitizeErrorLog()`.
-- Redact all `Bearer ...` tokens, `sk-...` strings, and authorization headers.
+- Redact all `Bearer ...` tokens, API key strings, and authorization headers.
 
 ### 7. Loud Boot-Time Configuration Validation
 - Call `NativeOpenAIProvider.validateConfiguration()` at process boot (`src/index.ts`, `src/worker.ts`).
