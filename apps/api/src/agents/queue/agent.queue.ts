@@ -304,7 +304,9 @@ repoId: ${runRow?.repoId ?? 'unknown — this run has no repoId on record; do no
 Use these EXACT values for any tool parameter named runId/repoId — never invent, guess, or reuse a value from an example. This pipeline clones the repo and analyzes it statically — there is NO running instance of the app and NO live databaseUrl/baseUrl available. Tools that need one will honestly report applicable:false if you omit that argument; treat that as "not tested", never as "passed", and do not invent a placeholder connection string or URL to pass in. Follow your instructions precisely and report all findings as a JSON array.${scopeInstruction}`,
       tools,
       maxSteps: definition.maxSteps,
-      model: model || definition.defaultModel,
+      model: model || ((!runScope?.incremental || commitSHA === 'baseline') && process.env.INITIAL_SCAN_MODEL
+        ? process.env.INITIAL_SCAN_MODEL
+        : definition.defaultModel),
       commitSHA,
       repoFullName,
       runId,

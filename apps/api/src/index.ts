@@ -70,6 +70,12 @@ app.get('/health', (c) => {
 
 app.get('/', (c) => c.text('Codeward API Running!'));
 
+app.get('/api/sentinel/status', async (c) => {
+  const { BudgetService } = await import('./services/budget.service.js');
+  const status = await BudgetService.getSentinelStatus();
+  return c.json(status);
+});
+
 app.route('/api/leads', leadsRouter);
 
 // Better Auth handler — must manually inject CORS headers because

@@ -616,7 +616,7 @@ export function Dashboard({ onRunClick }: Props) {
         <div className="px-5 py-4 flex justify-between items-center border-b border-cw-bdr">
           <div className="text-[11px] font-semibold tracking-wider text-cw-txt3">RECENT SANDBOX ACTIVITY</div>
           <button 
-            onClick={() => navigate('/dashboard/commits')}
+            onClick={() => navigate('/dashboard/livefeed')}
             className="text-[11px] text-cw-blue hover:underline bg-transparent border-none cursor-pointer flex items-center gap-1"
           >
             View all &rarr;

@@ -14,8 +14,12 @@ export const organization = pgTable('organization', {
   id: serial('id').primaryKey(),
   githubLogin: varchar('github_login', { length: 255 }).notNull().unique(),
   planType: varchar('plan_type', { length: 50 }).notNull().default('free'),
+  prQuotaLimit: integer('pr_quota_limit').notNull().default(10),
   stripeCustomerId: varchar('stripe_customer_id', { length: 255 }),
   stripeSubscriptionId: varchar('stripe_subscription_id', { length: 255 }),
+  stripePriceId: varchar('stripe_price_id', { length: 255 }),
+  currentPeriodStart: timestamp('current_period_start'),
+  currentPeriodEnd: timestamp('current_period_end'),
   createdAt: timestamp('created_at').defaultNow(),
 });
 

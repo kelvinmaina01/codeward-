@@ -109,7 +109,7 @@ const nav: NavGroup[] = [
   ]},
   { group: 'Analysis', items: [
     { id: 'diff', label: 'Diff viewer', dot: 'b', icon: GitCompare, path: '/dashboard/diff' },
-    { id: 'commits', label: 'Commit History', dot: 'p', icon: GitFork, path: '/dashboard/commits' },
+    // { id: 'commits', label: 'Commit History', dot: 'p', icon: GitFork, path: '/dashboard/commits' }, // Hidden: PR-only policy
     { id: 'issuesprs', label: 'Issues & PRs', dot: 'p', icon: GitPullRequest, path: '/dashboard/issues-prs' },
     { id: 'security', label: 'Security', dot: 'r', badge: 3, icon: ShieldAlert, path: '/dashboard/security' },
     { id: 'debt', label: 'Debt report', dot: 'a', icon: BarChart3, path: '/dashboard/debt' },
