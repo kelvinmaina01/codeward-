@@ -21,7 +21,6 @@ import { Queue, Worker, Job, UnrecoverableError } from 'bullmq';
 import dotenv from 'dotenv';
 import { createRedisConnection } from '../../lib/redis.js';
 import { db } from '../../db/index.js';
-import { NotificationService } from '../../notifications/NotificationService.js';
 import { agentTasks, runs, repositories, runLogs, user } from '../../db/schema.js';
 import { eq, and, notLike } from 'drizzle-orm';
 import { getProvider } from '../core/registry.js';
@@ -585,6 +584,7 @@ Use these EXACT values for any tool parameter named runId/repoId — never inven
             .where(eq(repositories.id, runRowCatch.repoId));
 
           if (repoOwner?.email) {
+            const { NotificationService } = await import('../../notifications/NotificationService.js');
             await NotificationService.sendRunFailure(
               repoOwner.email,
               repoFullName,
