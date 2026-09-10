@@ -369,4 +369,25 @@ export const runLogs = pgTable('run_logs', {
   };
 });
 
+export const escalatedFindings = pgTable('escalated_findings', {
+  id: serial('id').primaryKey(),
+  repoId: integer('repo_id').notNull().references(() => repositories.id, { onDelete: 'cascade' }),
+  fingerprint: varchar('fingerprint', { length: 64 }).notNull(),
+  githubIssueNumber: integer('github_issue_number'),
+  status: varchar('status', { length: 20 }).notNull().default('open'), // 'open' | 'resolved' | 'stale'
+  reason: varchar('reason', { length: 50 }).notNull(),
+  reasonDetail: text('reason_detail'),
+  firstEscalatedAt: timestamp('first_escalated_at').notNull().defaultNow(),
+  lastSeenAt: timestamp('last_seen_at').notNull().defaultNow(),
+  resolvedAt: timestamp('resolved_at'),
+  runId: integer('run_id').references(() => runs.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+}, (table) => {
+  return {
+    fingerprintIdx: index('escalated_findings_fingerprint_idx').on(table.fingerprint),
+    repoStatusIdx: index('escalated_findings_repo_status_idx').on(table.repoId, table.status),
+  };
+});
+
+
 

@@ -9,6 +9,8 @@ import { Redis } from 'ioredis';
  * unless you explicitly pass tls: {}. Without this, the connection silently
  * hangs or throws on Upstash, crashing the process at startup.
  */
+let loggedQuotaWarning = false;
+
 export function createRedisConnection(): Redis {
   const isForcedLocal = process.env.FORCE_LOCAL_REDIS === 'true';
   const url = isForcedLocal ? 'redis://localhost:6379' : (process.env.UPSTASH_REDIS_URL || 'redis://localhost:6379');
@@ -16,11 +18,21 @@ export function createRedisConnection(): Redis {
 
   const redis = new Redis(url, {
     maxRetriesPerRequest: null,
-    retryStrategy: (times) => Math.min(times * 2000, 30000),
+    retryStrategy: (times) => {
+      if (times > 5) return 60000;
+      return Math.min(times * 2000, 30000);
+    },
     ...(isTLS ? { tls: {} } : {}),
   });
 
   redis.on('error', (err) => {
+    if (err.message.includes('max requests limit exceeded')) {
+      if (!loggedQuotaWarning) {
+        loggedQuotaWarning = true;
+        console.warn(`[Redis] ⚠️  Upstash Redis monthly quota exceeded (500k requests limit). Queue functionality paused until quota resets or a new Redis URL is provided.`);
+      }
+      return;
+    }
     console.error(`[Redis] Connection error:`, err.message);
   });
 

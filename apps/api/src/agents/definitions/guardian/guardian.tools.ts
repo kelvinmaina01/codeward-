@@ -158,6 +158,37 @@ export const createGuardianTools = (sandbox: SandboxHandle) => {
       }
     },
 
+    add_issue_comment: {
+      description: 'Post a comment on an existing GitHub Issue. Real GitHub API call.',
+      parameters: z.object({ repoId: z.string(), issueNumber: z.number(), body: z.string() }),
+      execute: async (args: any) => {
+        const ctx = await getGuardianOctokitContext(args.repoId);
+        if ('error' in ctx) return ctx;
+        const res = await ctx.octokit.request('POST /repos/{owner}/{repo}/issues/{issue_number}/comments', {
+          owner: ctx.owner, repo: ctx.repo, issue_number: args.issueNumber, body: args.body
+        });
+        return { success: true, commentId: res.data.id, htmlUrl: res.data.html_url };
+      }
+    },
+
+    close_issue: {
+      description: 'Close a resolved GitHub Issue. Real GitHub API call.',
+      parameters: z.object({ repoId: z.string(), issueNumber: z.number(), comment: z.string().optional() }),
+      execute: async (args: any) => {
+        const ctx = await getGuardianOctokitContext(args.repoId);
+        if ('error' in ctx) return ctx;
+        if (args.comment) {
+          await ctx.octokit.request('POST /repos/{owner}/{repo}/issues/{issue_number}/comments', {
+            owner: ctx.owner, repo: ctx.repo, issue_number: args.issueNumber, body: args.comment
+          });
+        }
+        await ctx.octokit.request('PATCH /repos/{owner}/{repo}/issues/{issue_number}', {
+          owner: ctx.owner, repo: ctx.repo, issue_number: args.issueNumber, state: 'closed', state_reason: 'completed'
+        });
+        return { success: true };
+      }
+    },
+
     reply_to_pr_comment: {
       description: 'Reply to a developer\'s reply on a PR review comment thread. Real GitHub API call.',
       parameters: z.object({ repoId: z.string(), pullRequestNumber: z.number(), commentId: z.number(), body: z.string() }),
