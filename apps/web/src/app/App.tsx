@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, lazy, Suspense, startTransition } from 'react';
 import { useRoutes, Navigate, useNavigate, useLocation, useParams, NavLink } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import {
@@ -9,12 +9,12 @@ import {
 } from 'lucide-react';
 import { Theme, Screen } from './components/types';
 
-// Auth Pages
+// Auth Pages (eagerly loaded — needed on first paint)
 import { AuthPage } from './pages/auth/AuthPage';
 import { ConnectRepo } from './pages/auth/ConnectRepo';
 import { InviteAcceptPage } from './pages/auth/InviteAcceptPage';
 
-// Marketing Pages
+// Marketing Pages (eagerly loaded — landing page needs instant paint)
 import CodewardHero from './pages/marketing/LandingHero';
 import PricingPage from './pages/marketing/PricingPage';
 import { BlogsPage } from './pages/marketing/BlogsPage';
@@ -22,26 +22,26 @@ import { SingleBlogPage } from './pages/marketing/SingleBlogPage';
 import { ComparePage } from './pages/marketing/ComparePage';
 import { BookDemo } from './pages/marketing/BookDemo';
 
-// Dashboard Pages
-import { Dashboard } from './pages/dashboard/Dashboard';
-import { LiveFeed } from './pages/dashboard/LiveFeed';
-import { Security } from './pages/dashboard/Security';
-import { DebtReport } from './pages/dashboard/DebtReport';
-import { AIAgent } from './pages/dashboard/AIAgent';
-import { Staging } from './pages/dashboard/Staging';
-import { DeployHistory } from './pages/dashboard/DeployHistory';
-import { Repositories } from './pages/dashboard/Repositories';
-import { Certificate } from './pages/dashboard/Certificate';
-import { Settings } from './pages/dashboard/Settings';
-import { Integrations } from './pages/dashboard/Integrations';
-import { Alerts } from './pages/dashboard/Alerts';
-import { IssuesAndPRs } from './pages/dashboard/IssuesAndPRs';
-import { RunDetail } from './pages/dashboard/RunDetail';
-import { CommitHistory } from './pages/dashboard/CommitHistory';
+// Dashboard Pages — lazy loaded (users are auth-gated; saves ~40% initial bundle)
+const Dashboard     = lazy(() => import('./pages/dashboard/Dashboard').then(m => ({ default: m.Dashboard })));
+const LiveFeed      = lazy(() => import('./pages/dashboard/LiveFeed').then(m => ({ default: m.LiveFeed })));
+const Security      = lazy(() => import('./pages/dashboard/Security').then(m => ({ default: m.Security })));
+const DebtReport    = lazy(() => import('./pages/dashboard/DebtReport').then(m => ({ default: m.DebtReport })));
+const AIAgent       = lazy(() => import('./pages/dashboard/AIAgent').then(m => ({ default: m.AIAgent })));
+const Staging       = lazy(() => import('./pages/dashboard/Staging').then(m => ({ default: m.Staging })));
+const DeployHistory = lazy(() => import('./pages/dashboard/DeployHistory').then(m => ({ default: m.DeployHistory })));
+const Repositories  = lazy(() => import('./pages/dashboard/Repositories').then(m => ({ default: m.Repositories })));
+const Certificate   = lazy(() => import('./pages/dashboard/Certificate').then(m => ({ default: m.Certificate })));
+const Settings      = lazy(() => import('./pages/dashboard/Settings').then(m => ({ default: m.Settings })));
+const Integrations  = lazy(() => import('./pages/dashboard/Integrations').then(m => ({ default: m.Integrations })));
+const Alerts        = lazy(() => import('./pages/dashboard/Alerts').then(m => ({ default: m.Alerts })));
+const IssuesAndPRs  = lazy(() => import('./pages/dashboard/IssuesAndPRs').then(m => ({ default: m.IssuesAndPRs })));
+const RunDetail     = lazy(() => import('./pages/dashboard/RunDetail').then(m => ({ default: m.RunDetail })));
+const CommitHistory = lazy(() => import('./pages/dashboard/CommitHistory').then(m => ({ default: m.CommitHistory })));
 
 // Shared Components & Drawers
 import { GordonIcon } from './components/shared/GordonIcon';
-import { DiffViewer } from './components/shared/DiffViewer';
+const DiffViewer          = lazy(() => import('./components/shared/DiffViewer').then(m => ({ default: m.DiffViewer })));
 import { LegalPage } from './components/legal/LegalPage';
 import { WorkspaceSwitcher } from './components/modals/WorkspaceSwitcher';
 import { TeamDrawer } from './components/drawers/TeamDrawer';
@@ -50,27 +50,28 @@ import { HelpDrawer } from './components/drawers/HelpDrawer';
 import { UserProfilePopover } from './components/modals/UserProfilePopover';
 import { NotificationsPopover } from './components/modals/NotificationsPopover';
 import { CookieConsent } from './components/modals/CookieConsent';
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
-// Admin Portal Pages
-import { AdminLayout } from './admin/AdminLayout';
-import { AdminOverview } from './admin/AdminOverview';
-import { AdminFeed } from './admin/AdminFeed';
-import { AdminRuns } from './admin/AdminRuns';
-import { AdminRepos } from './admin/AdminRepos';
-import { AdminSecurity } from './admin/AdminSecurity';
-import { AdminBloat } from './admin/AdminBloat';
-import { AdminBroken } from './admin/AdminBroken';
-import { AdminArchitecture } from './admin/AdminArchitecture';
-import { AdminCompliance } from './admin/AdminCompliance';
-import { AdminAgents } from './admin/AdminAgents';
-import { AdminRevenue } from './admin/AdminRevenue';
-import { AdminCustomers } from './admin/AdminCustomers';
-import { AdminGrowth } from './admin/AdminGrowth';
-import { AdminBilling } from './admin/AdminBilling';
-import { AdminSandbox } from './admin/AdminSandbox';
-import { AdminGitHubApp } from './admin/AdminGitHubApp';
-import { AdminAlerts } from './admin/AdminAlerts';
-import { AdminSettings } from './admin/AdminSettings';
+// Admin Portal Pages — lazy loaded
+const AdminLayout      = lazy(() => import('./admin/AdminLayout').then(m => ({ default: m.AdminLayout })));
+const AdminOverview    = lazy(() => import('./admin/AdminOverview').then(m => ({ default: m.AdminOverview })));
+const AdminFeed        = lazy(() => import('./admin/AdminFeed').then(m => ({ default: m.AdminFeed })));
+const AdminRuns        = lazy(() => import('./admin/AdminRuns').then(m => ({ default: m.AdminRuns })));
+const AdminRepos       = lazy(() => import('./admin/AdminRepos').then(m => ({ default: m.AdminRepos })));
+const AdminSecurity    = lazy(() => import('./admin/AdminSecurity').then(m => ({ default: m.AdminSecurity })));
+const AdminBloat       = lazy(() => import('./admin/AdminBloat').then(m => ({ default: m.AdminBloat })));
+const AdminBroken      = lazy(() => import('./admin/AdminBroken').then(m => ({ default: m.AdminBroken })));
+const AdminArchitecture = lazy(() => import('./admin/AdminArchitecture').then(m => ({ default: m.AdminArchitecture })));
+const AdminCompliance  = lazy(() => import('./admin/AdminCompliance').then(m => ({ default: m.AdminCompliance })));
+const AdminAgents      = lazy(() => import('./admin/AdminAgents').then(m => ({ default: m.AdminAgents })));
+const AdminRevenue     = lazy(() => import('./admin/AdminRevenue').then(m => ({ default: m.AdminRevenue })));
+const AdminCustomers   = lazy(() => import('./admin/AdminCustomers').then(m => ({ default: m.AdminCustomers })));
+const AdminGrowth      = lazy(() => import('./admin/AdminGrowth').then(m => ({ default: m.AdminGrowth })));
+const AdminBilling     = lazy(() => import('./admin/AdminBilling').then(m => ({ default: m.AdminBilling })));
+const AdminSandbox     = lazy(() => import('./admin/AdminSandbox').then(m => ({ default: m.AdminSandbox })));
+const AdminGitHubApp   = lazy(() => import('./admin/AdminGitHubApp').then(m => ({ default: m.AdminGitHubApp })));
+const AdminAlerts      = lazy(() => import('./admin/AdminAlerts').then(m => ({ default: m.AdminAlerts })));
+const AdminSettings    = lazy(() => import('./admin/AdminSettings').then(m => ({ default: m.AdminSettings })));
 
 import { useSession, signOut } from '../lib/auth';
 import { Toaster } from 'sonner';
@@ -78,6 +79,59 @@ import { API_URL } from '../lib/api';
 import { WorkspaceProvider } from './contexts/WorkspaceContext';
 import { blogs } from './data/blogs';
 import { comparisons } from './data/comparisons';
+
+/**
+ * Smart page-level loader with escalating patience messages.
+ * Shows a spinner immediately, then progressively more reassuring
+ * copy if the module takes longer than expected.
+ */
+function PageLoader({ inline = false }: { inline?: boolean }) {
+  const [phase, setPhase] = useState(0);
+
+  useEffect(() => {
+    // After 1.5s: "Almost there..."
+    const t1 = setTimeout(() => setPhase(1), 1500);
+    // After 4s: "Hang tight, fetching data..."
+    const t2 = setTimeout(() => setPhase(2), 4000);
+    // After 8s: "Taking a bit longer than usual..."
+    const t3 = setTimeout(() => setPhase(3), 8000);
+    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
+  }, []);
+
+  const messages = [
+    '',
+    'Almost there\u2026',
+    'Hang tight, fetching data\u2026',
+    'Taking a bit longer than usual\u2026',
+  ];
+
+  if (inline) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-3 py-16 text-cw-txt3">
+        <span className="w-5 h-5 border-2 border-cw-purple border-t-transparent rounded-full animate-spin" />
+        <span
+          key={phase}
+          className="text-[12px] font-medium animate-in fade-in duration-500 text-center"
+        >
+          {messages[phase]}
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-1 flex-col items-center justify-center gap-4 h-full min-h-[300px] bg-cw-bg">
+      <span className="w-7 h-7 border-[3px] border-cw-purple border-t-transparent rounded-full animate-spin" />
+      <span
+        key={phase}
+        className="text-[13px] font-medium text-cw-txt3 animate-in fade-in duration-500"
+      >
+        {messages[phase]}
+      </span>
+    </div>
+  );
+}
+
 
 function AdminPlaceholder({ title }: { title: string }) {
   return (
@@ -204,6 +258,91 @@ function DashboardLayout() {
   const [isHelpDrawerOpen, setIsHelpDrawerOpen] = useState(false);
   const bellRef = useRef<HTMLButtonElement>(null);
 
+  // Global Feed Leaderboard State
+  const [leaderboardList, setLeaderboardList] = useState<Array<{
+    id: string;
+    user: string;
+    name: string;
+    org: string;
+    score: number;
+    rank: number;
+    avatar: string;
+    isCurrentUser: boolean;
+  }>>([]);
+  const [currentUserLeaderboard, setCurrentUserLeaderboard] = useState<{
+    id: string | null;
+    user: string;
+    name: string;
+    optedIn: boolean;
+    rank: number;
+    score: number;
+    avatar: string;
+  } | null>(null);
+  const [loadingLeaderboard, setLoadingLeaderboard] = useState(false);
+  const [expandedLeaderboardId, setExpandedLeaderboardId] = useState<string | null>(null);
+  const [trajectories, setTrajectories] = useState<Record<string, Array<{ date: string; linesCleared: number }>>>({});
+  const [loadingTrajectoryId, setLoadingTrajectoryId] = useState<string | null>(null);
+
+  const toggleTrajectoryExpand = (entityId: string) => {
+    if (expandedLeaderboardId === entityId) {
+      setExpandedLeaderboardId(null);
+      return;
+    }
+    setExpandedLeaderboardId(entityId);
+    if (!trajectories[entityId]) {
+      setLoadingTrajectoryId(entityId);
+      fetch(`${API_URL}/api/stats/leaderboard/${encodeURIComponent(entityId)}/trajectory`, { credentials: 'include' })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d) => {
+          if (d?.trajectory) {
+            setTrajectories((prev) => ({ ...prev, [entityId]: d.trajectory }));
+          }
+        })
+        .catch(console.error)
+        .finally(() => setLoadingTrajectoryId(null));
+    }
+  };
+
+  useEffect(() => {
+    if (isGlobalFeedOpen) {
+      setLoadingLeaderboard(true);
+      fetch(`${API_URL}/api/stats/leaderboard`, { credentials: 'include' })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d) => {
+          if (d?.leaderboard) {
+            setLeaderboardList(d.leaderboard);
+            setCurrentUserLeaderboard(d.currentUser ?? null);
+          }
+        })
+        .catch(() => {})
+        .finally(() => setLoadingLeaderboard(false));
+    }
+  }, [isGlobalFeedOpen]);
+
+  const toggleLeaderboardOptIn = async (newVal: boolean) => {
+    try {
+      const res = await fetch(`${API_URL}/api/stats/leaderboard/opt-in`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ optIn: newVal }),
+      });
+      if (res.ok) {
+        toast.success(newVal ? 'Opted in to Global Leaderboard!' : 'Hidden from Global Leaderboard');
+        fetch(`${API_URL}/api/stats/leaderboard`, { credentials: 'include' })
+          .then((r) => r.json())
+          .then((d) => {
+            if (d?.leaderboard) {
+              setLeaderboardList(d.leaderboard);
+              setCurrentUserLeaderboard(d.currentUser ?? null);
+            }
+          });
+      }
+    } catch {
+      toast.error('Failed to update leaderboard preference');
+    }
+  };
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
@@ -262,15 +401,15 @@ function DashboardLayout() {
     }
 
     switch (screen) {
-      case 'dashboard':    return <Dashboard onRunClick={(repoId, runId) => setRunDetailTarget({ repoId, runId })} />;
+      case 'dashboard':    return <Dashboard onRunClick={(repoId, runId) => startTransition(() => setRunDetailTarget({ repoId, runId }))} />;
       case 'livefeed':     return <LiveFeed viewMode={liveFeedView} onViewModeChange={setLiveFeedView} />;
       case 'diff':         return <DiffViewer />;
       case 'issuesprs':    return <IssuesAndPRs />;
       case 'security':     return <Security />;
       case 'debt':         return <DebtReport />;
       case 'agent':        return <AIAgent />;
-      case 'staging':      return <Staging onRunClick={(repoId, runId) => setRunDetailTarget({ repoId, runId })} />;
-      case 'history':      return <DeployHistory onRunClick={(repoId, runId) => setRunDetailTarget({ repoId, runId })} />;
+      case 'staging':      return <Staging onRunClick={(repoId, runId) => startTransition(() => setRunDetailTarget({ repoId, runId }))} />;
+      case 'history':      return <DeployHistory onRunClick={(repoId, runId) => startTransition(() => setRunDetailTarget({ repoId, runId }))} />;
       case 'repos':        return <Repositories activeOrg={activeOrg} />;
       case 'cert':         return <Certificate />;
       case 'settings':     return <Settings />;
@@ -436,7 +575,9 @@ function DashboardLayout() {
             </div>
             
           <div className={`flex-1 overflow-hidden flex flex-col ${screen === 'agent' ? 'pt-[52px]' : ''}`}>
-            {renderScreen()}
+            <Suspense fallback={<PageLoader />}>
+              {renderScreen()}
+            </Suspense>
           </div>
         </div>
 
@@ -451,7 +592,7 @@ function DashboardLayout() {
 
         {/* GLOBAL FEED DRAWER */}
         {isGlobalFeedOpen && (
-          <div className="w-[400px] shrink-0 border-l border-cw-bdr bg-cw-bg2 flex flex-col h-full overflow-hidden shadow-2xl z-10 transition-transform duration-300 animate-in slide-in-from-right">
+          <div className="w-[420px] shrink-0 border-l border-cw-bdr bg-cw-bg2 flex flex-col h-full overflow-hidden shadow-2xl z-10 transition-transform duration-300 animate-in slide-in-from-right">
             <div className="px-6 py-5 border-b border-cw-bdr flex items-center justify-between bg-cw-bg shrink-0">
               <div>
                 <h2 className="text-[16px] font-bold text-cw-txt flex items-center gap-2"><Globe size={18} className="text-cw-blue" /> Global Feed</h2>
@@ -462,37 +603,165 @@ function DashboardLayout() {
               </button>
             </div>
             <div className="flex-1 overflow-y-auto p-6 bg-cw-bg">
-              <div className="flex flex-col gap-3">
-                {[
-                  { user: 'alex-dev', score: 2450, rank: 1, org: 'acme-corp' },
-                  { user: 'sarah-j', score: 1840, rank: 2, org: 'pied-piper' },
-                  { user: 'michael.t', score: 1520, rank: 3, org: 'hooli' },
-                  { user: 'you', score: 1346, rank: 4, org: 'acme-corp' },
-                  { user: 'jenny_k', score: 980, rank: 5, org: 'stark-ind' },
-                ].map(u => (
-                  <div key={u.user} className={`flex items-center gap-4 p-4 rounded-xl border ${u.user === 'you' ? 'bg-cw-blue/5 border-cw-blue/30' : 'bg-cw-bg2 border-cw-bdr'}`}>
-                    <div className={`w-8 h-8 flex items-center justify-center rounded-full font-bold text-[12px] ${u.rank === 1 ? 'bg-cw-amber text-cw-bg' : u.rank === 2 ? 'bg-cw-txt3 text-cw-bg' : u.rank === 3 ? 'bg-cw-txt2 text-cw-bg' : 'bg-cw-bg3 text-cw-txt'}`}>
-                      #{u.rank}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-semibold text-cw-txt text-[13px] truncate">{u.user}</div>
-                      <div className="text-[11px] text-cw-txt3 truncate">{u.org}</div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-[14px] font-bold text-cw-green">{u.score}</div>
-                      <div className="text-[10px] text-cw-txt3 uppercase tracking-wider">lines cleared</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              {loadingLeaderboard ? (
+                <div className="py-16 text-center text-cw-txt3 flex items-center justify-center gap-2 text-xs">
+                  <span className="w-3.5 h-3.5 border-2 border-cw-purple border-t-transparent rounded-full animate-spin" />
+                  Loading leaderboard...
+                </div>
+              ) : (
+                <div className="flex flex-col gap-3">
+                  {leaderboardList.map((u) => {
+                    const isMe = u.isCurrentUser || u.user === 'you';
+                    const isExpanded = expandedLeaderboardId === (u.id || u.user);
+                    const userTrajectory = trajectories[u.id || u.user];
+                    const isLoadingTrajectory = loadingTrajectoryId === (u.id || u.user);
 
+                    return (
+                      <div
+                        key={u.id || u.user}
+                        onClick={() => toggleTrajectoryExpand(u.id || u.user)}
+                        className={`flex flex-col p-3.5 rounded-xl border transition-all cursor-pointer ${
+                          isMe
+                            ? 'bg-cw-blue/5 border-cw-blue/40 shadow-xs hover:border-cw-blue/60'
+                            : 'bg-cw-bg2 border-cw-bdr hover:border-cw-bdr/80 hover:bg-cw-bg3'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3.5">
+                          {/* Rank Badge */}
+                          <div
+                            className={`w-7 h-7 flex items-center justify-center rounded-full font-bold text-[11px] shrink-0 ${
+                              u.rank === 1
+                                ? 'bg-amber-400 text-black shadow-xs'
+                                : u.rank === 2
+                                ? 'bg-slate-300 text-black shadow-xs'
+                                : u.rank === 3
+                                ? 'bg-amber-700 text-white shadow-xs'
+                                : 'bg-cw-bg3 text-cw-txt3'
+                            }`}
+                          >
+                            #{u.rank}
+                          </div>
+
+                          {/* DiceBear Disco Avatar */}
+                          <img
+                            src={u.avatar}
+                            alt={u.user}
+                            className="w-9 h-9 rounded-full border border-cw-bdr/60 object-cover bg-cw-bg3 shrink-0 shadow-xs"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = `https://api.dicebear.com/9.x/disco/svg?seed=${encodeURIComponent(u.user)}`;
+                            }}
+                          />
+
+                          {/* User & Org */}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-semibold text-cw-txt text-[13px] truncate">
+                                {u.user === 'you' ? `${session?.user?.name || 'You'} (You)` : (u.name || u.user)}
+                              </span>
+                              {isMe && (
+                                <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-cw-blue/20 text-cw-blue">YOU</span>
+                              )}
+                            </div>
+                            <div className="text-[11px] text-cw-txt3 truncate font-mono mt-0.5">{u.org}</div>
+                          </div>
+
+                          {/* Score Badge & Expand Chevron */}
+                          <div className="text-right shrink-0 flex items-center gap-2">
+                            <div>
+                              <div className="text-[14px] font-bold text-cw-green font-mono">{u.score.toLocaleString()}</div>
+                              <div className="text-[9px] text-cw-txt3 uppercase tracking-wider">lines cleared</div>
+                            </div>
+                            <ChevronDown
+                              size={14}
+                              className={`text-cw-txt3 transition-transform duration-200 ${isExpanded ? 'rotate-180 text-cw-txt' : ''}`}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Expandable Trajectory Graph */}
+                        {isExpanded && (
+                          <div className="mt-3 pt-3 border-t border-cw-bdr/50 animate-in fade-in duration-200" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex items-center justify-between text-[11px] text-cw-txt3 mb-2 font-mono">
+                              <span className="flex items-center gap-1.5 font-semibold text-cw-txt">
+                                <span className="w-1.5 h-1.5 rounded-full bg-cw-green animate-pulse" />
+                                30-DAY TRAJECTORY
+                              </span>
+                              <span className="text-cw-green font-semibold">
+                                +{u.score.toLocaleString()} lines
+                              </span>
+                            </div>
+
+                            {isLoadingTrajectory ? (
+                              <div className="py-6 flex items-center justify-center gap-2 text-xs text-cw-txt3">
+                                <span className="w-3.5 h-3.5 border-2 border-cw-purple border-t-transparent rounded-full animate-spin" />
+                                Loading trajectory...
+                              </div>
+                            ) : (userTrajectory && userTrajectory.length > 0) ? (
+                              <div className="h-[110px] w-full pt-1">
+                                <ResponsiveContainer width="100%" height="100%">
+                                  <AreaChart data={userTrajectory} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
+                                    <defs>
+                                      <linearGradient id={`grad-${u.id || u.user}`} x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.35}/>
+                                        <stop offset="95%" stopColor="#10b981" stopOpacity={0.0}/>
+                                      </linearGradient>
+                                    </defs>
+                                    <XAxis dataKey="date" stroke="#64748b" fontSize={10} tickLine={false} axisLine={false} />
+                                    <YAxis stroke="#64748b" fontSize={10} tickLine={false} axisLine={false} />
+                                    <Tooltip
+                                      contentStyle={{ backgroundColor: '#0b0f17', borderColor: '#334155', borderRadius: '8px', fontSize: '11px', color: '#f8fafc' }}
+                                      itemStyle={{ color: '#10b981', fontWeight: 600 }}
+                                      formatter={(val: any) => [`${Number(val).toLocaleString()} lines`, 'Cleared']}
+                                      labelFormatter={(label) => `Date: ${label}`}
+                                    />
+                                    <Area type="monotone" dataKey="linesCleared" stroke="#10b981" strokeWidth={2} fillOpacity={1} fill={`url(#grad-${u.id || u.user})`} dot={{ r: 2, fill: '#10b981' }} />
+                                  </AreaChart>
+                                </ResponsiveContainer>
+                              </div>
+                            ) : (
+                              <div className="py-4 text-center text-[11px] text-cw-txt3">
+                                Recent verified impact: <span className="font-mono text-cw-green font-semibold">+{u.score.toLocaleString()}</span> lines cleared.
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Opt-in Callout */}
               <div className="mt-8 p-4 bg-cw-bg2 border border-cw-bdr rounded-xl">
-                <h3 className="text-[12px] font-semibold text-cw-txt mb-2">Want to appear on the leaderboard?</h3>
-                <p className="text-[12px] text-cw-txt2 mb-4 leading-relaxed">
-                  You can opt-in to show your cleared debt to the global community in your Settings.
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-[12px] font-semibold text-cw-txt">Leaderboard Privacy</h3>
+                  {currentUserLeaderboard && (
+                    <button
+                      type="button"
+                      onClick={() => toggleLeaderboardOptIn(!currentUserLeaderboard.optedIn)}
+                      className={`text-[11px] px-2.5 py-1 rounded-md font-medium transition-colors cursor-pointer border ${
+                        currentUserLeaderboard.optedIn
+                          ? 'bg-cw-green/10 text-cw-green border-cw-green/30 hover:bg-cw-green/20'
+                          : 'bg-cw-bg3 text-cw-txt2 border-cw-bdr hover:text-cw-txt'
+                      }`}
+                    >
+                      {currentUserLeaderboard.optedIn ? '✓ Opted In' : 'Hidden'}
+                    </button>
+                  )}
+                </div>
+                <p className="text-[11px] text-cw-txt2 mb-3 leading-relaxed">
+                  {currentUserLeaderboard?.optedIn
+                    ? 'Your debt-clearing achievements are public on the global feed.'
+                    : 'You are currently hidden. Opt in to show your cleared debt to the community.'}
                 </p>
-                <button onClick={() => { setIsGlobalFeedOpen(false); navigate('/dashboard/settings'); }} className="w-full px-4 py-2 bg-cw-bg text-cw-txt border border-cw-bdr rounded-lg text-[12px] font-medium hover:bg-cw-bg3 transition-colors">
-                  Go to Settings
+                <button
+                  onClick={() => {
+                    setIsGlobalFeedOpen(false);
+                    navigate('/dashboard/settings');
+                  }}
+                  className="w-full px-4 py-2 bg-cw-bg text-cw-txt border border-cw-bdr rounded-lg text-[12px] font-medium hover:bg-cw-bg3 transition-colors cursor-pointer"
+                >
+                  Manage in Settings
                 </button>
               </div>
             </div>

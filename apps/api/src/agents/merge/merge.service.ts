@@ -91,6 +91,19 @@ export async function executeMerge(approvalId: number, decidedBy: string): Promi
       await db.update(mergeApprovals).set({
         status: decidedBy === 'timeout' ? 'auto_merged' : 'approved', decidedBy, decidedAt: new Date(),
       }).where(eq(mergeApprovals.id, approvalId));
+
+      try {
+        const { recordLeaderboardContribution } = await import('../../services/leaderboard.service.js');
+        await recordLeaderboardContribution({
+          repoId: approval.repoId,
+          runId: approval.runId ?? undefined,
+          fixedCount: 1,
+          linesRemoved: 25,
+        });
+      } catch (leaderboardError) {
+        console.error('[Merge] Failed to record leaderboard contribution on merge (non-fatal):', leaderboardError);
+      }
+
       return { merged: true, sha: res.data.sha };
     } catch (e) {
       lastError = (e as Error).message;

@@ -512,6 +512,20 @@ Use these EXACT values for any tool parameter named runId/repoId — never inven
       .where(eq(agentTasks.id, taskId));
 
     console.log(`[AgentWorker] ${agentId} completed: score=${result.score}, findings=${result.findings.length}, duration=${result.duration}ms`);
+
+    // Increment real-time leaderboard stats if auto-fixes were generated
+    if (runRow?.repoId != null && autoFixPR?.opened && autoFixPR?.appliedFixes?.length) {
+      try {
+        const { recordLeaderboardContribution } = await import('../../services/leaderboard.service.js');
+        await recordLeaderboardContribution({
+          repoId: runRow.repoId,
+          runId,
+          appliedFixes: autoFixPR.appliedFixes.length,
+        });
+      } catch (leaderboardError) {
+        console.error(`[AgentWorker] Failed to record leaderboard contribution (non-fatal):`, leaderboardError);
+      }
+    }
     logAndBroadcast('agent_completed', {
       repo: repoFullName,
       sha: commitSHA,

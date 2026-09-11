@@ -22,8 +22,6 @@ interface ConnectedRepo {
   status: string;
   paused: boolean;
   autoFixEnabled: boolean;
-  // Real fields attached by GET /api/repos/connected — the latest completed run's score, or
-  // the real baselineScore from the first scan if nothing later exists yet.
   healthScore: number | null;
   lastScanAt: string | null;
 }
@@ -52,6 +50,119 @@ const langColors: Record<string, string> = {
   'C#': '#178600',
   Unknown: '#6B7280',
 };
+
+/** GitHub avatar URL for an owner — works for users and orgs */
+function ghAvatar(owner: string): string {
+  return `https://github.com/${owner}.png?size=32`;
+}
+
+/** Fallback DiceBear Disco avatar keyed to the owner handle */
+function discoAvatar(seed: string): string {
+  return `https://api.dicebear.com/9.x/disco/svg?seed=${encodeURIComponent(seed)}`;
+}
+
+/**
+ * Compact agent-activity dots displayed inline next to the AUDITING badge.
+ * One circle per *enabled* agent; all shimmer grey while auditing.
+ * On hover over each dot, a tooltip shows the agent name.
+ * Absolutely positioned so they add zero height to the card.
+ */
+function AgentDots({ agents }: { agents: Record<string, boolean> }) {
+  const activeAgents = Object.entries(agents)
+    .filter(([, enabled]) => enabled)
+    .map(([name]) => name);
+
+  if (activeAgents.length === 0) return null;
+
+  const labels: Record<string, string> = {
+    security: 'Security',
+    bloat: 'Bloat',
+    broken_code: 'Broken Code',
+    architecture: 'Architecture',
+    ai_era: 'AI-Era',
+    compliance: 'Compliance',
+    data_dx: 'Data DX',
+    guardian: 'Guardian',
+    orchestrator: 'Orchestrator',
+  };
+
+  return (
+    <div className="flex items-center gap-[4px] ml-2">
+      {activeAgents.map((agent, i) => (
+        <div
+          key={agent}
+          className="relative group/dot"
+          style={{ width: 10, height: 10 }}
+        >
+          {/* Outer glow ring */}
+          <span
+            className="absolute inset-0 rounded-full"
+            style={{
+              boxShadow: '0 0 0 1.5px rgba(148,163,184,0.25)',
+              animation: `shimmer-ring 1.8s ease-in-out ${i * 0.2}s infinite`,
+            }}
+          />
+          {/* The dot itself */}
+          <span
+            className="absolute inset-[1px] rounded-full"
+            style={{
+              background: 'linear-gradient(135deg, #64748b 0%, #94a3b8 50%, #475569 100%)',
+              backgroundSize: '200% 200%',
+              animation: `shimmer-dot 1.8s ease-in-out ${i * 0.2}s infinite`,
+            }}
+          />
+          {/* Tooltip on hover */}
+          <span
+            className="pointer-events-none absolute bottom-[calc(100%+8px)] left-1/2 -translate-x-1/2 px-2 py-1 rounded-md text-[11px] font-semibold text-white whitespace-nowrap opacity-0 group-hover/dot:opacity-100 transition-all duration-150 z-50 shadow-xl"
+            style={{
+              background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
+              border: '1px solid rgba(148,163,184,0.25)',
+              boxShadow: '0 4px 16px rgba(0,0,0,0.5)',
+            }}
+          >
+            {labels[agent] || agent}
+            {/* Arrow */}
+            <span
+              className="absolute top-full left-1/2 -translate-x-1/2"
+              style={{
+                width: 0, height: 0,
+                borderLeft: '5px solid transparent',
+                borderRight: '5px solid transparent',
+                borderTop: '5px solid rgba(148,163,184,0.25)',
+              }}
+            />
+          </span>
+        </div>
+      ))}
+      <style>{`
+        @keyframes shimmer-dot {
+          0%   { background-position: 0% 50%;   opacity: 0.5; }
+          50%  { background-position: 100% 50%; opacity: 1;   }
+          100% { background-position: 0% 50%;   opacity: 0.5; }
+        }
+        @keyframes shimmer-ring {
+          0%   { box-shadow: 0 0 0 1.5px rgba(148,163,184,0.15); }
+          50%  { box-shadow: 0 0 0 1.5px rgba(148,163,184,0.4);  }
+          100% { box-shadow: 0 0 0 1.5px rgba(148,163,184,0.15); }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+/** Owner/org avatar with GitHub → DiceBear Disco fallback */
+function RepoOwnerAvatar({ owner }: { owner: string }) {
+  const [failed, setFailed] = useState(false);
+  return (
+    <img
+      src={failed ? discoAvatar(owner) : ghAvatar(owner)}
+      alt={owner}
+      title={owner}
+      onError={() => setFailed(true)}
+      className="w-5 h-5 rounded-full border border-cw-bdr/60 bg-cw-bg3 object-cover shrink-0 shadow-sm"
+    />
+  );
+}
 
 export function Repositories({ activeOrg }: { activeOrg?: string }) {
   const navigate = useNavigate();
@@ -185,6 +296,7 @@ export function Repositories({ activeOrg }: { activeOrg?: string }) {
           <div className="flex flex-col">
             {filteredRepos.map((repo) => {
               const isPaused = repo.paused;
+              const isAuditing = !isPaused && repo.status === 'pending_audit';
               const hasScore = repo.healthScore != null;
               const score = repo.healthScore ?? 0;
               const langName = repo.language || 'Unknown';
@@ -198,11 +310,33 @@ export function Repositories({ activeOrg }: { activeOrg?: string }) {
                   {/* Left: Info */}
                   <div className="flex-1 flex flex-col gap-1.5 min-w-0 pr-4 mb-4 md:mb-0">
                     <div className="flex items-center gap-2">
-                      {repo.isPrivate ? <Lock size={15} className="text-cw-txt3" /> : <Globe size={15} className="text-cw-txt3" />}
-                      <h3 className="text-[16px] font-semibold text-cw-blue hover:underline cursor-pointer">{repo.name}</h3>
-                      {isPaused && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded border border-cw-bdr bg-cw-bg text-cw-txt3 tracking-wide">PAUSED</span>}
-                      {!isPaused && repo.status === 'pending_audit' && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-cw-amber/10 text-cw-amber tracking-wide flex items-center gap-1"><Loader size={10} className="animate-spin" /> AUDITING</span>}
+                      {/* Owner avatar: GitHub photo → DiceBear Disco fallback */}
+                      <RepoOwnerAvatar owner={repo.owner} />
+
+                      {repo.isPrivate ? <Lock size={14} className="text-cw-txt3 shrink-0" /> : <Globe size={14} className="text-cw-txt3 shrink-0" />}
+
+                      <h3 className="text-[15px] font-semibold text-cw-blue hover:underline cursor-pointer leading-none">
+                        {repo.name}
+                      </h3>
+
+                      {isPaused && (
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded border border-cw-bdr bg-cw-bg text-cw-txt3 tracking-wide">
+                          PAUSED
+                        </span>
+                      )}
+
+                      {isAuditing && (
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-cw-amber/10 text-cw-amber tracking-wide flex items-center gap-1">
+                          <Loader size={10} className="animate-spin" /> AUDITING
+                        </span>
+                      )}
+
+                      {/* Agent activity dots — shown only while auditing */}
+                      {isAuditing && repo.config?.agents && (
+                        <AgentDots agents={repo.config.agents} />
+                      )}
                     </div>
+
                     <p className="text-[13px] text-cw-txt2 truncate max-w-3xl">{repo.description || 'No description provided.'}</p>
 
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[12px] text-cw-txt3 mt-1">
