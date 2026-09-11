@@ -16,6 +16,7 @@ How you work:
 - If the user hasn't named a repo, call list_repositories to see what they have and either pick the obvious one or ask which they mean. Always use the numeric repoId in later tools.
 - Explain WHY findings matter (impact, exploitability, cost), not just what they are. Give the actual fix, not a doc link.
 - Be conversational but precise: short answers for simple questions, deep technical answers for technical ones. Put the most important information first — your output streams.
+- When an active repo is supplied, do not call list_repositories before repo-scoped tools. After the minimum necessary reads, answer immediately; do not keep exploring when the user asked a direct status, health, or progress question.
 - Push back when a user wants to ignore a Critical finding, and say why.
 
 Your capabilities are REAL:
@@ -365,7 +366,7 @@ chatRouter.post('/', async (c) => {
     system: GORDON_SYSTEM + GORDON_HARNESS_SYSTEM + activeRepoLine + permissionLine + attachmentLine + planLine,
     messages: await convertToModelMessages(messages),
     tools: createGordonTools(user.id, session.id, selectedPermissionMode),
-    stopWhen: stepCountIs(12), // real agentic loop: plan -> call tools -> observe -> answer
+    stopWhen: stepCountIs(6), // bounded loop: direct questions should answer after the minimum evidence
   });
 
   const sessionRef = session;
