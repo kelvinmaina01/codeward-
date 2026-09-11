@@ -149,7 +149,29 @@ webhookRouter.post('/github', async (c) => {
         runId: runRecord.id,
       });
 
+      // Visible immediately on GitHub, but never block the webhook acknowledgement if GitHub
+      // is temporarily unavailable. The run remains the idempotency anchor for retries.
+      try {
+        const { startPrLifecycle } = await import('../services/github-pr-lifecycle.service.js');
+        await startPrLifecycle(runRecord.id);
+      } catch (lifecycleError) {
+        console.error(`[Webhook] Could not start PR lifecycle for run #${runRecord.id}:`, (lifecycleError as Error).message);
+      }
+
       return c.json({ status: 'queued', type: 'orchestrator', commitSHA, runId: runRecord.id, prNumber });
+    } else if ((event === 'issue_comment' || event === 'pull_request_review_comment') && data.action === 'created') {
+      const body = String(data.comment?.body ?? '');
+      const isPullRequest = event === 'pull_request_review_comment' || Boolean(data.issue?.pull_request);
+      const repoName = data.repository?.full_name;
+      const isBot = data.sender?.type === 'Bot';
+      if (!isPullRequest || isBot || !/@codeward\b|\/codeward\b/i.test(body)) return c.json({ status: 'ignored', reason: 'not an explicit Codeward PR mention' });
+      const prNumber = event === 'pull_request_review_comment' ? data.pull_request?.number : data.issue?.number;
+      if (!repoName || !prNumber) return c.json({ status: 'ignored', reason: 'missing PR context' });
+      // Do not make GitHub wait on the model. This is a bounded, read-only evidence response.
+      void import('../services/github-comment-responder.service.js').then(({ respondToGithubMention }) =>
+        respondToGithubMention({ repoFullName: repoName, prNumber, body, inlineCommentId: event === 'pull_request_review_comment' ? data.comment?.id : undefined })
+      ).catch((e) => console.error(`[Webhook] Codeward mention reply failed: ${e.message}`));
+      return c.json({ status: 'accepted', type: 'codeward_mention', prNumber });
     }
 
     return c.json({ status: 'ignored', event });
