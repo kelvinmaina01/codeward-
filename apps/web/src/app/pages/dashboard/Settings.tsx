@@ -1,41 +1,60 @@
 import { useState, useEffect } from 'react';
-import { 
-  User, 
-  Settings2, 
-  CreditCard, 
-  Users, 
-  Code2, 
-  Copy, 
-  Check, 
-  RefreshCw, 
-  Shield, 
-  KeyRound, 
-  Webhook, 
-  LogOut, 
-  Sparkles, 
-  Calendar, 
-  ExternalLink, 
-  Plus, 
-  Trash2, 
-  Lock, 
-  Mail, 
-  AlertTriangle, 
-  CheckCircle2, 
-  ShieldCheck, 
-  Sliders, 
-  Zap, 
-  FileText, 
-  Download, 
-  History,
-  CheckCircle,
-  Globe
+import type { ReactNode } from 'react';
+import {
+  User, CreditCard, Users, Code2, Copy, Check, RefreshCw, KeyRound, Webhook, LogOut,
+  Sparkles, Calendar, ExternalLink, Plus, Trash2, Mail, AlertTriangle, ShieldCheck,
+  Sliders, Zap, FileText, History, Globe, GitMerge, Inbox, ArrowUpRight, ChevronDown,
+  LoaderCircle, X as XIcon, Send,
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { useSession, signOut } from '../../../lib/auth';
 import { useWorkspace } from '../../contexts/WorkspaceContext';
 import { API_URL } from '../../../lib/api';
 
 import { DeleteAccountDialog } from '../../components/modals/DeleteAccountDialog';
+
+// ─── Presentation vocabulary ─────────────────────────────────────────────────
+// Mirrors the vocabulary used by Dashboard.tsx so both pages read as one
+// application: hairline `cw-bdr` borders, `cw-bg2` surfaces on the `cw-bg`
+// ground, `cw-bg3` for inset separation, one purple accent, green / amber / red
+// / blue status semantics, monospace for identifiers, and small uppercase
+// tracked labels. Everything is expressed through `cw-*` tokens so the page
+// renders correctly in every app theme (dark, cream, white).
+
+type Tone = 'neutral' | 'green' | 'amber' | 'red' | 'blue' | 'purple';
+
+const TONE_PILL: Record<Tone, string> = {
+  neutral: 'bg-cw-bg3 text-cw-txt2 border-cw-bdr',
+  green: 'bg-cw-green/10 text-cw-green border-cw-green/25',
+  amber: 'bg-cw-amber/10 text-cw-amber border-cw-amber/25',
+  red: 'bg-cw-red/10 text-cw-red border-cw-red/25',
+  blue: 'bg-cw-blue/10 text-cw-blue border-cw-blue/25',
+  purple: 'bg-cw-purple/10 text-cw-purple border-cw-purple/25',
+};
+
+const TONE_DOT: Record<Tone, string> = {
+  neutral: 'bg-cw-txt3',
+  green: 'bg-cw-green',
+  amber: 'bg-cw-amber',
+  red: 'bg-cw-red',
+  blue: 'bg-cw-blue',
+  purple: 'bg-cw-purple',
+};
+
+const FOCUS_RING =
+  'focus:outline-none focus-visible:ring-2 focus-visible:ring-cw-purple/60 focus-visible:ring-offset-1 focus-visible:ring-offset-cw-bg';
+const MICRO_LABEL = 'text-[10px] font-semibold uppercase tracking-[0.08em] text-cw-txt3';
+const BTN_BASE = `inline-flex items-center gap-1.5 rounded-md text-[12px] font-medium whitespace-nowrap transition-colors duration-150 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${FOCUS_RING}`;
+const BTN_PRIMARY = `${BTN_BASE} px-3 py-1.5 bg-cw-purple text-white border border-cw-purple hover:brightness-110 active:brightness-95`;
+const BTN_SECONDARY = `${BTN_BASE} px-3 py-1.5 bg-cw-bg2 text-cw-txt border border-cw-bdr hover:bg-cw-bg3 hover:border-cw-txt3/50`;
+const BTN_DANGER = `${BTN_BASE} px-3 py-1.5 bg-cw-red/10 text-cw-red border border-cw-red/30 hover:bg-cw-red hover:text-white hover:border-cw-red`;
+const BTN_GHOST_SM = `${BTN_BASE} px-2 py-1 text-[11px] bg-transparent text-cw-txt2 border border-cw-bdr hover:bg-cw-bg3 hover:text-cw-txt`;
+const BTN_LINK = `inline-flex items-center gap-1 rounded-sm text-[11px] font-medium text-cw-purple hover:text-cw-txt bg-transparent border-none p-0 cursor-pointer transition-colors ${FOCUS_RING}`;
+const INPUT = `bg-cw-bg border border-cw-bdr text-cw-txt placeholder:text-cw-txt3 rounded-md px-2.5 py-1.5 text-[12px] transition-colors hover:border-cw-txt3/50 focus:border-cw-purple/60 ${FOCUS_RING}`;
+const SELECT = `appearance-none bg-cw-bg border border-cw-bdr text-cw-txt rounded-md pl-2.5 pr-7 py-1.5 text-[12px] cursor-pointer transition-colors hover:border-cw-txt3/50 ${FOCUS_RING}`;
+const TH = 'px-4 sm:px-5 py-2.5 font-semibold border-b border-cw-bdr';
+const TD = 'px-4 sm:px-5 py-2.5';
 
 type TabType = 'general' | 'account' | 'billing' | 'team' | 'developers';
 
@@ -74,40 +93,168 @@ interface AuditLog {
   status: 'success' | 'warning' | 'info';
 }
 
+// ─── Presentational components (UI only) ────────────────────────────────────
+
 function Toggle({ on, onChange }: { on: boolean; onChange: () => void }) {
   return (
-    <div 
-      onClick={onChange} 
-      className={`w-9 h-5 rounded-full relative cursor-pointer transition-colors shrink-0 ${on ? 'bg-cw-purple' : 'bg-cw-bdr'}`}
+    <button
+      type="button"
+      role="switch"
+      aria-checked={on}
+      onClick={onChange}
+      className={`w-8 h-[18px] rounded-full relative cursor-pointer transition-colors shrink-0 border ${FOCUS_RING} ${on ? 'bg-cw-purple border-cw-purple' : 'bg-cw-bg3 border-cw-bdr'}`}
     >
-      <div className={`w-4 h-4 rounded-full bg-white absolute top-0.5 transition-[left] shadow-[0_1px_3px_rgba(0,0,0,0.2)] ${on ? 'left-[18px]' : 'left-0.5'}`} />
+      <span className={`w-3.5 h-3.5 rounded-full bg-white absolute top-[1px] transition-[left] duration-150 shadow-[0_1px_2px_rgba(0,0,0,0.25)] ${on ? 'left-[15px]' : 'left-[1px]'}`} />
+    </button>
+  );
+}
+
+function SetRow({ label, desc, control }: { label: string; desc?: string; control: ReactNode }) {
+  return (
+    <div className="flex items-start sm:items-center justify-between gap-4 py-3 border-b border-cw-bdr last:border-b-0">
+      <div className="min-w-0">
+        <div className="text-[12.5px] font-medium text-cw-txt leading-5">{label}</div>
+        {desc && <div className="text-[11px] text-cw-txt3 mt-0.5 leading-4">{desc}</div>}
+      </div>
+      <div className="shrink-0">{control}</div>
     </div>
   );
 }
 
-function SetRow({ label, desc, control }: { label: string; desc?: string; control: React.ReactNode }) {
+function Pill({
+  tone = 'neutral', dot = false, pulse = false, mono = false, className = '', children,
+}: { tone?: Tone; dot?: boolean; pulse?: boolean; mono?: boolean; className?: string; children: ReactNode }) {
   return (
-    <div className="flex items-center justify-between py-3 border-b border-cw-bdr/40 last:border-b-0">
-      <div>
-        <div className="text-xs font-semibold text-cw-txt">{label}</div>
-        {desc && <div className="text-[11px] text-cw-txt3 mt-0.5 leading-snug">{desc}</div>}
-      </div>
-      <div className="shrink-0 ml-4">{control}</div>
-    </div>
-  );
-}
-
-function SectionCard({ title, icon: Icon, children, className = '' }: { title: string; icon?: any; children: React.ReactNode; className?: string }) {
-  return (
-    <div className={`bg-cw-bg2 border border-cw-bdr rounded-2xl p-5 mb-5 shadow-sm ${className}`}>
-      <div className="text-[11px] font-bold text-cw-txt3 uppercase tracking-wider mb-4 flex items-center gap-2 border-b border-cw-bdr/40 pb-3">
-        {Icon && <Icon size={14} className="text-cw-purple" />}
-        <span>{title}</span>
-      </div>
+    <span className={`inline-flex items-center gap-1.5 px-1.5 py-[3px] rounded border text-[10px] font-semibold leading-none whitespace-nowrap ${mono ? 'font-mono' : ''} ${TONE_PILL[tone]} ${className}`}>
+      {dot && (
+        <span className={`relative inline-flex w-1.5 h-1.5 rounded-full shrink-0 ${TONE_DOT[tone]}`}>
+          {pulse && <span className={`absolute inset-0 rounded-full animate-ping opacity-60 ${TONE_DOT[tone]}`} />}
+        </span>
+      )}
       {children}
+    </span>
+  );
+}
+
+function SectionCard({
+  title, icon: Icon, description, actions, children, className = '', tone = 'neutral', flush = false,
+}: {
+  title: string; icon?: LucideIcon; description?: string; actions?: ReactNode; children: ReactNode;
+  className?: string; tone?: 'neutral' | 'danger'; flush?: boolean;
+}) {
+  return (
+    <section
+      aria-label={title}
+      className={`bg-cw-bg2 border rounded-lg flex flex-col min-w-0 ${tone === 'danger' ? 'border-cw-red/30' : 'border-cw-bdr'} ${className}`}
+    >
+      <div className={`flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-3 px-4 sm:px-5 py-3 border-b ${tone === 'danger' ? 'border-cw-red/20' : 'border-cw-bdr'}`}>
+        <div className="min-w-0">
+          <h2 className={`text-[13px] font-semibold leading-5 flex items-center gap-2 ${tone === 'danger' ? 'text-cw-red' : 'text-cw-txt'}`}>
+            {Icon && <Icon size={14} className={tone === 'danger' ? 'text-cw-red' : 'text-cw-txt3'} />}
+            <span className="truncate">{title}</span>
+          </h2>
+          {description && <p className="text-[11px] text-cw-txt3 leading-4 mt-0.5">{description}</p>}
+        </div>
+        {actions && <div className="flex items-center gap-2 shrink-0 flex-wrap sm:justify-end">{actions}</div>}
+      </div>
+      <div className={flush ? '' : 'px-4 sm:px-5 py-2'}>{children}</div>
+    </section>
+  );
+}
+
+function EmptyState({
+  icon: Icon, title, hint, action,
+}: { icon: LucideIcon; title: string; hint?: string; action?: ReactNode }) {
+  return (
+    <div className="flex flex-col items-center justify-center text-center gap-1.5 px-4 py-8">
+      <div className="w-8 h-8 rounded-md border border-dashed border-cw-bdr bg-cw-bg/60 flex items-center justify-center text-cw-txt3">
+        <Icon size={14} />
+      </div>
+      <div className="text-[12px] font-medium text-cw-txt2">{title}</div>
+      {hint && <div className="text-[11px] text-cw-txt3 max-w-[340px] leading-4">{hint}</div>}
+      {action && <div className="mt-1.5">{action}</div>}
     </div>
   );
 }
+
+function Modal({
+  title, description, onClose, children, footer,
+}: { title: string; description?: string; onClose: () => void; children: ReactNode; footer?: ReactNode }) {
+  return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+        onClick={(e) => e.stopPropagation()}
+        className="bg-cw-bg2 border border-cw-bdr rounded-lg w-full max-w-[440px] shadow-2xl animate-in fade-in zoom-in-95 duration-150"
+      >
+        <div className="flex items-start justify-between gap-3 px-5 py-4 border-b border-cw-bdr">
+          <div className="min-w-0">
+            <h2 className="text-[14px] font-semibold text-cw-txt leading-5">{title}</h2>
+            {description && <p className="text-[11px] text-cw-txt3 leading-4 mt-0.5">{description}</p>}
+          </div>
+          <button type="button" onClick={onClose} aria-label="Close" className={`${BTN_BASE} p-1 -mr-1 text-cw-txt3 hover:text-cw-txt hover:bg-cw-bg3 border-none bg-transparent`}>
+            <XIcon size={14} />
+          </button>
+        </div>
+        <div className="px-5 py-4">{children}</div>
+        {footer && <div className="flex items-center justify-end gap-2 px-5 py-3 border-t border-cw-bdr bg-cw-bg/40 rounded-b-lg">{footer}</div>}
+      </div>
+    </div>
+  );
+}
+
+function Avatar({ src, fallback, size = 32, className = '' }: { src?: string | null; fallback: string; size?: number; className?: string }) {
+  return (
+    <div
+      style={{ width: size, height: size }}
+      className={`rounded-full bg-cw-purple/10 border border-cw-purple/30 flex items-center justify-center text-cw-purple font-semibold overflow-hidden shrink-0 ${className}`}
+    >
+      {src ? <img src={src} alt="" className="w-full h-full object-cover" /> : <span style={{ fontSize: Math.round(size * 0.4) }}>{fallback}</span>}
+    </div>
+  );
+}
+
+const TABS: { id: TabType; label: string; icon: LucideIcon; hint: string }[] = [
+  { id: 'account', label: 'Account', icon: User, hint: 'Profile, identity, leaderboard' },
+  { id: 'general', label: 'General', icon: Sliders, hint: 'Merge policy, automation, alerts' },
+  { id: 'billing', label: 'Billing & Usage', icon: CreditCard, hint: 'Plan, usage, invoices' },
+  { id: 'team', label: 'Workspace & Team', icon: Users, hint: 'Members and audit log' },
+  { id: 'developers', label: 'Developers & API', icon: Code2, hint: 'API keys and webhooks' },
+];
+
+// ─── Billing: subscription tiers ─────────────────────────────────────────────
+// Prices and checkout links match the public pricing page. The Free tier quota
+// (10 PR scans per period) is enforced server-side by the budget sentinel
+// (`prQuotaLimit` defaults to 10); there is no API endpoint exposing the
+// per-period count yet, so the meter reflects the plan limit with the usage
+// value below as the hook point once an endpoint exists.
+const FREE_PLAN_SCAN_LIMIT = 10;
+const FREE_PLAN_SCANS_USED = 0;
+
+const POLAR_PRO_CHECKOUT = 'https://buy.polar.sh/polar_cl_F6pFlJMO8NB1edLEiNLZ3ED0arMmOtoFUtpBc1J7ibY';
+const POLAR_TEAM_CHECKOUT = 'https://buy.polar.sh/polar_cl_G8nQdTjkiE3TT0f9HwQtEzZAA1FrGatie2AYr1PiFep';
+
+type PlanId = 'free' | 'pro' | 'team';
+
+const PLANS: { id: PlanId; name: string; price: string; unit: string; tagline: string; features: string[]; recommended?: boolean }[] = [
+  {
+    id: 'free', name: 'Free', price: '$0', unit: '/ month',
+    tagline: 'For trying Codeward on a personal project.',
+    features: [`${FREE_PLAN_SCAN_LIMIT} free PR scans per month`, 'Automated PR reviews on every scan', 'No credit card required'],
+  },
+  {
+    id: 'pro', name: 'Pro', price: '$19', unit: '/ month', recommended: true,
+    tagline: 'For individual developers shipping every day.',
+    features: ['Unlimited individual repositories', 'Advanced LLM context for deeper reviews', 'Everything in Free'],
+  },
+  {
+    id: 'team', name: 'Team', price: '$39', unit: '/ month / seat',
+    tagline: 'For engineering organizations.',
+    features: ['Organization-wide access', 'Priority support', 'SAML / SSO', 'Everything in Pro'],
+  },
+];
 
 export function Settings() {
   const { data: session } = useSession();
@@ -379,871 +526,832 @@ export function Settings() {
   const userEmail = session?.user?.email || 'kelvin202maina@gmail.com';
   const webhookUrl = 'https://6da03ff7-234d-4d3e-ab48df5075fb7.codeward.app/reposeive';
 
+  // ── Billing checkout (shared with the public pricing page) ─────────────────
+  const goProCheckout = () => {
+    if (session?.user) {
+      window.location.href = `${POLAR_PRO_CHECKOUT}?client_reference_id=${session.user.id}`;
+    } else {
+      toast.error('Sign in to upgrade your plan');
+    }
+  };
+  const goTeamCheckout = () => {
+    if (session?.user) {
+      window.location.href = `${POLAR_TEAM_CHECKOUT}?client_reference_id=${session.user.id}`;
+    } else {
+      toast.error('Sign in to upgrade your plan');
+    }
+  };
+
+  const currentPlan: PlanId = 'free';
+  const freeUsagePct = Math.min(100, Math.round((FREE_PLAN_SCANS_USED / FREE_PLAN_SCAN_LIMIT) * 100));
+  const activeTabMeta = TABS.find((t) => t.id === activeTab) ?? TABS[0];
+
   return (
-    <div className="flex-1 h-full overflow-y-auto bg-cw-bg text-cw-txt font-sans p-4 sm:p-6 md:p-8">
-      <div className="max-w-[1000px] mx-auto pb-24">
-        
-        {/* Header Title */}
-        <div className="mb-6">
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-cw-txt">Settings</h1>
-          <p className="text-[13px] text-cw-txt3 mt-1">Manage your workspace options, account security, billing, and API credentials.</p>
-        </div>
+    <div className="flex-1 h-full overflow-y-auto overflow-x-hidden bg-cw-bg text-cw-txt">
+      <div className="mx-auto w-full max-w-[1200px] px-4 sm:px-6 lg:px-8 py-5 sm:py-6 pb-24">
 
-        {/* Top Navigation Tabs */}
-        <div className="flex items-center gap-1.5 border-b border-cw-bdr mb-8 overflow-x-auto no-scrollbar">
-          {[
-            { id: 'account', label: 'Account', icon: User },
-            { id: 'general', label: 'General', icon: Sliders },
-            { id: 'billing', label: 'Billing & Usage', icon: CreditCard },
-            { id: 'team', label: 'Workspace & Team', icon: Users },
-            { id: 'developers', label: 'Developers & API', icon: Code2 },
-          ].map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as TabType)}
-                className={`flex items-center gap-2 px-4 py-2.5 text-[13px] font-semibold border-b-2 transition-all cursor-pointer whitespace-nowrap ${
-                  isActive
-                    ? 'border-cw-purple text-cw-purple bg-cw-purple/5 rounded-t-xl'
-                    : 'border-transparent text-cw-txt3 hover:text-cw-txt hover:bg-cw-bg2 rounded-t-xl'
-                }`}
-              >
-                <Icon size={16} />
-                <span>{tab.label}</span>
-              </button>
-            );
-          })}
-        </div>
+        {/* ── Context line ────────────────────────────────────────────────── */}
+        <p className="text-[12px] text-cw-txt2 leading-5 mb-5">
+          Manage your workspace options, account security, billing, and API credentials.
+        </p>
 
-        {/* ── TAB 1: ACCOUNT (Matching User's Reference Layout) ── */}
-        {activeTab === 'account' && (
-          <div className="flex flex-col gap-6">
-            
-            {/* User Profile Card */}
-            <SectionCard title="Account Profile" icon={User}>
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 py-2">
-                <div className="flex items-center gap-4 w-full sm:w-auto">
-                  <div className="w-16 h-16 rounded-full bg-cw-purple/20 border border-cw-purple/40 flex items-center justify-center text-cw-purple text-xl font-bold overflow-hidden shrink-0">
-                    {session?.user?.image ? (
-                      <img src={session.user.image} alt="Avatar" className="w-full h-full object-cover" />
-                    ) : (
-                      fullName.charAt(0).toUpperCase()
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-[200px]">
-                    <label className="text-[11px] font-medium text-cw-txt3 block mb-1">Full name</label>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={fullName}
-                        onChange={(e) => setFullName(e.target.value)}
-                        className="px-3 py-1.5 bg-cw-bg3 border border-cw-bdr rounded-xl text-[13px] text-cw-txt outline-none focus:border-cw-purple transition-colors w-full max-w-[240px]"
-                      />
-                      <button
-                        onClick={handleSaveName}
-                        disabled={savingName}
-                        className="px-3.5 py-1.5 bg-cw-bg3 hover:bg-cw-bdr text-cw-txt text-[12px] font-semibold rounded-xl transition-colors cursor-pointer border border-cw-bdr"
-                      >
-                        {savingName ? 'Saving...' : 'Save'}
-                      </button>
+        <div className="flex flex-col lg:flex-row gap-5 lg:gap-8 items-start">
+
+          {/* ── Section navigation ─────────────────────────────────────────── */}
+          <nav aria-label="Settings sections" className="w-full lg:w-[220px] shrink-0 lg:sticky lg:top-0">
+            {/* Mobile / tablet: horizontal segmented tabs */}
+            <div className="lg:hidden -mx-4 sm:mx-0 px-4 sm:px-0 overflow-x-auto no-scrollbar">
+              <div className="inline-flex items-center gap-0.5 rounded-md border border-cw-bdr bg-cw-bg2 p-0.5 min-w-max">
+                {TABS.map((tab) => {
+                  const Icon = tab.icon;
+                  const isActive = activeTab === tab.id;
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      aria-pressed={isActive}
+                      onClick={() => setActiveTab(tab.id as TabType)}
+                      className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-[5px] text-[11.5px] font-medium whitespace-nowrap transition-colors cursor-pointer ${FOCUS_RING} ${isActive ? 'bg-cw-bg3 text-cw-txt shadow-sm' : 'text-cw-txt3 hover:text-cw-txt'}`}
+                    >
+                      <Icon size={13} className={isActive ? 'text-cw-purple' : ''} />
+                      {tab.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Desktop: vertical list */}
+            <ul className="hidden lg:flex flex-col gap-0.5">
+              {TABS.map((tab) => {
+                const Icon = tab.icon;
+                const isActive = activeTab === tab.id;
+                return (
+                  <li key={tab.id}>
+                    <button
+                      type="button"
+                      aria-current={isActive ? 'page' : undefined}
+                      onClick={() => setActiveTab(tab.id as TabType)}
+                      className={`w-full text-left flex items-start gap-2.5 px-2.5 py-2 rounded-md transition-colors cursor-pointer border ${FOCUS_RING} ${
+                        isActive
+                          ? 'bg-cw-bg2 border-cw-bdr text-cw-txt'
+                          : 'border-transparent text-cw-txt2 hover:bg-cw-bg2/60 hover:text-cw-txt'
+                      }`}
+                    >
+                      <Icon size={14} className={`mt-[3px] shrink-0 ${isActive ? 'text-cw-purple' : 'text-cw-txt3'}`} />
+                      <span className="min-w-0">
+                        <span className="block text-[12.5px] font-medium leading-5">{tab.label}</span>
+                        <span className="block text-[10.5px] text-cw-txt3 leading-4 truncate">{tab.hint}</span>
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </nav>
+
+          {/* ── Section content ─────────────────────────────────────────────── */}
+          <div className="flex-1 min-w-0 flex flex-col gap-4">
+
+            <div className="flex items-center gap-2 mb-1">
+              <activeTabMeta.icon size={14} className="text-cw-txt3" />
+              <h1 className="text-[15px] font-semibold text-cw-txt tracking-tight leading-5">{activeTabMeta.label}</h1>
+            </div>
+
+            {/* ── TAB 1: ACCOUNT ── */}
+            {activeTab === 'account' && (
+              <>
+                <SectionCard
+                  title="Profile"
+                  icon={User}
+                  description="Your identity across Codeward and connected repositories"
+                  actions={
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        await signOut();
+                        window.location.reload();
+                      }}
+                      className={`${BTN_SECONDARY} hover:text-cw-red hover:border-cw-red/40`}
+                      title="Sign out"
+                    >
+                      <LogOut size={13} /> Sign out
+                    </button>
+                  }
+                >
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-4 py-3 border-b border-cw-bdr">
+                    <Avatar src={session?.user?.image} fallback={fullName.charAt(0).toUpperCase()} size={48} />
+                    <div className="flex-1 min-w-0">
+                      <label htmlFor="settings-full-name" className={`${MICRO_LABEL} block mb-1.5`}>Full name</label>
+                      <div className="flex gap-2">
+                        <input
+                          id="settings-full-name"
+                          type="text"
+                          value={fullName}
+                          onChange={(e) => setFullName(e.target.value)}
+                          className={`${INPUT} w-full max-w-[280px]`}
+                        />
+                        <button type="button" onClick={handleSaveName} disabled={savingName} className={BTN_SECONDARY}>
+                          {savingName ? <LoaderCircle size={12} className="animate-spin" /> : null}
+                          {savingName ? 'Saving...' : 'Save'}
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <button
-                  onClick={async () => {
+                  <SetRow
+                    label="Email"
+                    desc={userEmail}
+                    control={
+                      <button type="button" onClick={() => toast.info('Email change verification sent to ' + userEmail)} className={BTN_GHOST_SM}>
+                        Change
+                      </button>
+                    }
+                  />
+                  <div className="flex items-start sm:items-center justify-between gap-4 py-3 border-b border-cw-bdr">
+                    <div className="min-w-0">
+                      <div className="text-[12.5px] font-medium text-cw-txt leading-5">User ID</div>
+                      <div className="text-[11px] text-cw-txt3 mt-0.5 font-mono truncate">{userId}</div>
+                    </div>
+                    <button type="button" onClick={() => copyToClipboard(userId, setCopiedId)} className={`${BTN_GHOST_SM} shrink-0`}>
+                      {copiedId ? <Check size={12} className="text-cw-green" /> : <Copy size={12} />}
+                      {copiedId ? 'Copied' : 'Copy'}
+                    </button>
+                  </div>
+                  <SetRow
+                    label="Sign-in methods"
+                    desc="Manage third-party accounts for signing in to Codeward."
+                    control={
+                      <button type="button" onClick={() => toast.info('GitHub & Google OAuth sign-in methods active')} className={BTN_GHOST_SM}>
+                        Manage
+                      </button>
+                    }
+                  />
+                </SectionCard>
+
+                <SectionCard
+                  title="Plan & credits"
+                  icon={Sparkles}
+                  description="Your current subscription and available credits"
+                  actions={
+                    <button type="button" onClick={() => setActiveTab('billing')} className={BTN_PRIMARY}>
+                      Upgrade <ArrowUpRight size={12} />
+                    </button>
+                  }
+                >
+                  <div className="flex items-center gap-2 py-3 border-b border-cw-bdr">
+                    <span className="text-[15px] font-semibold text-cw-txt tracking-tight">Free</span>
+                    <Pill tone="purple" dot>Active</Pill>
+                  </div>
+                  <SetRow
+                    label="Credits"
+                    desc="Free credits: 205"
+                    control={<span className="font-mono text-[13px] font-semibold tabular-nums text-cw-txt">205</span>}
+                  />
+                  <SetRow
+                    label="Daily refresh credits"
+                    desc="Refresh to 300 at 00:00 every day"
+                    control={
+                      <span className="inline-flex items-center gap-1.5 font-mono text-[13px] font-semibold tabular-nums text-cw-txt">
+                        <Calendar size={12} className="text-cw-txt3" /> 300
+                      </span>
+                    }
+                  />
+                </SectionCard>
+
+                <SectionCard
+                  title="Global community leaderboard"
+                  icon={Globe}
+                  description="Display your technical debt lines cleared and rank on the community feed alongside other engineers."
+                >
+                  <div className="flex items-center justify-between gap-4 py-3 border-b border-cw-bdr">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <img
+                        src={session?.user?.image || `https://api.dicebear.com/9.x/disco/svg?seed=${encodeURIComponent(session?.user?.name || 'you')}`}
+                        alt="DiceBear Disco Avatar"
+                        className="w-9 h-9 rounded-full border border-cw-bdr bg-cw-bg3 object-cover shrink-0"
+                        onError={(e) => {
+                          const fallback = `https://api.dicebear.com/9.x/disco/svg?seed=${encodeURIComponent(session?.user?.name || 'you')}`;
+                          const img = e.target as HTMLImageElement;
+                          if (img.src !== fallback) img.src = fallback;
+                        }}
+                      />
+                      <div className="min-w-0">
+                        <div className="text-[12.5px] font-medium text-cw-txt leading-5 flex items-center gap-2">
+                          Show on global leaderboard
+                          <Pill tone={leaderboardOptIn ? 'green' : 'neutral'} dot>{leaderboardOptIn ? 'Opted in' : 'Hidden'}</Pill>
+                        </div>
+                        <div className="text-[11px] text-cw-txt3 leading-4 mt-0.5">Visible to every engineer on the global feed.</div>
+                      </div>
+                    </div>
+                    <div className="shrink-0 flex items-center gap-2">
+                      {updatingOptIn && <LoaderCircle size={12} className="animate-spin text-cw-txt3" />}
+                      <Toggle on={leaderboardOptIn} onChange={handleToggleOptIn} />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-3 -mx-4 sm:-mx-5 -mb-2 divide-x divide-cw-bdr">
+                    <div className="px-4 sm:px-5 py-3">
+                      <div className={MICRO_LABEL}>Global rank</div>
+                      <div className="text-[20px] font-semibold tracking-tight tabular-nums text-cw-purple mt-1">#{leaderboardRank}</div>
+                    </div>
+                    <div className="px-4 sm:px-5 py-3">
+                      <div className={MICRO_LABEL}>Lines cleared</div>
+                      <div className="text-[20px] font-semibold tracking-tight tabular-nums text-cw-green mt-1">{leaderboardScore.toLocaleString()}</div>
+                    </div>
+                    <div className="px-4 sm:px-5 py-3 min-w-0 col-span-2 sm:col-span-1 border-t sm:border-t-0 border-cw-bdr">
+                      <div className={MICRO_LABEL}>Avatar style</div>
+                      <div className="text-[12.5px] font-medium text-cw-txt mt-2 flex items-center gap-1.5 truncate">
+                        <Sparkles size={12} className="text-cw-purple shrink-0" /> DiceBear Disco
+                      </div>
+                    </div>
+                  </div>
+                </SectionCard>
+
+                <SectionCard title="Danger zone" icon={AlertTriangle} tone="danger">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 py-3">
+                    <div className="min-w-0">
+                      <div className="text-[12.5px] font-medium text-cw-txt leading-5">Delete account</div>
+                      <div className="text-[11px] text-cw-txt3 leading-4 mt-0.5">This will permanently delete your account, workspace data, and all repository connections.</div>
+                    </div>
+                    <button type="button" onClick={() => setShowDeleteDialog(true)} className={`${BTN_DANGER} shrink-0`}>
+                      <Trash2 size={12} /> Delete account
+                    </button>
+                  </div>
+                </SectionCard>
+
+                <DeleteAccountDialog
+                  open={showDeleteDialog}
+                  onOpenChange={setShowDeleteDialog}
+                  onSuccess={async () => {
+                    toast.success('Account deletion queued. You will be logged out.');
                     await signOut();
                     window.location.reload();
                   }}
-                  className="p-2.5 bg-cw-bg3 hover:bg-red-500/10 hover:text-red-400 text-cw-txt3 rounded-xl border border-cw-bdr transition-colors flex items-center justify-center shrink-0 cursor-pointer"
-                  title="Sign out"
-                >
-                  <LogOut size={16} />
-                </button>
-              </div>
-            </SectionCard>
-
-            {/* Plan & Credits Card */}
-            <SectionCard title="Plan & Credits Usage" icon={Sparkles}>
-              <div className="bg-cw-bg3/60 border border-cw-bdr rounded-xl p-5 mb-4">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2.5">
-                    <span className="text-lg font-bold text-cw-txt">Free</span>
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-cw-purple/20 text-cw-purple border border-cw-purple/30">Active</span>
-                  </div>
-                  <button
-                    onClick={() => setActiveTab('billing')}
-                    className="px-4 py-1.5 bg-white text-black hover:bg-slate-200 text-[13px] font-bold rounded-xl transition-colors shadow-sm cursor-pointer"
-                  >
-                    Upgrade
-                  </button>
-                </div>
-
-                <div className="space-y-3 pt-2 border-t border-cw-bdr/50">
-                  <div className="flex items-center justify-between text-[13px]">
-                    <div className="flex items-center gap-2 text-cw-txt">
-                      <Sparkles size={15} className="text-cw-purple" />
-                      <span className="font-semibold">Credits</span>
-                    </div>
-                    <span className="font-bold text-cw-txt font-mono">205</span>
-                  </div>
-                  <div className="text-[11px] text-cw-txt3 pl-6">Free credits: 205</div>
-
-                  <div className="flex items-center justify-between text-[13px] pt-2">
-                    <div className="flex items-center gap-2 text-cw-txt">
-                      <Calendar size={15} className="text-cw-purple" />
-                      <span className="font-semibold">Daily refresh credits</span>
-                    </div>
-                    <span className="font-bold text-cw-txt font-mono">300</span>
-                  </div>
-                  <div className="text-[11px] text-cw-txt3 pl-6">Refresh to 300 at 00:00 every day</div>
-                </div>
-              </div>
-            </SectionCard>
-
-            {/* Account Identifiers */}
-            <SectionCard title="Identity & Security" icon={ShieldCheck}>
-              <div className="space-y-4">
-                {/* Email */}
-                <div className="flex items-center justify-between py-2 border-b border-cw-bdr/40">
-                  <div>
-                    <div className="text-xs font-semibold text-cw-txt">Email</div>
-                    <div className="text-[12px] text-cw-txt2 mt-0.5 font-mono">{userEmail}</div>
-                  </div>
-                  <button 
-                    onClick={() => toast.info('Email change verification sent to ' + userEmail)}
-                    className="px-3 py-1.5 bg-cw-bg3 hover:bg-cw-bdr text-cw-txt text-[12px] font-semibold rounded-xl border border-cw-bdr transition-colors cursor-pointer"
-                  >
-                    Change
-                  </button>
-                </div>
-
-                {/* User ID */}
-                <div className="flex items-center justify-between py-2 border-b border-cw-bdr/40">
-                  <div>
-                    <div className="text-xs font-semibold text-cw-txt">User ID</div>
-                    <div className="text-[12px] text-cw-txt3 mt-0.5 font-mono">{userId}</div>
-                  </div>
-                  <button
-                    onClick={() => copyToClipboard(userId, setCopiedId)}
-                    className="px-3 py-1.5 bg-cw-bg3 hover:bg-cw-bdr text-cw-txt text-[12px] font-semibold rounded-xl border border-cw-bdr transition-colors cursor-pointer flex items-center gap-1.5"
-                  >
-                    {copiedId ? <Check size={14} className="text-cw-green" /> : <Copy size={14} />}
-                    {copiedId ? 'Copied' : 'Copy'}
-                  </button>
-                </div>
-
-                {/* Manage Sign-In Methods */}
-                <div className="flex items-center justify-between py-2">
-                  <div>
-                    <div className="text-xs font-semibold text-cw-txt">Manage sign-in methods</div>
-                    <div className="text-[11px] text-cw-txt3 mt-0.5">Manage third-party accounts for signing in to Codeward.</div>
-                  </div>
-                  <button 
-                    onClick={() => toast.info('GitHub & Google OAuth sign-in methods active')}
-                    className="px-3 py-1.5 bg-cw-bg3 hover:bg-cw-bdr text-cw-txt text-[12px] font-semibold rounded-xl border border-cw-bdr transition-colors cursor-pointer"
-                  >
-                    Manage
-                  </button>
-                </div>
-              </div>
-            </SectionCard>
-
-            {/* Global Community Leaderboard */}
-            <SectionCard title="Global Community Leaderboard" icon={Globe}>
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 py-2 border-b border-cw-bdr/40 pb-4">
-                <div className="flex items-center gap-3.5">
-                  <img
-                    src={session?.user?.image || `https://api.dicebear.com/9.x/disco/svg?seed=${encodeURIComponent(session?.user?.name || 'you')}`}
-                    alt="DiceBear Disco Avatar"
-                    className="w-12 h-12 rounded-full border border-cw-purple/40 bg-cw-bg3 object-cover shadow-xs"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = `https://api.dicebear.com/9.x/disco/svg?seed=${encodeURIComponent(session?.user?.name || 'you')}`;
-                    }}
-                  />
-                  <div>
-                    <div className="text-xs font-semibold text-cw-txt flex items-center gap-2">
-                      <span>Show on Global Leaderboard</span>
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${leaderboardOptIn ? 'bg-cw-green/20 text-cw-green border border-cw-green/30' : 'bg-cw-bg3 text-cw-txt3'}`}>
-                        {leaderboardOptIn ? 'Opted In' : 'Hidden'}
-                      </span>
-                    </div>
-                    <div className="text-[11px] text-cw-txt3 mt-0.5 leading-snug">
-                      Display your technical debt lines cleared and rank on the community feed alongside other engineers.
-                    </div>
-                  </div>
-                </div>
-                <div className="shrink-0">
-                  <Toggle on={leaderboardOptIn} onChange={handleToggleOptIn} />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-4">
-                <div className="p-3 bg-cw-bg3/50 border border-cw-bdr rounded-xl">
-                  <div className="text-[10px] font-bold text-cw-txt3 uppercase tracking-wider">Current Global Rank</div>
-                  <div className="text-lg font-bold text-cw-purple mt-1 font-mono">#{leaderboardRank}</div>
-                </div>
-                <div className="p-3 bg-cw-bg3/50 border border-cw-bdr rounded-xl">
-                  <div className="text-[10px] font-bold text-cw-txt3 uppercase tracking-wider">Lines Cleared</div>
-                  <div className="text-lg font-bold text-cw-green mt-1 font-mono">{leaderboardScore.toLocaleString()}</div>
-                </div>
-                <div className="p-3 bg-cw-bg3/50 border border-cw-bdr rounded-xl col-span-2 sm:col-span-1">
-                  <div className="text-[10px] font-bold text-cw-txt3 uppercase tracking-wider">Avatar Style</div>
-                  <div className="text-[12px] font-semibold text-cw-txt mt-1 flex items-center gap-1.5">
-                    <Sparkles size={12} className="text-cw-purple" />
-                    <span>DiceBear Disco</span>
-                  </div>
-                </div>
-              </div>
-            </SectionCard>
-
-            {/* Danger Zone */}
-            <SectionCard title="Danger Zone" icon={AlertTriangle} className="border-red-500/30 bg-red-500/5">
-              <div className="flex items-center justify-between py-1">
-                <div>
-                  <div className="text-xs font-bold text-red-400">Delete account</div>
-                  <div className="text-[11px] text-cw-txt3 mt-0.5">This will permanently delete your account, workspace data, and all repository connections.</div>
-                </div>
-                <button
-                  onClick={() => setShowDeleteDialog(true)}
-                  className="px-3.5 py-1.5 bg-red-500/20 hover:bg-red-500 text-red-300 hover:text-white text-[12px] font-semibold rounded-xl border border-red-500/40 transition-colors cursor-pointer"
-                >
-                  Delete account
-                </button>
-              </div>
-            </SectionCard>
-
-            <DeleteAccountDialog 
-              open={showDeleteDialog} 
-              onOpenChange={setShowDeleteDialog} 
-              onSuccess={async () => {
-                toast.success('Account deletion queued. You will be logged out.');
-                await signOut();
-                window.location.reload();
-              }}
-            />
-
-          </div>
-        )}
-
-        {/* ── TAB 2: GENERAL SETTINGS ── */}
-        {activeTab === 'general' && (
-          <div className="flex flex-col gap-6">
-            
-            {/* Auto-Merge Policy */}
-            <SectionCard title="🔀 Auto-Merge Policy (per repository)" icon={Sliders}>
-              <div className="text-[11px] text-cw-txt3 mb-4 leading-relaxed">
-                Controls what happens after Guardian approves a Codeward auto-fix PR. Manual: nothing merges without your click.
-                Auto: if you don't respond within the window, the PR merges on your standing authorization. High/critical-severity
-                fixes always require a manual click.
-              </div>
-
-              {repos.length === 0 ? (
-                <div className="text-[12px] text-cw-txt3 py-3 text-center bg-cw-bg3/40 rounded-xl">No connected repositories yet.</div>
-              ) : (
-                <div className="space-y-4">
-                  <SetRow 
-                    label="Target Repository" 
-                    control={
-                      <select
-                        value={selectedRepo ?? ''}
-                        onChange={(e) => setSelectedRepo(Number(e.target.value))}
-                        className="text-[12px] px-3 py-1.5 rounded-xl border border-cw-bdr bg-cw-bg3 text-cw-txt outline-none max-w-[240px]"
-                      >
-                        {repos.map((r) => <option key={r.id} value={r.id}>{r.fullName}</option>)}
-                      </select>
-                    } 
-                  />
-                  <SetRow 
-                    label="Merge Policy Mode" 
-                    desc={mergeMode === 'auto' ? `Unactioned approved PRs merge after ${timeoutMinutes >= 60 ? `${Math.round(timeoutMinutes / 60)}h` : `${timeoutMinutes}m`}.` : 'Every merge requires your explicit click.'} 
-                    control={
-                      <select
-                        value={mergeMode === 'manual' ? 'manual' : String(timeoutMinutes)}
-                        onChange={(e) => {
-                          const v = e.target.value;
-                          if (v === 'manual') { setMergeMode('manual'); }
-                          else { setMergeMode('auto'); setTimeoutMinutes(Number(v)); }
-                          toast.success('Auto-merge policy saved');
-                        }}
-                        className="text-[12px] px-3 py-1.5 rounded-xl border border-cw-bdr bg-cw-bg3 text-cw-txt outline-none"
-                      >
-                        <option value="manual">Manual approval required</option>
-                        <option value="120">Auto-merge after 2 hours</option>
-                        <option value="720">Auto-merge after 12 hours</option>
-                        <option value="1440">Auto-merge after 24 hours</option>
-                      </select>
-                    } 
-                  />
-                </div>
-              )}
-            </SectionCard>
-
-            {/* Autonomous Engine & Trust Parameters */}
-            <SectionCard title="⚙ Autonomous Engine & Trust Mode" icon={Zap}>
-              <div className="space-y-1">
-                <SetRow label="Auto-refactor low-risk files" desc="Utilities, helpers, test files. Never touches business logic without asking." control={<Toggle on={toggles.autoRefactor} onChange={() => toggleHandler('autoRefactor')} />} />
-                <SetRow label="Auto-deploy to ephemeral staging" desc="After sandbox passes all security gates, deploy to staging automatically." control={<Toggle on={toggles.autoDeploy} onChange={() => toggleHandler('autoDeploy')} />} />
-                <SetRow label="Auto Rollback on Test Failure" desc="Automatically revert commits that break verification tests." control={<Toggle on={toggles.autoRollback} onChange={() => toggleHandler('autoRollback')} />} />
-                <SetRow label="Aggressive Deduplication" desc="Deep-scan code for duplicate utility patterns across repos." control={<Toggle on={toggles.aggressiveDedup} onChange={() => toggleHandler('aggressiveDedup')} />} />
-                <SetRow label="PR Mode (Requires Manual Review)" desc="Open a pull request and review before committing directly." control={<Toggle on={toggles.prMode} onChange={() => toggleHandler('prMode')} />} />
-                <SetRow label="Dry Run Only" desc="Analyse and report without applying any changes." control={<Toggle on={toggles.dryRunOnly} onChange={() => toggleHandler('dryRunOnly')} />} />
-              </div>
-            </SectionCard>
-
-            {/* Notifications */}
-            <SectionCard title="🔔 Notifications & Alerts" icon={Mail}>
-              <div className="space-y-1">
-                <SetRow label="Slack integration alerts" desc="Receive instant notifications in your Slack channel on security findings." control={<Toggle on={toggles.slack} onChange={() => toggleHandler('slack')} />} />
-                <SetRow label="Email digest (weekly summary)" desc="Weekly summary report of debt eliminated and tests generated." control={<Toggle on={toggles.email} onChange={() => toggleHandler('email')} />} />
-                <SetRow label="Mobile push notifications" desc="Alerts on critical vulnerability fixes waiting for approval." control={<Toggle on={toggles.push} onChange={() => toggleHandler('push')} />} />
-                <SetRow label="Codeward AI proactive alerts" desc="Agent notifies you when it spots recurring architecture smells." control={<Toggle on={toggles.aiAlerts} onChange={() => toggleHandler('aiAlerts')} />} />
-              </div>
-            </SectionCard>
-
-          </div>
-        )}
-
-        {/* ── TAB 3: BILLING & USAGE ── */}
-        {activeTab === 'billing' && (
-          <div className="flex flex-col gap-6">
-            
-            {/* Current Subscription & Pricing Plans */}
-            <SectionCard title="Current Subscription & Plans" icon={CreditCard}>
-              <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 p-5 bg-cw-bg3/60 border border-cw-bdr rounded-2xl mb-6">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xl font-bold text-cw-txt">Free Tier</span>
-                    <span className="px-2.5 py-0.5 text-[10px] font-bold bg-cw-purple/20 text-cw-purple rounded-full border border-cw-purple/30 uppercase">Current Plan</span>
-                  </div>
-                  <p className="text-[12px] text-cw-txt3 mt-1">300 daily refresh credits · 5 connected repos · Automated PR Reviews</p>
-                </div>
-                <div className="text-right">
-                  <div className="text-2xl font-bold text-cw-txt">$0 <span className="text-[13px] font-normal text-cw-txt3">/ month</span></div>
-                  <div className="text-[11px] text-cw-txt3">Renews automatically daily</div>
-                </div>
-              </div>
-
-              {/* Plan Cards Grid (Pro, Pro Plus, Enterprise) */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-                {/* Pro Plan */}
-                <div className="border border-cw-bdr rounded-2xl p-5 bg-cw-bg3/30 flex flex-col justify-between hover:border-cw-purple/40 transition-all">
-                  <div>
-                    <div className="flex justify-between items-center mb-1">
-                      <h3 className="font-bold text-cw-txt text-lg">Pro</h3>
-                    </div>
-                    <p className="text-[12px] text-cw-txt3">For active developers & small projects.</p>
-                    <div className="text-2xl font-extrabold text-cw-txt my-3">$12 <span className="text-xs font-normal text-cw-txt3">/mo</span></div>
-                    <ul className="text-[12px] text-cw-txt2 space-y-2 mb-6 border-t border-cw-bdr/40 pt-3">
-                      <li className="flex items-center gap-2"><CheckCircle size={14} className="text-cw-purple shrink-0" /> 5,000 Monthly Credits</li>
-                      <li className="flex items-center gap-2"><CheckCircle size={14} className="text-cw-purple shrink-0" /> Unlimited Repositories</li>
-                      <li className="flex items-center gap-2"><CheckCircle size={14} className="text-cw-purple shrink-0" /> PR Summarization & Review</li>
-                      <li className="flex items-center gap-2"><CheckCircle size={14} className="text-cw-purple shrink-0" /> IDE & CLI Integration</li>
-                    </ul>
-                  </div>
-                  <button 
-                    onClick={() => toast.success('Redirecting to Pro checkout...')}
-                    className="w-full py-2.5 bg-cw-bg3 hover:bg-cw-bdr text-cw-txt font-bold rounded-xl text-[12px] border border-cw-bdr transition-all cursor-pointer"
-                  >
-                    Upgrade to Pro
-                  </button>
-                </div>
-
-                {/* Pro Plus Plan (Popular) */}
-                <div className="border-2 border-cw-purple rounded-2xl p-5 bg-cw-purple/10 flex flex-col justify-between relative shadow-xl">
-                  <span className="absolute -top-3 right-4 px-3 py-0.5 bg-cw-purple text-white text-[10px] font-bold uppercase rounded-full tracking-wider shadow-md">Popular</span>
-                  <div>
-                    <div className="flex justify-between items-center mb-1">
-                      <h3 className="font-bold text-cw-purple text-lg">Pro Plus</h3>
-                    </div>
-                    <p className="text-[12px] text-cw-txt2">For fast-growing teams & production apps.</p>
-                    <div className="text-2xl font-extrabold text-cw-txt my-3">$24 <span className="text-xs font-normal text-cw-txt3">/mo</span></div>
-                    <ul className="text-[12px] text-cw-txt2 space-y-2 mb-6 border-t border-cw-purple/20 pt-3">
-                      <li className="flex items-center gap-2"><CheckCircle size={14} className="text-cw-purple shrink-0" /> 20,000 Monthly Credits</li>
-                      <li className="flex items-center gap-2"><CheckCircle size={14} className="text-cw-purple shrink-0" /> Unlimited Repositories</li>
-                      <li className="flex items-center gap-2"><CheckCircle size={14} className="text-cw-purple shrink-0" /> Agentic Chat (Gordon AI)</li>
-                      <li className="flex items-center gap-2"><CheckCircle size={14} className="text-cw-purple shrink-0" /> Jira, Slack, Datadog integrations</li>
-                      <li className="flex items-center gap-2"><CheckCircle size={14} className="text-cw-purple shrink-0" /> 20 Custom Policy Rules</li>
-                    </ul>
-                  </div>
-                  <button 
-                    onClick={() => toast.success('Redirecting to Pro Plus checkout...')}
-                    className="w-full py-2.5 bg-cw-purple hover:brightness-110 text-white font-bold rounded-xl text-[12px] shadow-lg shadow-cw-purple/30 transition-all cursor-pointer"
-                  >
-                    Upgrade to Pro Plus
-                  </button>
-                </div>
-
-                {/* Enterprise Plan */}
-                <div className="border border-cw-bdr rounded-2xl p-5 bg-cw-bg3/30 flex flex-col justify-between hover:border-cw-purple/40 transition-all">
-                  <div>
-                    <div className="flex justify-between items-center mb-1">
-                      <h3 className="font-bold text-cw-txt text-lg">Enterprise</h3>
-                    </div>
-                    <p className="text-[12px] text-cw-txt3">For engineering orgs needing custom SLA & SOC2.</p>
-                    <div className="text-2xl font-extrabold text-cw-txt my-3">Custom</div>
-                    <ul className="text-[12px] text-cw-txt2 space-y-2 mb-6 border-t border-cw-bdr/40 pt-3">
-                      <li className="flex items-center gap-2"><CheckCircle size={14} className="text-cw-purple shrink-0" /> Custom Credits Grant</li>
-                      <li className="flex items-center gap-2"><CheckCircle size={14} className="text-cw-purple shrink-0" /> Dedicated CSM & 24/7 SLA</li>
-                      <li className="flex items-center gap-2"><CheckCircle size={14} className="text-cw-purple shrink-0" /> Custom RBAC, SSO & Audit Logs</li>
-                      <li className="flex items-center gap-2"><CheckCircle size={14} className="text-cw-purple shrink-0" /> EU SaaS & Self-Hosting options</li>
-                    </ul>
-                  </div>
-                  <button 
-                    onClick={() => toast.info('Contact sales@codeward.ai for Enterprise options')}
-                    className="w-full py-2.5 bg-cw-bg3 hover:bg-cw-bdr text-cw-txt font-bold rounded-xl text-[12px] border border-cw-bdr transition-all cursor-pointer"
-                  >
-                    Contact Sales
-                  </button>
-                </div>
-              </div>
-
-              {/* Pay As You Go: Buy Credit Packs (Same as Pricing Page) */}
-              <div className="border-t border-cw-bdr/50 pt-6 mt-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <div className="text-sm font-bold text-cw-txt flex items-center gap-2">
-                      <Zap size={16} className="text-cw-amber" />
-                      Pay As You Go — Buy Credit Packs
-                    </div>
-                    <p className="text-[12px] text-cw-txt3 mt-0.5">Top up in one click. Valid for 12 months with no subscription required.</p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
-                  {[
-                    { usd: 3, credits: 100 },
-                    { usd: 5, credits: 200 },
-                    { usd: 10, credits: 500 },
-                    { usd: 20, credits: 1200, popular: true },
-                    { usd: 50, credits: 3400 },
-                    { usd: 100, credits: 7500 },
-                  ].map((pack) => (
-                    <button
-                      key={pack.usd}
-                      onClick={() => toast.success(`Purchased ${pack.credits.toLocaleString()} credits for $${pack.usd}!`)}
-                      className={`relative flex flex-col items-start rounded-xl border p-3.5 text-left transition-all cursor-pointer ${
-                        pack.popular
-                          ? 'border-cw-purple bg-cw-purple/10 hover:bg-cw-purple/20'
-                          : 'border-cw-bdr bg-cw-bg3/50 hover:bg-cw-bg3 hover:border-cw-purple/40'
-                      }`}
-                    >
-                      {pack.popular && (
-                        <span className="absolute -top-2 right-2 rounded-full bg-cw-purple px-1.5 py-0.5 text-[8px] font-bold uppercase text-white">
-                          Best Value
-                        </span>
-                      )}
-                      <span className="text-lg font-bold text-cw-txt">${pack.usd}</span>
-                      <span className="text-[11px] font-semibold text-cw-txt2 mt-0.5">{pack.credits.toLocaleString()} credits</span>
-                      <span className="text-[9px] text-cw-txt3 mt-2 font-mono">${(pack.usd / pack.credits).toFixed(3)}/ea</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </SectionCard>
-
-            {/* Invoices History */}
-            <SectionCard title="Invoices & Payment Receipts" icon={FileText}>
-              <div className="text-[12px] text-cw-txt3 py-6 text-center bg-cw-bg3/30 rounded-xl border border-cw-bdr/40">
-                No past paid invoices found for your account.
-              </div>
-            </SectionCard>
-
-          </div>
-        )}
-
-        {/* ── TAB 4: WORKSPACE & TEAM ── */}
-        {activeTab === 'team' && (
-          <div className="flex flex-col gap-6">
-            
-            {/* Active Members Table */}
-            <SectionCard title="Workspace Members" icon={Users}>
-              <div className="flex items-center justify-between mb-4">
-                <p className="text-[12px] text-cw-txt3">People with access to this workspace and connected repositories.</p>
-                {isAdminOrOwner && (
-                  <button
-                    onClick={() => setOpenInviteDrawer(true)}
-                    className="px-3.5 py-1.5 bg-cw-purple hover:bg-purple-600 text-white text-[12px] font-semibold rounded-xl transition-colors cursor-pointer flex items-center gap-1.5 shadow-sm"
-                  >
-                    <Plus size={14} /> Invite Member
-                  </button>
-                )}
-              </div>
-
-              <div className="border border-cw-bdr rounded-xl overflow-hidden bg-cw-bg3/30">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="border-b border-cw-bdr bg-cw-bg3 text-[11px] font-bold text-cw-txt3 uppercase tracking-wider">
-                      <th className="py-3 px-4">Member</th>
-                      <th className="py-3 px-4">Role</th>
-                      <th className="py-3 px-4">Status</th>
-                      <th className="py-3 px-4 text-right">Joined</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-cw-bdr/40 text-[12px]">
-                    {teamMembers.map((m) => (
-                      <tr key={m.id} className="hover:bg-cw-bg3/50 transition-colors">
-                        <td className="py-3 px-4">
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-cw-purple/20 border border-cw-purple/30 flex items-center justify-center text-cw-purple font-bold text-xs shrink-0">
-                              {m.name.charAt(0)}
-                            </div>
-                            <div>
-                              <div className="font-semibold text-cw-txt">{m.name}</div>
-                              <div className="text-[11px] text-cw-txt3 font-mono">{m.email}</div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="py-3 px-4">
-                          <span className="px-2 py-0.5 bg-cw-bg3 border border-cw-bdr rounded-md font-medium text-cw-txt text-[11px]">
-                            {m.role}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4">
-                          {(() => {
-                            const isOnline = onlineUserIds.includes(m.id);
-                            const displayStatus = isOnline ? 'Online' : (m.status === 'Invited' ? 'Invited' : 'Offline');
-                            let colorClass = 'bg-gray-500/10 text-gray-400 border border-gray-500/30';
-                            let dotClass = 'bg-gray-400';
-                            
-                            if (isOnline) {
-                              colorClass = 'bg-green-500/10 text-green-400 border border-green-500/30';
-                              dotClass = 'bg-green-400 animate-pulse';
-                            } else if (m.status === 'Invited') {
-                              colorClass = 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/30';
-                              dotClass = 'bg-yellow-400';
-                            }
-                            
-                            return (
-                              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${colorClass}`}>
-                                <span className={`w-1.5 h-1.5 rounded-full ${dotClass}`} />
-                                {displayStatus}
-                              </span>
-                            );
-                          })()}
-                        </td>
-                        <td className="py-3 px-4 text-right text-cw-txt3 text-[11px]">
-                          {m.joinedAt}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </SectionCard>
-
-            {/* Audit & Activity Logs (Admin/Owner Only) */}
-            {isAdminOrOwner && (
-              <SectionCard title="Workspace Audit & Activity Logs" icon={History}>
-                <p className="text-[12px] text-cw-txt3 mb-4">Chronological log of administrative actions, repo connections, and agent executions.</p>
-
-                <div className="border border-cw-bdr rounded-xl overflow-hidden bg-cw-bg3/30">
-                  <table className="w-full text-left border-collapse">
-                    <thead>
-                      <tr className="border-b border-cw-bdr bg-cw-bg3 text-[11px] font-bold text-cw-txt3 uppercase tracking-wider">
-                        <th className="py-3 px-4">Timestamp</th>
-                        <th className="py-3 px-4">Actor</th>
-                        <th className="py-3 px-4">Action</th>
-                        <th className="py-3 px-4 text-right">IP Address</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-cw-bdr/40 text-[12px]">
-                      {auditLogs.map((log) => (
-                        <tr key={log.id} className="hover:bg-cw-bg3/50 transition-colors">
-                          <td className="py-3 px-4 font-mono text-[11px] text-cw-txt3 whitespace-nowrap">
-                            {log.timestamp}
-                          </td>
-                          <td className="py-3 px-4 font-semibold text-cw-txt">
-                            {log.user}
-                          </td>
-                          <td className="py-3 px-4 text-cw-txt2">
-                            {log.action}
-                          </td>
-                          <td className="py-3 px-4 text-right font-mono text-[11px] text-cw-txt3">
-                            {log.ip}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </SectionCard>
+                />
+              </>
             )}
 
-          </div>
-        )}
-
-        {/* ── TAB 5: DEVELOPERS & API ── */}
-        {activeTab === 'developers' && (
-          <div className="flex flex-col gap-6">
-            
-            {/* API Keys Management */}
-            <SectionCard title="API Keys" icon={KeyRound}>
-              <div className="flex items-center justify-between mb-4">
-                <p className="text-[12px] text-cw-txt3">Use API keys to authenticate CLI scripts, CI/CD pipelines, and external automated tools.</p>
-                <button
-                  onClick={() => setShowKeyModal(true)}
-                  className="px-3.5 py-1.5 bg-cw-purple hover:bg-purple-600 text-white text-[12px] font-semibold rounded-xl transition-colors cursor-pointer flex items-center gap-1.5 shadow-sm"
+            {/* ── TAB 2: GENERAL ── */}
+            {activeTab === 'general' && (
+              <>
+                <SectionCard
+                  title="Auto-merge policy"
+                  icon={GitMerge}
+                  description="Per repository. Controls what happens after Guardian approves a Codeward auto-fix PR."
                 >
-                  <Plus size={14} /> Generate New Key
-                </button>
-              </div>
+                  <p className="text-[11px] text-cw-txt3 leading-4 py-3 border-b border-cw-bdr">
+                    Manual: nothing merges without your click. Auto: if you don't respond within the window, the PR merges on your
+                    standing authorization. High and critical-severity fixes always require a manual click.
+                  </p>
 
-              <div className="border border-cw-bdr rounded-xl overflow-hidden bg-cw-bg3/30 mb-4">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="border-b border-cw-bdr bg-cw-bg3 text-[11px] font-bold text-cw-txt3 uppercase tracking-wider">
-                      <th className="py-3 px-4">Key Name</th>
-                      <th className="py-3 px-4">Token Prefix</th>
-                      <th className="py-3 px-4">Created</th>
-                      <th className="py-3 px-4">Last Used</th>
-                      <th className="py-3 px-4 text-right">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-cw-bdr/40 text-[12px]">
-                    {apiKeys.map((key) => (
-                      <tr key={key.id} className="hover:bg-cw-bg3/50 transition-colors">
-                        <td className="py-3 px-4 font-semibold text-cw-txt">
-                          {key.name}
-                        </td>
-                        <td className="py-3 px-4 font-mono text-cw-purple text-[11px]">
-                          {key.prefix}
-                        </td>
-                        <td className="py-3 px-4 text-cw-txt3 text-[11px]">
-                          {key.createdAt}
-                        </td>
-                        <td className="py-3 px-4 text-cw-txt3 text-[11px]">
-                          {key.lastUsed}
-                        </td>
-                        <td className="py-3 px-4 text-right">
-                          <button
-                            onClick={() => handleRevokeApiKey(key.id)}
-                            className="p-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg transition-colors cursor-pointer border border-red-500/30"
-                            title="Revoke key"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </SectionCard>
-
-            {/* Incoming Repository Webhook */}
-            <SectionCard title="⬇ Incoming Webhook URL" icon={Webhook}>
-              <div className="text-[12px] text-cw-txt3 mb-3 leading-relaxed">
-                Add this endpoint URL in your GitHub or GitLab repository settings to automatically trigger Codeward scans on push events.
-              </div>
-              <div className="flex gap-2 mb-3">
-                <div className="flex-1 px-3 py-2 border border-cw-bdr rounded-xl text-[12px] bg-cw-bg3 text-cw-purple font-mono overflow-hidden text-ellipsis whitespace-nowrap">
-                  {webhookUrl}
-                </div>
-                <button
-                  onClick={() => copyToClipboard(webhookUrl, setCopiedWebhook)}
-                  className="px-3.5 py-2 bg-cw-bg3 hover:bg-cw-bdr text-cw-txt text-[12px] font-semibold rounded-xl border border-cw-bdr transition-colors cursor-pointer flex items-center gap-1.5 shrink-0"
-                >
-                  {copiedWebhook ? <Check size={14} className="text-cw-green" /> : <Copy size={14} />}
-                  {copiedWebhook ? 'Copied' : 'Copy'}
-                </button>
-              </div>
-
-              <div className="flex items-center gap-3 pt-3 border-t border-cw-bdr/40">
-                <div className="flex-1">
-                  <div className="text-[11px] font-semibold text-cw-txt3 mb-1">HMAC Webhook Secret</div>
-                  <input
-                    type="password"
-                    value="••••••••••••••••••••••••••••"
-                    readOnly
-                    className="w-full px-3 py-1.5 border border-cw-bdr rounded-xl text-[12px] bg-cw-bg3 text-cw-txt font-mono outline-none"
-                  />
-                </div>
-                <button 
-                  onClick={() => {
-                    setRotatedSecret(true);
-                    toast.success('HMAC Secret token rotated');
-                    setTimeout(() => setRotatedSecret(false), 2000);
-                  }}
-                  className="px-3.5 py-1.5 bg-cw-bg3 hover:bg-cw-bdr text-cw-txt text-[12px] font-semibold rounded-xl border border-cw-bdr transition-colors cursor-pointer self-end flex items-center gap-1.5"
-                >
-                  <RefreshCw size={13} className={rotatedSecret ? 'animate-spin text-cw-purple' : ''} /> Rotate Secret
-                </button>
-              </div>
-            </SectionCard>
-
-            {/* Custom Outgoing Webhooks */}
-            <SectionCard title="⬆ Custom Outgoing Webhooks" icon={ExternalLink}>
-              <div className="flex items-center justify-between mb-4">
-                <p className="text-[12px] text-cw-txt3">Send live JSON event payloads from Codeward to your internal APIs or Slack endpoints.</p>
-                <button
-                  onClick={() => setShowWebhookModal(true)}
-                  className="px-3.5 py-1.5 bg-cw-purple hover:bg-purple-600 text-white text-[12px] font-semibold rounded-xl transition-colors cursor-pointer flex items-center gap-1.5 shadow-sm"
-                >
-                  <Plus size={14} /> Add Destination
-                </button>
-              </div>
-
-              <div className="border border-cw-bdr rounded-xl overflow-hidden bg-cw-bg3/30">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="border-b border-cw-bdr bg-cw-bg3 text-[11px] font-bold text-cw-txt3 uppercase tracking-wider">
-                      <th className="py-3 px-4">Endpoint URL</th>
-                      <th className="py-3 px-4">Events</th>
-                      <th className="py-3 px-4">Status</th>
-                      <th className="py-3 px-4 text-right">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-cw-bdr/40 text-[12px]">
-                    {webhooks.map((wh) => (
-                      <tr key={wh.id} className="hover:bg-cw-bg3/50 transition-colors">
-                        <td className="py-3 px-4 font-mono text-[11px] text-cw-txt truncate max-w-[280px]">
-                          {wh.url}
-                        </td>
-                        <td className="py-3 px-4">
-                          <div className="flex flex-wrap gap-1">
-                            {wh.events.map((ev) => (
-                              <span key={ev} className="px-1.5 py-0.5 bg-cw-bg3 border border-cw-bdr rounded text-[10px] text-cw-txt3 font-mono">
-                                {ev}
-                              </span>
-                            ))}
+                  {repos.length === 0 ? (
+                    <EmptyState icon={Inbox} title="No connected repositories yet." hint="Connect a repository to configure its merge policy." />
+                  ) : (
+                    <>
+                      <SetRow
+                        label="Target repository"
+                        control={
+                          <div className="relative">
+                            <select
+                              aria-label="Target repository"
+                              value={selectedRepo ?? ''}
+                              onChange={(e) => setSelectedRepo(Number(e.target.value))}
+                              className={`${SELECT} max-w-[240px] font-mono text-[11px]`}
+                            >
+                              {repos.map((r) => <option key={r.id} value={r.id}>{r.fullName}</option>)}
+                            </select>
+                            <ChevronDown size={12} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-cw-txt3" />
                           </div>
-                        </td>
-                        <td className="py-3 px-4">
-                          <span className="px-2 py-0.5 bg-green-500/10 text-green-400 border border-green-500/30 rounded-full text-[10px] font-bold uppercase">
-                            Active
-                          </span>
-                        </td>
-                        <td className="py-3 px-4 text-right flex items-center justify-end gap-2">
-                          <button
-                            onClick={() => toast.success('Test payload sent to ' + wh.url)}
-                            className="px-2.5 py-1 bg-cw-bg3 hover:bg-cw-bdr text-cw-txt text-[11px] font-medium rounded-lg border border-cw-bdr transition-colors cursor-pointer"
-                          >
-                            Test
-                          </button>
-                          <button
-                            onClick={() => handleDeleteWebhook(wh.id)}
-                            className="p-1 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg transition-colors cursor-pointer border border-red-500/30"
-                          >
-                            <Trash2 size={13} />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </SectionCard>
+                        }
+                      />
+                      <SetRow
+                        label="Merge policy mode"
+                        desc={mergeMode === 'auto' ? `Unactioned approved PRs merge after ${timeoutMinutes >= 60 ? `${Math.round(timeoutMinutes / 60)}h` : `${timeoutMinutes}m`}.` : 'Every merge requires your explicit click.'}
+                        control={
+                          <div className="relative">
+                            <select
+                              aria-label="Merge policy mode"
+                              value={mergeMode === 'manual' ? 'manual' : String(timeoutMinutes)}
+                              onChange={(e) => {
+                                const v = e.target.value;
+                                if (v === 'manual') { setMergeMode('manual'); }
+                                else { setMergeMode('auto'); setTimeoutMinutes(Number(v)); }
+                                toast.success('Auto-merge policy saved');
+                              }}
+                              className={SELECT}
+                            >
+                              <option value="manual">Manual approval required</option>
+                              <option value="120">Auto-merge after 2 hours</option>
+                              <option value="720">Auto-merge after 12 hours</option>
+                              <option value="1440">Auto-merge after 24 hours</option>
+                            </select>
+                            <ChevronDown size={12} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-cw-txt3" />
+                          </div>
+                        }
+                      />
+                    </>
+                  )}
+                </SectionCard>
 
+                <SectionCard title="Autonomous engine & trust mode" icon={Zap} description="How far agents may go without asking">
+                  <SetRow label="Auto-refactor low-risk files" desc="Utilities, helpers, test files. Never touches business logic without asking." control={<Toggle on={toggles.autoRefactor} onChange={() => toggleHandler('autoRefactor')} />} />
+                  <SetRow label="Auto-deploy to ephemeral staging" desc="After sandbox passes all security gates, deploy to staging automatically." control={<Toggle on={toggles.autoDeploy} onChange={() => toggleHandler('autoDeploy')} />} />
+                  <SetRow label="Auto rollback on test failure" desc="Automatically revert commits that break verification tests." control={<Toggle on={toggles.autoRollback} onChange={() => toggleHandler('autoRollback')} />} />
+                  <SetRow label="Aggressive deduplication" desc="Deep-scan code for duplicate utility patterns across repos." control={<Toggle on={toggles.aggressiveDedup} onChange={() => toggleHandler('aggressiveDedup')} />} />
+                  <SetRow label="PR mode (requires manual review)" desc="Open a pull request and review before committing directly." control={<Toggle on={toggles.prMode} onChange={() => toggleHandler('prMode')} />} />
+                  <SetRow label="Dry run only" desc="Analyse and report without applying any changes." control={<Toggle on={toggles.dryRunOnly} onChange={() => toggleHandler('dryRunOnly')} />} />
+                </SectionCard>
+
+                <SectionCard title="Notifications & alerts" icon={Mail} description="Where Codeward reaches you">
+                  <SetRow label="Slack integration alerts" desc="Receive instant notifications in your Slack channel on security findings." control={<Toggle on={toggles.slack} onChange={() => toggleHandler('slack')} />} />
+                  <SetRow label="Email digest (weekly summary)" desc="Weekly summary report of debt eliminated and tests generated." control={<Toggle on={toggles.email} onChange={() => toggleHandler('email')} />} />
+                  <SetRow label="Mobile push notifications" desc="Alerts on critical vulnerability fixes waiting for approval." control={<Toggle on={toggles.push} onChange={() => toggleHandler('push')} />} />
+                  <SetRow label="Codeward AI proactive alerts" desc="Agent notifies you when it spots recurring architecture smells." control={<Toggle on={toggles.aiAlerts} onChange={() => toggleHandler('aiAlerts')} />} />
+                </SectionCard>
+              </>
+            )}
+
+            {/* ── TAB 3: BILLING & USAGE ── */}
+            {activeTab === 'billing' && (
+              <>
+                <SectionCard title="Current plan" icon={CreditCard} description="Your subscription and this month's usage" flush>
+                  <div className="grid grid-cols-1 md:grid-cols-2 md:divide-x divide-cw-bdr">
+                    <div className="px-4 sm:px-5 py-4 flex flex-col gap-3">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[20px] font-semibold tracking-tight text-cw-txt">Free</span>
+                        <Pill tone="purple" dot>Current plan</Pill>
+                      </div>
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-[24px] leading-none font-semibold tracking-tight tabular-nums text-cw-txt">$0</span>
+                        <span className="text-[11px] text-cw-txt3">/ month</span>
+                      </div>
+                      <p className="text-[11px] text-cw-txt3 leading-4">
+                        {FREE_PLAN_SCAN_LIMIT} free PR scans every month, forever. Upgrade for unlimited autonomous code reviews.
+                      </p>
+                    </div>
+                    <div className="px-4 sm:px-5 py-4 flex flex-col gap-3 border-t md:border-t-0 border-cw-bdr">
+                      <div className="flex items-center justify-between gap-3">
+                        <span className={MICRO_LABEL}>PR scans this month</span>
+                        <span className="font-mono text-[12px] font-semibold tabular-nums text-cw-txt">
+                          {FREE_PLAN_SCANS_USED} <span className="text-cw-txt3 font-normal">/ {FREE_PLAN_SCAN_LIMIT}</span>
+                        </span>
+                      </div>
+                      <div
+                        role="progressbar"
+                        aria-label="Free plan PR scans used this month"
+                        aria-valuemin={0}
+                        aria-valuemax={FREE_PLAN_SCAN_LIMIT}
+                        aria-valuenow={FREE_PLAN_SCANS_USED}
+                        className="h-1.5 w-full rounded-full bg-cw-bg3 overflow-hidden"
+                      >
+                        <div
+                          className={`h-full rounded-full transition-[width] duration-300 ${freeUsagePct >= 100 ? 'bg-cw-red' : freeUsagePct >= 80 ? 'bg-cw-amber' : 'bg-cw-purple'}`}
+                          style={{ width: `${freeUsagePct}%` }}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between gap-3 text-[11px] text-cw-txt3">
+                        <span>{FREE_PLAN_SCAN_LIMIT - FREE_PLAN_SCANS_USED} scans remaining · resets monthly</span>
+                        <button type="button" onClick={goProCheckout} className={BTN_LINK}>
+                          Remove the limit <ArrowUpRight size={11} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </SectionCard>
+
+                <section aria-label="Subscription plans" className="flex flex-col gap-3">
+                  <div className="flex items-end justify-between gap-3 px-0.5">
+                    <div>
+                      <h2 className="text-[13px] font-semibold text-cw-txt leading-5">Plans</h2>
+                      <p className="text-[11px] text-cw-txt3 leading-4">Switch plans at any time. Billing is handled securely by Polar.</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    {PLANS.map((plan) => {
+                      const isCurrent = plan.id === currentPlan;
+                      return (
+                        <article
+                          key={plan.id}
+                          aria-label={`${plan.name} plan`}
+                          className={`relative bg-cw-bg2 rounded-lg border p-4 sm:p-5 flex flex-col gap-4 transition-colors ${
+                            plan.recommended ? 'border-cw-purple/50 shadow-[0_0_0_1px_var(--cw-purple)_inset]' : 'border-cw-bdr hover:border-cw-txt3/40'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2">
+                                <h3 className={`text-[14px] font-semibold tracking-tight ${plan.recommended ? 'text-cw-purple' : 'text-cw-txt'}`}>{plan.name}</h3>
+                                {isCurrent && <Pill tone="neutral">Current</Pill>}
+                                {plan.recommended && !isCurrent && <Pill tone="purple">Recommended</Pill>}
+                              </div>
+                              <p className="text-[11px] text-cw-txt3 leading-4 mt-1">{plan.tagline}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-baseline gap-1">
+                            <span className="text-[26px] leading-none font-semibold tracking-tight tabular-nums text-cw-txt">{plan.price}</span>
+                            <span className="text-[11px] text-cw-txt3">{plan.unit}</span>
+                          </div>
+                          <ul className="flex flex-col gap-2 border-t border-cw-bdr pt-4 text-[12px] text-cw-txt2 flex-1">
+                            {plan.features.map((feature, i) => {
+                              const emphasis = plan.id === 'free' && i === 0;
+                              return (
+                                <li key={feature} className={`flex items-start gap-2 leading-4 ${emphasis ? 'text-cw-txt font-medium' : ''}`}>
+                                  <Check size={13} className={`shrink-0 mt-[1px] ${plan.recommended || emphasis ? 'text-cw-purple' : 'text-cw-green'}`} />
+                                  <span>{feature}</span>
+                                </li>
+                              );
+                            })}
+                          </ul>
+                          {plan.id === 'free' && (
+                            <div className="rounded-md border border-cw-bdr bg-cw-bg/60 px-3 py-2 flex flex-col gap-1.5">
+                              <div className="flex items-center justify-between text-[10px]">
+                                <span className={MICRO_LABEL}>Monthly limit</span>
+                                <span className="font-mono font-semibold tabular-nums text-cw-txt">{FREE_PLAN_SCANS_USED} / {FREE_PLAN_SCAN_LIMIT}</span>
+                              </div>
+                              <div className="h-1 w-full rounded-full bg-cw-bg3 overflow-hidden">
+                                <div className="h-full rounded-full bg-cw-purple" style={{ width: `${freeUsagePct}%` }} />
+                              </div>
+                            </div>
+                          )}
+                          {isCurrent ? (
+                            <button type="button" disabled className={`${BTN_SECONDARY} w-full justify-center`}>
+                              <Check size={12} /> Current plan
+                            </button>
+                          ) : plan.id === 'pro' ? (
+                            <button type="button" onClick={goProCheckout} className={`${BTN_PRIMARY} w-full justify-center`}>
+                              Upgrade to Pro <ArrowUpRight size={12} />
+                            </button>
+                          ) : (
+                            <button type="button" onClick={goTeamCheckout} className={`${BTN_SECONDARY} w-full justify-center`}>
+                              Upgrade to Team <ArrowUpRight size={12} />
+                            </button>
+                          )}
+                        </article>
+                      );
+                    })}
+                  </div>
+                </section>
+
+                <SectionCard title="Invoices & receipts" icon={FileText} description="Payment history for this account" flush>
+                  <EmptyState icon={FileText} title="No past paid invoices found for your account." hint="Receipts for paid plans will appear here after your first billing cycle." />
+                </SectionCard>
+              </>
+            )}
+
+            {/* ── TAB 4: WORKSPACE & TEAM ── */}
+            {activeTab === 'team' && (
+              <>
+                <SectionCard
+                  title="Workspace members"
+                  icon={Users}
+                  description="People with access to this workspace and connected repositories."
+                  flush
+                  actions={
+                    isAdminOrOwner ? (
+                      <button type="button" onClick={() => setOpenInviteDrawer(true)} className={BTN_PRIMARY}>
+                        <Plus size={13} /> Invite member
+                      </button>
+                    ) : undefined
+                  }
+                >
+                  {teamMembers.length === 0 ? (
+                    <EmptyState icon={Users} title="No members loaded yet." hint="Members and pending invites for the active workspace appear here." />
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full min-w-[560px] text-left border-collapse">
+                        <thead>
+                          <tr className="text-[10px] uppercase tracking-[0.08em] text-cw-txt3 bg-cw-bg/40">
+                            <th scope="col" className={TH}>Member</th>
+                            <th scope="col" className={TH}>Role</th>
+                            <th scope="col" className={TH}>Status</th>
+                            <th scope="col" className={`${TH} text-right`}>Joined</th>
+                          </tr>
+                        </thead>
+                        <tbody className="text-[12px] text-cw-txt divide-y divide-cw-bdr">
+                          {teamMembers.map((m) => {
+                            const isOnline = onlineUserIds.includes(m.id);
+                            const displayStatus = isOnline ? 'Online' : (m.status === 'Invited' ? 'Invited' : 'Offline');
+                            const tone: Tone = isOnline ? 'green' : (m.status === 'Invited' ? 'amber' : 'neutral');
+                            return (
+                              <tr key={m.id} className="hover:bg-cw-bg3/40 transition-colors">
+                                <td className={TD}>
+                                  <div className="flex items-center gap-3 min-w-0">
+                                    <Avatar src={m.image} fallback={m.name.charAt(0)} size={28} />
+                                    <div className="min-w-0">
+                                      <div className="font-medium text-cw-txt truncate">{m.name}</div>
+                                      <div className="text-[11px] text-cw-txt3 font-mono truncate">{m.email}</div>
+                                    </div>
+                                  </div>
+                                </td>
+                                <td className={TD}><Pill tone="neutral">{m.role}</Pill></td>
+                                <td className={TD}><Pill tone={tone} dot pulse={isOnline}>{displayStatus}</Pill></td>
+                                <td className={`${TD} text-right text-cw-txt3 text-[11px] whitespace-nowrap tabular-nums`}>{m.joinedAt}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </SectionCard>
+
+                {isAdminOrOwner && (
+                  <SectionCard
+                    title="Audit & activity log"
+                    icon={History}
+                    description="Chronological log of administrative actions, repo connections, and agent executions."
+                    flush
+                  >
+                    {auditLogs.length === 0 ? (
+                      <EmptyState icon={History} title="No audit events recorded yet." hint="Administrative actions in this workspace will be logged here." />
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <table className="w-full min-w-[600px] text-left border-collapse">
+                          <thead>
+                            <tr className="text-[10px] uppercase tracking-[0.08em] text-cw-txt3 bg-cw-bg/40">
+                              <th scope="col" className={TH}>Timestamp</th>
+                              <th scope="col" className={TH}>Actor</th>
+                              <th scope="col" className={TH}>Action</th>
+                              <th scope="col" className={`${TH} text-right`}>IP address</th>
+                            </tr>
+                          </thead>
+                          <tbody className="text-[12px] text-cw-txt divide-y divide-cw-bdr">
+                            {auditLogs.map((log) => (
+                              <tr key={log.id} className="hover:bg-cw-bg3/40 transition-colors">
+                                <td className={`${TD} font-mono text-[11px] text-cw-txt3 whitespace-nowrap`}>{log.timestamp}</td>
+                                <td className={`${TD} font-medium text-cw-txt whitespace-nowrap`}>{log.user}</td>
+                                <td className={`${TD} text-cw-txt2`}>
+                                  <span className="inline-flex items-center gap-2">
+                                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${log.status === 'success' ? TONE_DOT.green : log.status === 'warning' ? TONE_DOT.amber : TONE_DOT.blue}`} />
+                                    {log.action}
+                                  </span>
+                                </td>
+                                <td className={`${TD} text-right font-mono text-[11px] text-cw-txt3 whitespace-nowrap`}>{log.ip}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </SectionCard>
+                )}
+              </>
+            )}
+
+            {/* ── TAB 5: DEVELOPERS & API ── */}
+            {activeTab === 'developers' && (
+              <>
+                <SectionCard
+                  title="API keys"
+                  icon={KeyRound}
+                  description="Authenticate CLI scripts, CI/CD pipelines, and external automated tools."
+                  flush
+                  actions={
+                    <button type="button" onClick={() => setShowKeyModal(true)} className={BTN_PRIMARY}>
+                      <Plus size={13} /> Generate new key
+                    </button>
+                  }
+                >
+                  {apiKeys.length === 0 ? (
+                    <EmptyState icon={KeyRound} title="No API keys yet." hint="Generate a key to authenticate the CLI or a CI pipeline." />
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full min-w-[600px] text-left border-collapse">
+                        <thead>
+                          <tr className="text-[10px] uppercase tracking-[0.08em] text-cw-txt3 bg-cw-bg/40">
+                            <th scope="col" className={TH}>Key name</th>
+                            <th scope="col" className={TH}>Token prefix</th>
+                            <th scope="col" className={TH}>Created</th>
+                            <th scope="col" className={TH}>Last used</th>
+                            <th scope="col" className={`${TH} text-right`}><span className="sr-only">Actions</span></th>
+                          </tr>
+                        </thead>
+                        <tbody className="text-[12px] text-cw-txt divide-y divide-cw-bdr">
+                          {apiKeys.map((key) => (
+                            <tr key={key.id} className="hover:bg-cw-bg3/40 transition-colors">
+                              <td className={`${TD} font-medium text-cw-txt`}>{key.name}</td>
+                              <td className={`${TD} font-mono text-[11px] text-cw-purple whitespace-nowrap`}>{key.prefix}</td>
+                              <td className={`${TD} text-cw-txt3 text-[11px] whitespace-nowrap tabular-nums`}>{key.createdAt}</td>
+                              <td className={`${TD} text-cw-txt3 text-[11px] whitespace-nowrap`}>{key.lastUsed}</td>
+                              <td className={`${TD} text-right`}>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRevokeApiKey(key.id)}
+                                  className={`${BTN_GHOST_SM} hover:text-cw-red hover:border-cw-red/40`}
+                                  title="Revoke key"
+                                >
+                                  <Trash2 size={12} /> Revoke
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </SectionCard>
+
+                <SectionCard
+                  title="Incoming webhook"
+                  icon={Webhook}
+                  description="Add this endpoint URL in your GitHub or GitLab repository settings to trigger Codeward scans on push events."
+                >
+                  <div className="py-3 border-b border-cw-bdr">
+                    <div className={`${MICRO_LABEL} mb-1.5`}>Endpoint URL</div>
+                    <div className="flex gap-2">
+                      <code className="flex-1 min-w-0 px-2.5 py-1.5 border border-cw-bdr rounded-md text-[11px] bg-cw-bg text-cw-purple font-mono truncate">
+                        {webhookUrl}
+                      </code>
+                      <button type="button" onClick={() => copyToClipboard(webhookUrl, setCopiedWebhook)} className={`${BTN_SECONDARY} shrink-0`}>
+                        {copiedWebhook ? <Check size={12} className="text-cw-green" /> : <Copy size={12} />}
+                        {copiedWebhook ? 'Copied' : 'Copy'}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="py-3">
+                    <div className={`${MICRO_LABEL} mb-1.5`}>HMAC webhook secret</div>
+                    <div className="flex gap-2">
+                      <input
+                        type="password"
+                        aria-label="HMAC webhook secret"
+                        value="••••••••••••••••••••••••••••"
+                        readOnly
+                        className={`${INPUT} flex-1 min-w-0 font-mono`}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setRotatedSecret(true);
+                          toast.success('HMAC Secret token rotated');
+                          setTimeout(() => setRotatedSecret(false), 2000);
+                        }}
+                        className={`${BTN_SECONDARY} shrink-0`}
+                      >
+                        <RefreshCw size={12} className={rotatedSecret ? 'animate-spin text-cw-purple' : ''} /> Rotate secret
+                      </button>
+                    </div>
+                  </div>
+                </SectionCard>
+
+                <SectionCard
+                  title="Outgoing webhooks"
+                  icon={ExternalLink}
+                  description="Send live JSON event payloads from Codeward to your internal APIs or Slack endpoints."
+                  flush
+                  actions={
+                    <button type="button" onClick={() => setShowWebhookModal(true)} className={BTN_PRIMARY}>
+                      <Plus size={13} /> Add destination
+                    </button>
+                  }
+                >
+                  {webhooks.length === 0 ? (
+                    <EmptyState icon={ExternalLink} title="No outgoing webhooks configured." hint="Add a destination to receive event payloads." />
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full min-w-[640px] text-left border-collapse">
+                        <thead>
+                          <tr className="text-[10px] uppercase tracking-[0.08em] text-cw-txt3 bg-cw-bg/40">
+                            <th scope="col" className={TH}>Endpoint URL</th>
+                            <th scope="col" className={TH}>Events</th>
+                            <th scope="col" className={TH}>Status</th>
+                            <th scope="col" className={`${TH} text-right`}><span className="sr-only">Actions</span></th>
+                          </tr>
+                        </thead>
+                        <tbody className="text-[12px] text-cw-txt divide-y divide-cw-bdr">
+                          {webhooks.map((wh) => (
+                            <tr key={wh.id} className="hover:bg-cw-bg3/40 transition-colors">
+                              <td className={`${TD} font-mono text-[11px] text-cw-txt max-w-[280px]`}>
+                                <span className="block truncate">{wh.url}</span>
+                              </td>
+                              <td className={TD}>
+                                <div className="flex flex-wrap gap-1">
+                                  {wh.events.map((ev) => <Pill key={ev} tone="neutral" mono>{ev}</Pill>)}
+                                </div>
+                              </td>
+                              <td className={TD}>
+                                <Pill tone={wh.status === 'failing' ? 'red' : 'green'} dot>{wh.status === 'failing' ? 'Failing' : 'Active'}</Pill>
+                              </td>
+                              <td className={`${TD} text-right whitespace-nowrap`}>
+                                <div className="inline-flex items-center gap-2">
+                                  <button type="button" onClick={() => toast.success('Test payload sent to ' + wh.url)} className={BTN_GHOST_SM}>
+                                    <Send size={11} /> Test
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteWebhook(wh.id)}
+                                    className={`${BTN_GHOST_SM} hover:text-cw-red hover:border-cw-red/40`}
+                                    title="Remove destination"
+                                  >
+                                    <Trash2 size={12} />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </SectionCard>
+              </>
+            )}
           </div>
-        )}
+        </div>
 
         {/* Modal: Generate API Key */}
         {showKeyModal && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-cw-bg2 border border-cw-bdr rounded-2xl p-6 w-full max-w-[460px] shadow-2xl">
-              <h2 className="text-lg font-bold text-cw-txt mb-1">Generate New API Key</h2>
-              <p className="text-[12px] text-cw-txt3 mb-5">Give your API key a descriptive name to identify its usage.</p>
-
-              {!createdKeySecret ? (
+          <Modal
+            title="Generate new API key"
+            description="Give your API key a descriptive name to identify its usage."
+            onClose={() => {
+              setShowKeyModal(false);
+              setCreatedKeySecret(null);
+            }}
+            footer={
+              !createdKeySecret ? (
                 <>
-                  <label className="text-[11px] font-semibold text-cw-txt3 block mb-1.5">Key Name</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Production CI/CD Runner"
-                    value={newKeyName}
-                    onChange={(e) => setNewKeyName(e.target.value)}
-                    className="w-full px-3 py-2 bg-cw-bg3 border border-cw-bdr rounded-xl text-[13px] text-cw-txt outline-none focus:border-cw-purple transition-colors mb-6"
-                  />
-
-                  <div className="flex items-center justify-end gap-3">
-                    <button
-                      onClick={() => setShowKeyModal(false)}
-                      className="px-4 py-2 bg-cw-bg3 text-cw-txt text-[12px] font-semibold rounded-xl border border-cw-bdr hover:bg-cw-bdr transition-colors cursor-pointer"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={handleCreateApiKey}
-                      className="px-4 py-2 bg-cw-purple hover:bg-purple-600 text-white text-[12px] font-semibold rounded-xl transition-colors cursor-pointer"
-                    >
-                      Generate Key
-                    </button>
-                  </div>
+                  <button type="button" onClick={() => setShowKeyModal(false)} className={BTN_SECONDARY}>Cancel</button>
+                  <button type="button" onClick={handleCreateApiKey} className={BTN_PRIMARY}>Generate key</button>
                 </>
               ) : (
-                <>
-                  <div className="p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-xl mb-4 text-[12px] text-yellow-300 flex items-start gap-2">
-                    <AlertTriangle size={16} className="shrink-0 mt-0.5" />
-                    <span>Save this API key secret now. You will not be able to see it again!</span>
-                  </div>
-
-                  <label className="text-[11px] font-semibold text-cw-txt3 block mb-1.5">API Key Secret</label>
-                  <div className="flex gap-2 mb-6">
-                    <input
-                      type="text"
-                      readOnly
-                      value={createdKeySecret}
-                      className="w-full px-3 py-2 bg-cw-bg3 border border-cw-bdr rounded-xl text-[12px] font-mono text-cw-purple outline-none"
-                    />
-                    <button
-                      onClick={() => copyToClipboard(createdKeySecret, setCopiedKeySecret)}
-                      className="px-3.5 py-2 bg-cw-purple text-white text-[12px] font-semibold rounded-xl transition-colors cursor-pointer shrink-0 flex items-center gap-1.5"
-                    >
-                      {copiedKeySecret ? <Check size={14} /> : <Copy size={14} />}
-                      {copiedKeySecret ? 'Copied' : 'Copy'}
-                    </button>
-                  </div>
-
-                  <button
-                    onClick={() => {
-                      setShowKeyModal(false);
-                      setCreatedKeySecret(null);
-                    }}
-                    className="w-full py-2 bg-cw-bg3 hover:bg-cw-bdr text-cw-txt text-[12px] font-semibold rounded-xl border border-cw-bdr transition-colors cursor-pointer"
-                  >
-                    Done
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowKeyModal(false);
+                    setCreatedKeySecret(null);
+                  }}
+                  className={BTN_PRIMARY}
+                >
+                  Done
+                </button>
+              )
+            }
+          >
+            {!createdKeySecret ? (
+              <>
+                <label htmlFor="settings-new-key-name" className={`${MICRO_LABEL} block mb-1.5`}>Key name</label>
+                <input
+                  id="settings-new-key-name"
+                  type="text"
+                  autoFocus
+                  placeholder="e.g. Production CI/CD Runner"
+                  value={newKeyName}
+                  onChange={(e) => setNewKeyName(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') handleCreateApiKey(); }}
+                  className={`${INPUT} w-full`}
+                />
+              </>
+            ) : (
+              <>
+                <div className="rounded-md border border-cw-amber/30 bg-cw-amber/10 px-3 py-2 mb-4 text-[11.5px] text-cw-amber flex items-start gap-2 leading-4">
+                  <AlertTriangle size={14} className="shrink-0 mt-[1px]" />
+                  <span>Save this API key secret now. You will not be able to see it again.</span>
+                </div>
+                <label htmlFor="settings-created-key" className={`${MICRO_LABEL} block mb-1.5`}>API key secret</label>
+                <div className="flex gap-2">
+                  <input
+                    id="settings-created-key"
+                    type="text"
+                    readOnly
+                    value={createdKeySecret}
+                    className={`${INPUT} w-full font-mono text-[11px] text-cw-purple`}
+                  />
+                  <button type="button" onClick={() => copyToClipboard(createdKeySecret, setCopiedKeySecret)} className={`${BTN_PRIMARY} shrink-0`}>
+                    {copiedKeySecret ? <Check size={12} /> : <Copy size={12} />}
+                    {copiedKeySecret ? 'Copied' : 'Copy'}
                   </button>
-                </>
-              )}
-            </div>
-          </div>
+                </div>
+              </>
+            )}
+          </Modal>
         )}
 
         {/* Modal: Add Webhook */}
         {showWebhookModal && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-cw-bg2 border border-cw-bdr rounded-2xl p-6 w-full max-w-[460px] shadow-2xl">
-              <h2 className="text-lg font-bold text-cw-txt mb-1">Add Webhook Destination</h2>
-              <p className="text-[12px] text-cw-txt3 mb-5">Enter an HTTP(S) endpoint URL to receive real-time Codeward event payloads.</p>
-
-              <label className="text-[11px] font-semibold text-cw-txt3 block mb-1.5">Payload Endpoint URL</label>
-              <input
-                type="url"
-                placeholder="https://api.yourcompany.com/webhooks/codeward"
-                value={newWebhookUrl}
-                onChange={(e) => setNewWebhookUrl(e.target.value)}
-                className="w-full px-3 py-2 bg-cw-bg3 border border-cw-bdr rounded-xl text-[13px] text-cw-txt outline-none focus:border-cw-purple transition-colors mb-6"
-              />
-
-              <div className="flex items-center justify-end gap-3">
-                <button
-                  onClick={() => setShowWebhookModal(false)}
-                  className="px-4 py-2 bg-cw-bg3 text-cw-txt text-[12px] font-semibold rounded-xl border border-cw-bdr hover:bg-cw-bdr transition-colors cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleCreateWebhook}
-                  className="px-4 py-2 bg-cw-purple hover:bg-purple-600 text-white text-[12px] font-semibold rounded-xl transition-colors cursor-pointer"
-                >
-                  Add Webhook
-                </button>
-              </div>
-            </div>
-          </div>
+          <Modal
+            title="Add webhook destination"
+            description="Enter an HTTP(S) endpoint URL to receive real-time Codeward event payloads."
+            onClose={() => setShowWebhookModal(false)}
+            footer={
+              <>
+                <button type="button" onClick={() => setShowWebhookModal(false)} className={BTN_SECONDARY}>Cancel</button>
+                <button type="button" onClick={handleCreateWebhook} className={BTN_PRIMARY}>Add webhook</button>
+              </>
+            }
+          >
+            <label htmlFor="settings-new-webhook-url" className={`${MICRO_LABEL} block mb-1.5`}>Payload endpoint URL</label>
+            <input
+              id="settings-new-webhook-url"
+              type="url"
+              autoFocus
+              placeholder="https://api.yourcompany.com/webhooks/codeward"
+              value={newWebhookUrl}
+              onChange={(e) => setNewWebhookUrl(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleCreateWebhook(); }}
+              className={`${INPUT} w-full font-mono text-[11px]`}
+            />
+          </Modal>
         )}
 
       </div>
