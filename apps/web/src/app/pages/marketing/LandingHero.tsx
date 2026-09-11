@@ -2149,7 +2149,6 @@ export default function CodewardHero() {
 function InteractiveParticleGrid({ children, className = '' }: { children: React.ReactNode, className?: string }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const mousePosRef = useRef({ x: -1000, y: -1000 });
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -2172,23 +2171,23 @@ function InteractiveParticleGrid({ children, className = '' }: { children: React
       
       const cols = Math.floor(canvas.width / spacing) + 1;
       const rows = Math.floor(canvas.height / spacing) + 1;
+      
+      const time = Date.now() * 0.001;
 
       for (let i = 0; i <= cols; i++) {
         for (let j = 0; j <= rows; j++) {
           const x = i * spacing;
           const y = j * spacing;
 
-          const dist = Math.hypot(x - mousePosRef.current.x, y - mousePosRef.current.y);
+          const wave1 = Math.sin(x * 0.003 + time * 0.8);
+          const wave2 = Math.cos(y * 0.004 + time * 0.6);
+          const wave3 = Math.sin((x + y) * 0.003 - time * 1.1);
           
-          const maxDist = 400; 
-          let alpha = 0.05; 
-          let radius = 1.2;
+          const combined = (wave1 + wave2 + wave3) / 3;
+          const intensity = Math.max(0, (combined + 1) / 2);
           
-          if (dist < maxDist) {
-            const intensity = 1 - dist / maxDist;
-            alpha += intensity * 0.45;
-            radius += intensity * 1.5;
-          }
+          const alpha = 0.04 + (intensity * 0.35); 
+          const radius = 1.0 + (intensity * 1.5);
 
           ctx.beginPath();
           ctx.arc(x, y, radius, 0, Math.PI * 2);
@@ -2209,25 +2208,9 @@ function InteractiveParticleGrid({ children, className = '' }: { children: React
     };
   }, []);
 
-  const handleMouseMove = (e: React.MouseEvent) => {
-    const rect = containerRef.current?.getBoundingClientRect();
-    if (rect) {
-      mousePosRef.current = {
-        x: e.clientX - rect.left,
-        y: e.clientY - rect.top
-      };
-    }
-  };
-
-  const handleMouseLeave = () => {
-    mousePosRef.current = { x: -1000, y: -1000 };
-  };
-
   return (
     <section 
       ref={containerRef}
-      onMouseMove={handleMouseMove}
-      onMouseLeave={handleMouseLeave}
       className={`relative w-full overflow-hidden ${className}`}
     >
       <canvas ref={canvasRef} className="absolute inset-0 w-full h-full pointer-events-none" />

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
+import { ArrowRight } from 'lucide-react';
 import { useSession } from '../../../lib/auth';
 import { LandingHeader } from './LandingHeader';
 import { LandingFooter } from './LandingFooter';
@@ -35,7 +36,10 @@ function FadeInSection({
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
-          if (entry.isIntersecting) setVisible(true);
+          if (entry.isIntersecting) {
+            setVisible(true);
+            observer.unobserve(entry.target);
+          }
         });
       },
       { threshold: 0.1, rootMargin: '0px 0px -30px 0px' }
@@ -195,6 +199,22 @@ function ComparePlansTable({
   const goStart = () => navigate(session?.user ? '/dashboard' : '/signup');
   const goEnterprise = () => navigate('/book-demo');
 
+  const goTeamCheckout = () => {
+    if (session?.user) {
+      window.location.href = `https://buy.polar.sh/polar_cl_G8nQdTjkiE3TT0f9HwQtEzZAA1FrGatie2AYr1PiFep?client_reference_id=${session.user.id}`;
+    } else {
+      navigate('/signup');
+    }
+  };
+
+  const goProCheckout = () => {
+    if (session?.user) {
+      window.location.href = `https://buy.polar.sh/polar_cl_F6pFlJMO8NB1edLEiNLZ3ED0arMmOtoFUtpBc1J7ibY?client_reference_id=${session.user.id}`;
+    } else {
+      navigate('/signup');
+    }
+  };
+
   const categories = [
     {
       name: 'Usage & Capacity',
@@ -284,10 +304,10 @@ function ComparePlansTable({
                     $19<span className="text-xs font-normal text-white/35"> /mo</span>
                   </span>
                   <button
-                    onClick={goStart}
+                    onClick={goProCheckout}
                     className="mt-2 w-full max-w-[130px] bg-[#8B5CF6] hover:bg-[#7c4ae0] text-white font-medium py-1.5 px-3 rounded-full transition text-[11px] shadow-sm shadow-[#8B5CF6]/20 cursor-pointer"
                   >
-                    Start free
+                    Get Pro
                   </button>
                 </div>
 
@@ -298,10 +318,10 @@ function ComparePlansTable({
                     $39<span className="text-xs font-normal text-white/35"> /seat</span>
                   </span>
                   <button
-                    onClick={goEnterprise}
+                    onClick={goTeamCheckout}
                     className="mt-2 w-full max-w-[130px] bg-white hover:bg-white/90 text-black font-medium py-1.5 px-3 rounded-full transition text-[11px] cursor-pointer"
                   >
-                    Talk to us
+                    Get Team
                   </button>
                 </div>
               </div>
@@ -344,10 +364,10 @@ function ComparePlansTable({
                 </div>
                 <div className="flex justify-center">
                   <button
-                    onClick={goStart}
+                    onClick={goProCheckout}
                     className="w-full max-w-[130px] rounded-full bg-[#8B5CF6] px-3 py-1.5 text-[11px] font-medium text-white hover:bg-[#7c4ae0] transition-all cursor-pointer"
                   >
-                    Start free
+                    Get Pro
                   </button>
                 </div>
                 <div className="flex justify-center">
@@ -412,9 +432,9 @@ export default function PricingPage() {
           </p>
           <button
             onClick={goStart}
-            className="px-7 py-3 bg-white hover:bg-white/90 text-black text-sm font-semibold rounded-full transition-all hover:scale-105 shadow-lg cursor-pointer"
+            className="group flex items-center gap-2.5 px-8 py-3.5 bg-white hover:bg-white/90 text-black text-sm font-semibold rounded-full transition-all hover:scale-105 shadow-lg cursor-pointer"
           >
-            Connect your first repo →
+            Connect your first repo <ArrowRight className="w-4 h-4 ml-1 transition-transform group-hover:translate-x-1" strokeWidth={2.5} />
           </button>
         </FadeInSection>
       </section>
