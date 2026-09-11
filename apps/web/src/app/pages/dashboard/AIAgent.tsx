@@ -162,6 +162,23 @@ function ActivityRow({ name, state, active, onOpen }: { name: string; state: str
   );
 }
 
+/** The composer status is driven by the actual streamed tool parts, never a simulated delay. */
+function StreamStatus({ messages, status }: { messages: UIMessage[]; status: string }) {
+  if (status !== 'submitted' && status !== 'streaming') return null;
+  const latest = messages[messages.length - 1];
+  const activeTool = latest?.role === 'assistant'
+    ? [...latest.parts].reverse().find((p) => isToolUIPart(p) && ((p as any).state === 'input-streaming' || (p as any).state === 'input-available'))
+    : null;
+  const toolName = activeTool ? getToolName(activeTool as any) : null;
+  return (
+    <div className="flex items-center gap-2 rounded-lg border border-cw-blue/20 bg-cw-blue/[0.045] px-3 py-2 text-[11px] text-cw-txt2">
+      <Radio size={12} className="text-cw-blue animate-pulse" />
+      <span>{toolName ? `${TOOL_LABELS[toolName] ?? toolName}…` : status === 'submitted' ? 'Routing your request…' : 'Streaming response…'}</span>
+      <span className="ml-auto text-cw-txt3">live</span>
+    </div>
+  );
+}
+
 /** Recursive, collapsible tree for arbitrary tool input/output — the "details, listed & collapsible". */
 function JsonView({ data, name, depth = 0 }: { data: unknown; name?: string; depth?: number }) {
   const isObj = data !== null && typeof data === 'object';
@@ -573,6 +590,25 @@ function LogsDrawer({ onClose }: { onClose: () => void }) {
           </div>
         </div>
 
+        {/* Dense, inspectable trajectory map: each block is a real tool invocation, newest at right. */}
+        {!loading && logs.length > 0 && (
+          <div className="border-b border-cw-bdr bg-cw-bg px-5 py-2.5">
+            <div className="flex items-center gap-3 text-[10px] text-cw-txt3 mb-2">
+              <span className="font-semibold uppercase tracking-wide text-cw-txt2">Trajectory map</span>
+              <span>{filtered.length} visible steps</span>
+              <span className="ml-auto">click a step below for payload and result</span>
+            </div>
+            <div className="flex items-end gap-1 overflow-x-auto pb-0.5 min-h-7">
+              {[...filtered].reverse().map((l) => (
+                <button key={l.id} onClick={() => setExpanded(l.id)} title={`${TOOL_LABELS[l.toolName] ?? l.toolName} · ${fmtDur(l.durationMs)}`}
+                  className={`group shrink-0 rounded-sm transition-all ${l.success ? (l.requiredApproval ? 'bg-cw-amber' : 'bg-cw-purple') : 'bg-cw-red'} ${expanded === l.id ? 'ring-2 ring-cw-blue ring-offset-1 ring-offset-cw-bg' : 'hover:brightness-125'}`}
+                  style={{ width: Math.min(38, Math.max(10, 8 + Math.log10(Math.max(l.durationMs, 1)) * 7)), height: l.requiredApproval ? 15 : 9 }} />
+              ))}
+            </div>
+            <div className="mt-1.5 flex gap-3 text-[9px] text-cw-txt3"><span><i className="inline-block w-2 h-2 rounded-sm bg-cw-purple mr-1" />read / tool</span><span><i className="inline-block w-2 h-2 rounded-sm bg-cw-amber mr-1" />gated action</span><span><i className="inline-block w-2 h-2 rounded-sm bg-cw-red mr-1" />failed</span></div>
+          </div>
+        )}
+
         {/* table */}
         <div className="flex-1 overflow-auto">
           {loading ? (
@@ -678,6 +714,8 @@ export function AIAgent() {
   const pinnedRepoRef = useRef<Repo | null>(null);
   const selectedRefRef = useRef('');
   const permissionModeRef = useRef<PermissionMode>('default');
+  const attachmentsRef = useRef<AttachmentFile[]>([]);
+  const planModeRef = useRef(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const { data: session } = useSession();
   const userImage = session?.user?.image ?? null;
@@ -685,6 +723,8 @@ export function AIAgent() {
 
   useEffect(() => { pinnedRepoRef.current = pinnedRepo; }, [pinnedRepo]);
   useEffect(() => { selectedRefRef.current = selectedRef; }, [selectedRef]);
+  useEffect(() => { attachmentsRef.current = attachedFiles; }, [attachedFiles]);
+  useEffect(() => { planModeRef.current = isPlanMode; }, [isPlanMode]);
   useEffect(() => {
     permissionModeRef.current = permissionMode;
     localStorage.setItem('cw_gordon_permission_mode', permissionMode);
@@ -740,7 +780,11 @@ export function AIAgent() {
   const transport = useMemo(() => new DefaultChatTransport({
     api: `${API_URL}/api/chat`,
     credentials: 'include',
-    body: () => ({ sessionId: sessionIdRef.current, repoId: pinnedRepoRef.current?.id, ref: selectedRefRef.current || undefined, permissionMode: permissionModeRef.current }),
+    body: () => ({
+      sessionId: sessionIdRef.current, repoId: pinnedRepoRef.current?.id, ref: selectedRefRef.current || undefined,
+      permissionMode: permissionModeRef.current, planMode: planModeRef.current,
+      attachments: attachmentsRef.current.map(({ name, content, size }) => ({ name, content, size })),
+    }),
     fetch: (async (info: RequestInfo | URL, init?: RequestInit) => {
       const res = await fetch(info, init);
       const sid = res.headers.get('X-Chat-Session-Id');
@@ -775,6 +819,8 @@ export function AIAgent() {
     if (!val || busy) return;
     setInput('');
     sendMessage({ text: val });
+    // The server has already captured the attachment context in the request body.
+    setAttachedFiles([]);
   };
 
   const newChat = () => { stop(); sessionIdRef.current = null; setActiveSessionId(null); setMessages([]); };
@@ -852,19 +898,7 @@ export function AIAgent() {
             </div>
           ))}
 
-          {busy && messages[messages.length - 1]?.role === 'user' && (
-            <div className="flex gap-3 items-center">
-              <GordonIcon size={28} />
-              <div className="flex items-center gap-1.5 text-cw-txt3 text-[12px]">
-                Gordon is thinking
-                <span className="inline-flex gap-0.5">
-                  <span className="w-1 h-1 rounded-full bg-cw-txt3 animate-bounce" style={{ animationDelay: '-0.3s' }} />
-                  <span className="w-1 h-1 rounded-full bg-cw-txt3 animate-bounce" style={{ animationDelay: '-0.15s' }} />
-                  <span className="w-1 h-1 rounded-full bg-cw-txt3 animate-bounce" />
-                </span>
-              </div>
-            </div>
-          )}
+          <StreamStatus messages={messages} status={status} />
           <div ref={bottomRef} />
           </div>
         </div>
