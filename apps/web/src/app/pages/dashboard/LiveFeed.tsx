@@ -1,12 +1,33 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { API_URL, WS_URL } from '../../../lib/api';
+import { mockLiveFeedLogs } from '../../../lib/mockAgentData';
 import { AgentCanvas } from '../../components/shared/AgentCanvas';
 import { RepoSelector } from '../../components/shared/RepoSelector';
 import { 
   Bot, Radio, Download, Copy, Check, Terminal as TerminalIcon, Sparkles, Filter, RefreshCw 
 } from 'lucide-react';
 import { toast } from 'sonner';
+
+/** Escalating patience loader — shows reassuring copy when things take time */
+function StreamLoader() {
+  const [phase, setPhase] = useState(0);
+  useEffect(() => {
+    const t1 = setTimeout(() => setPhase(1), 1500);
+    const t2 = setTimeout(() => setPhase(2), 4000);
+    const t3 = setTimeout(() => setPhase(3), 8000);
+    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
+  }, []);
+  const msgs = ['Loading execution logs…', 'Almost there…', 'Hang tight, fetching run history…', 'Taking a bit longer than usual…'];
+  return (
+    <div className="py-14 text-center flex flex-col items-center gap-3 font-jetbrains">
+      <RefreshCw size={16} className="animate-spin text-cw-purple" />
+      <span key={phase} className="text-[12px] text-cw-txt3 animate-in fade-in duration-500">
+        {msgs[phase]}
+      </span>
+    </div>
+  );
+}
 
 const clsColor: Record<string, string> = {
   ok: 'text-cw-green font-medium',
@@ -30,7 +51,8 @@ export type LogItem = {
 };
 
 interface LiveFeedProps {
-  viewMode: 'stream' | 'canvas';
+  viewMode?: 'stream' | 'canvas';
+  onViewModeChange?: (mode: 'stream' | 'canvas') => void;
 }
 
 function formatMillisTimestamp(tsMs: number): string {
@@ -42,10 +64,28 @@ function formatMillisTimestamp(tsMs: number): string {
   return `${h}:${m}:${s}.${ms}`;
 }
 
-export function LiveFeed({ viewMode }: LiveFeedProps) {
+const getInitialLogs = (): LogItem[] => {
+  const cached = typeof window !== 'undefined' ? localStorage.getItem('cw_livefeed_cache') : null;
+  if (cached) {
+    try {
+      const parsed = JSON.parse(cached);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    } catch {}
+  }
+  const now = Date.now();
+  return mockLiveFeedLogs.map((m, idx) => ({
+    id: `init-${idx}`,
+    level: m.cls,
+    tsMs: now - (mockLiveFeedLogs.length - idx) * 3500,
+    message: m.text,
+    logType: 'run',
+  }));
+};
+
+export function LiveFeed({ viewMode = 'canvas', onViewModeChange }: LiveFeedProps) {
   const navigate = useNavigate();
   const bottomRef = useRef<HTMLDivElement>(null);
-  const [logs, setLogs] = useState<LogItem[]>([]);
+  const [logs, setLogs] = useState<LogItem[]>(getInitialLogs);
   const [loading, setLoading] = useState(true);
   const [repoFilter, setRepoFilter] = useState<string>('All');
   const [repoList, setRepoList] = useState<{ id: number; fullName: string }[]>([]);
@@ -67,17 +107,21 @@ export function LiveFeed({ viewMode }: LiveFeedProps) {
     fetch(`${API_URL}/api/reports/livefeed-logs${queryParam}`, { credentials: 'include' })
       .then((res) => res.json())
       .then((data) => {
-        if (data?.logs && Array.isArray(data.logs)) {
+        if (data?.logs && Array.isArray(data.logs) && data.logs.length > 0) {
           setLogs(data.logs);
           localStorage.setItem('cw_livefeed_cache', JSON.stringify(data.logs.slice(-200)));
+        } else {
+          // If server has no logs for this filter, preserve existing logs or default initial logs
+          setLogs((prev) => (prev.length > 0 ? prev : getInitialLogs()));
         }
       })
       .catch((e) => {
         console.error('Failed to load livefeed logs from server:', e);
-        // Client fallback from localStorage
         const cached = localStorage.getItem('cw_livefeed_cache');
         if (cached) {
           try { setLogs(JSON.parse(cached)); } catch {}
+        } else {
+          setLogs(getInitialLogs());
         }
       })
       .finally(() => setLoading(false));
@@ -234,13 +278,15 @@ export function LiveFeed({ viewMode }: LiveFeedProps) {
           repoFilter={repoFilter}
           onRepoChange={(val) => setRepoFilter(String(val))}
           repoList={repoList}
+          viewMode={viewMode}
+          onViewModeChange={onViewModeChange}
         />
       ) : (
         <div className="flex-1 flex flex-col h-full overflow-hidden px-6 py-4">
           
           {/* Header Bar with Repo Filter & Terminal Action Controls */}
-          <div className="flex items-center justify-between gap-4 mb-4 pb-3 border-b border-cw-bdr/50 shrink-0 flex-wrap">
-            <div>
+          <div className="flex items-center gap-4 mb-4 pb-3 border-b border-cw-bdr/50 shrink-0">
+            <div className="shrink-0">
               <div className="text-[14px] font-bold text-cw-txt flex items-center gap-2">
                 Live Agent Execution Feed
                 {isLiveScanning && (
@@ -254,8 +300,35 @@ export function LiveFeed({ viewMode }: LiveFeedProps) {
               </div>
             </div>
 
-            {/* Filter & Terminal Actions Bar */}
-            <div className="flex items-center gap-2.5 flex-wrap">
+            {/* Filter & Terminal Actions Bar — pushed to extreme right */}
+            <div className="ml-auto flex items-center gap-2.5 shrink-0">
+              {onViewModeChange && (
+                <div className="inline-flex p-0.5 bg-cw-bg2 border border-cw-bdr rounded-lg items-center shadow-xs shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => onViewModeChange('stream')}
+                    className={`px-2.5 py-1 rounded-md text-[11px] sm:text-[12px] font-medium transition-all cursor-pointer ${
+                      viewMode === 'stream'
+                        ? 'bg-cw-purple text-white font-semibold shadow-xs'
+                        : 'text-cw-txt2 hover:text-cw-txt'
+                    }`}
+                  >
+                    Stream
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onViewModeChange('canvas')}
+                    className={`px-2.5 py-1 rounded-md text-[11px] sm:text-[12px] font-medium transition-all cursor-pointer ${
+                      viewMode === 'canvas'
+                        ? 'bg-cw-purple text-white font-semibold shadow-xs'
+                        : 'text-cw-txt2 hover:text-cw-txt'
+                    }`}
+                  >
+                    Agent Canvas
+                  </button>
+                </div>
+              )}
+
               <RepoSelector
                 options={repoList}
                 value={repoFilter}
@@ -265,7 +338,7 @@ export function LiveFeed({ viewMode }: LiveFeedProps) {
               />
 
               {/* Terminal Action Buttons (Cloudflare-style) */}
-              <div className="flex items-center rounded-lg border border-cw-bdr bg-cw-bg2 overflow-hidden">
+              <div className="flex items-center rounded-lg border border-cw-bdr bg-cw-bg2 overflow-hidden shrink-0">
                 <button
                   onClick={handleDownloadLog}
                   title="Download full log file"
@@ -301,10 +374,7 @@ export function LiveFeed({ viewMode }: LiveFeedProps) {
             {/* Terminal Body */}
             <div className="flex-1 overflow-y-auto px-5 py-4 font-jetbrains text-[13px] md:text-[14px] leading-[1.8] select-text tracking-tight">
               {loading ? (
-                <div className="py-12 text-center text-cw-txt3 flex items-center justify-center gap-2 font-jetbrains text-xs">
-                  <RefreshCw size={14} className="animate-spin text-cw-purple" />
-                  <span>Loading persistent execution logs from server...</span>
-                </div>
+                <StreamLoader />
               ) : logs.length === 0 ? (
                 <div className="py-16 text-center text-cw-txt3 flex flex-col items-center gap-2 font-jetbrains">
                   <Bot size={28} className="text-cw-txt3/40" />

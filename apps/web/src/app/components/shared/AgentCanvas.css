@@ -1,3 +1,7 @@
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
 .agent-canvas-container {
   font-family: var(--font-sans), 'Inter', sans-serif;
   color: var(--cw-txt);
@@ -28,6 +32,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  width: 100%;
 }
 
 .top-left {

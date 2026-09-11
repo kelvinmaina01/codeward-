@@ -299,33 +299,42 @@ reportsRouter.get('/canvas', async (c) => {
   const targetRepoId = repoIdParam && repoIdParam !== 'All' ? Number(repoIdParam) : null;
   const targetRunId = runIdParam ? Number(runIdParam) : null;
 
-  // 1. Fetch latest or specified run
+  // 1. Fetch target run efficiently using indexed queries (Zero N+1)
   let targetRun: typeof schema.runs.$inferSelect | undefined;
   if (targetRunId) {
     const [r] = await db.select().from(schema.runs).where(eq(schema.runs.id, targetRunId));
     targetRun = r;
-  } else if (targetRepoId) {
-    const [r] = await db.select().from(schema.runs)
-      .where(eq(schema.runs.repoId, targetRepoId))
-      .orderBy(desc(schema.runs.createdAt))
-      .limit(1);
-    targetRun = r;
-  } else if (repoIds.length > 0) {
-    const [r] = await db.select().from(schema.runs)
-      .where(inArray(schema.runs.repoId, repoIds))
-      .orderBy(desc(schema.runs.createdAt))
-      .limit(1);
-    targetRun = r;
   } else {
-    const [r] = await db.select().from(schema.runs)
-      .orderBy(desc(schema.runs.createdAt))
-      .limit(1);
-    targetRun = r;
+    let recentRuns: typeof schema.runs.$inferSelect[] = [];
+    if (targetRepoId) {
+      recentRuns = await db.select().from(schema.runs)
+        .where(eq(schema.runs.repoId, targetRepoId))
+        .orderBy(desc(schema.runs.createdAt))
+        .limit(5);
+    } else if (repoIds.length > 0) {
+      recentRuns = await db.select().from(schema.runs)
+        .where(inArray(schema.runs.repoId, repoIds))
+        .orderBy(desc(schema.runs.createdAt))
+        .limit(10);
+    } else {
+      recentRuns = await db.select().from(schema.runs)
+        .orderBy(desc(schema.runs.createdAt))
+        .limit(10);
+    }
+
+    if (recentRuns.length > 0) {
+      const recentRunIds = recentRuns.map((r) => r.id);
+      // Batch lookup: single indexed query instead of sequential loop
+      const tasksExist = await db.select({ runId: schema.agentTasks.runId })
+        .from(schema.agentTasks)
+        .where(inArray(schema.agentTasks.runId, recentRunIds));
+      const runIdsWithTasks = new Set(tasksExist.map((t) => t.runId));
+
+      targetRun = recentRuns.find((r) => runIdsWithTasks.has(r.id) || r.status === 'running') || recentRuns[0];
+    }
   }
 
-  const baseTimeMs = targetRun?.createdAt ? new Date(targetRun.createdAt).getTime() : Date.now() - 4 * 60 * 1000;
-
-  // Format millisecond timestamp matching user screenshot (HH:mm:ss.SSS, e.g. 14:44:50.294)
+  // Millisecond timestamp formatter (HH:mm:ss.SSS)
   const formatClockTime = (ms: number | Date) => {
     const d = new Date(ms);
     const h = String(d.getHours()).padStart(2, '0');
@@ -348,19 +357,70 @@ reportsRouter.get('/canvas', async (c) => {
     if (level === 'err' || lower.includes('critical') || lower.includes('fail') || lower.includes('block')) return 'fail';
     if (level === 'warn' || lower.includes('high') || lower.includes('warn') || lower.includes('duplicate')) return 'warn';
     if (level === 'ok' || lower.includes('pass') || lower.includes('clean') || lower.includes('rate limit ok')) return 'pass';
-    if (level === 'inf' && (lower.includes('(') || lower.includes('->') || lower.includes('executing') || lower.includes('run_') || lower.includes('check_'))) return 'tool';
+    const isToolMsg = lower.includes('executing tool') || lower.includes('├─') || lower.includes('→') || lower.includes('->') || lower.includes('run_') || lower.includes('check_') || lower.includes('spawn_') || lower.includes('post_') || lower.includes('create_') || lower.includes('get_') || lower.includes('scan_') || lower.includes('measure_') || lower.includes('inject_');
+    if (level === 'inf' || (level === 'plain' && isToolMsg)) return 'tool';
     return 'info';
   };
 
-  // 2. Fetch tasks and logs if run exists
+  // 2. Fetch tasks and logs in parallel using fast indexed queries
   let tasks: typeof schema.agentTasks.$inferSelect[] = [];
-  let logsFromDb: typeof schema.runLogs.$inferSelect[] = [];
+  let logsFromDb: { agent: string; level: string; tsMs: number; message: string }[] = [];
+
   if (targetRun) {
-    tasks = await db.select().from(schema.agentTasks).where(eq(schema.agentTasks.runId, targetRun.id));
     try {
-      logsFromDb = await db.select().from(schema.runLogs).where(eq(schema.runLogs.runId, targetRun.id)).orderBy(schema.runLogs.tsMs);
+      const [tasksRes, logsRes] = await Promise.all([
+        db.select().from(schema.agentTasks).where(eq(schema.agentTasks.runId, targetRun.id)),
+        db.select({
+          agent: schema.runLogs.agent,
+          level: schema.runLogs.level,
+          tsMs: schema.runLogs.tsMs,
+          message: schema.runLogs.message,
+        })
+          .from(schema.runLogs)
+          .where(eq(schema.runLogs.runId, targetRun.id))
+          .orderBy(schema.runLogs.tsMs)
+          .limit(500),
+      ]);
+      tasks = tasksRes;
+      logsFromDb = logsRes as any;
     } catch {
+      tasks = [];
       logsFromDb = [];
+    }
+  }
+
+  // If some canvas agents didn't run in this run, fetch their latest historical task for this repository
+  const ALL_CANVAS_AGENTS = ['orchestrator', 'security', 'bloat', 'broken_code', 'architecture', 'compliance', 'data_dx', 'ai_era', 'guardian'];
+  const presentAgentIds = new Set(tasks.map((t) => (t.agentId.startsWith('orchestrator') ? 'orchestrator' : t.agentId)));
+  const missingAgentIds = ALL_CANVAS_AGENTS.filter((a) => !presentAgentIds.has(a));
+
+  const repoContextId = targetRepoId || targetRun?.repoId;
+  if (missingAgentIds.length > 0 && repoContextId) {
+    try {
+      const matchAgentIds = [...missingAgentIds];
+      if (missingAgentIds.includes('orchestrator')) {
+        matchAgentIds.push('orchestrator_phase1', 'orchestrator_phase2', 'orchestrator_phase3');
+      }
+      const historicalRows = await db.select({ task: schema.agentTasks })
+        .from(schema.agentTasks)
+        .innerJoin(schema.runs, eq(schema.agentTasks.runId, schema.runs.id))
+        .where(and(
+          eq(schema.runs.repoId, repoContextId),
+          inArray(schema.agentTasks.agentId, matchAgentIds)
+        ))
+        .orderBy(desc(schema.agentTasks.createdAt))
+        .limit(20);
+
+      for (const row of historicalRows) {
+        const t = row.task;
+        const normId = t.agentId.startsWith('orchestrator') ? 'orchestrator' : t.agentId;
+        if (!presentAgentIds.has(normId)) {
+          tasks.push(t);
+          presentAgentIds.add(normId);
+        }
+      }
+    } catch {
+      // Historical fallback lookup failed, proceed with current run tasks
     }
   }
 
@@ -380,25 +440,31 @@ reportsRouter.get('/canvas', async (c) => {
   }, 0);
 
   const gateDecision = criticalCount > 0 ? 'BLOCK' : (targetRun?.score != null && targetRun.score < 60 ? 'BLOCK' : 'PASS');
-  const commitShaShort = (targetRun?.commitSha || 'abc1234').slice(0, 7);
-  const runIdDisplay = targetRun?.id ?? 247;
+  const commitShaShort = (targetRun?.commitSha || 'main').slice(0, 7);
+  const runIdDisplay = targetRun?.id ?? 1;
 
-  // Build agent canvas definitions
+  // Real default models from platform configuration
+  const defaultOrchestratorModel = process.env.OPENAI_MODEL || process.env.TOKENROUTER_MODEL || 'gpt-4o';
+  const defaultSubagentModel = process.env.OPENAI_MODEL || process.env.TOKENROUTER_MODEL || 'gpt-4o-mini';
+
+  // Build agent canvas definitions cleanly from database state
   const buildAgent = (
     id: string,
     name: string,
     icon: string,
-    model: string,
+    defaultModel: string,
     defaultLabel: string,
     color: string,
-    defaultStatusText: string,
-    defaultMetrics: { t: string; c: string }[],
-    defaultConfig: Record<string, string>,
-    defaultFindings: { sev: 'critical' | 'high' | 'medium' | 'info'; title: string; desc: string }[],
-    defaultSandbox: { icon: string; active: boolean; done: boolean; name: string; status: string }[],
-    defaultLogs: { minSec: string; type: 'info' | 'tool' | 'pass' | 'fail' | 'warn'; msg: string }[]
+    defaultConfig: Record<string, string> = {}
   ) => {
-    const task = tasks.find((t) => t.agentId === id);
+    const isOrch = id === 'orchestrator';
+    const task = isOrch
+      ? (tasks.find((t) => t.agentId === 'orchestrator_phase3') ||
+         tasks.find((t) => t.agentId === 'orchestrator_phase2') ||
+         tasks.find((t) => t.agentId === 'orchestrator_phase1') ||
+         tasks.find((t) => t.agentId.startsWith('orchestrator')))
+      : tasks.find((t) => t.agentId === id);
+
     const meta = (task?.reportMeta as any) ?? {};
     const taskFindings = ((task?.findings as any[]) ?? []).map((f: any) => ({
       sev: mapSeverity(f.severity),
@@ -406,13 +472,16 @@ reportsRouter.get('/canvas', async (c) => {
       desc: (f.file ? `${f.file}${f.line ? `:${f.line}` : ''} · ` : '') + (f.description || f.rawEvidence || 'Observed finding'),
     }));
 
-    const findings = task ? taskFindings : defaultFindings;
+    const findings = taskFindings;
     const critCount = findings.filter((f) => f.sev === 'critical').length;
     const hiCount = findings.filter((f) => f.sev === 'high').length;
     const medCount = findings.filter((f) => f.sev === 'medium').length;
 
-    // Map logs for this agent
-    const dbLogs = logsFromDb.filter((l) => l.agent === id);
+    // Filter logs for this agent
+    const dbLogs = isOrch
+      ? logsFromDb.filter((l) => l.agent.startsWith('orchestrator') || l.agent === 'orchestrator')
+      : logsFromDb.filter((l) => l.agent === id);
+
     let agentLogs: { t: string; type: 'info' | 'tool' | 'pass' | 'fail' | 'warn'; msg: string }[] = [];
     if (dbLogs.length > 0) {
       agentLogs = dbLogs.map((l) => ({
@@ -420,92 +489,105 @@ reportsRouter.get('/canvas', async (c) => {
         type: mapLogType(l.level, l.message),
         msg: l.message,
       }));
+    } else if (task) {
+      agentLogs = [
+        {
+          t: task.createdAt ? formatClockTime(new Date(task.createdAt)) : '--',
+          type: task.status === 'failed' ? 'fail' : 'pass',
+          msg: `${name} ${task.status} · score: ${task.score ?? '--'} · ${findings.length} findings`,
+        },
+      ];
     } else {
-      // Reconstruct with millisecond precision clock time matching user's second screenshot
-      agentLogs = defaultLogs.map((item, idx) => {
-        if (item.minSec === '--') {
-          return { t: '--', type: item.type, msg: item.msg };
-        }
-        const [mStr, sStr] = (item.minSec || '00:00').split(':');
-        const m = parseInt(mStr, 10) || 0;
-        const s = parseInt(sStr, 10) || 0;
-        const offsetMs = (m * 60 + s) * 1000 + ((idx * 47 + 294) % 1000);
-        return {
-          t: formatClockTime(baseTimeMs + offsetMs),
-          type: item.type,
-          msg: item.msg.replace('abc1234', commitShaShort).replace('PR #103', `PR #${targetRun?.id ?? 103}`),
-        };
-      });
+      agentLogs = [
+        {
+          t: '--',
+          type: 'info',
+          msg: `${name} ready on standby. No issues recorded.`,
+        },
+      ];
     }
 
-    // Map sandbox ops
+    // Map sandbox ops from real tool executions
     const toolsExecuted = meta.toolsExecuted ?? [];
-    const sandbox = toolsExecuted.length > 0
-      ? toolsExecuted.map((tool: any) => {
-          const tName = typeof tool === 'object' && tool ? (tool.name || tool.tool || 'Tool') : String(tool);
-          return {
-            icon: tName.includes('truffle') || tName.includes('crypto') ? 'Lock01Icon' : tName.includes('trivy') || tName.includes('cve') ? 'Shield01Icon' : tName.includes('fallow') || tName.includes('ast') ? 'File01Icon' : 'Settings01Icon',
-            active: false,
-            done: true,
-            name: tName,
-            status: 'Analysis completed',
-          };
-        })
-      : defaultSandbox;
+    const sandbox = toolsExecuted.map((tool: any) => {
+      const tName = typeof tool === 'object' && tool ? (tool.name || tool.tool || 'Tool') : String(tool);
+      return {
+        icon: tName.includes('truffle') || tName.includes('crypto') ? 'Lock01Icon' : tName.includes('trivy') || tName.includes('cve') ? 'Shield01Icon' : tName.includes('fallow') || tName.includes('ast') ? 'File01Icon' : 'Settings01Icon',
+        active: false,
+        done: true,
+        name: tName,
+        status: 'Completed',
+      };
+    });
 
-    // Summary calculation
-    const durationStr = task?.duration ? `${Math.floor(task.duration / 60000)}m ${Math.floor((task.duration % 60000) / 1000)}s` : `${Math.floor((defaultLogs.length * 4) / 60)}m ${(defaultLogs.length * 4) % 60}s`;
+    const durationStr = task?.duration
+      ? `${Math.floor(task.duration / 60000)}m ${Math.floor((task.duration % 60000) / 1000)}s`
+      : '0s';
+
     const summary = {
       criticals: critCount,
       highs: hiCount,
       mediums: medCount,
-      fixed: meta.autoFixPR?.appliedFixes?.length ?? (id === 'bloat' ? 2 : 0),
-      linesRemoved: meta.linesRemoved ?? (id === 'bloat' ? 38 : 0),
+      fixed: meta.autoFixPR?.appliedFixes?.length ?? meta.fixedCount ?? 0,
+      linesRemoved: meta.linesRemoved ?? 0,
       duration: durationStr,
     };
 
-    const status: 'passed' | 'blocked' | 'running' | 'idle' = task
-      ? task.status === 'completed'
-        ? critCount > 0 || (task.score != null && task.score < 60)
-          ? 'blocked'
-          : 'passed'
-        : task.status === 'running'
-          ? 'running'
-          : 'idle'
-      : id === 'compliance' || id === 'chat'
-        ? 'idle'
-        : id === 'guardian'
-          ? 'running'
-          : critCount > 0
-            ? 'blocked'
-            : 'passed';
+    let status: 'passed' | 'blocked' | 'running' | 'idle' = 'idle';
+    if (task) {
+      if (task.status === 'completed') {
+        status = critCount > 0 || (task.score != null && task.score < 60) ? 'blocked' : 'passed';
+      } else if (task.status === 'running') {
+        status = 'running';
+      } else if (task.status === 'failed') {
+        status = 'blocked';
+      }
+    } else if (isOrch && targetRun) {
+      status = targetRun.status === 'running' ? 'running' : targetRun.status === 'failed' || gateDecision === 'BLOCK' ? 'blocked' : 'passed';
+    }
 
-    const statusText = task
-      ? critCount > 0
-        ? `${critCount} critical: findings detected`
-        : task.score != null
-          ? `Score ${task.score}/100 · passing`
-          : defaultStatusText
-      : defaultStatusText;
+    let statusText = 'Ready · Standby';
+    if (isOrch) {
+      statusText = targetRun
+        ? gateDecision === 'BLOCK'
+          ? `Gate decision: BLOCK — ${criticalCount} critical issue${criticalCount === 1 ? '' : 's'}`
+          : targetRun.status === 'running'
+            ? 'Gate evaluation in progress...'
+            : 'Gate decision: PASS — 0 critical issues'
+        : 'Ready · Standby';
+    } else if (task) {
+      if (critCount > 0) {
+        statusText = `${critCount} critical finding${critCount === 1 ? '' : 's'} detected`;
+      } else if (task.score != null) {
+        statusText = `Score ${task.score}/100 · ${task.status === 'completed' ? 'passing' : 'running'}`;
+      } else if (task.status === 'running') {
+        statusText = 'Scanning repository...';
+      } else {
+        statusText = findings.length > 0 ? `${findings.length} findings recorded` : '0 issues detected';
+      }
+    }
 
     const metrics = task
       ? [
-          { t: critCount > 0 ? `${critCount} critical` : `${findings.length} findings`, c: critCount > 0 ? 'red' : 'green' },
-          { t: hiCount > 0 ? `${hiCount} high` : 'Score: ' + (task.score ?? 100), c: hiCount > 0 ? 'amber' : '' },
-          { t: durationStr, c: '' },
+          { t: critCount > 0 ? `${critCount} critical` : (task.score != null ? `Score: ${task.score}` : 'Clean'), c: critCount > 0 ? 'red' : 'green' },
+          { t: hiCount > 0 ? `${hiCount} high` : `${findings.length} findings`, c: hiCount > 0 ? 'amber' : '' },
+          { t: durationStr !== '0s' ? durationStr : (task.model || defaultModel), c: 'purple' },
         ]
-      : defaultMetrics;
+      : [
+          { t: 'Standby', c: '' },
+          { t: defaultModel, c: 'purple' },
+        ];
 
     return {
       id,
       name,
       icon,
-      model,
+      model: task?.model ?? defaultModel,
       status,
-      score: task?.score ?? (critCount > 0 ? 45 : (id === 'compliance' || id === 'chat' || id === 'guardian') ? null : 94),
-      label: defaultLabel,
+      score: task?.score ?? (task ? (critCount > 0 ? 45 : 100) : null),
+      label: task ? (findings.length > 0 ? `${findings.length} findings` : 'Clean') : defaultLabel,
       statusText,
-      progress: id === 'guardian' ? 65 : (id === 'compliance' || id === 'chat') ? 0 : 100,
+      progress: task ? (task.status === 'running' ? 50 : 100) : (isOrch && targetRun ? (targetRun.status === 'running' ? 50 : 100) : 0),
       color,
       metrics,
       logs: agentLogs,
@@ -516,407 +598,104 @@ reportsRouter.get('/canvas', async (c) => {
     };
   };
 
-  // 1. Orchestrator Agent
-  const orchestratorLogs = [
-    { minSec: '00:00', type: 'info' as const, msg: `Webhook received · commit ${commitShaShort} · PR #${runIdDisplay}` },
-    { minSec: '00:01', type: 'tool' as const, msg: 'read_repo_config() → strictMode: true, highStakes: [payments, auth]' },
-    { minSec: '00:02', type: 'tool' as const, msg: 'analyse_commit_diff() → riskProfile: HIGH · touches: [payments, api]' },
-    { minSec: '00:02', type: 'info' as const, msg: 'Dispatching 5 agents in parallel' },
-    { minSec: '00:03', type: 'tool' as const, msg: 'spawn_agent(security, HIGH priority)' },
-    { minSec: '00:03', type: 'tool' as const, msg: 'spawn_agent(bloat, normal priority)' },
-    { minSec: '00:03', type: 'tool' as const, msg: 'spawn_agent(broken_code, HIGH priority)' },
-    { minSec: '00:03', type: 'tool' as const, msg: 'spawn_agent(architecture, normal priority)' },
-    { minSec: '04:15', type: 'tool' as const, msg: 'await_agent_results() → all 5 agents completed' },
-    { minSec: '04:16', type: 'tool' as const, msg: `aggregate_results() → weightedScore: ${targetRun?.score ?? 72} · ${criticalCount || 1} CRITICAL` },
-    { minSec: '04:17', type: 'fail' as const, msg: `Hard rule triggered: CRITICAL finding → gateDecision = ${gateDecision}` },
-    { minSec: '04:18', type: 'tool' as const, msg: `post_github_check_run(status=completed, conclusion=${gateDecision === 'BLOCK' ? 'failure' : 'success'})` },
-    { minSec: '04:18', type: 'pass' as const, msg: 'Orchestrator run complete · rationale written' },
-  ].map((item, idx) => {
-    const [mStr, sStr] = item.minSec.split(':');
-    const m = parseInt(mStr, 10) || 0;
-    const s = parseInt(sStr, 10) || 0;
-    const offsetMs = (m * 60 + s) * 1000 + ((idx * 47 + 294) % 1000);
-    return {
-      t: formatClockTime(baseTimeMs + offsetMs),
-      type: item.type,
-      msg: item.msg,
-    };
-  });
+  const orchestratorAgent = buildAgent(
+    'orchestrator',
+    'Orchestrator',
+    'CpuIcon',
+    defaultOrchestratorModel,
+    'CEO Agent',
+    '#8B5CF6',
+    { model: defaultOrchestratorModel, trigger: 'webhook/push', mode: 'parallel-dispatch' }
+  );
 
-  const orchestratorAgent = {
-    id: 'orchestrator',
-    name: 'Orchestrator',
-    icon: 'CpuIcon',
-    model: 'sonnet-4-6',
-    status: gateDecision === 'BLOCK' ? ('blocked' as const) : ('passed' as const),
-    score: targetRun?.score ?? null,
-    label: 'CEO Agent',
-    statusText: `Gate decision: ${gateDecision} — ${criticalCount || 1} critical`,
-    progress: 100,
-    color: '#8B5CF6',
-    metrics: [
-      { t: `Gate: ${gateDecision}`, c: gateDecision === 'BLOCK' ? 'red' : 'green' },
-      { t: `${tasks.length || 5} agents run`, c: 'purple' },
-      { t: '4m 18s', c: '' },
-    ],
-    logs: orchestratorLogs,
-    config: {
-      model: 'claude-sonnet-4-6',
-      trigger: 'webhook/push',
-      mode: 'parallel-dispatch',
-      timeout: '600s',
-      strictMode: 'true',
-      highStakes: 'payments,auth',
-      agentsDispatched: String(tasks.length || 5),
-      parallelPhases: '1',
-    },
-    findings: [],
-    sandbox: [],
-    summary: {
-      criticals: criticalCount || 1,
-      highs: highCount || 2,
-      mediums: mediumCount || 4,
-      fixed: totalFixed || 2,
-      linesRemoved: totalLinesRemoved || 38,
-      duration: '4m 18s',
-    },
-  };
-
-  // 2. Security Agent
   const securityAgent = buildAgent(
     'security',
     'Security Agent',
     'Shield01Icon',
-    'haiku-4-5',
-    '18 checks',
+    defaultSubagentModel,
+    'Security scan',
     '#dc2626',
-    '1 critical: Stripe key line 14',
-    [{ t: '1 critical', c: 'red' }, { t: '2 high', c: 'amber' }, { t: 'Score: 45', c: 'red' }],
-    { model: 'claude-haiku-4-5', maxSteps: '20', tools: 'trufflehog,trivy,owasp-zap,auth-probe', timeout: '300s', outputSchema: 'SecurityAgentResult', constitution: 'evidence-or-silence' },
-    [
-      { sev: 'critical', title: 'Active Stripe secret key', desc: 'src/webhooks/stripe.ts:14 · verified active by truffleHog · must rotate immediately' },
-      { sev: 'high', title: 'CVE-2024-4367 in pdfjs-dist', desc: 'pdfjs-dist@3.4.120 · arbitrary JS execution · fix: upgrade to 3.11.174' },
-      { sev: 'high', title: 'Unprotected admin endpoint', desc: '/api/admin/users returns 200 with no auth header · expects 401' },
-      { sev: 'info', title: 'Rate limiting: OK', desc: '/api/login returns 429 after 5 requests · correctly configured' },
-    ],
-    [
-      { icon: 'Lock01Icon', active: true, done: true, name: 'truffleHog v3', status: 'Scanned 847 files + 234 commits' },
-      { icon: 'Shield01Icon', active: false, done: true, name: 'Trivy CVE scan', status: '67 deps · 1 CVE found' },
-      { icon: 'Bug02Icon', active: false, done: true, name: 'OWASP ZAP', status: '14 routes probed · 1 unprotected' },
-      { icon: 'Key01Icon', active: false, done: true, name: 'NHI token scan', status: 'No unrotated tokens' },
-    ],
-    [
-      { minSec: '00:03', type: 'info', msg: `Security Agent started · repoPath: /tmp/sandbox/${commitShaShort}` },
-      { minSec: '00:03', type: 'tool', msg: 'search_memory(repoId) → 0 prior dismissals' },
-      { minSec: '00:04', type: 'tool', msg: 'run_trufflehog(repoPath, scanHistory=true)' },
-      { minSec: '00:18', type: 'fail', msg: 'CRITICAL: Verified active Stripe key · src/webhooks/stripe.ts:14' },
-      { minSec: '00:18', type: 'info', msg: 'truffleHog: sk-live-xxxx · verified=true (Stripe API 200)' },
-      { minSec: '00:19', type: 'tool', msg: 'run_trivy(filesystem) → scanning 67 dependencies' },
-      { minSec: '00:34', type: 'warn', msg: 'HIGH: CVE-2024-4367 · pdfjs-dist@3.4.120 · fix: upgrade to 3.11.174' },
-      { minSec: '00:35', type: 'tool', msg: 'check_auth_on_routes(baseUrl) → probing 14 endpoints' },
-      { minSec: '00:52', type: 'warn', msg: 'HIGH: /api/admin/users returns 200 with no auth token' },
-      { minSec: '01:04', type: 'tool', msg: 'check_rate_limiting([/api/login, /api/signup]) → 100 requests' },
-      { minSec: '01:12', type: 'info', msg: 'Rate limit OK: 429 fired after 5 requests on /api/login' },
-      { minSec: '01:13', type: 'tool', msg: 'check_crypto_patterns(repoPath) → scanning AST' },
-      { minSec: '01:20', type: 'pass', msg: 'No deprecated crypto algorithms found' },
-      { minSec: '01:21', type: 'tool', msg: 'scan_nhi_tokens(repoPath) → checking K8s, CI configs' },
-      { minSec: '01:30', type: 'pass', msg: 'NHI scan: no unrotated long-lived tokens' },
-      { minSec: '01:31', type: 'tool', msg: 'write_memory(repoId, summary)' },
-      { minSec: '01:32', type: 'fail', msg: 'gateDecision=BLOCK · score=45 · 1 critical, 2 high' },
-    ]
+    { model: defaultSubagentModel, tools: 'trufflehog,trivy,owasp-zap,auth-probe' }
   );
 
-  // 3. Bloat Agent
   const bloatAgent = buildAgent(
     'bloat',
     'Bloat Agent',
     'Delete01Icon',
-    'haiku-4-5',
-    'Fallow + AST',
+    defaultSubagentModel,
+    'Bloat & Duplicates',
     '#d97706',
-    '2 duplicates removed · −38 lines',
-    [{ t: '2 dupes removed', c: 'green' }, { t: '−38 lines', c: 'purple' }, { t: 'Score: 88', c: '' }],
-    { model: 'claude-haiku-4-5', tools: 'fallow-cli,tree-sitter,bundle-analyser', astLanguages: 'ts,js,py', maxSteps: '20', autoFix: 'true', fallowMode: 'mild' },
-    [
-      { sev: 'medium', title: 'Dead export: formatCurrency', desc: 'src/utils/format.ts:14 · 0 references · no dynamic imports · auto-removed' },
-      { sev: 'medium', title: 'Duplicate: validateWebhookSignature()', desc: '87% similar to verifySignature() at utils/crypto.js:28 · 23 lines merged · auto-fixed' },
-      { sev: 'medium', title: 'Unused dependency: lodash', desc: 'package.json · never imported · 71kb bundle savings · manual removal suggested' },
-      { sev: 'info', title: 'Fallow health score: 88/100 (B)', desc: 'Dead code: 91 · Duplication: 87 · Complexity: 96' },
-    ],
-    [
-      { icon: 'File01Icon', active: false, done: true, name: 'Fallow dead code', status: '1 dead export found' },
-      { icon: 'Copy01Icon', active: false, done: true, name: 'Fallow duplicates', status: '1 clone family · 87% match' },
-      { icon: 'ChartBarLineIcon', active: false, done: true, name: 'Fallow complexity', status: 'All functions within threshold' },
-      { icon: 'PackageIcon', active: false, done: true, name: 'Dependency audit', status: '1 unused: lodash · 71kb' },
-    ],
-    [
-      { minSec: '00:03', type: 'info', msg: 'Bloat Agent started · using Fallow (Rust) + tree-sitter' },
-      { minSec: '00:04', type: 'tool', msg: 'search_memory(repoId, "bloat") → 1 prior dismissal loaded' },
-      { minSec: '00:04', type: 'tool', msg: 'run_fallow_dead_code(repoPath, entryPoints=[src/index.ts])' },
-      { minSec: '00:05', type: 'warn', msg: 'Dead export: formatCurrency · src/utils/format.ts:14 · 0 references' },
-      { minSec: '00:05', type: 'tool', msg: 'check_dynamic_imports(repoPath, "formatCurrency")' },
-      { minSec: '00:06', type: 'pass', msg: 'No dynamic imports found · confirmed dead · safe to remove' },
-      { minSec: '00:06', type: 'tool', msg: 'run_fallow_duplicates(repoPath, mode=mild)' },
-      { minSec: '00:07', type: 'warn', msg: 'Clone family: validateWebhookSignature() ≈ verifySignature() · 87% similarity' },
-      { minSec: '00:07', type: 'tool', msg: 'read_file(src/webhooks/stripe.ts:45, src/utils/crypto.js:28)' },
-      { minSec: '00:08', type: 'warn', msg: 'Confirmed: semantically identical · 23 lines removable' },
-      { minSec: '00:08', type: 'tool', msg: 'run_fallow_complexity(repoPath) → threshold: cyclomatic>10' },
-      { minSec: '00:09', type: 'pass', msg: 'No functions exceed complexity threshold' },
-      { minSec: '00:09', type: 'tool', msg: 'check_dependency_usage(repoPath) → scanning package.json' },
-      { minSec: '00:10', type: 'warn', msg: 'Unused: lodash@4.17.21 · never imported · 71kb bundle savings' },
-      { minSec: '00:11', type: 'tool', msg: 'run_fallow_health(repoPath) → overall score: 88/100 (grade B)' },
-      { minSec: '00:11', type: 'tool', msg: 'Auto-fix: applying refactors · running test suite to verify' },
-      { minSec: '00:18', type: 'pass', msg: 'Tests pass after refactor: 142/142 · committing to branch' },
-      { minSec: '00:19', type: 'pass', msg: 'gateDecision=PASS · score=88 · 2 auto-fixes applied' },
-    ]
+    { model: defaultSubagentModel, tools: 'fallow-cli,tree-sitter,bundle-analyser' }
   );
 
-  // 4. Broken Code Agent
   const brokenCodeAgent = buildAgent(
     'broken_code',
     'Broken Code Agent',
     'Bug02Icon',
-    'haiku-4-5',
-    'Karpathy loop',
+    defaultSubagentModel,
+    'Syntax & Runtime',
     '#16a34a',
-    '142/142 tests passing · 84% cov',
-    [{ t: '142/142 tests', c: 'green' }, { t: '84% cov', c: 'green' }, { t: 'Score: 100', c: 'green' }],
-    { model: 'claude-haiku-4-5', karpathyMaxRetries: '3', tools: 'jest,heap-profiler,async-ast-scan', testCommand: 'npm test', migrationCmd: 'drizzle-kit migrate:down', flakyRuns: '10' },
-    [
-      { sev: 'medium', title: '3 await calls missing try/catch', desc: 'src/api/payments.ts:88,102,117 · unhandled rejections risk' },
-      { sev: 'medium', title: 'fetch() without timeout', desc: 'src/api/webhook.ts:34 · worker hang risk on external failure' },
-      { sev: 'info', title: 'Test suite: 142/142 passed', desc: '48s runtime · 84% coverage · 10 flaky runs: 0 failures' },
-      { sev: 'info', title: 'Migration rollback: clean', desc: 'Down migration succeeded · schema reverts safely' },
-    ],
-    [
-      { icon: 'Testing01Icon', active: false, done: true, name: 'Test suite (Jest)', status: '142/142 · 84% coverage' },
-      { icon: 'Database01Icon', active: false, done: true, name: 'Migration rollback', status: 'Reverted cleanly' },
-      { icon: 'Activity01Icon', active: false, done: true, name: 'Heap profiler', status: '+2MB over 60s · no leak' },
-      { icon: 'Refresh01Icon', active: false, done: true, name: 'Flaky detector (10×)', status: '0/10 non-deterministic' },
-    ],
-    [
-      { minSec: '00:03', type: 'info', msg: 'Broken Code Agent started · Karpathy loop enabled (max 3 retries)' },
-      { minSec: '00:03', type: 'tool', msg: 'run_test_suite(npm test, timeout=300s)' },
-      { minSec: '01:45', type: 'pass', msg: 'Test suite: 142/142 passed · 84% coverage · 48s runtime' },
-      { minSec: '01:46', type: 'tool', msg: 'run_migration_down(drizzle migrate:down)' },
-      { minSec: '01:52', type: 'pass', msg: 'Migration rollback: success · schema reverted cleanly' },
-      { minSec: '01:53', type: 'tool', msg: 'scan_async_patterns(repoPath) → checking await/catch coverage' },
-      { minSec: '01:58', type: 'warn', msg: 'MEDIUM: 3 await calls without try/catch · src/api/payments.ts:88,102,117' },
-      { minSec: '01:58', type: 'tool', msg: 'scan_swallowed_errors(repoPath)' },
-      { minSec: '02:04', type: 'pass', msg: 'No empty catch blocks found' },
-      { minSec: '02:05', type: 'tool', msg: 'check_api_timeouts(repoPath, [axios, fetch])' },
-      { minSec: '02:10', type: 'warn', msg: 'MEDIUM: fetch() at src/api/webhook.ts:34 has no timeout configured' },
-      { minSec: '02:11', type: 'tool', msg: 'run_heap_profiler(60s sustained load)' },
-      { minSec: '03:15', type: 'pass', msg: 'Heap: start 42MB → end 44MB (+2MB) · no leak detected' },
-      { minSec: '03:16', type: 'tool', msg: 'run_flaky_detector(10 runs) · targeting async tests' },
-      { minSec: '04:02', type: 'pass', msg: '10/10 runs consistent · no flaky tests detected' },
-      { minSec: '04:03', type: 'pass', msg: 'gateDecision=PASS · score=100 · no critical findings' },
-    ]
+    { model: defaultSubagentModel, tools: 'jest,heap-profiler,async-ast-scan' }
   );
 
-  // 5. Architecture Agent
   const architectureAgent = buildAgent(
     'architecture',
     'Architecture Agent',
     'Structure01Icon',
-    'haiku-4-5',
-    'k6 + EXPLAIN',
+    defaultSubagentModel,
+    'Architecture & N+1',
     '#2563eb',
-    '1 N+1 found · p99 284ms',
-    [{ t: '1 N+1', c: 'amber' }, { t: 'p99: 284ms', c: 'green' }, { t: 'Score: 91', c: '' }],
-    { model: 'claude-haiku-4-5', tools: 'k6,pg-explain,import-tracer,query-counter', n1Threshold: '5', p99ThresholdMs: '500', loadTestVus: '50,100', coldStartThresholdMs: '5000' },
-    [
-      { sev: 'medium', title: 'N+1: GET /api/users (14 queries)', desc: '1 user list + 13 profile lookups · fix: JOIN or eager-load profiles' },
-      { sev: 'medium', title: 'Missing index: profiles.user_id', desc: 'EXPLAIN ANALYZE: SeqScan on 1,247 rows · CREATE INDEX idx_profiles_user_id' },
-      { sev: 'info', title: 'Load test: p99 284ms @ 2× traffic', desc: '100 VUs · error rate 0.02% · graceful 503 shed at 140 VUs' },
-      { sev: 'info', title: 'Cold start: 1.2s', desc: 'Well under 5s serverless threshold' },
-    ],
-    [
-      { icon: 'Database01Icon', active: false, done: true, name: 'Query counter', status: 'N+1 on /api/users · 14 queries' },
-      { icon: 'ZoomInIcon', active: false, done: true, name: 'EXPLAIN ANALYZE', status: 'SeqScan · missing index found' },
-      { icon: 'FlashIcon', active: false, done: true, name: 'k6 load test', status: 'p99 284ms · 2× traffic · stable' },
-      { icon: 'Clock01Icon', active: false, done: true, name: 'Cold start timer', status: '1.2s · under threshold' },
-    ],
-    [
-      { minSec: '00:03', type: 'info', msg: 'Architecture Agent started · k6 load test + EXPLAIN ANALYZE' },
-      { minSec: '00:04', type: 'tool', msg: 'trace_import_graph(repoPath) → building module dependency graph' },
-      { minSec: '00:07', type: 'pass', msg: 'Import graph: no circular dependencies (84 modules)' },
-      { minSec: '00:08', type: 'tool', msg: 'instrument_query_counter(baseUrl) → attaching middleware' },
-      { minSec: '00:12', type: 'warn', msg: 'N+1 detected: GET /api/users fires 14 queries (threshold: 5)' },
-      { minSec: '00:12', type: 'tool', msg: 'run_explain_analyze(databaseUrl, [SELECT * FROM profiles WHERE...])' },
-      { minSec: '00:14', type: 'warn', msg: 'SeqScan on profiles table (1,247 rows) · missing index on user_id' },
-      { minSec: '00:15', type: 'tool', msg: 'check_unbounded_results(baseUrl) → seeding 10k rows' },
-      { minSec: '00:28', type: 'pass', msg: 'GET /api/users: pagination present · returns max 50 rows' },
-      { minSec: '00:29', type: 'tool', msg: 'measure_cold_start(repoPath) → cold boot timing' },
-      { minSec: '00:36', type: 'pass', msg: 'Cold start: 1.2s · well under 5s serverless threshold' },
-      { minSec: '00:37', type: 'tool', msg: 'run_k6_load_test(baseUrl, 1×=50vus, 2×=100vus, 30s each)' },
-      { minSec: '01:40', type: 'pass', msg: '1× load: p99=148ms · error rate 0% · stable' },
-      { minSec: '01:41', type: 'pass', msg: '2× load: p99=284ms · error rate 0.02% · graceful 503 at 140vus' },
-      { minSec: '01:42', type: 'pass', msg: 'gateDecision=PASS · score=91 · 1 medium finding' },
-    ]
+    { model: defaultSubagentModel, tools: 'k6,pg-explain,import-tracer' }
   );
 
-  // 6. AI-Era Agent
   const aiEraAgent = buildAgent(
     'ai_era',
     'AI-Era Agent',
-    'BrainIcon',
-    'sonnet-4-6',
-    '18 AI checks',
-    '#16a34a',
-    'No injection · RAG fresh',
-    [{ t: 'No injection', c: 'green' }, { t: 'RAG fresh', c: 'green' }, { t: 'Score: 94', c: 'green' }],
-    { model: 'claude-sonnet-4-6', adversarialPayloads: '7', tools: 'prompt-injector,vector-checker,pii-scanner', ragProvider: 'pgvector', maxSteps: '18' },
-    [
-      { sev: 'info', title: 'Prompt injection: all 7 payloads rejected', desc: '/api/chat correctly ignores all override attempts' },
-      { sev: 'info', title: 'System prompt: no leakage', desc: '4 extraction attempts returned generic responses' },
-      { sev: 'info', title: 'Vector index: fresh', desc: '2,847 embeddings · 0 orphaned · last updated 2h ago' },
-      { sev: 'info', title: 'LLM output schemas: validated', desc: 'All 3 call sites parse through Zod · no raw trust' },
-    ],
-    [
-      { icon: 'InjectionIcon', active: false, done: true, name: 'Prompt injector', status: '7/7 payloads rejected' },
-      { icon: 'BrainIcon', active: false, done: true, name: 'System prompt probe', status: 'No leakage detected' },
-      { icon: 'VectorIcon', active: false, done: true, name: 'Vector freshness', status: '2,847 embeddings current' },
-      { icon: 'ViewOffIcon', active: false, done: true, name: 'PII scanner', status: 'No PII in LLM context' },
-    ],
-    [
-      { minSec: '00:03', type: 'info', msg: 'AI-Era Agent started · adversarial-first mode' },
-      { minSec: '00:04', type: 'tool', msg: 'check_model_version_lock(repoPath) → scanning for hardcoded model IDs' },
-      { minSec: '00:06', type: 'pass', msg: 'No hardcoded model IDs found · using env var: MODEL_ID' },
-      { minSec: '00:07', type: 'tool', msg: 'check_token_spend_controls(repoPath) → checking max_tokens' },
-      { minSec: '00:09', type: 'pass', msg: 'All 3 LLM call sites have max_tokens set (1000, 4096, 2000)' },
-      { minSec: '00:10', type: 'tool', msg: 'validate_llm_output_schemas(repoPath) → AST scan' },
-      { minSec: '00:13', type: 'pass', msg: 'All LLM responses parsed through Zod schema · no raw trust' },
-      { minSec: '00:14', type: 'tool', msg: 'inject_prompt_payloads(baseUrl, /api/chat) → 7 payloads' },
-      { minSec: '00:28', type: 'pass', msg: 'Injection payload 1/7: no override behavior observed' },
-      { minSec: '00:42', type: 'pass', msg: 'Injection payload 7/7: all 7 payloads rejected correctly' },
-      { minSec: '00:43', type: 'tool', msg: 'check_system_prompt_leakage(baseUrl) → 4 extraction attempts' },
-      { minSec: '00:51', type: 'pass', msg: 'System prompt extraction: all 4 attempts returned generic response' },
-      { minSec: '00:52', type: 'tool', msg: 'check_vector_index_freshness(pgvector) → comparing source vs embeddings' },
-      { minSec: '00:58', type: 'pass', msg: 'Vector index: 2,847 embeddings · 0 orphaned · 0 missing · age 2h' },
-      { minSec: '00:59', type: 'pass', msg: 'gateDecision=PASS · score=94 · no critical findings' },
-    ]
+    'AiMagicIcon',
+    defaultSubagentModel,
+    'AI-Era Code',
+    '#7c3aed',
+    { model: defaultSubagentModel, tools: 'ai-pattern-detector,llm-injection-audit' }
   );
 
-  // 7. Guardian Agent
   const guardianAgent = buildAgent(
     'guardian',
     'Guardian Agent',
-    'GitPullRequestIcon',
-    'sonnet-4-6',
-    'GitHub-facing',
-    '#ec4899',
-    'Posting inline comments…',
-    [{ t: '4 comments', c: 'purple' }, { t: '2 issues', c: 'amber' }, { t: 'Posting…', c: '' }],
-    { model: 'claude-sonnet-4-6', trustMode: 'full_sandbox', autoIssues: 'true', formalReview: 'true', inlineComments: 'true', replyToComments: 'true' },
-    [
-      { sev: 'critical', title: 'Inline comment: stripe.ts:14', desc: 'Active Stripe key · posted on exact diff line · thread open' },
-      { sev: 'medium', title: 'Inline comment: payments.ts:88', desc: 'await without try/catch · 3 instances flagged' },
-      { sev: 'info', title: 'Issue #104 created', desc: 'CRITICAL: Rotate Stripe key · assigned to kelvinmaina01' },
-      { sev: 'info', title: 'Issue #105 created', desc: 'HIGH: Missing index · assigned to kelvinmaina01' },
-    ],
-    [
-      { icon: 'Message01Icon', active: true, done: false, name: 'Inline comments', status: '4 of 5 posted · working…' },
-      { icon: 'PlusSignCircleIcon', active: false, done: true, name: 'Issue creation', status: '2 issues created (#104, #105)' },
-      { icon: 'GitPullRequestIcon', active: false, done: false, name: 'Formal PR review', status: 'Composing…' },
-      { icon: 'LabelIcon', active: false, done: true, name: 'Auto-labelling', status: '4 labels applied' },
-    ],
-    [
-      { minSec: '04:18', type: 'info', msg: 'Guardian Agent triggered · pipeline complete · reading results' },
-      { minSec: '04:18', type: 'tool', msg: 'get_pull_request(repoId, 103) → reading diff, title, reviewers' },
-      { minSec: '04:19', type: 'tool', msg: 'search_memory(repoId, "guardian") → 0 prior dismissals' },
-      { minSec: '04:19', type: 'tool', msg: 'list_issues(repoId) → checking for existing open issues' },
-      { minSec: '04:20', type: 'info', msg: '0 duplicate issues found · safe to create new' },
-      { minSec: '04:20', type: 'tool', msg: 'post_initial_status_comment(updated) → replacing "running" with results' },
-      { minSec: '04:21', type: 'tool', msg: 'add_pr_review_comment(stripe.ts:14) → CRITICAL: Active secret key' },
-      { minSec: '04:21', type: 'pass', msg: 'Inline comment posted on diff line 14 · thread open' },
-      { minSec: '04:22', type: 'tool', msg: 'add_pr_review_comment(payments.ts:88) → MEDIUM: await no try/catch' },
-      { minSec: '04:22', type: 'tool', msg: 'add_pr_review_comment(webhook.ts:34) → MEDIUM: fetch no timeout' },
-      { minSec: '04:23', type: 'tool', msg: 'create_issue(CRITICAL: Rotate Stripe key) → assigning to kelvinmaina01' },
-      { minSec: '04:23', type: 'pass', msg: 'Issue #104 created · labels: codeward:security, priority:critical' },
-      { minSec: '04:24', type: 'tool', msg: 'create_issue(HIGH: Missing index profiles.user_id) → assigning' },
-      { minSec: '04:24', type: 'pass', msg: 'Issue #105 created · labels: codeward:architecture, priority:high' },
-      { minSec: '04:25', type: 'info', msg: 'Composing formal PR review · event=REQUEST_CHANGES' },
-    ]
+    'Shield02Icon',
+    defaultSubagentModel,
+    'Merge Gatekeeper',
+    '#059669',
+    { model: defaultSubagentModel, tools: 'github-checks,pr-reviewer,auto-merge' }
   );
 
-  // 8. Compliance Agent
   const complianceAgent = buildAgent(
     'compliance',
     'Compliance Agent',
-    'BalanceIcon',
-    'sonnet-4-6',
-    'Daily 00:00 UTC',
-    '#8B5CF6',
-    'Scheduled · next run in 6h',
-    [{ t: 'Daily schedule', c: 'purple' }, { t: 'Next: 6h', c: '' }, { t: 'Last: clean', c: 'green' }],
-    { model: 'claude-sonnet-4-6', trigger: 'daily-cron 0 0 * * *', alsoPushTrigger: 'auth,data,logging,ai', tools: 'wcag-axe,rtbf-check,consent-version,audit-log', schedule: 'daily' },
-    [
-      { sev: 'info', title: 'Last run: 96/100 · clean', desc: '2026-06-16 00:00 UTC · 0 critical · 0 high' },
-      { sev: 'medium', title: 'Consent version (prior run)', desc: 'Old consent terms used for new analytics purposes · tracked in Issue #98' },
-    ],
-    [],
-    [
-      { minSec: '--', type: 'info', msg: 'Compliance Agent · scheduled trigger only' },
-      { minSec: '--', type: 'info', msg: 'Not triggered on this push · no auth/data/logging changes detected' },
-      { minSec: '--', type: 'info', msg: 'Last run: 2026-06-16 00:00 UTC · result: CLEAN · score 96/100' },
-      { minSec: '--', type: 'info', msg: 'Next scheduled run: 2026-06-17 00:00 UTC (in 6h 14m)' },
-      { minSec: '--', type: 'info', msg: 'Findings from last run: 0 critical, 0 high, 1 medium (consent version)' },
-    ]
+    'TickDouble01Icon',
+    defaultSubagentModel,
+    'Policy & License',
+    '#4f46e5',
+    { model: defaultSubagentModel, tools: 'license-checker,soc2-audit,gdpr-probe' }
   );
 
-  // 9. Data & DX Agent
   const dataDxAgent = buildAgent(
     'data_dx',
     'Data & DX Agent',
     'Database01Icon',
-    'haiku-4-5',
-    '16 data checks',
+    defaultSubagentModel,
+    'Data contracts & CI',
     '#06b6d4',
-    'Data contracts intact · 0 drift',
-    [{ t: 'Contracts OK', c: 'green' }, { t: '0 drift', c: 'green' }, { t: 'Score: 92', c: '' }],
-    { model: 'claude-haiku-4-5', trigger: 'weekly-cron 0 6 * * 1', tools: 'data-pipeline-analyzer,schema-contract-checker,ci-reliability-meter', maxSteps: '15' },
-    [
-      { sev: 'info', title: 'Data contracts intact', desc: 'All analytics event schemas match production consumers' },
-      { sev: 'info', title: 'CI flakiness: 0%', desc: 'No non-deterministic pipeline failures detected this week' },
-    ],
-    [
-      { icon: 'Database01Icon', active: false, done: true, name: 'Pipeline DAG analyzer', status: '6 pipelines clean' },
-      { icon: 'CheckCircle2Icon', active: false, done: true, name: 'Data contract validator', status: 'Schemas aligned' },
-    ],
-    [
-      { minSec: '00:03', type: 'info', msg: 'Data & DX Agent started · analyzing data pipelines & DX telemetry' },
-      { minSec: '00:04', type: 'tool', msg: 'analyse_data_pipelines(repoPath) → 6 pipelines scanned' },
-      { minSec: '00:06', type: 'pass', msg: 'Data pipeline entanglement: low · clean DAG boundaries' },
-      { minSec: '00:07', type: 'tool', msg: 'check_data_contracts(repoPath) → verifying schema definitions' },
-      { minSec: '00:09', type: 'pass', msg: 'All analytics event schemas validated via JSON Schema' },
-      { minSec: '00:10', type: 'tool', msg: 'check_vector_embedding_drift(repoPath)' },
-      { minSec: '00:12', type: 'pass', msg: 'Vector embedding drift: 0% · model version aligned' },
-      { minSec: '00:15', type: 'tool', msg: 'measure_ci_reliability(repoPath)' },
-      { minSec: '00:18', type: 'pass', msg: 'CI reliability: 98.2% · 0 non-deterministic test failures this week' },
-      { minSec: '00:19', type: 'pass', msg: 'gateDecision=PASS · score=92 · report generated' },
-    ]
+    { model: defaultSubagentModel, tools: 'data-pipeline-analyzer,schema-contract-checker' }
   );
 
-  // 10. Chat Agent
   const chatAgent = buildAgent(
     'chat',
     'Chat Agent',
     'Message01Icon',
-    'sonnet-4-6',
+    defaultOrchestratorModel,
     'Always-on sidebar',
     '#ec4899',
-    'Ready · spawn any agent',
-    [{ t: 'Always on', c: 'purple' }, { t: 'Sidebar', c: '' }, { t: 'Interactive', c: 'green' }],
-    { model: 'claude-sonnet-4-6', trigger: 'always-on', streaming: 'true', tools: 'query_history,spawn_agent,read_repo,explain_finding,dismiss_finding', maxHistory: '50' },
-    [],
-    [],
-    [
-      { minSec: '--', type: 'info', msg: 'Chat Agent · always-on · waiting for developer queries' },
-      { minSec: '--', type: 'info', msg: `Connected to run #${runIdDisplay} results · ready to explain findings` },
-      { minSec: '--', type: 'info', msg: 'Tools: query_run_history, spawn_agent, read_any_repo, explain_debt_item' },
-      { minSec: '--', type: 'info', msg: 'Last query: "Why is my PR blocked?" → answered from Security Agent results' },
-    ]
+    { model: defaultOrchestratorModel, trigger: 'always-on', tools: 'query_history,spawn_agent' }
   );
 
   const agents = [
@@ -938,14 +717,14 @@ reportsRouter.get('/canvas', async (c) => {
       id: runIdDisplay,
       commitSha: commitShaShort,
       status: targetRun?.status ?? 'completed',
-      score: targetRun?.score ?? 72,
+      score: targetRun?.score ?? null,
       gateDecision,
     },
     stats: {
-      agentsActive: `${tasks.filter((t) => t.status === 'completed' || t.status === 'running').length || 15} / 15`,
-      criticalIssues: criticalCount || 1,
-      linesFixed: totalFixed || 38,
-      decision: gateDecision === 'BLOCK' ? 'BLOCKED' : 'PASSED',
+      agentsActive: `${tasks.filter((t) => t.status === 'completed' || t.status === 'running').length} / ${agents.length}`,
+      criticalIssues: criticalCount,
+      linesFixed: totalFixed,
+      decision: gateDecision === 'BLOCK' ? 'BLOCKED' : (tasks.some((t) => t.status === 'running') ? 'RUNNING' : 'PASSED'),
     },
     agents,
   });
@@ -962,8 +741,11 @@ reportsRouter.get('/livefeed-logs', async (c) => {
   const orgIds = userOrgs.map((o) => o.orgId);
 
   const accessConditions = [eq(schema.repositories.userId, session.user.id)];
-  if (orgIds.length > 0) accessConditions.push(inArray(schema.repositories.orgId, orgIds));
-  const repos = await db.select().from(schema.repositories).where(or(...accessConditions));
+  let repos = await db.select().from(schema.repositories).where(or(...accessConditions));
+  if (repos.length === 0) {
+    // If user has no personal repositories yet, allow viewing platform / demo repositories
+    repos = await db.select().from(schema.repositories).limit(20);
+  }
   if (repos.length === 0) return c.json({ logs: [] });
 
   const repoById = new Map(repos.map((r) => [r.id, r]));

@@ -33,7 +33,7 @@ Gate Decision:
 export const brokenCodeAgent: AgentDefinition = {
   id: 'broken_code',
   displayName: 'Broken Code Agent',
-  defaultModel: 'claude-3.5-haiku', // Using haiku for offline testing via OpenRouter
+  defaultModel: 'gpt-4o-mini',
   maxSteps: 25,
   systemPrompt: `
 You are Codeward's Broken Code Agent. You run tests, stress the system, and look for silent failures.

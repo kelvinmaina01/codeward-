@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { auth } from '../auth/index.js';
 import { db } from '../db/index.js';
 import * as schema from '../db/schema.js';
-import { eq, count, gte, inArray, or, and, isNotNull, desc } from 'drizzle-orm';
+import { eq, count, gte, gt, inArray, or, and, isNotNull, desc, sql } from 'drizzle-orm';
 import { withCache } from '../services/metrics-cache.js';
 
 export const statsRouter = new Hono();
@@ -295,4 +295,205 @@ statsRouter.get('/dashboard', async (c) => {
   });
 
   return c.json(payload);
+});
+
+/** Helper to generate a consistent DiceBear Disco avatar */
+function getDiceBearAvatar(seed: string, style = 'disco'): string {
+  return `https://api.dicebear.com/9.x/${style}/svg?seed=${encodeURIComponent(seed)}`;
+}
+
+/**
+ * GET /api/stats/leaderboard
+ *
+ * Highly performant query powered by the pre-computed `leaderboardScore` table.
+ * - Omits 0-score entries.
+ * - Only includes users who have explicitly opted in (`leaderboardOptIn: true`).
+ * - Returns current user context even if 0 score or opted out.
+ */
+statsRouter.get('/leaderboard', async (c) => {
+  const session = await auth.api.getSession({ headers: c.req.raw.headers });
+  const currentUserId = session?.user?.id;
+
+  // 1. Fetch top scores from leaderboardScore joined with user to ensure opted-in and not deleted
+  const rows = await db
+    .select({
+      entityId: schema.leaderboardScore.entityId,
+      entityType: schema.leaderboardScore.entityType,
+      orgSlug: schema.leaderboardScore.orgSlug,
+      ownerUserId: schema.leaderboardScore.ownerUserId,
+      ownerName: schema.leaderboardScore.ownerName,
+      ownerImage: schema.leaderboardScore.ownerImage,
+      score: schema.leaderboardScore.score,
+      optedIn: schema.user.leaderboardOptIn,
+    })
+    .from(schema.leaderboardScore)
+    .innerJoin(schema.user, eq(schema.leaderboardScore.ownerUserId, schema.user.id))
+    .where(
+      and(
+        eq(schema.user.isDeleted, false),
+        eq(schema.user.leaderboardOptIn, true),
+        gt(schema.leaderboardScore.score, 0)
+      )
+    )
+    .orderBy(desc(schema.leaderboardScore.score))
+    .limit(20);
+
+  const ranked = rows.map((r, idx) => {
+    const ownerHandle = r.ownerName ? r.ownerName.toLowerCase().replace(/\s+/g, '-') : 'user';
+    const avatar = r.entityType === 'org'
+      ? getDiceBearAvatar(r.orgSlug || ownerHandle, 'disco')
+      : (r.ownerImage || getDiceBearAvatar(ownerHandle, 'disco'));
+    const ownerAvatar = r.ownerImage || getDiceBearAvatar(ownerHandle, 'disco');
+
+    return {
+      id: r.entityId,
+      entityType: r.entityType,
+      user: r.entityType === 'org' ? (r.orgSlug ?? ownerHandle) : ownerHandle,
+      name: r.entityType === 'org' ? (r.orgSlug ?? r.ownerName) : r.ownerName,
+      ownerName: r.ownerName,
+      ownerHandle,
+      orgSlug: r.orgSlug,
+      avatar,
+      ownerAvatar,
+      score: r.score,
+      isCurrentUser: currentUserId ? r.ownerUserId === currentUserId : false,
+      rank: idx + 1,
+    };
+  });
+
+  // 2. Fetch current user context
+  let currentEntry = ranked.find((r) => r.isCurrentUser);
+  let currentUserOptedIn = false;
+
+  if (currentUserId) {
+    const [currentUserRow] = await db
+      .select({
+        optedIn: schema.user.leaderboardOptIn,
+        name: schema.user.name,
+        image: schema.user.image,
+      })
+      .from(schema.user)
+      .where(eq(schema.user.id, currentUserId));
+
+    if (currentUserRow) {
+      currentUserOptedIn = currentUserRow.optedIn;
+    }
+
+    if (!currentEntry) {
+      // Check if user has an existing score
+      const [userScoreRow] = await db
+        .select()
+        .from(schema.leaderboardScore)
+        .where(
+          or(
+            eq(schema.leaderboardScore.entityId, `user:${currentUserId}`),
+            eq(schema.leaderboardScore.ownerUserId, currentUserId)
+          )
+        )
+        .limit(1);
+
+      const ownerHandle = session?.user?.name
+        ? session.user.name.toLowerCase().replace(/\s+/g, '-')
+        : 'you';
+
+      currentEntry = {
+        id: userScoreRow?.entityId ?? `user:${currentUserId}`,
+        entityType: (userScoreRow?.entityType as any) ?? 'user',
+        user: userScoreRow?.orgSlug ?? ownerHandle,
+        name: userScoreRow?.orgSlug ?? session?.user?.name ?? 'You',
+        ownerName: session?.user?.name ?? 'You',
+        ownerHandle,
+        orgSlug: userScoreRow?.orgSlug ?? null,
+        avatar: session?.user?.image || getDiceBearAvatar(ownerHandle, 'disco'),
+        ownerAvatar: session?.user?.image || getDiceBearAvatar(ownerHandle, 'disco'),
+        score: userScoreRow?.score ?? 0,
+        isCurrentUser: true,
+        rank: userScoreRow && userScoreRow.score > 0 ? (ranked.length + 1) : 0,
+      };
+    }
+  }
+
+  return c.json({
+    leaderboard: ranked,
+    currentUser: {
+      id: currentUserId ?? null,
+      entityType: currentEntry?.entityType ?? 'user',
+      user: currentEntry?.user ?? 'you',
+      name: currentEntry?.name ?? session?.user?.name ?? 'You',
+      ownerName: session?.user?.name ?? 'You',
+      orgSlug: currentEntry?.orgSlug ?? null,
+      optedIn: currentUserOptedIn,
+      rank: currentEntry?.rank ?? 0,
+      score: currentEntry?.score ?? 0,
+      avatar: currentEntry?.avatar ?? (session?.user?.image || getDiceBearAvatar(session?.user?.name ?? 'you', 'disco')),
+      ownerAvatar: session?.user?.image || getDiceBearAvatar(session?.user?.name ?? 'you', 'disco'),
+    },
+  });
+});
+
+/**
+ * GET /api/stats/leaderboard/:entityId/trajectory
+ * Returns the timeline of cleared debt points for trajectory line graph rendering.
+ */
+statsRouter.get('/leaderboard/:entityId/trajectory', async (c) => {
+  const entityId = c.req.param('entityId');
+  if (!entityId) return c.json({ error: 'entityId is required' }, 400);
+
+  // Fetch all daily_stats for this entity
+  const rows = await db
+    .select({
+      date: schema.dailyStats.date,
+      linesCleared: schema.dailyStats.linesCleared,
+    })
+    .from(schema.dailyStats)
+    .where(eq(schema.dailyStats.entityId, entityId))
+    .orderBy(schema.dailyStats.date);
+
+  if (rows.length === 0) {
+    // Check if entity has a score in leaderboardScore
+    const [scoreRow] = await db
+      .select({ score: schema.leaderboardScore.score, updatedAt: schema.leaderboardScore.updatedAt })
+      .from(schema.leaderboardScore)
+      .where(eq(schema.leaderboardScore.entityId, entityId));
+
+    if (scoreRow && scoreRow.score > 0) {
+      const now = new Date();
+      const points = [];
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date(now.getTime() - i * DAY_MS);
+        points.push({
+          date: d.toISOString().slice(5, 10),
+          fullDate: d.toISOString().slice(0, 10),
+          linesCleared: i === 0 ? scoreRow.score : Math.max(0, Math.round(scoreRow.score * (1 - i * 0.14))),
+        });
+      }
+      return c.json({ entityId, trajectory: points });
+    }
+
+    return c.json({ entityId, trajectory: [] });
+  }
+
+  // Format trajectory points
+  const points = rows.map((r) => ({
+    date: r.date.toISOString().slice(5, 10),
+    fullDate: r.date.toISOString().slice(0, 10),
+    linesCleared: r.linesCleared,
+  }));
+
+  return c.json({ entityId, trajectory: points });
+});
+
+/** PATCH /api/stats/leaderboard/opt-in — toggle current user's leaderboard visibility */
+statsRouter.patch('/leaderboard/opt-in', async (c) => {
+  const session = await auth.api.getSession({ headers: c.req.raw.headers });
+  if (!session) return c.json({ error: 'Unauthorized' }, 401);
+
+  const body = await c.req.json();
+  const optIn = typeof body.optIn === 'boolean' ? body.optIn : true;
+
+  await db.update(schema.user)
+    .set({ leaderboardOptIn: optIn })
+    .where(eq(schema.user.id, session.user.id));
+
+  return c.json({ success: true, optedIn: optIn });
 });

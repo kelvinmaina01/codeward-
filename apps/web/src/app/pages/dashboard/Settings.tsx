@@ -27,7 +27,8 @@ import {
   FileText, 
   Download, 
   History,
-  CheckCircle
+  CheckCircle,
+  Globe
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useSession, signOut } from '../../../lib/auth';
@@ -118,6 +119,48 @@ export function Settings() {
   const [fullName, setFullName] = useState(session?.user?.name || 'Kelvin Maina');
   const [savingName, setSavingName] = useState(false);
   const [copiedId, setCopiedId] = useState(false);
+
+  // Global Community Leaderboard State
+  const [leaderboardOptIn, setLeaderboardOptIn] = useState<boolean>(true);
+  const [leaderboardRank, setLeaderboardRank] = useState<number>(4);
+  const [leaderboardScore, setLeaderboardScore] = useState<number>(1346);
+  const [updatingOptIn, setUpdatingOptIn] = useState<boolean>(false);
+
+  useEffect(() => {
+    fetch(`${API_URL}/api/stats/leaderboard`, { credentials: 'include' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (d?.currentUser) {
+          setLeaderboardOptIn(d.currentUser.optedIn);
+          if (d.currentUser.rank) setLeaderboardRank(d.currentUser.rank);
+          if (d.currentUser.score) setLeaderboardScore(d.currentUser.score);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleToggleOptIn = async () => {
+    setUpdatingOptIn(true);
+    const nextVal = !leaderboardOptIn;
+    try {
+      const res = await fetch(`${API_URL}/api/stats/leaderboard/opt-in`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ optIn: nextVal }),
+      });
+      if (res.ok) {
+        setLeaderboardOptIn(nextVal);
+        toast.success(nextVal ? 'Opted in to Global Leaderboard' : 'Hidden from Global Leaderboard');
+      } else {
+        toast.error('Failed to update leaderboard preference');
+      }
+    } catch {
+      toast.error('Failed to update leaderboard preference');
+    } finally {
+      setUpdatingOptIn(false);
+    }
+  };
 
   // General Settings State
   const [toggles, setToggles] = useState({
@@ -504,6 +547,54 @@ export function Settings() {
                   >
                     Manage
                   </button>
+                </div>
+              </div>
+            </SectionCard>
+
+            {/* Global Community Leaderboard */}
+            <SectionCard title="Global Community Leaderboard" icon={Globe}>
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 py-2 border-b border-cw-bdr/40 pb-4">
+                <div className="flex items-center gap-3.5">
+                  <img
+                    src={session?.user?.image || `https://api.dicebear.com/9.x/disco/svg?seed=${encodeURIComponent(session?.user?.name || 'you')}`}
+                    alt="DiceBear Disco Avatar"
+                    className="w-12 h-12 rounded-full border border-cw-purple/40 bg-cw-bg3 object-cover shadow-xs"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = `https://api.dicebear.com/9.x/disco/svg?seed=${encodeURIComponent(session?.user?.name || 'you')}`;
+                    }}
+                  />
+                  <div>
+                    <div className="text-xs font-semibold text-cw-txt flex items-center gap-2">
+                      <span>Show on Global Leaderboard</span>
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${leaderboardOptIn ? 'bg-cw-green/20 text-cw-green border border-cw-green/30' : 'bg-cw-bg3 text-cw-txt3'}`}>
+                        {leaderboardOptIn ? 'Opted In' : 'Hidden'}
+                      </span>
+                    </div>
+                    <div className="text-[11px] text-cw-txt3 mt-0.5 leading-snug">
+                      Display your technical debt lines cleared and rank on the community feed alongside other engineers.
+                    </div>
+                  </div>
+                </div>
+                <div className="shrink-0">
+                  <Toggle on={leaderboardOptIn} onChange={handleToggleOptIn} />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-4">
+                <div className="p-3 bg-cw-bg3/50 border border-cw-bdr rounded-xl">
+                  <div className="text-[10px] font-bold text-cw-txt3 uppercase tracking-wider">Current Global Rank</div>
+                  <div className="text-lg font-bold text-cw-purple mt-1 font-mono">#{leaderboardRank}</div>
+                </div>
+                <div className="p-3 bg-cw-bg3/50 border border-cw-bdr rounded-xl">
+                  <div className="text-[10px] font-bold text-cw-txt3 uppercase tracking-wider">Lines Cleared</div>
+                  <div className="text-lg font-bold text-cw-green mt-1 font-mono">{leaderboardScore.toLocaleString()}</div>
+                </div>
+                <div className="p-3 bg-cw-bg3/50 border border-cw-bdr rounded-xl col-span-2 sm:col-span-1">
+                  <div className="text-[10px] font-bold text-cw-txt3 uppercase tracking-wider">Avatar Style</div>
+                  <div className="text-[12px] font-semibold text-cw-txt mt-1 flex items-center gap-1.5">
+                    <Sparkles size={12} className="text-cw-purple" />
+                    <span>DiceBear Disco</span>
+                  </div>
                 </div>
               </div>
             </SectionCard>

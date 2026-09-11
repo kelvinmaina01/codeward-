@@ -15,7 +15,7 @@ const CONSTITUTION = `
 export const architectureAgent: AgentDefinition = {
   id: 'architecture',
   displayName: 'Architecture Agent',
-  defaultModel: 'claude-3.5-haiku', // Using haiku for offline testing via OpenRouter
+  defaultModel: 'gpt-4o-mini',
   maxSteps: 20,
   systemPrompt: `
 You are Codeward's Architecture Agent. You are a distributed systems architect.

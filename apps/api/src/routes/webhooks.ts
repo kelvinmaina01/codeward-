@@ -1,11 +1,11 @@
 import { Hono } from 'hono';
 import crypto from 'crypto';
-import { pushQueue } from '../queue/index.js';
 import { agentQueue } from '../agents/queue/agent.queue.js';
 import { triggerComprehensiveAudit } from '../agents/audit-trigger.js';
 import { db } from '../db/index.js';
 import { runs, repositories } from '../db/schema.js';
 import { eq } from 'drizzle-orm';
+import { BudgetService } from '../services/budget.service.js';
 
 export const webhookRouter = new Hono<{ Variables: { rawBody: string } }>();
 
@@ -44,38 +44,14 @@ webhookRouter.post('/github', async (c) => {
 
     if (event === 'push') {
       const commitSHA = data.after;
-      const beforeSHA = data.before;
       const repoName = data.repository?.full_name;
 
-      console.log(`[Webhook] Received push for ${repoName} at ${commitSHA}`);
-
-      // A push for a repo nobody connected is noise, not work — and a run row without a
-      // repoId is an orphan that breaks memory, reports, and escalation downstream.
-      const [repo] = await db.select().from(repositories).where(eq(repositories.fullName, repoName));
-      if (!repo) {
-        console.log(`[Webhook] Ignoring push for ${repoName} — repo is not connected.`);
-        return c.json({ status: 'ignored', reason: 'repo not connected' });
-      }
-      if (repo.paused) {
-        console.log(`[Webhook] Ignoring push for ${repoName} — repo is paused by the user.`);
-        return c.json({ status: 'ignored', reason: 'repo paused' });
-      }
-
-      const [runRecord] = await db.insert(runs).values({
-        repoId: repo.id,
-        commitSha: commitSHA,
-        status: 'queued',
-      }).returning();
-
-      // Enqueue job in BullMQ (Layer 2: Push Guard)
-      await pushQueue.add('process-push', {
-        runId: runRecord.id,
-        commitSHA,
-        beforeSHA,
-        repoFullName: repoName
+      console.log(`[Webhook] Received push for ${repoName} at ${commitSHA} — ignoring commit push (PR-only policy enabled).`);
+      return c.json({
+        status: 'ignored',
+        reason: 'commit_push_scans_disabled_pr_only',
+        message: 'Codeward operates on Pull Requests only. Open or update a PR to trigger analysis.'
       });
-
-      return c.json({ status: 'queued', type: 'incremental', commitSHA, runId: runRecord.id });
     } else if (event === 'installation' || event === 'installation_repositories') {
       // GitHub App (re-)installation. A full user-journey audit found this used to enqueue to a
       // completely disconnected legacy queue (queue/audit.queue.ts) whose worker checked
@@ -132,12 +108,31 @@ webhookRouter.post('/github', async (c) => {
         return c.json({ status: 'ignored', reason: 'repo not connected' });
       }
 
-      const [runRecord] = await db.insert(runs).values({
-        repoId: repo.id,
-        commitSha: commitSHA,
-        status: 'queued',
-        prNumber,
-      }).returning();
+      const isBudgetOk = await BudgetService.checkGlobalBudget();
+      if (!isBudgetOk) {
+        return c.json({ status: 'ignored', reason: 'global_budget_exceeded' }, 429);
+      }
+
+      let runRecord: any;
+      if (repo.orgId) {
+        const reservation = await BudgetService.reserveOrgPrRun(repo.orgId, {
+          repoId: repo.id,
+          commitSha: commitSHA,
+          prNumber,
+        });
+        if (!reservation.allowed) {
+          return c.json({ status: 'ignored', reason: 'free_plan_limit_exceeded' }, 403);
+        }
+        runRecord = reservation.runRecord;
+      } else {
+        const [inserted] = await db.insert(runs).values({
+          repoId: repo.id,
+          commitSha: commitSHA,
+          status: 'queued',
+          prNumber,
+        }).returning();
+        runRecord = inserted;
+      }
 
       // Enqueue Phase 1 of the Orchestrator. After Phase 3, because this run carries a prNumber,
       // guardian will post a real review on the human's PR (wired in agent.queue.ts).

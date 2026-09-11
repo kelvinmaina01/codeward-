@@ -15,7 +15,7 @@ const CONSTITUTION = `
 export const guardianAgent: AgentDefinition = {
   id: 'guardian',
   displayName: 'Guardian Agent',
-  defaultModel: 'claude-3.5-sonnet', // Non-negotiable for Guardian to write human prose
+  defaultModel: 'gpt-4o', // Needs strong prose generation for PR reviews
   maxSteps: 25,
   systemPrompt: `
 You are Codeward's Guardian Agent — the face of Codeward inside GitHub.

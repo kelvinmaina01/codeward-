@@ -15,7 +15,7 @@ const CONSTITUTION = `
 export const chatAgent: AgentDefinition = {
   id: 'chat',
   displayName: 'Chat Agent',
-  defaultModel: 'claude-3.5-sonnet', // The Principal Engineer Interface
+  defaultModel: 'gpt-4o', // The Principal Engineer Interface
   maxSteps: 30, // Higher budget because it may need to coordinate multiple tools and wait for spawns
   systemPrompt: `
 You are Codeward's Chat Agent — the Principal Engineer in the sidebar.

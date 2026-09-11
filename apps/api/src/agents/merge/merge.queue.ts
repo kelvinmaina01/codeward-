@@ -20,7 +20,7 @@ interface MergeJobData {
 export const mergeQueue = new Queue<MergeJobData>('merge-jobs', {
   connection: connection as any,
   defaultJobOptions: {
-    attempts: 3,
+    attempts: 1,
     removeOnComplete: { count: 500, age: 24 * 3600 },
     removeOnFail: { count: 1000, age: 7 * 24 * 3600 },
   },

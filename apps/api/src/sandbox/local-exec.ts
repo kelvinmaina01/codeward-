@@ -13,18 +13,31 @@ export interface SandboxHandle {
 
 export class LocalExecSandbox implements SandboxHandle {
   public workDir: string;
+  private isCustomWorkDir: boolean = false;
   private destroyed: boolean = false;
 
-  constructor() {
+  constructor(existingWorkDir?: string) {
     if (process.env.NODE_ENV === 'production' && process.env.SANDBOX_PROVIDER !== 'fly') {
       throw new Error("FATAL: Local execution forbidden in production");
     }
-    // Create a temporary directory for this sandbox instance
-    const tmpBase = os.tmpdir();
-    this.workDir = path.join(tmpBase, `codeward-sandbox-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`);
+    if (existingWorkDir) {
+      this.workDir = existingWorkDir;
+      this.isCustomWorkDir = true;
+    } else {
+      // Create a temporary directory for this sandbox instance
+      const tmpBase = os.tmpdir();
+      this.workDir = path.join(tmpBase, `codeward-sandbox-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`);
+    }
   }
 
-  async init(repoUrl: string, commitSHA?: string, _env?: Record<string, string>, installationToken?: string): Promise<void> {
+  async init(repoUrl?: string, commitSHA?: string, _env?: Record<string, string>, installationToken?: string): Promise<void> {
+    if (this.isCustomWorkDir) {
+      console.log(`[LocalSandbox] Targeting local directory directly: ${this.workDir}`);
+      return;
+    }
+    if (!repoUrl) {
+      throw new Error('repoUrl is required when LocalExecSandbox is not initialized with an existingWorkDir');
+    }
     await fs.mkdir(this.workDir, { recursive: true });
     console.log(`[LocalSandbox] Created workdir at ${this.workDir}`);
 
@@ -98,6 +111,11 @@ export class LocalExecSandbox implements SandboxHandle {
 
   async destroy(): Promise<void> {
     if (this.destroyed) return;
+    if (this.isCustomWorkDir) {
+      console.log(`[LocalSandbox] Releasing custom workdir ${this.workDir} (preserved).`);
+      this.destroyed = true;
+      return;
+    }
     console.log(`[LocalSandbox] Destroying workdir ${this.workDir}...`);
     try {
       await fs.rm(this.workDir, { recursive: true, force: true });

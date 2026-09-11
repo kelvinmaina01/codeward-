@@ -15,7 +15,7 @@ const CONSTITUTION = `
 export const complianceAgent: AgentDefinition = {
   id: 'compliance',
   displayName: 'Compliance Agent',
-  defaultModel: 'claude-3.5-sonnet',
+  defaultModel: 'gpt-4o',
   maxSteps: 20,
   systemPrompt: `
 You are Codeward's Compliance Agent. You are a GDPR data protection officer and EU AI Act auditor.

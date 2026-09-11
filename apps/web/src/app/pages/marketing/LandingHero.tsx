@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Helmet } from 'react-helmet-async';
-import { ArrowUpRight, ArrowRight } from 'lucide-react';
 import { FlashIcon, ArrowRight01Icon } from 'hugeicons-react';
+import { blogs } from '../../data/blogs';
 import { useSession } from '../../../lib/auth';
 import { LandingHeader } from './LandingHeader';
 import { LandingFooter } from './LandingFooter';
@@ -39,9 +39,8 @@ function FadeInSection({ children, delay = 0, direction = 'up', className = '' }
       entries.forEach(entry => {
         if (entry.isIntersecting) {
           setVisible(true);
-          // Lock the animation: once it appears, never hide it again.
-          // This prevents massive flickering if the user stops scrolling on the exact threshold pixel.
-          observer.unobserve(entry.target);
+        } else {
+          setVisible(false);
         }
       });
     }, { threshold: 0.15, rootMargin: "0px 0px -50px 0px" });
@@ -217,8 +216,8 @@ function SecuritySection() {
 
           {/* Learn more button Ã¢â‚¬â€ right aligned */}
           <div className="mt-12 flex justify-end relative z-10">
-            <button className="cursor-pointer group inline-flex w-fit items-center gap-2 px-8 py-3.5 rounded-full bg-white text-black text-sm font-bold transition-all duration-300 hover:bg-white/20 ">
-              Learn more <ArrowRight className="w-4 h-4 ml-1 transition-transform group-hover:translate-x-1" strokeWidth={2.5} />
+            <button className="inline-flex w-fit items-center gap-2 px-8 py-3.5 rounded-full bg-white text-black text-sm font-bold transition-all duration-300 hover:bg-[#8B5CF6] hover:text-white hover:scale-105 hover:shadow-[0_0_30px_rgba(139,92,246,0.4)] active:scale-95">
+              Learn more &rarr;
             </button>
           </div>
         </div>
@@ -253,7 +252,7 @@ function LiveCodewardCodeReviewWidget() {
   }, []);
 
   return (
-    <div className="w-full max-w-[620px] h-auto min-h-[400px] sm:h-[420px] rounded-3xl flex flex-col border border-white/15 bg-[#f8f9fc] p-3.5 sm:p-5 font-['DM_Sans'] text-gray-900 transition-all duration-500 ">
+    <div className="w-full max-w-[620px] rounded-3xl border border-white/15 bg-[#f8f9fc] p-3.5 sm:p-5 font-['DM_Sans'] text-gray-900 shadow-2xl transition-all duration-500 hover:scale-[1.01]">
       {/* 1. Terminal Top Command Bar */}
       <div className="rounded-2xl bg-[#0a0c10] px-3.5 sm:px-5 py-2.5 sm:py-3.5 text-white font-mono text-xs sm:text-sm flex items-center justify-between shadow-xl border border-white/10">
         <div className="flex items-center gap-2 min-w-0">
@@ -274,7 +273,7 @@ function LiveCodewardCodeReviewWidget() {
             className="h-5 w-5 sm:h-6 sm:w-6 rounded-full border border-gray-200 shadow-sm shrink-0"
           />
           <span className="font-bold text-gray-900">codeward-code-review</span>
-          <span className="rounded bg-gray-200/80 text-gray-900/70 px-1.5 py-0.5 text-[10px] font-semibold">bot</span>
+          <span className="rounded bg-gray-200/80 text-gray-700 px-1.5 py-0.5 text-[10px] font-semibold">bot</span>
           <span>reviewed</span>
           <span className="font-bold text-purple-700">PR #142</span>
           <span className="text-gray-400">just now</span>
@@ -282,7 +281,7 @@ function LiveCodewardCodeReviewWidget() {
       </div>
 
       {/* 3. Compact Review Status Card */}
-      <div className="rounded-2xl border border-gray-200 bg-white p-3 sm:p-4 shadow-sm text-gray-900 space-y-3">
+      <div className="rounded-2xl border border-gray-200/80 bg-white p-3 sm:p-4 shadow-sm text-gray-900 space-y-3">
         {/* Comment Header */}
         <div className="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-gray-100 text-xs">
           <div className="flex items-center gap-1.5 min-w-0">
@@ -407,7 +406,7 @@ function LiveSecurityShieldWidget() {
   }, []);
 
   return (
-    <div className="w-full max-w-[620px] h-[380px] sm:h-[420px] rounded-3xl flex flex-col border border-white/15 bg-[#f8f9fc] p-3.5 sm:p-5 font-['DM_Sans'] text-gray-900 transition-all duration-500 ">
+    <div className="w-full max-w-[620px] rounded-3xl border border-white/15 bg-[#f8f9fc] p-3.5 sm:p-5 font-['DM_Sans'] text-gray-900 shadow-2xl transition-all duration-500 hover:scale-[1.01]">
       {/* 1. Command Bar (Live Run Feed / Agent Canvas Run #247) */}
       <div className="rounded-2xl bg-[#0a0c10] px-3.5 sm:px-5 py-2.5 sm:py-3.5 text-white font-sans text-xs sm:text-sm flex flex-wrap items-center justify-between gap-2 shadow-xl border border-white/10">
         <div className="flex items-center gap-2 min-w-0">
@@ -443,10 +442,10 @@ function LiveSecurityShieldWidget() {
       </div>
 
       {/* 3. Compact Review Status Card */}
-      <div className="rounded-2xl border border-gray-200 bg-white p-3 sm:p-4 shadow-sm text-gray-900 space-y-3">
+      <div className="rounded-2xl border border-gray-200/80 bg-white p-3 sm:p-4 shadow-sm text-gray-900 space-y-3">
         {/* Banner Alert */}
         {!isShielded ? (
-          <div className="rounded-xl bg-rose-600 text-gray-900 px-3 sm:px-3.5 py-2 text-[11px] sm:text-xs font-bold flex flex-wrap items-center justify-between gap-1 shadow-sm">
+          <div className="rounded-xl bg-rose-600 text-white px-3 sm:px-3.5 py-2 text-[11px] sm:text-xs font-bold flex flex-wrap items-center justify-between gap-1 shadow-sm">
             <div className="flex items-center gap-1.5 min-w-0">
               <span className="h-2 w-2 rounded-full bg-white animate-ping shrink-0" />
               <span className="truncate">SECURITY ALERT: Hardcoded Stripe Key Line 14</span>
@@ -454,9 +453,9 @@ function LiveSecurityShieldWidget() {
             <span className="text-[10px] opacity-90 font-mono shrink-0">1 Critical</span>
           </div>
         ) : (
-          <div className="rounded-xl bg-emerald-600 text-gray-900 px-3 sm:px-3.5 py-2 text-[11px] sm:text-xs font-bold flex flex-wrap items-center justify-between gap-1 shadow-sm">
+          <div className="rounded-xl bg-emerald-600 text-white px-3 sm:px-3.5 py-2 text-[11px] sm:text-xs font-bold flex flex-wrap items-center justify-between gap-1 shadow-sm">
             <div className="flex items-center gap-1.5 min-w-0">
-              <span className="text-gray-900 font-bold shrink-0">🛡️</span>
+              <span className="text-white font-bold shrink-0">🛡️</span>
               <span className="truncate">SECRET SHIELDED: Key Removed & Re-encrypted</span>
             </div>
             <span className="text-[10px] font-mono text-emerald-100 shrink-0">Score: 100/100</span>
@@ -544,7 +543,7 @@ function LiveSecurityShieldWidget() {
         <div className="pt-3 border-t border-gray-100 flex justify-end">
           {!isShielded ? (
             <div
-              className="px-3.5 py-1.5 rounded-lg bg-rose-600 text-gray-900 text-[11px] sm:text-xs font-bold transition-all shadow-md flex items-center gap-1.5"
+              className="px-3.5 py-1.5 rounded-lg bg-rose-600 text-white text-[11px] sm:text-xs font-bold transition-all shadow-md flex items-center gap-1.5"
             >
               {isShielding ? (
                 <>
@@ -597,11 +596,11 @@ function LiveTechDebtWidget() {
   }, []);
 
   return (
-    <div className="w-full max-w-[620px] h-[380px] sm:h-[420px] rounded-3xl flex flex-col border border-white/15 bg-[#f8f9fc] p-3.5 sm:p-5 font-['DM_Sans'] text-gray-900 transition-all duration-500 ">
+    <div className="w-full max-w-[620px] rounded-3xl border border-white/15 bg-[#f8f9fc] p-3.5 sm:p-5 font-['DM_Sans'] text-gray-900 shadow-2xl transition-all duration-500 hover:scale-[1.01]">
       {/* 1. PR Command Header (Borrowed from Screenshot 1 & 2) */}
       <div className="rounded-2xl bg-[#0a0c10] px-3.5 sm:px-5 py-2.5 sm:py-3.5 text-white font-sans text-xs sm:text-sm flex flex-wrap items-center justify-between gap-2 shadow-xl border border-white/10">
         <div className="flex items-center gap-1.5 sm:gap-2 font-mono text-xs min-w-0">
-          <span className="text-purple-700 font-bold shrink-0">feat(ai):</span>
+          <span className="text-purple-400 font-bold shrink-0">feat(ai):</span>
           <span className="text-gray-200 truncate max-w-[140px] xs:max-w-[200px] sm:max-w-[280px]">integrate new streaming endpoints</span>
           <span className="text-gray-500 font-bold shrink-0">#241</span>
         </div>
@@ -620,7 +619,7 @@ function LiveTechDebtWidget() {
             className="h-5 w-5 sm:h-6 sm:w-6 rounded-full border border-gray-200 shadow-sm shrink-0"
           />
           <span className="font-bold text-gray-900">Codeward App</span>
-          <span className="rounded bg-gray-200/80 text-gray-900/70 px-1.5 py-0.5 text-[10px] font-semibold">bot</span>
+          <span className="rounded bg-gray-200/80 text-gray-700 px-1.5 py-0.5 text-[10px] font-semibold">bot</span>
           <span>analyzed</span>
           <span className="font-bold text-purple-700">PR #241</span>
           <span className="text-gray-400">just now</span>
@@ -628,10 +627,10 @@ function LiveTechDebtWidget() {
       </div>
 
       {/* 3. Compact Review Status Card */}
-      <div className="rounded-2xl border border-gray-200 bg-white p-3 sm:p-4 shadow-sm text-gray-900 space-y-3">
+      <div className="rounded-2xl border border-gray-200/80 bg-white p-3 sm:p-4 shadow-sm text-gray-900 space-y-3">
         {/* Banner Alert */}
         {!isFixed ? (
-          <div className="rounded-xl bg-rose-600 text-gray-900 px-3 sm:px-3.5 py-2 text-[11px] sm:text-xs font-bold flex flex-wrap items-center justify-between gap-1 shadow-sm">
+          <div className="rounded-xl bg-rose-600 text-white px-3 sm:px-3.5 py-2 text-[11px] sm:text-xs font-bold flex flex-wrap items-center justify-between gap-1 shadow-sm">
             <div className="flex items-center gap-1.5 min-w-0">
               <span className="h-2 w-2 rounded-full bg-white animate-ping shrink-0" />
               <span className="truncate">MERGE BLOCKED: Critical Debt Threshold Exceeded</span>
@@ -639,9 +638,9 @@ function LiveTechDebtWidget() {
             <span className="text-[10px] opacity-90 font-mono shrink-0">-45 Points</span>
           </div>
         ) : (
-          <div className="rounded-xl bg-emerald-600 text-gray-900 px-3 sm:px-3.5 py-2 text-[11px] sm:text-xs font-bold flex flex-wrap items-center justify-between gap-1 shadow-sm">
+          <div className="rounded-xl bg-emerald-600 text-white px-3 sm:px-3.5 py-2 text-[11px] sm:text-xs font-bold flex flex-wrap items-center justify-between gap-1 shadow-sm">
             <div className="flex items-center gap-1.5 min-w-0">
-              <span className="text-gray-900 font-bold shrink-0">✓</span>
+              <span className="text-white font-bold shrink-0">✓</span>
               <span className="truncate">DEBT CLEARED: All Checks Passed & Auto-Refactored</span>
             </div>
             <span className="text-[10px] font-mono text-emerald-100 shrink-0">+100 Points</span>
@@ -717,7 +716,7 @@ function LiveTechDebtWidget() {
           <div className="pt-3 border-t border-gray-100 flex justify-end">
             {!isFixed ? (
               <div
-                className="px-3.5 py-1.5 rounded-lg bg-purple-600 text-gray-900 text-[11px] sm:text-xs font-bold transition-all shadow-md flex items-center gap-1.5"
+                className="px-3.5 py-1.5 rounded-lg bg-purple-600 text-white text-[11px] sm:text-xs font-bold transition-all shadow-md flex items-center gap-1.5"
               >
                 {isFixing ? (
                   <>
@@ -772,7 +771,7 @@ function LiveSandboxTestWidget() {
   }, []);
 
   return (
-    <div className="w-full max-w-[620px] h-[380px] sm:h-[420px] rounded-3xl flex flex-col border border-white/15 bg-[#f8f9fc] p-3.5 sm:p-5 font-['DM_Sans'] text-gray-900 transition-all duration-500 ">
+    <div className="w-full max-w-[620px] rounded-3xl border border-white/15 bg-[#f8f9fc] p-3.5 sm:p-5 font-['DM_Sans'] text-gray-900 shadow-2xl transition-all duration-500 hover:scale-[1.01]">
       {/* 1. Repository Connection Top Bar (Borrowed from Screenshot) */}
       <div className="rounded-2xl bg-[#0a0c10] px-3.5 sm:px-5 py-2.5 sm:py-3.5 text-white font-sans text-xs sm:text-sm flex flex-wrap items-center justify-between gap-2 shadow-xl border border-white/10">
         <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0">
@@ -786,9 +785,9 @@ function LiveSandboxTestWidget() {
 
         {/* Animated Connection Button */}
         {connectState === 'idle' && (
-          <button className="cursor-pointer px-2.5 sm:px-3 py-1 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold transition-all shadow-md cursor-pointer flex items-center gap-1 shrink-0">
+          <button className="px-2.5 sm:px-3 py-1 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold transition-all shadow-md cursor-pointer flex items-center gap-1 shrink-0">
             <span>Connect</span>
-            <span><ArrowRight className="w-4 h-4 ml-1 transition-transform group-hover:translate-x-1" strokeWidth={2.5} /></span>
+            <span>→</span>
           </button>
         )}
         {connectState === 'connecting' && (
@@ -823,7 +822,7 @@ function LiveSandboxTestWidget() {
       </div>
 
       {/* 3. Compact Review Status Card */}
-      <div className="rounded-2xl border border-gray-200 bg-white p-3 sm:p-4 shadow-sm text-gray-900 space-y-3">
+      <div className="rounded-2xl border border-gray-200/80 bg-white p-3 sm:p-4 shadow-sm text-gray-900 space-y-3">
         {/* Comment Header */}
         <div className="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-gray-100 text-xs">
           <div className="flex items-center gap-1.5 min-w-0">
@@ -1045,21 +1044,16 @@ function ParticleField({ centered = false }: { centered?: boolean }) {
 
 function TypingText() {
   const fullText = "Ship AI code\nwithout the technical debt";
-  const textRef = useRef<HTMLSpanElement>(null);
+  const [text, setText] = useState("");
   
   useEffect(() => {
     let timeout: NodeJS.Timeout;
     let i = 0;
     let isDeleting = false;
-    let isActive = true; // React 18 Strict Mode lock
 
     const tick = () => {
-      if (!isActive || !textRef.current) return;
-
-      const currentText = fullText.slice(0, i);
-      textRef.current.innerHTML = currentText + '<span class="ml-1 inline-block h-[0.9em] w-[3px] translate-y-[0.1em] bg-white animate-pulse align-middle"></span>';
-
       if (!isDeleting) {
+        setText(fullText.slice(0, i + 1));
         i++;
         if (i > fullText.length) {
           isDeleting = true;
@@ -1068,6 +1062,7 @@ function TypingText() {
         }
         timeout = setTimeout(tick, 60);
       } else {
+        setText(fullText.slice(0, i - 1));
         i--;
         if (i < 0) {
           isDeleting = false;
@@ -1080,21 +1075,21 @@ function TypingText() {
     };
 
     tick();
-    return () => {
-      isActive = false; // Kill the ghost loop instantly
-      clearTimeout(timeout);
-    };
+    return () => clearTimeout(timeout);
   }, []);
 
   return (
     <span className="relative inline-block text-left text-white">
       {/* Ghost text: invisible structural container holding the exact size of 2 lines */}
-      <span className="whitespace-pre-wrap invisible pointer-events-none select-none block">
+      <span className="whitespace-pre-wrap opacity-0 pointer-events-none select-none block">
         {fullText}
         <span className="ml-1 inline-block h-[0.9em] w-[3px]" />
       </span>
       {/* Absolute text: typing visually on top of the ghost container without reflowing the DOM */}
-      <span ref={textRef} className="absolute top-0 left-0 whitespace-pre-wrap block w-full h-full"></span>
+      <span className="absolute top-0 left-0 whitespace-pre-wrap block w-full h-full">
+        {text}
+        <span className="ml-1 inline-block h-[0.9em] w-[3px] translate-y-[0.1em] bg-white animate-pulse align-middle" />
+      </span>
     </span>
   );
 }
@@ -1103,39 +1098,17 @@ function MissionTypingText() {
   const normalText = "Codeward is your autonomous\ncode quality platform, without\n";
   const highlightedText = "the technical debt";
   const fullText = normalText + highlightedText;
+  const [text, setText] = useState("");
   const totalLength = fullText.length;
-  const textRef = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
     let timeout: NodeJS.Timeout;
     let i = 0;
     let isDeleting = false;
-    let isActive = true; // React 18 Strict Mode lock
 
     const tick = () => {
-      if (!isActive || !textRef.current) return;
-
-      const currentText = fullText.slice(0, i);
-      let html = "";
-      
-      if (currentText.length <= normalText.length) {
-        html = currentText;
-      } else {
-        const highlight = currentText.slice(normalText.length);
-        html = normalText + `<span class="text-purple-400">${highlight}</span>`;
-      }
-
-      const isDone = i === totalLength;
-      
-      if (isDone) {
-        html += `<span class="inline-block text-purple-500 font-black italic -rotate-12 origin-bottom scale-110  ml-2">!</span>`;
-      } else {
-        html += `<span class="inline-block h-[0.85em] w-[3px] translate-y-[0.1em] bg-purple-400 animate-[pulse_1s_infinite] align-middle ml-1"></span>`;
-      }
-
-      textRef.current.innerHTML = html;
-
       if (!isDeleting) {
+        setText(fullText.slice(0, i + 1));
         i++;
         if (i > totalLength) {
           isDeleting = true;
@@ -1144,6 +1117,7 @@ function MissionTypingText() {
         }
         timeout = setTimeout(tick, 55);
       } else {
+        setText(fullText.slice(0, i - 1));
         i--;
         if (i < 0) {
           isDeleting = false;
@@ -1156,23 +1130,23 @@ function MissionTypingText() {
     };
 
     tick();
-    return () => {
-      isActive = false; // Kill the ghost loop instantly
-      clearTimeout(timeout);
-    };
+    return () => clearTimeout(timeout);
   }, []);
 
+  const normalPart = text.slice(0, normalText.length);
+  const highlightPart = text.slice(normalText.length);
+  const isDoneTyping = text.length === totalLength;
+
   return (
-    <span className="relative inline-block text-left text-white w-full">
-      {/* Ghost Container (Invisibile ma occupa esattamente lo spazio finale, prevenendo ogni tipo di layout shift o sfarfallio del testo) */}
-      <span className="whitespace-pre-wrap invisible pointer-events-none select-none block w-full">
-        {normalText}
-        <span className="text-purple-400">{highlightedText}</span>
-        <span className="inline-block text-purple-500 font-black italic -rotate-12 origin-bottom scale-110 ml-2">!</span>
-      </span>
-      
-      {/* Absolute Container (Livello visibile, animato chirurgicamente senza impattare il DOM sottostante) */}
-      <span ref={textRef} className="absolute top-0 left-0 whitespace-pre-wrap block w-full h-full"></span>
+    <span className="whitespace-pre-wrap text-white">
+      {normalPart}
+      {highlightPart && <span className="text-purple-400">{highlightPart}</span>}
+      {isDoneTyping && (
+        <span className="inline-block text-purple-500 font-black italic -rotate-12 origin-bottom scale-110 drop-shadow-[0_0_15px_rgba(168,85,247,0.8)] ml-2">!</span>
+      )}
+      {!isDoneTyping && (
+        <span className="inline-block h-[0.85em] w-[3px] translate-y-[0.1em] bg-purple-400 animate-pulse align-middle ml-1" />
+      )}
     </span>
   );
 }
@@ -1320,43 +1294,28 @@ function TestimonialsSection() {
     }
   ];
 
-
-  const directionRef = useRef(1);
+  const currentActive = testimonials[activeIndex];
 
   const handleNext = () => {
-    directionRef.current = 1;
     setActiveIndex((prev) => (prev + 1) % testimonials.length);
   };
 
   const handlePrev = () => {
-    directionRef.current = -1;
     setActiveIndex((prev) => (prev - 1 + testimonials.length) % testimonials.length);
   };
 
   useEffect(() => {
     if (isHovered) return;
     const interval = setInterval(() => {
-      setActiveIndex((prev) => {
-        if (directionRef.current === 1) {
-          if (prev >= testimonials.length - 1) {
-            directionRef.current = -1;
-            return prev - 1;
-          }
-          return prev + 1;
-        } else {
-          if (prev <= 0) {
-            directionRef.current = 1;
-            return prev + 1;
-          }
-          return prev - 1;
-        }
-      });
-    }, 2200);
+      setActiveIndex((prev) => (prev + 1) % testimonials.length);
+    }, 3000);
     return () => clearInterval(interval);
   }, [isHovered, testimonials.length]);
 
   return (
     <section 
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
       className="bg-[#05060a] py-16 sm:py-20 px-4 sm:px-8 md:px-16 lg:px-20 relative overflow-hidden"
     >
       <div className="max-w-[1500px] mx-auto">
@@ -1376,7 +1335,7 @@ function TestimonialsSection() {
               <button 
                 onClick={handlePrev} 
                 aria-label="Previous testimonial" 
-                className="h-11 w-11 rounded-full border border-white/20 flex items-center justify-center text-white hover:bg-white/10 hover:border-purple-400/60  transition-all cursor-pointer"
+                className="h-11 w-11 rounded-full border border-white/20 flex items-center justify-center text-white hover:bg-white/10 hover:border-purple-400/60 active:scale-95 transition-all cursor-pointer"
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -1385,7 +1344,7 @@ function TestimonialsSection() {
               <button 
                 onClick={handleNext} 
                 aria-label="Next testimonial" 
-                className="h-11 w-11 rounded-full border border-white/20 flex items-center justify-center text-white hover:bg-white/10 hover:border-purple-400/60  transition-all cursor-pointer"
+                className="h-11 w-11 rounded-full border border-white/20 flex items-center justify-center text-white hover:bg-white/10 hover:border-purple-400/60 active:scale-95 transition-all cursor-pointer"
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -1395,69 +1354,140 @@ function TestimonialsSection() {
           </div>
         </div>
 
-        {/* True Sliding Carousel */}
-        <div onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)} className="relative w-full overflow-hidden mt-10 rounded-3xl">
-          <div 
-            className="flex transition-transform duration-700 ease-in-out will-change-transform"
-            style={{ transform: `translateX(-${activeIndex * 100}%)` }}
-          >
-            {testimonials.map((item) => (
-              <div key={item.id} className="w-full shrink-0 flex-none px-1">
-                <div className="relative w-full min-h-[420px] lg:min-h-[480px] rounded-3xl overflow-hidden border border-white/10 bg-white/[0.03]  p-8 md:p-12 flex flex-col justify-between">
-                  {/* Subtle Gradient Glow */}
-                  <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 via-transparent to-emerald-500/5 pointer-events-none" />
+        {/* Main Grid: Left Featured Card + Right Small Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+          
+          {/* Large Featured Card (Left Column) */}
+          <div className="lg:col-span-5 flex flex-col">
+            <div 
+              key={currentActive.id}
+              className="relative w-full h-full min-h-[480px] lg:min-h-[520px] rounded-2xl overflow-hidden border border-white/15 p-7 sm:p-9 flex flex-col justify-between shadow-2xl transition-all duration-500 group"
+            >
+              {/* Plain Background Image at 100% width */}
+              <img 
+                src={currentActive.bgImage} 
+                alt={currentActive.company}
+                loading="eager"
+                decoding="async"
+                className="absolute inset-0 w-full h-full object-cover object-center"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/20" />
 
-                  {/* Top Section: Category & Lowered Metric */}
-                  <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-                    <div>
-                      <span className="text-xs font-semibold text-emerald-400 tracking-widest uppercase mb-3 block">
-                        {item.category}
-                      </span>
-                      <div className="flex items-baseline gap-3">
-                        <div className="text-4xl md:text-5xl font-black text-white tracking-tight ">
-                          {item.metric}
-                        </div>
-                        <div className="text-sm font-semibold text-white/60">
-                          {item.metricLabel}
-                        </div>
-                      </div>
-                    </div>
+              {/* Top Section: Category & Lowered Metric */}
+              <div className="relative z-10">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-xs font-semibold text-emerald-400 tracking-wider">
+                    {currentActive.category}
+                  </span>
+                  <span className="text-xs text-white/50 font-semibold uppercase tracking-widest">
+                    Featured
+                  </span>
+                </div>
+
+                {/* Lowered Metric Block */}
+                <div className="pt-2 flex items-baseline gap-3">
+                  <div className="text-3xl sm:text-4xl md:text-5xl font-black text-white tracking-tight drop-shadow-md">
+                    {currentActive.metric}
                   </div>
-
-                  {/* Middle Section: Centered Quote */}
-                  <div className="relative z-10 my-auto py-8">
-                    <p className="text-xl md:text-2xl lg:text-3xl text-white/90 font-medium leading-relaxed tracking-tight">
-                      "{item.text}"
-                    </p>
-                  </div>
-
-                  {/* Bottom Author Section */}
-                  <div className="relative z-10 pt-6 border-t border-white/10 flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <img 
-                        src={item.avatar} 
-                        alt={item.author} 
-                        loading="eager"
-                        className="h-14 w-14 rounded-full border-2 border-white/10 object-cover shrink-0" 
-                      />
-                      <div>
-                        <div className="text-white font-bold text-lg leading-snug">
-                          {item.author}
-                        </div>
-                        <div className="text-white/50 text-sm font-medium">
-                          {item.role}
-                        </div>
-                      </div>
-                    </div>
+                  <div className="text-xs sm:text-sm font-semibold text-emerald-400">
+                    {currentActive.metricLabel}
                   </div>
                 </div>
               </div>
-            ))}
+
+              {/* Middle Section: Centered Quote with Increased Height/Size */}
+              <div className="relative z-10 my-auto py-4 flex flex-col justify-center">
+                <p className="text-lg sm:text-xl lg:text-2xl text-white/95 font-medium leading-relaxed sm:leading-relaxed tracking-tight drop-shadow-md">
+                  "{currentActive.text}"
+                </p>
+              </div>
+
+              {/* Bottom Author Section */}
+              <div className="relative z-10 pt-4 border-t border-white/10 flex items-center justify-between">
+                <div className="flex items-center gap-3.5">
+                  <img 
+                    src={currentActive.avatar} 
+                    alt={currentActive.author} 
+                    loading="lazy"
+                    decoding="async"
+                    className="h-14 w-14 rounded-full border-2 border-purple-400/80 object-cover shadow-lg shrink-0" 
+                  />
+                  <div>
+                    <div className="text-white font-bold text-base sm:text-lg leading-snug">
+                      {currentActive.author}
+                    </div>
+                    <div className="text-white/70 text-xs sm:text-sm font-medium">
+                      {currentActive.role}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="hidden sm:flex items-center gap-1 text-xs font-bold text-purple-400 bg-purple-950/60 border border-purple-500/30 px-3 py-1.5 rounded-full">
+                  <span>Active</span>
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+              </div>
+            </div>
           </div>
+
+          {/* Small Cards Grid (Right Column: 4 cols x 2 rows = 8 cards) */}
+          <div className="lg:col-span-7 grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-4 items-stretch">
+            {testimonials.map((item, idx) => {
+              const isActive = idx === activeIndex;
+              return (
+                <div
+                  key={item.id}
+                  onMouseEnter={() => setActiveIndex(idx)}
+                  onClick={() => setActiveIndex(idx)}
+                  className={`relative h-[242px] rounded-2xl overflow-hidden p-4 sm:p-5 flex flex-col justify-between cursor-pointer transition-all duration-300 group ${
+                    isActive 
+                      ? 'ring-2 ring-purple-500 border-purple-400 shadow-[0_0_25px_rgba(168,85,247,0.35)] scale-[1.02]' 
+                      : 'border border-white/15 hover:border-white/40 hover:scale-[1.03] hover:shadow-lg'
+                  }`}
+                >
+                  {/* Background Image at 100% width */}
+                  <img 
+                    src={item.bgImage} 
+                    alt={item.company}
+                    loading="lazy"
+                    decoding="async"
+                    className="absolute inset-0 w-full h-full object-cover object-center"
+                  />
+                  <div className={`absolute inset-0 transition-colors duration-300 ${
+                    isActive 
+                      ? 'bg-gradient-to-t from-black/70 via-black/40 to-purple-950/20' 
+                      : 'bg-gradient-to-t from-black/60 via-black/30 to-transparent'
+                  }`} />
+
+                  {/* Card Content */}
+                  <div className="relative z-10 flex items-center justify-between">
+                    <span className={`text-xs sm:text-sm font-bold tracking-wider ${isActive ? 'text-purple-300' : 'text-white/90'}`}>
+                      {item.company}
+                    </span>
+                    {isActive && (
+                      <span className="w-2.5 h-2.5 rounded-full bg-purple-400 animate-pulse shadow-[0_0_8px_rgba(168,85,247,0.8)]" />
+                    )}
+                  </div>
+
+                  <div className="relative z-10">
+                    <div className="text-2xl sm:text-3xl font-black text-white tracking-tight leading-tight">
+                      {item.metric}
+                    </div>
+                    <div className="text-xs font-medium text-white/75 line-clamp-2 mt-1 leading-snug">
+                      {item.metricLabel}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
         </div>
 
         {/* Bottom Pagination Indicators */}
-        <div className="flex items-center justify-center gap-3 mt-10">
+        <div className="flex items-center justify-center gap-2 mt-8 md:mt-10">
           {testimonials.map((_, idx) => (
             <button
               key={idx}
@@ -1465,8 +1495,8 @@ function TestimonialsSection() {
               aria-label={`Go to testimonial ${idx + 1}`}
               className={`transition-all duration-300 cursor-pointer ${
                 idx === activeIndex
-                  ? 'w-10 h-1.5 bg-gradient-to-r from-purple-500 to-emerald-400 rounded-full shadow-[0_0_12px_rgba(168,85,247,0.4)]'
-                  : 'w-2 h-1.5 bg-white/10 hover:bg-white/30 rounded-full'
+                  ? 'w-8 h-2.5 bg-gradient-to-r from-purple-500 to-emerald-400 rounded-full shadow-[0_0_12px_rgba(168,85,247,0.6)]'
+                  : 'w-2.5 h-2.5 bg-white/20 hover:bg-white/50 rounded-full'
               }`}
             />
           ))}
@@ -1537,7 +1567,7 @@ function VideoPlayer() {
         opacity: scrollStyles.opacity,
         transition: 'transform 0.1s ease-out, opacity 0.2s ease-out'
       }}
-      className="relative aspect-[16/10] sm:aspect-video min-h-[200px] sm:min-h-[260px] w-full rounded-2xl md:rounded-3xl bg-[#08090d] border border-white/10 shadow-black/80 overflow-hidden cursor-pointer group hover:border-white/20 transition-all duration-300"
+      className="relative aspect-[16/10] sm:aspect-video min-h-[200px] sm:min-h-[260px] w-full rounded-2xl md:rounded-3xl bg-[#08090d] border border-white/10 shadow-2xl shadow-black/80 overflow-hidden cursor-pointer group hover:border-white/20 transition-all duration-300"
     >
       {isPlaying ? (
         <iframe
@@ -1588,7 +1618,7 @@ function VideoPlayer() {
 
           {/* Centered Play Button (Matching Codeward purple theme) */}
           <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-20 pointer-events-none">
-            <div className="w-10 h-10 xs:w-12 xs:h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full bg-[#8B5CF6] text-white flex items-center justify-center shadow-[#8B5CF6]/40 ring-4 ring-[#8B5CF6]/30 group- group-hover:bg-[#7c3aed] group-hover:shadow-xl group-hover:shadow-[#8B5CF6]/60 transition-all duration-300">
+            <div className="w-10 h-10 xs:w-12 xs:h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full bg-[#8B5CF6] text-white flex items-center justify-center shadow-lg shadow-[#8B5CF6]/40 ring-4 ring-[#8B5CF6]/30 group-hover:scale-110 group-hover:bg-[#7c3aed] group-hover:shadow-xl group-hover:shadow-[#8B5CF6]/60 transition-all duration-300">
               <svg className="h-4 w-4 xs:h-5 xs:w-5 sm:h-7 sm:w-7 md:h-8 md:w-8 text-white translate-x-0.5" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M8 5v14l11-7z" />
               </svg>
@@ -1710,38 +1740,38 @@ export default function CodewardHero() {
             {session?.user ? (
               <button
                 onClick={() => navigate('/dashboard')}
-                className="group cursor-pointer rounded-full bg-[#8B5CF6] px-10 py-4 text-sm font-semibold text-white transition-all hover:bg-[#7c3aed]   duration-300 flex items-center gap-2"
+                className="rounded-full bg-[#8B5CF6] px-10 py-4 text-sm font-semibold text-white transition-all hover:bg-green-500 shadow-lg hover:scale-105 active:scale-95 duration-300 flex items-center gap-2"
               >
-                Back to app <ArrowRight className="w-4 h-4 ml-1 transition-transform group-hover:translate-x-1" strokeWidth={2.5} />
+                Back to app &rarr;
               </button>
             ) : (
               <button
                 onClick={() => navigate('/signup')}
-                className="rounded-full bg-white px-9 py-4 text-sm font-semibold text-black transition-all hover:bg-white/90 shadow-white/10   duration-300 flex items-center gap-2.5 cursor-pointer"
+                className="rounded-full bg-white px-9 py-4 text-sm font-semibold text-black transition-all hover:bg-white/90 shadow-lg shadow-white/10 hover:scale-105 active:scale-95 duration-300 flex items-center gap-2.5 cursor-pointer"
               >
                 <FlashIcon className="w-5 h-5 text-[#8B5CF6]" />
                 <span>Start Free</span>
-                <ArrowRight className="w-4 h-4 ml-1 transition-transform group-hover:translate-x-1" strokeWidth={2.5} />
+                <ArrowRight01Icon className="w-4 h-4 text-black/70" />
               </button>
             )}
           </div>
 
           <div className="mt-10 flex flex-wrap items-center gap-8 text-sm font-medium text-white/80">
             <div className="flex items-center gap-2">
-              <svg className="h-6 w-6 text-red-500 " fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="h-6 w-6 text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.5)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
               </svg>
               <span>No credit card</span>
             </div>
             <div className="flex items-center gap-2">
-              <svg className="h-6 w-6 text-green-500 " fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="h-6 w-6 text-green-500 drop-shadow-[0_0_8px_rgba(34,197,94,0.5)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               <span>Free 10 runs/month</span>
             </div>
             <div className="flex items-center gap-2">
-              <svg className="h-6 w-6 text-purple-500 " fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="h-6 w-6 text-purple-500 drop-shadow-[0_0_8px_rgba(168,85,247,0.5)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
               </svg>
               <span>Works with any stack.</span>
@@ -1775,24 +1805,24 @@ export default function CodewardHero() {
               <legend className="px-2 mx-auto">
                 <span className="relative inline-block px-2 py-0.5">
                   <span className="absolute inset-0 bg-[#00F700] transform -skew-x-12 rounded-sm rotate-1" />
-                  <span className="relative text-[10px] font-bold text-black uppercase tracking-widest ">AI</span>
+                  <span className="relative text-[10px] font-bold text-black uppercase tracking-widest drop-shadow-md">AI</span>
                 </span>
               </legend>
               <div className="grid grid-cols-2 gap-x-3 gap-y-4 mt-3">
                 <div className="flex items-center gap-2">
-                  <img src="https://www.google.com/s2/favicons?domain=openai.com&sz=128" alt="OpenAI" className="h-5 w-5 shrink-0 object-contain " />
+                  <img src="https://www.google.com/s2/favicons?domain=openai.com&sz=128" alt="OpenAI" className="h-5 w-5 shrink-0 object-contain drop-shadow-md" />
                   <span className="text-white/90 text-sm font-semibold tracking-wide truncate">OpenAI</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <img src="https://www.google.com/s2/favicons?domain=anthropic.com&sz=128" alt="Anthropic" className="h-5 w-5 shrink-0 object-contain " />
+                  <img src="https://www.google.com/s2/favicons?domain=anthropic.com&sz=128" alt="Anthropic" className="h-5 w-5 shrink-0 object-contain drop-shadow-md" />
                   <span className="text-white/90 text-sm font-semibold tracking-wide truncate">Anthropic</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <img src="https://www.google.com/s2/favicons?domain=huggingface.co&sz=128" alt="HuggingFace" className="h-5 w-5 shrink-0 object-contain " />
+                  <img src="https://www.google.com/s2/favicons?domain=huggingface.co&sz=128" alt="HuggingFace" className="h-5 w-5 shrink-0 object-contain drop-shadow-md" />
                   <span className="text-white/90 text-sm font-semibold tracking-wide truncate">HuggingFace</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <img src="https://www.google.com/s2/favicons?domain=mistral.ai&sz=128" alt="Mistral AI" className="h-5 w-5 shrink-0 object-contain " />
+                  <img src="https://www.google.com/s2/favicons?domain=mistral.ai&sz=128" alt="Mistral AI" className="h-5 w-5 shrink-0 object-contain drop-shadow-md" />
                   <span className="text-white/90 text-sm font-semibold tracking-wide truncate">Mistral AI</span>
                 </div>
               </div>
@@ -1803,24 +1833,24 @@ export default function CodewardHero() {
               <legend className="px-2 mx-auto">
                 <span className="relative inline-block px-2 py-0.5">
                   <span className="absolute inset-0 bg-[#00F700] transform -skew-x-12 rounded-sm -rotate-1" />
-                  <span className="relative text-[10px] font-bold text-black uppercase tracking-widest ">Enterprise</span>
+                  <span className="relative text-[10px] font-bold text-black uppercase tracking-widest drop-shadow-md">Enterprise</span>
                 </span>
               </legend>
               <div className="grid grid-cols-2 gap-x-3 gap-y-4 mt-3">
                 <div className="flex items-center gap-2">
-                  <img src="https://www.google.com/s2/favicons?domain=microsoft.com&sz=128" alt="Microsoft" className="h-5 w-5 shrink-0 object-contain " />
+                  <img src="https://www.google.com/s2/favicons?domain=microsoft.com&sz=128" alt="Microsoft" className="h-5 w-5 shrink-0 object-contain drop-shadow-md" />
                   <span className="text-white/90 text-sm font-semibold tracking-wide truncate">Microsoft</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <img src="https://www.google.com/s2/favicons?domain=google.com&sz=128" alt="Google" className="h-5 w-5 shrink-0 object-contain " />
+                  <img src="https://www.google.com/s2/favicons?domain=google.com&sz=128" alt="Google" className="h-5 w-5 shrink-0 object-contain drop-shadow-md" />
                   <span className="text-white/90 text-sm font-semibold tracking-wide truncate">Google</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <img src="https://www.google.com/s2/favicons?domain=paypal.com&sz=128" alt="PayPal" className="h-5 w-5 shrink-0 object-contain " />
+                  <img src="https://www.google.com/s2/favicons?domain=paypal.com&sz=128" alt="PayPal" className="h-5 w-5 shrink-0 object-contain drop-shadow-md" />
                   <span className="text-white/90 text-sm font-semibold tracking-wide truncate">PayPal</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <img src="https://www.google.com/s2/favicons?domain=vercel.com&sz=128" alt="Vercel" className="h-5 w-5 shrink-0 object-contain " />
+                  <img src="https://www.google.com/s2/favicons?domain=vercel.com&sz=128" alt="Vercel" className="h-5 w-5 shrink-0 object-contain drop-shadow-md" />
                   <span className="text-white/90 text-sm font-semibold tracking-wide truncate">Vercel</span>
                 </div>
               </div>
@@ -1831,24 +1861,24 @@ export default function CodewardHero() {
               <legend className="px-2 mx-auto">
                 <span className="relative inline-block px-2 py-0.5">
                   <span className="absolute inset-0 bg-[#00F700] transform skew-x-12 rounded-sm rotate-2" />
-                  <span className="relative text-[10px] font-bold text-black uppercase tracking-widest ">IoT/Infrastructure</span>
+                  <span className="relative text-[10px] font-bold text-black uppercase tracking-widest drop-shadow-md">IoT/Infrastructure</span>
                 </span>
               </legend>
               <div className="grid grid-cols-2 gap-x-3 gap-y-4 mt-3">
                 <div className="flex items-center gap-2">
-                  <img src="https://www.google.com/s2/favicons?domain=aws.amazon.com&sz=128" alt="AWS" className="h-5 w-5 shrink-0 object-contain " />
+                  <img src="https://www.google.com/s2/favicons?domain=aws.amazon.com&sz=128" alt="AWS" className="h-5 w-5 shrink-0 object-contain drop-shadow-md" />
                   <span className="text-white/90 text-sm font-semibold tracking-wide truncate">AWS</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <img src="https://www.google.com/s2/favicons?domain=cloudflare.com&sz=128" alt="Cloudflare" className="h-5 w-5 shrink-0 object-contain " />
+                  <img src="https://www.google.com/s2/favicons?domain=cloudflare.com&sz=128" alt="Cloudflare" className="h-5 w-5 shrink-0 object-contain drop-shadow-md" />
                   <span className="text-white/90 text-sm font-semibold tracking-wide truncate">Cloudflare</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <img src="https://www.google.com/s2/favicons?domain=safaricom.co.ke&sz=128" alt="Safaricom" className="h-5 w-5 shrink-0 object-contain " />
+                  <img src="https://www.google.com/s2/favicons?domain=safaricom.co.ke&sz=128" alt="Safaricom" className="h-5 w-5 shrink-0 object-contain drop-shadow-md" />
                   <span className="text-white/90 text-sm font-semibold tracking-wide truncate">Safaricom</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <img src="https://www.google.com/s2/favicons?domain=docker.com&sz=128" alt="Docker" className="h-5 w-5 shrink-0 object-contain " />
+                  <img src="https://www.google.com/s2/favicons?domain=docker.com&sz=128" alt="Docker" className="h-5 w-5 shrink-0 object-contain drop-shadow-md" />
                   <span className="text-white/90 text-sm font-semibold tracking-wide truncate">Docker</span>
                 </div>
               </div>
@@ -1859,24 +1889,24 @@ export default function CodewardHero() {
               <legend className="px-2 mx-auto">
                 <span className="relative inline-block px-2 py-0.5">
                   <span className="absolute inset-0 bg-[#00F700] transform -skew-x-6 rounded-sm -rotate-2" />
-                  <span className="relative text-[10px] font-bold text-black uppercase tracking-widest ">Finance</span>
+                  <span className="relative text-[10px] font-bold text-black uppercase tracking-widest drop-shadow-md">Finance</span>
                 </span>
               </legend>
               <div className="grid grid-cols-2 gap-x-3 gap-y-4 mt-3">
                 <div className="flex items-center gap-2">
-                  <img src="https://www.google.com/s2/favicons?domain=stripe.com&sz=128" alt="Stripe" className="h-5 w-5 shrink-0 object-contain " />
+                  <img src="https://www.google.com/s2/favicons?domain=stripe.com&sz=128" alt="Stripe" className="h-5 w-5 shrink-0 object-contain drop-shadow-md" />
                   <span className="text-white/90 text-sm font-semibold tracking-wide truncate">Stripe</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <img src="https://www.google.com/s2/favicons?domain=plaid.com&sz=128" alt="Plaid" className="h-5 w-5 shrink-0 object-contain " />
+                  <img src="https://www.google.com/s2/favicons?domain=plaid.com&sz=128" alt="Plaid" className="h-5 w-5 shrink-0 object-contain drop-shadow-md" />
                   <span className="text-white/90 text-sm font-semibold tracking-wide truncate">Plaid</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <img src="https://www.google.com/s2/favicons?domain=flutterwave.com&sz=128" alt="Flutterwave" className="h-5 w-5 shrink-0 object-contain " />
+                  <img src="https://www.google.com/s2/favicons?domain=flutterwave.com&sz=128" alt="Flutterwave" className="h-5 w-5 shrink-0 object-contain drop-shadow-md" />
                   <span className="text-white/90 text-sm font-semibold tracking-wide truncate">Flutterwave</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <img src="https://www.google.com/s2/favicons?domain=paystack.com&sz=128" alt="Paystack" className="h-5 w-5 shrink-0 object-contain " />
+                  <img src="https://www.google.com/s2/favicons?domain=paystack.com&sz=128" alt="Paystack" className="h-5 w-5 shrink-0 object-contain drop-shadow-md" />
                   <span className="text-white/90 text-sm font-semibold tracking-wide truncate">Paystack</span>
                 </div>
               </div>
@@ -1893,17 +1923,17 @@ export default function CodewardHero() {
       >
         <div className="absolute inset-0 bg-black/10 mix-blend-overlay" />
         <div className="mx-auto max-w-6xl relative z-10 flex flex-col items-start">
-          <p className="text-3xl md:text-5xl font-semibold leading-[1.25] tracking-tight text-white mb-10">
+          <p className="text-3xl md:text-5xl font-semibold leading-[1.25] tracking-tight text-white drop-shadow-lg mb-10 min-h-[140px] md:min-h-[190px]">
             <MissionTypingText />
           </p>
           <FadeInSection delay={800} direction="up">
             <button 
               onClick={() => navigate('/signup')} 
-              className="group inline-flex items-center gap-2.5 rounded-full bg-white px-8 py-3.5 text-sm font-bold text-black shadow-white/5 transition-colors hover:bg-white/20 duration-300 cursor-pointer"
+              className="group inline-flex items-center gap-2.5 rounded-full bg-white px-8 py-3.5 text-sm font-bold text-black shadow-lg shadow-white/10 transition-all hover:bg-gray-100 hover:scale-105 active:scale-95 duration-300 cursor-pointer"
             >
               <span>See it in action</span>
-              <ArrowUpRight className="w-[18px] h-[18px] transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" strokeWidth={2.5} />
-              <div className="flex items-center -space-x-2 opacity-0 max-w-0 overflow-hidden group-hover:opacity-100 group-hover:max-w-[70px] transition-all duration-300 ease-out ml-1">
+              <span className="text-base font-black transition-transform group-hover:-translate-y-0.5 group-hover:-translate-x-0.5">↖</span>
+              <div className="flex items-center -space-x-2 opacity-0 max-w-0 scale-95 overflow-hidden group-hover:opacity-100 group-hover:max-w-[70px] group-hover:scale-100 transition-all duration-300 ease-out ml-1">
                 <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-black ring-2 ring-white">
                   <svg className="h-4 w-4 text-white" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
@@ -1922,20 +1952,31 @@ export default function CodewardHero() {
 
 
       {/* ── Specialized AI Agents Section ── */}
-      <InteractiveParticleGrid className="bg-[#05060a] py-16 md:py-20 px-3.5 sm:px-8 md:px-20 border-t border-white/5">
+      <section className="relative overflow-hidden bg-[#05060a] py-16 md:py-20 px-3.5 sm:px-8 md:px-20 border-t border-white/5">
+        {/* Dark Cyber Aesthetic Image Background */}
+        <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
+          <img
+            src="https://i.pinimg.com/736x/c5/f3/31/c5f331770f86cd888bd2277d78fc0d90.jpg"
+            alt="Agents Section Background"
+            loading="lazy"
+            decoding="async"
+            className="w-full h-full object-cover opacity-20 mix-blend-overlay"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-[#05060a] via-transparent to-[#05060a]" />
+        </div>
         <div className="relative z-10 mx-auto max-w-7xl flex flex-col space-y-24 md:space-y-32">
           
           {/* Agent 1: Security Shield */}
           <div className="flex flex-col md:flex-row items-center gap-12 sm:gap-16">
             <FadeInSection direction="up" className="flex-1 max-w-xl">
-              <h2 className="text-2xl md:text-4xl font-extrabold text-white mb-6 leading-tight ">
+              <h2 className="text-2xl md:text-4xl font-extrabold text-white mb-6 leading-tight drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)]">
                 Ironclad protection before you deploy
               </h2>
-              <p className="text-white font-medium text-base md:text-lg leading-relaxed mb-8 ">
+              <p className="text-white font-medium text-base md:text-lg leading-relaxed mb-8 drop-shadow-[0_2px_8px_rgba(0,0,0,0.7)]">
                 Shields your codebase from vulnerabilities and hardcoded secrets. It runs deep static analysis and provisions isolated ephemeral sandboxes to verify patches before any code reaches production.
               </p>
-              <button onClick={() => navigate('/signup')} className="cursor-pointer group inline-flex w-fit items-center gap-2 px-6 py-3 rounded-full bg-white text-black text-sm font-bold transition-all duration-300 hover:bg-white/20  cursor-pointer">
-                Secure your repo <ArrowRight className="w-4 h-4 ml-1 transition-transform group-hover:translate-x-1" strokeWidth={2.5} />
+              <button onClick={() => navigate('/signup')} className="inline-flex w-fit items-center gap-2 px-6 py-3 rounded-full bg-white text-black text-sm font-bold shadow-lg transition-all duration-300 hover:bg-[#8B5CF6] hover:text-white hover:scale-105 hover:shadow-[0_0_25px_rgba(139,92,246,0.5)] active:bg-green-500 active:text-white active:scale-95 cursor-pointer">
+                Secure your repo →
               </button>
             </FadeInSection>
             <FadeInSection direction="up" className="flex-1 w-full flex justify-end">
@@ -1946,14 +1987,14 @@ export default function CodewardHero() {
           {/* Agent 2: Technical Debt */}
           <div className="flex flex-col md:flex-row items-center gap-12 sm:gap-16">
             <FadeInSection direction="up" className="flex-1 max-w-xl">
-              <h2 className="text-2xl md:text-4xl font-extrabold text-white mb-6 leading-tight ">
+              <h2 className="text-2xl md:text-4xl font-extrabold text-white mb-6 leading-tight drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)]">
                 Crush legacy technical debt
               </h2>
-              <p className="text-white font-medium text-base md:text-lg leading-relaxed mb-8 ">
+              <p className="text-white font-medium text-base md:text-lg leading-relaxed mb-8 drop-shadow-[0_2px_8px_rgba(0,0,0,0.7)]">
                 Identifies, tracks, and autonomously eliminates technical debt. It highlights overly complex, legacy modules and writes modern, optimized refactors without breaking the underlying architecture.
               </p>
-              <button onClick={() => navigate('/signup')} className="cursor-pointer group inline-flex w-fit items-center gap-2 px-6 py-3 rounded-full bg-white text-black text-sm font-bold transition-all duration-300 hover:bg-white/20  cursor-pointer">
-                Eliminate tech debt <ArrowRight className="w-4 h-4 ml-1 transition-transform group-hover:translate-x-1" strokeWidth={2.5} />
+              <button onClick={() => navigate('/signup')} className="inline-flex w-fit items-center gap-2 px-6 py-3 rounded-full bg-white text-black text-sm font-bold shadow-lg transition-all duration-300 hover:bg-[#8B5CF6] hover:text-white hover:scale-105 hover:shadow-[0_0_25px_rgba(139,92,246,0.5)] active:bg-green-500 active:text-white active:scale-95 cursor-pointer">
+                Eliminate tech debt →
               </button>
             </FadeInSection>
             <FadeInSection direction="up" className="flex-1 w-full flex justify-end">
@@ -1964,14 +2005,14 @@ export default function CodewardHero() {
           {/* Agent 3: Sandbox Test */}
           <div className="flex flex-col md:flex-row items-center gap-12 sm:gap-16">
             <FadeInSection direction="up" className="flex-1 max-w-xl">
-              <h2 className="text-2xl md:text-4xl font-extrabold text-white mb-6 leading-tight ">
+              <h2 className="text-2xl md:text-4xl font-extrabold text-white mb-6 leading-tight drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)]">
                 Real tests in live sandboxes
               </h2>
-              <p className="text-white font-medium text-base md:text-lg leading-relaxed mb-8 ">
+              <p className="text-white font-medium text-base md:text-lg leading-relaxed mb-8 drop-shadow-[0_2px_8px_rgba(0,0,0,0.7)]">
                 Never merge broken code again. For every PR, the Test Agent spins up an ephemeral environment, executes your entire test suite, and ensures the code handles real-world scenarios flawlessly.
               </p>
-              <button onClick={() => navigate('/signup')} className="cursor-pointer group inline-flex w-fit items-center gap-2 px-6 py-3 rounded-full bg-white text-black text-sm font-bold transition-all duration-300 hover:bg-white/20  cursor-pointer">
-                Explore testing sandboxes <ArrowRight className="w-4 h-4 ml-1 transition-transform group-hover:translate-x-1" strokeWidth={2.5} />
+              <button onClick={() => navigate('/signup')} className="inline-flex w-fit items-center gap-2 px-6 py-3 rounded-full bg-white text-black text-sm font-bold shadow-lg transition-all duration-300 hover:bg-[#8B5CF6] hover:text-white hover:scale-105 hover:shadow-[0_0_25px_rgba(139,92,246,0.5)] active:bg-green-500 active:text-white active:scale-95 cursor-pointer">
+                Explore testing sandboxes →
               </button>
             </FadeInSection>
             <FadeInSection direction="up" className="flex-1 w-full flex justify-end">
@@ -1982,14 +2023,14 @@ export default function CodewardHero() {
           {/* Agent 4: Refactor Agent */}
           <div className="flex flex-col md:flex-row items-center gap-12 sm:gap-16">
             <FadeInSection direction="up" className="flex-1 max-w-xl">
-              <h2 className="text-2xl md:text-4xl font-extrabold text-white mb-6 leading-tight ">
+              <h2 className="text-2xl md:text-4xl font-extrabold text-white mb-6 leading-tight drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)]">
                 Scale your architecture safely
               </h2>
-              <p className="text-white font-medium text-base md:text-lg leading-relaxed mb-8 ">
+              <p className="text-white font-medium text-base md:text-lg leading-relaxed mb-8 drop-shadow-[0_2px_8px_rgba(0,0,0,0.7)]">
                 Restructures entire directories without losing business logic. The AI deeply understands your context, applies new design patterns, and checks its own work through sandboxed test runs.
               </p>
-              <button onClick={() => navigate('/signup')} className="cursor-pointer group inline-flex w-fit items-center gap-2 px-6 py-3 rounded-full bg-white text-black text-sm font-bold transition-all duration-300 hover:bg-white/20  cursor-pointer">
-                Start refactoring safely <ArrowRight className="w-4 h-4 ml-1 transition-transform group-hover:translate-x-1" strokeWidth={2.5} />
+              <button onClick={() => navigate('/signup')} className="inline-flex w-fit items-center gap-2 px-6 py-3 rounded-full bg-white text-black text-sm font-bold shadow-lg transition-all duration-300 hover:bg-[#8B5CF6] hover:text-white hover:scale-105 hover:shadow-[0_0_25px_rgba(139,92,246,0.5)] active:bg-green-500 active:text-white active:scale-95 cursor-pointer">
+                Start refactoring safely →
               </button>
             </FadeInSection>
             <FadeInSection direction="up" className="flex-1 w-full flex justify-end">
@@ -1998,7 +2039,7 @@ export default function CodewardHero() {
           </div>
 
         </div>
-      </InteractiveParticleGrid>
+      </section>
 
       {/* ── Flow / Architecture Section ── */}
 
@@ -2006,6 +2047,71 @@ export default function CodewardHero() {
 
       {/* ── Testimonials Section ── */}
       <TestimonialsSection />
+
+      {/* ── Latest Insights / Blogs Section ── */}
+      <InteractiveParticleGrid className="bg-[#05060a] py-20 md:py-24 px-4 sm:px-8 md:px-20 border-t border-white/5">
+        <FadeInSection>
+          <div className="mx-auto max-w-[1500px]">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 md:mb-12 gap-6 md:gap-0">
+              <h2 className="text-2xl md:text-3xl font-bold text-white tracking-tight">Latest Insights</h2>
+              <button onClick={() => navigate('/blogs')} className="px-5 py-2.5 rounded-full bg-white/5 border border-white/10 text-white text-sm font-medium hover:bg-white/10 transition-colors cursor-pointer">
+                Read all articles &rarr;
+              </button>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+              {blogs.slice(0, 3).map((post, idx) => (
+                <div onClick={() => navigate(`/blogs/${post.slug}`)} key={idx} className="group cursor-pointer flex flex-col">
+                  {/* Custom Graphic Card */}
+                  <div className={`relative h-[220px] rounded-[1.25rem] overflow-hidden bg-gradient-to-br ${post.gradient} border border-white/10 group-hover:shadow-[0_0_30px_rgba(139,92,246,0.3)] transition-all duration-300`}>
+                    {/* Background Glowing Gradients */}
+                    <div className="absolute inset-0 bg-gradient-to-tr from-black/20 via-transparent to-white/20 mix-blend-overlay" />
+                    <div className="absolute inset-0 bg-black/10" />
+                    
+                    {/* Inner Content overlaying the gradient box */}
+                    <div className="absolute inset-0 p-6 flex flex-col justify-between z-10">
+                      <div className="flex justify-start">
+                        <div className="flex items-center gap-2">
+                          <img src="/codeward-logo.png" alt="Codeward" className="h-4 w-4 object-contain drop-shadow-md" />
+                          <span className="text-sm font-bold tracking-tight text-white drop-shadow-md">Code<span className="text-purple-400">ward</span></span>
+                        </div>
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-bold tracking-widest text-white/70 uppercase mb-2 block drop-shadow-md">
+                          {post.overlayText}
+                        </span>
+                        <h4 className="text-lg font-bold text-white leading-tight drop-shadow-md">
+                          {post.title}
+                        </h4>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Article Meta text below the card */}
+                  <div className="mt-5 flex flex-col gap-2 justify-between flex-1">
+                    <div>
+                      <span className="text-[11px] font-bold text-white/40 uppercase tracking-widest">
+                        {post.category}
+                      </span>
+                      <h3 className="text-lg font-bold text-white/90 leading-snug group-hover:text-purple-400 transition-colors line-clamp-2 mt-1">
+                        {post.title}
+                      </h3>
+                    </div>
+                    <div className="flex items-center gap-2 mt-4">
+                      <div className="h-6 w-6 rounded-full bg-white/10 overflow-hidden flex items-center justify-center">
+                        <img src={`https://api.dicebear.com/7.x/initials/svg?seed=${post.authorAvatar}`} alt={post.author} className="h-full w-full object-cover" />
+                      </div>
+                      <span className="text-sm font-medium text-white/60">{post.author}</span>
+                      <span className="text-white/30">•</span>
+                      <span className="text-sm text-white/40">{post.readTime}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </FadeInSection>
+      </InteractiveParticleGrid>
 
       {/* ── FAQ Section ── */}
       <SecuritySection />
@@ -2017,19 +2123,19 @@ export default function CodewardHero() {
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] md:w-[800px] md:h-[800px] max-w-[100vw] bg-[radial-gradient(circle_at_center,_rgba(139,92,246,0.12)_0%,_transparent_60%)] pointer-events-none" />
         
         <FadeInSection className="relative z-10 flex flex-col items-center max-w-3xl">
-          <h2 className="text-3xl md:text-5xl font-semibold text-white mb-6 md:mb-8 ">
+          <h2 className="text-3xl md:text-5xl font-semibold text-white mb-6 md:mb-8 drop-shadow-lg">
             Still Curious?
           </h2>
           <p className="text-white/60 text-base md:text-lg font-medium mb-8 sm:mb-12 leading-relaxed max-w-xl">
             The fastest way to understand Codeward is to watch it audit your own codebase. Connect it and see what it finds.
           </p>
           <button 
-            className="group flex items-center gap-2.5 sm:gap-3 px-6 sm:px-10 py-3.5 sm:py-4 bg-white hover:bg-white/20 text-black text-base sm:text-lg font-bold rounded-full transition-colors max-w-full cursor-pointer"
+            className="flex items-center gap-2.5 sm:gap-3 px-6 sm:px-10 py-3.5 sm:py-4 bg-white hover:bg-white/90 text-black text-base sm:text-lg font-bold rounded-full transition-all hover:scale-105 hover:shadow-[0_0_30px_rgba(255,255,255,0.2)] max-w-full"
           >
             <svg height="22" aria-hidden="true" viewBox="0 0 16 16" version="1.1" width="22" data-view-component="true" className="fill-current shrink-0">
               <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"></path>
             </svg>
-            <span className="truncate flex items-center">Connect your first repo <ArrowRight className="w-5 h-5 ml-2 transition-transform group-hover:translate-x-1" strokeWidth={2.5} /></span>
+            <span className="truncate">Connect your first repo &rarr;</span>
           </button>
         </FadeInSection>
       </section>
@@ -2066,21 +2172,18 @@ function InteractiveParticleGrid({ children, className = '' }: { children: React
       const cols = Math.floor(canvas.width / spacing) + 1;
       const rows = Math.floor(canvas.height / spacing) + 1;
       
-      const time = Date.now() * 0.001; // Tempo in secondi
+      const time = Date.now() * 0.001;
 
       for (let i = 0; i <= cols; i++) {
         for (let j = 0; j <= rows; j++) {
           const x = i * spacing;
           const y = j * spacing;
 
-          // Genera un effetto fluido incrociando 3 onde sinusoidali basate su spazio e tempo
           const wave1 = Math.sin(x * 0.003 + time * 0.8);
           const wave2 = Math.cos(y * 0.004 + time * 0.6);
           const wave3 = Math.sin((x + y) * 0.003 - time * 1.1);
           
-          // Normalizza l'intensità combinata tra 0 e 1 (grazie a Math.abs o semplicemente shiftando)
           const combined = (wave1 + wave2 + wave3) / 3;
-          // Math.max per avere una curva più morbida e meno aggressiva
           const intensity = Math.max(0, (combined + 1) / 2);
           
           const alpha = 0.04 + (intensity * 0.35); 
@@ -2117,5 +2220,5 @@ function InteractiveParticleGrid({ children, className = '' }: { children: React
       </div>
     </section>
   );
-
 }
+

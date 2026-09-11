@@ -1,4 +1,5 @@
-import { pgTable, serial, text, varchar, timestamp, integer, boolean, jsonb, real, uuid, bigint, index } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, varchar, timestamp, integer, boolean, jsonb, real, uuid, bigint, index, uniqueIndex } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 
 export interface Finding {
   severity: "info" | "low" | "medium" | "high" | "critical";
@@ -12,6 +13,13 @@ export interface Finding {
 export const organization = pgTable('organization', {
   id: serial('id').primaryKey(),
   githubLogin: varchar('github_login', { length: 255 }).notNull().unique(),
+  planType: varchar('plan_type', { length: 50 }).notNull().default('free'),
+  prQuotaLimit: integer('pr_quota_limit').notNull().default(10),
+  stripeCustomerId: varchar('stripe_customer_id', { length: 255 }),
+  stripeSubscriptionId: varchar('stripe_subscription_id', { length: 255 }),
+  stripePriceId: varchar('stripe_price_id', { length: 255 }),
+  currentPeriodStart: timestamp('current_period_start'),
+  currentPeriodEnd: timestamp('current_period_end'),
   createdAt: timestamp('created_at').defaultNow(),
 });
 
@@ -66,7 +74,10 @@ export const runs = pgTable('runs', {
   scope: jsonb('scope'),
   prNumber: integer('pr_number'),
   createdAt: timestamp('created_at').defaultNow(),
-});
+}, (table) => ({
+  repoIdIdx: index('runs_repo_id_idx').on(table.repoId),
+  repoIdCreatedAtIdx: index('runs_repo_id_created_at_idx').on(table.repoId, table.createdAt),
+}));
 
 export const runResults = pgTable('run_results', {
   id: serial('id').primaryKey(),
@@ -140,6 +151,7 @@ export const user = pgTable("user", {
   emailVerified: boolean('emailVerified').notNull(),
   image: text('image'),
   isDeleted: boolean('isDeleted').default(false).notNull(),
+  leaderboardOptIn: boolean('leaderboard_opt_in').default(false).notNull(),
   createdAt: timestamp('createdAt').notNull(),
   updatedAt: timestamp('updatedAt').notNull()
 });
@@ -295,6 +307,40 @@ export const agentIntegrationAccess = pgTable('agent_integration_access', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
+export const alert = pgTable("alert", {
+  id: serial("id").primaryKey(),
+  repoId: integer("repo_id").references(() => repositories.id, { onDelete: 'cascade' }),
+  userId: text("user_id").references(() => user.id, { onDelete: 'cascade' }),
+  type: varchar("type", { length: 50 }).notNull(),
+  title: text("title").notNull(),
+  message: text("message").notNull(),
+  status: varchar("status", { length: 20 }).default('active').notNull(),
+  severity: varchar("severity", { length: 20 }).notNull(),
+  metadata: jsonb("metadata").default({}),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  resolvedAt: timestamp("resolved_at")
+});
+
+export const leaderboardScore = pgTable("leaderboard_score", {
+  entityId: text("entity_id").primaryKey(), // userId or orgId (as string to handle both)
+  entityType: varchar("entity_type", { length: 10 }).notNull(), // 'user' or 'org'
+  orgSlug: text("org_slug"),
+  ownerUserId: text("owner_user_id").notNull(), // the user representing this score
+  ownerName: text("owner_name").notNull(),
+  ownerImage: text("owner_image"),
+  score: integer("score").default(0).notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const dailyStats = pgTable("daily_stats", {
+  id: serial("id").primaryKey(),
+  entityId: text("entity_id").notNull(), // Links to leaderboard_score.entityId
+  date: timestamp("date").notNull(), // truncated to the day
+  linesCleared: integer("lines_cleared").default(0).notNull(),
+}, (table) => ({
+  entityDateIdx: index("daily_stats_entity_date_idx").on(table.entityId, table.date)
+}));
+
 export const mcpServers = pgTable('mcp_servers', {
   id: uuid('id').defaultRandom().primaryKey(),
   orgId: integer('org_id').references(() => organization.id, { onDelete: 'cascade' }),
@@ -374,11 +420,14 @@ export const escalatedFindings = pgTable('escalated_findings', {
   repoId: integer('repo_id').notNull().references(() => repositories.id, { onDelete: 'cascade' }),
   fingerprint: varchar('fingerprint', { length: 64 }).notNull(),
   githubIssueNumber: integer('github_issue_number'),
+  agentId: varchar('agent_id', { length: 100 }),
+  file: text('file'),
   status: varchar('status', { length: 20 }).notNull().default('open'), // 'open' | 'resolved' | 'stale'
   reason: varchar('reason', { length: 50 }).notNull(),
   reasonDetail: text('reason_detail'),
   firstEscalatedAt: timestamp('first_escalated_at').notNull().defaultNow(),
   lastSeenAt: timestamp('last_seen_at').notNull().defaultNow(),
+  lastCommentedAt: timestamp('last_commented_at'),
   resolvedAt: timestamp('resolved_at'),
   runId: integer('run_id').references(() => runs.id, { onDelete: 'set null' }),
   createdAt: timestamp('created_at').notNull().defaultNow(),
@@ -386,6 +435,9 @@ export const escalatedFindings = pgTable('escalated_findings', {
   return {
     fingerprintIdx: index('escalated_findings_fingerprint_idx').on(table.fingerprint),
     repoStatusIdx: index('escalated_findings_repo_status_idx').on(table.repoId, table.status),
+    uniqueOpenFindingIdx: uniqueIndex('escalated_findings_repo_fingerprint_open_idx')
+      .on(table.repoId, table.fingerprint)
+      .where(sql`status = 'open'`),
   };
 });
 

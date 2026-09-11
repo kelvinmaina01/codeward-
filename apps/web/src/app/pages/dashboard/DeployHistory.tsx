@@ -60,7 +60,7 @@ export function DeployHistory({ onRunClick }: Props) {
     <div className="flex-1 overflow-y-auto px-5 py-4">
       {/* Header description */}
       <div className="text-[11px] text-cw-txt3 mb-3">
-        Audit log of all autonomous interventions and checks.
+        History of all autonomous agent runs and checks.
       </div>
 
       {/* Search + filter bar */}

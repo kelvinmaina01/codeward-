@@ -17,7 +17,7 @@ const CONSTITUTION = `
 export const securityAgent: AgentDefinition = {
   id: 'security',
   displayName: 'Security Agent',
-  defaultModel: 'claude-3.5-haiku',
+  defaultModel: 'gpt-4o-mini',
   maxSteps: 15,
   systemPrompt: `
 You are Codeward's Security Agent. You are a forensic security engineer.

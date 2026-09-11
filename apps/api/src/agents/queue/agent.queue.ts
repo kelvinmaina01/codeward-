@@ -217,8 +217,8 @@ let _agentWorker: Worker<AgentJobData> | null = null;
 export function startAgentWorker(customOpts?: any): Worker<AgentJobData> {
   if (_agentWorker) return _agentWorker;
 
-  const concurrency = process.env.WORKER_CONCURRENCY ? parseInt(process.env.WORKER_CONCURRENCY, 10) : 10;
-  const repoConcurrencyMax = parseInt(process.env.REPO_CONCURRENCY_MAX || '3', 10);
+  const parsedConcurrency = Number(process.env.WORKER_CONCURRENCY);
+  const concurrency = Number.isSafeInteger(parsedConcurrency) && parsedConcurrency > 0 ? parsedConcurrency : 10;
 
   _agentWorker = new Worker('agent-jobs', async (job: Job<AgentJobData>) => {
   const { agentId, commitSHA, repoFullName, runId, provider: providerName, model } = job.data;
@@ -304,7 +304,9 @@ repoId: ${runRow?.repoId ?? 'unknown — this run has no repoId on record; do no
 Use these EXACT values for any tool parameter named runId/repoId — never invent, guess, or reuse a value from an example. This pipeline clones the repo and analyzes it statically — there is NO running instance of the app and NO live databaseUrl/baseUrl available. Tools that need one will honestly report applicable:false if you omit that argument; treat that as "not tested", never as "passed", and do not invent a placeholder connection string or URL to pass in. Follow your instructions precisely and report all findings as a JSON array.${scopeInstruction}`,
       tools,
       maxSteps: definition.maxSteps,
-      model: model || definition.defaultModel,
+      model: model || ((!runScope?.incremental || commitSHA === 'baseline') && process.env.INITIAL_SCAN_MODEL
+        ? process.env.INITIAL_SCAN_MODEL
+        : definition.defaultModel),
       commitSHA,
       repoFullName,
       runId,
@@ -510,6 +512,20 @@ Use these EXACT values for any tool parameter named runId/repoId — never inven
       .where(eq(agentTasks.id, taskId));
 
     console.log(`[AgentWorker] ${agentId} completed: score=${result.score}, findings=${result.findings.length}, duration=${result.duration}ms`);
+
+    // Increment real-time leaderboard stats if auto-fixes were generated
+    if (runRow?.repoId != null && autoFixPR?.opened && autoFixPR?.appliedFixes?.length) {
+      try {
+        const { recordLeaderboardContribution } = await import('../../services/leaderboard.service.js');
+        await recordLeaderboardContribution({
+          repoId: runRow.repoId,
+          runId,
+          appliedFixes: autoFixPR.appliedFixes.length,
+        });
+      } catch (leaderboardError) {
+        console.error(`[AgentWorker] Failed to record leaderboard contribution (non-fatal):`, leaderboardError);
+      }
+    }
     logAndBroadcast('agent_completed', {
       repo: repoFullName,
       sha: commitSHA,
@@ -618,11 +634,6 @@ Use these EXACT values for any tool parameter named runId/repoId — never inven
   }, {
     connection: connection as any,
     concurrency,
-    limiter: {
-      max: repoConcurrencyMax,
-      duration: 1000,
-      groupKey: 'repoFullName',
-    },
     settings: {
       backoffStrategies: {
         custom(attemptsMade: number) {

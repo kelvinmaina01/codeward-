@@ -51,29 +51,7 @@ export function Security() {
     <div className="flex-1 overflow-y-auto px-5 py-6">
       <div className="w-full max-w-[1000px] mx-auto">
         
-        {/* Main Hero Banner */}
-        <div className="relative w-full h-[220px] rounded-2xl overflow-hidden mb-8 border border-cw-bdr/50 shadow-lg group cursor-pointer">
-          {/* Background Image */}
-          <img 
-            src="/security_banner.png" 
-            alt="Security Center" 
-            className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-          />
-          
-          {/* Gradient Overlay for text readability */}
-          <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent" />
-          
-          {/* Content Overlay */}
-          <div className="absolute inset-0 p-8 flex flex-col justify-center">
-            <h2 className="text-3xl md:text-4xl font-bold text-white mb-3 leading-tight max-w-md">
-              Prove your <br />
-              code security <span className="text-cw-red inline-block transition-transform group-hover:translate-x-1">&rarr;</span>
-            </h2>
-            <p className="text-[14px] text-gray-300 max-w-sm mt-1 font-medium">
-              Share your Codeward verified security report to build trust with investors, partners, and customers.
-            </p>
-          </div>
-        </div>
+
 
         {issues.length === 0 ? (
           <div className="py-16 text-center text-cw-txt3 bg-cw-bg2 border border-cw-bdr rounded-2xl">

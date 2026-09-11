@@ -96,6 +96,12 @@ class MockDbClient {
       }),
     };
   }
+
+  delete() {
+    return {
+      where: () => Promise.resolve(),
+    };
+  }
 }
 
 async function testFingerprintCalculation() {
@@ -253,6 +259,172 @@ async function testEscalationFlowIdempotency() {
   console.log('  ✅ Full escalation lifecycle verified: Create -> Thread Comment -> Auto-close.');
 }
 
+async function testCapDoesNotCorruptSweep() {
+  console.log('[TEST] 4. Verifying MAX_ISSUES_PER_RUN cap does NOT corrupt sweep and close active findings...');
+
+  const tools = new MockFullGuardianTools();
+  const mockDb = new MockDbClient();
+  const repoId = '42';
+
+  // Seed DB with 7 active findings from run 201
+  const findingsList = Array.from({ length: 7 }, (_, i) => ({
+    severity: 'CRITICAL',
+    category: `VULN_${i}`,
+    title: `Vulnerability ${i}`,
+    description: `Critical issue ${i}`,
+    file: `src/mod_${i}.ts`,
+    line: 10,
+  }));
+
+  const initialTasks: EscalationTaskView[] = [{
+    agentId: 'security',
+    findings: findingsList,
+  }];
+
+  const res1 = await escalateTaskFindings({
+    guardianTools: tools,
+    repoId,
+    runId: 201,
+    tasks: initialTasks,
+    dbClient: mockDb,
+  });
+
+  assert.equal(res1.escalated.length, 5, 'Should escalate capped at 5 issues');
+  assert.equal(res1.skipped.length, 2, '2 findings should be skipped due to cap');
+
+  // Now run 202 with the SAME 7 findings still present.
+  // CRITICAL CHECK: None of the 7 findings should be marked resolved or closed!
+  const res2 = await escalateTaskFindings({
+    guardianTools: tools,
+    repoId,
+    runId: 202,
+    tasks: initialTasks,
+    dbClient: mockDb,
+  });
+
+  assert.equal(res2.resolved?.length ?? 0, 0, 'ZERO active findings should be resolved, even if capped out of issue-creation');
+  assert.equal(tools.closedIssues.length, 0, 'ZERO GitHub issues should be closed while findings remain');
+
+  console.log('  ✅ Cap sweep integrity verified: Capped findings never falsely closed.');
+}
+
+async function testResolutionScopeProtection() {
+  console.log('[TEST] 5. Verifying escalation resolution scope protection...');
+
+  const tools = new MockFullGuardianTools();
+  const mockDb = new MockDbClient();
+  const repoId = '42';
+
+  // Run 301: Compliance finding created
+  await escalateTaskFindings({
+    guardianTools: tools,
+    repoId,
+    runId: 301,
+    tasks: [{
+      agentId: 'compliance',
+      findings: [{
+        severity: 'HIGH',
+        category: 'LICENSE_VIOLATION',
+        title: 'GPL violation in library',
+        description: 'Incompatible license detected',
+        file: 'src/lib.ts',
+      }],
+    }],
+    dbClient: mockDb,
+  });
+
+  assert.equal(tools.createdIssues.length, 1);
+  assert.equal(mockDb.rows.length, 1);
+  assert.equal(mockDb.rows[0].agentId, 'compliance');
+
+  // Run 302: Only security agent runs, and finds 0 findings!
+  // CRITICAL: Compliance issue MUST NOT be resolved/closed because compliance agent was not analyzed in this run!
+  const res302 = await escalateTaskFindings({
+    guardianTools: tools,
+    repoId,
+    runId: 302,
+    tasks: [{
+      agentId: 'security',
+      findings: [],
+    }],
+    dbClient: mockDb,
+  });
+
+  assert.equal(res302.resolved?.length ?? 0, 0, 'Compliance finding must NOT be resolved by a security-only run');
+  assert.equal(tools.closedIssues.length, 0, 'Compliance issue must remain open');
+  assert.equal(mockDb.rows[0].status, 'open', 'DB status must remain open');
+
+  // Run 303: Compliance agent runs and finds 0 findings -> Now it SHOULD resolve!
+  const res303 = await escalateTaskFindings({
+    guardianTools: tools,
+    repoId,
+    runId: 303,
+    tasks: [{
+      agentId: 'compliance',
+      findings: [],
+    }],
+    dbClient: mockDb,
+  });
+
+  assert.equal(res303.resolved?.length ?? 0, 1, 'Compliance finding should now be resolved by compliance run');
+  assert.equal(tools.closedIssues.length, 1, 'Compliance issue should be closed');
+  assert.equal(mockDb.rows[0].status, 'resolved');
+
+  console.log('  ✅ Resolution scope protection verified: Only analyzed agents can resolve issues.');
+}
+
+async function testCommentThrottle() {
+  console.log('[TEST] 6. Verifying 24-hour comment throttle on re-opened findings...');
+
+  const tools = new MockFullGuardianTools();
+  const mockDb = new MockDbClient();
+  const repoId = '42';
+
+  const tasks: EscalationTaskView[] = [{
+    agentId: 'security',
+    findings: [{
+      severity: 'CRITICAL',
+      category: 'SQLI',
+      title: 'SQL Injection in users query',
+      description: 'Raw query concat',
+      file: 'src/users.ts',
+    }],
+  }];
+
+  // Run 401: Create issue
+  await escalateTaskFindings({
+    guardianTools: tools,
+    repoId,
+    runId: 401,
+    tasks,
+    dbClient: mockDb,
+  });
+  assert.equal(tools.createdIssues.length, 1);
+  assert.equal(tools.commentsAdded.length, 0);
+
+  // Run 402: Re-occurrence triggers initial comment
+  await escalateTaskFindings({
+    guardianTools: tools,
+    repoId,
+    runId: 402,
+    tasks,
+    dbClient: mockDb,
+  });
+  assert.equal(tools.commentsAdded.length, 1, 'First re-occurrence should add thread comment');
+
+  // Run 403 immediately after: Throttle is active (24h) -> should NOT add another comment
+  await escalateTaskFindings({
+    guardianTools: tools,
+    repoId,
+    runId: 403,
+    tasks,
+    dbClient: mockDb,
+  });
+  assert.equal(tools.commentsAdded.length, 1, 'Comment throttle must prevent rapid comment spam');
+
+  console.log('  ✅ 24-hour comment throttle verified: Repeated runs do not spam comments.');
+}
+
 async function main() {
   console.log('====================================================');
   console.log('Running Escalation Idempotency & Reason Test Suite');
@@ -261,6 +433,9 @@ async function main() {
   await testFingerprintCalculation();
   await testEscalationReasonRendering();
   await testEscalationFlowIdempotency();
+  await testCapDoesNotCorruptSweep();
+  await testResolutionScopeProtection();
+  await testCommentThrottle();
 
   console.log('====================================================');
   console.log('PASS: All escalation idempotency tests succeeded! 🎯');
