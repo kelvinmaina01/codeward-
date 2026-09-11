@@ -4,6 +4,7 @@ import * as Sentry from '@sentry/node';
 import { startAgentWorker } from './agents/queue/agent.queue.js';
 import { startEscalationWorker } from './agents/escalation/escalation.queue.js';
 import { startMergeWorker } from './agents/merge/merge.queue.js';
+import { emailWorker } from './queue/email.queue.js';
 import { NativeOpenAIProvider } from './providers/openai.provider.js';
 
 console.log(`[Codeward Worker] 🚀 Initializing standalone worker process...`);
@@ -21,6 +22,7 @@ console.log(`[Codeward Worker] ✅ All workers active and listening for BullMQ j
 console.log(`  - agent-jobs (AgentWorker)`);
 console.log(`  - escalation-jobs (EscalationWorker)`);
 console.log(`  - merge-jobs (MergeWorker)`);
+console.log(`  - email-jobs (EmailWorker)`);
 
 let isShuttingDown = false;
 
@@ -41,6 +43,7 @@ async function handleShutdown(signal: string, exitCode = 0) {
       agentWorker.close(),
       escalationWorker.close(),
       mergeWorker.close(),
+      emailWorker.close(),
     ]);
     clearTimeout(shutdownTimeout);
     console.log(`[Codeward Worker] ✅ All workers cleanly shut down. Exiting.`);

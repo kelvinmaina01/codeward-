@@ -5,6 +5,8 @@ import { EscalationEmail } from './templates/EscalationEmail.js';
 import { RepoConnectedSuccessEmail } from './templates/RepoConnectedSuccessEmail.js';
 import { RunFailureEmail } from './templates/RunFailureEmail.js';
 import { AccountDeletionEmail } from './templates/AccountDeletionEmail.js';
+import { PlanUpgradedEmail } from './templates/PlanUpgradedEmail.js';
+import { TrialLimitEmail } from './templates/TrialLimitEmail.js';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -106,6 +108,41 @@ export class NotificationService {
       to,
       'Your Codeward account deletion is queued — complete data removal will finish within 30 days',
       React.createElement(AccountDeletionEmail, { userName, dataSummary })
+    );
+  }
+
+  /** Sent when an org upgrades to Pro or Team via Polar. */
+  static async sendPlanUpgraded(
+    to: string,
+    userName: string,
+    orgName: string,
+    planType: 'pro' | 'team'
+  ) {
+    const label = planType === 'team' ? 'Team' : 'Pro';
+    const dashboardUrl = process.env.FRONTEND_URL
+      ? `${process.env.FRONTEND_URL}/dashboard`
+      : 'https://codeward.cloud/dashboard';
+    const supportEmail = process.env.SUPPORT_EMAIL || 'support@codeward.cloud';
+    return this.sendEmail(
+      to,
+      `[Codeward] Welcome to ${label} — your scans are now unlimited`,
+      React.createElement(PlanUpgradedEmail, { userName, orgName, planType, dashboardUrl, supportEmail })
+    );
+  }
+
+  /** Sent when a free org exhausts their lifetime PR trial slots. */
+  static async sendTrialLimitReached(
+    to: string,
+    userName: string,
+    orgName: string,
+    upgradeUrl: string
+  ) {
+    const trialPrLimit = Number(process.env.TRIAL_PR_LIMIT || '10');
+    const supportEmail = process.env.SUPPORT_EMAIL || 'support@codeward.cloud';
+    return this.sendEmail(
+      to,
+      '[Codeward] Your free trial scans are used up — upgrade to keep scanning',
+      React.createElement(TrialLimitEmail, { userName, orgName, trialPrLimit, upgradeUrl, supportEmail })
     );
   }
 }
