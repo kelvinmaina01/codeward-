@@ -253,7 +253,7 @@ function LiveCodewardCodeReviewWidget() {
   }, []);
 
   return (
-    <div className="w-full max-w-[620px] h-[440px] sm:h-[420px] rounded-3xl flex flex-col border border-white/15 bg-[#f8f9fc] p-3.5 sm:p-5 font-['DM_Sans'] text-gray-900 transition-all duration-500 ">
+    <div className="w-full max-w-[620px] h-auto min-h-[400px] sm:h-[420px] rounded-3xl flex flex-col border border-white/15 bg-[#f8f9fc] p-3.5 sm:p-5 font-['DM_Sans'] text-gray-900 transition-all duration-500 ">
       {/* 1. Terminal Top Command Bar */}
       <div className="rounded-2xl bg-[#0a0c10] px-3.5 sm:px-5 py-2.5 sm:py-3.5 text-white font-mono text-xs sm:text-sm flex items-center justify-between shadow-xl border border-white/10">
         <div className="flex items-center gap-2 min-w-0">
