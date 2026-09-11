@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
+import { ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { useSession } from '../../../lib/auth';
 import { LandingHeader } from './LandingHeader';
@@ -33,7 +34,10 @@ function FadeInSection({ children, delay = 0, className = '' }: { children: Reac
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
-          if (entry.isIntersecting) setVisible(true);
+          if (entry.isIntersecting) {
+            setVisible(true);
+            observer.unobserve(entry.target); // Kill the sensor once activated
+          }
         });
       },
       { threshold: 0.12, rootMargin: '0px 0px -40px 0px' }
@@ -113,6 +117,22 @@ function PricingFAQ() {
 function ComparePlansTable({ navigate, session }: { navigate: ReturnType<typeof useNavigate>; session: any }) {
   const goStart = () => navigate(session?.user ? '/dashboard' : '/signup');
   const goEnterprise = () => navigate('/book-demo');
+
+  const goTeamCheckout = () => {
+    if (session?.user) {
+      window.location.href = `https://buy.polar.sh/polar_cl_G8nQdTjkiE3TT0f9HwQtEzZAA1FrGatie2AYr1PiFep?client_reference_id=${session.user.id}`;
+    } else {
+      navigate('/signup');
+    }
+  };
+
+  const goProCheckout = () => {
+    if (session?.user) {
+      window.location.href = `https://buy.polar.sh/polar_cl_F6pFlJMO8NB1edLEiNLZ3ED0arMmOtoFUtpBc1J7ibY?client_reference_id=${session.user.id}`;
+    } else {
+      navigate('/signup');
+    }
+  };
 
   const categories = [
     {
@@ -198,7 +218,7 @@ function ComparePlansTable({ navigate, session }: { navigate: ReturnType<typeof 
                 <span className="text-xl font-bold text-[#a78bfa]">Pro</span>
                 <span className="text-2xl font-extrabold text-white mt-1">$19<span className="text-sm font-normal text-white/50">/mo</span></span>
                 <button
-                  onClick={goStart}
+                  onClick={goProCheckout}
                   className="mt-4 w-full max-w-[160px] bg-[#8B5CF6] hover:bg-[#7c4ae0] text-white font-bold py-2.5 px-4 rounded-full transition text-xs shadow-md shadow-[#8B5CF6]/30 cursor-pointer"
                 >
                   Start Free
@@ -210,7 +230,7 @@ function ComparePlansTable({ navigate, session }: { navigate: ReturnType<typeof 
                 <span className="text-xl font-bold text-white">Team</span>
                 <span className="text-2xl font-extrabold text-white mt-1">$39<span className="text-sm font-normal text-white/50">/seat</span></span>
                 <button
-                  onClick={goStart}
+                  onClick={goTeamCheckout}
                   className="mt-4 w-full max-w-[160px] bg-white hover:bg-white/90 text-black font-bold py-2.5 px-4 rounded-full transition text-xs shadow-sm cursor-pointer"
                 >
                   Start Free
@@ -254,7 +274,7 @@ function ComparePlansTable({ navigate, session }: { navigate: ReturnType<typeof 
               </div>
               <div className="flex justify-center">
                 <button
-                  onClick={goStart}
+                  onClick={goProCheckout}
                   className="w-full max-w-[160px] rounded-full bg-[#8B5CF6] px-4 py-2.5 text-xs font-bold text-white hover:bg-[#7c4ae0] transition-all shadow-md shadow-[#8B5CF6]/30 cursor-pointer"
                 >
                   Start Free
@@ -283,6 +303,26 @@ export default function PricingPage() {
   const { data: session } = useSession();
 
   const goStart = () => navigate(session?.user ? '/dashboard' : '/signup');
+
+  // Intelligent Checkout Routing
+  const goTeamCheckout = () => {
+    if (session?.user) {
+      // Se l'utente è già loggato, lo mandiamo direttamente a pagare su Polar
+      // Passiamo l'ID utente nel link così Kelvin sa chi ha pagato (tramite webhook)
+      window.location.href = `https://buy.polar.sh/polar_cl_G8nQdTjkiE3TT0f9HwQtEzZAA1FrGatie2AYr1PiFep?client_reference_id=${session.user.id}`;
+    } else {
+      // Se non è loggato, prima lo forziamo a registrarsi
+      navigate('/signup');
+    }
+  };
+
+  const goProCheckout = () => {
+    if (session?.user) {
+      window.location.href = `https://buy.polar.sh/polar_cl_F6pFlJMO8NB1edLEiNLZ3ED0arMmOtoFUtpBc1J7ibY?client_reference_id=${session.user.id}`;
+    } else {
+      navigate('/signup');
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#05060a] font-sans text-white">
@@ -325,9 +365,9 @@ export default function PricingPage() {
           </p>
           <button
             onClick={goStart}
-            className="flex items-center gap-3 px-8 py-4 bg-white hover:bg-white/90 text-black text-base font-bold rounded-full transition-all hover:scale-105 shadow-xl cursor-pointer"
+            className="group flex items-center gap-3 px-8 py-4 bg-white hover:bg-white/90 text-black text-base font-bold rounded-full transition-all  shadow-xl cursor-pointer"
           >
-            Connect your first repo &rarr;
+            Connect your first repo <ArrowRight className="w-4 h-4 ml-1 transition-transform group-hover:translate-x-1" strokeWidth={2.5} />
           </button>
         </FadeInSection>
       </section>
