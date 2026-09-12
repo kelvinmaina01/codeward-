@@ -44,7 +44,7 @@ export async function completePrLifecycle(runId: number, params: { conclusion: '
   });
   if (run.githubStatusCommentId) await octokit.request('PATCH /repos/{owner}/{repo}/issues/comments/{comment_id}', {
     owner: repo.owner, repo: repo.name, comment_id: run.githubStatusCommentId,
-    body: `## Codeward review complete\n\n${params.summary}\n\n<sub>Run #${run.id} · \`${run.commitSha.slice(0, 7)}\`</sub>`,
+    body: `## Codeward review complete\n\n${params.summary}\n\n<sub>Run #${run.id} · \`${run.commitSha.slice(0, 7)}\` · [Open Dashboard](${process.env.FRONTEND_URL || 'https://codeward.cloud'}/dashboard/issues-prs?tab=prs)</sub>`,
   });
   return { completed: true };
 }

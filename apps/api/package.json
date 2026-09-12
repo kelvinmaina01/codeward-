@@ -19,6 +19,7 @@
     "test:bullmq:concurrency": "tsx test/test-bullmq-concurrency.ts",
     "test:bullmq:fairness": "tsx test/test-bullmq-fairness.ts",
     "test:model:dynamic": "tsx test/test-dynamic-model-routing.ts",
+    "test:polar": "tsx test/test-polar-billing.ts",
     "benchmark:fly": "tsx test/benchmark-fly-concurrent-boot.ts",
     "build": "tsc",
     "start": "node dist/index.js"

@@ -241,18 +241,39 @@ type PlanId = 'free' | 'pro' | 'team';
 const PLANS: { id: PlanId; name: string; price: string; unit: string; tagline: string; features: string[]; recommended?: boolean }[] = [
   {
     id: 'free', name: 'Free', price: '$0', unit: '/ month',
-    tagline: 'For trying Codeward on a personal project.',
-    features: [`${FREE_PLAN_SCAN_LIMIT} free PR scans per month`, 'Automated PR reviews on every scan', 'No credit card required'],
+    tagline: 'Start for free with zero credit card required.',
+    features: [
+      '10 free PR scans (lifetime trial)',
+      'Unlimited connected repositories',
+      'All 8 core agents (Security, Architecture, Bloat, AI Era)',
+      'Tree-sitter AST parsing & secret scanning',
+      'Standard community review priority',
+    ],
   },
   {
     id: 'pro', name: 'Pro', price: '$19', unit: '/ month', recommended: true,
-    tagline: 'For individual developers shipping every day.',
-    features: ['Unlimited individual repositories', 'Advanced LLM context for deeper reviews', 'Everything in Free'],
+    tagline: 'For individual developers shipping daily.',
+    features: [
+      'Unlimited autonomous PR code reviews',
+      'High priority (Fast review queue)',
+      'Claude 3.5 Sonnet agentic reasoning',
+      'Automated PR fix branches & code suggestions',
+      'Ephemeral Firecracker microVM sandboxes',
+      'Everything in Free',
+    ],
   },
   {
     id: 'team', name: 'Team', price: '$39', unit: '/ month / seat',
-    tagline: 'For engineering organizations.',
-    features: ['Organization-wide access', 'Priority support', 'SAML / SSO', 'Everything in Pro'],
+    tagline: 'For engineering organizations and teams.',
+    features: [
+      'Unlimited autonomous PR code reviews',
+      'Highest dedicated execution priority',
+      'Compliance agent (SOC2 & GDPR audits)',
+      'Manager escalation routing & auto-merge controls',
+      'Custom codeward.yml rules engine',
+      'Organization team dashboard & audit logs',
+      'Everything in Pro',
+    ],
   },
 ];
 
@@ -526,24 +547,80 @@ export function Settings() {
   const userEmail = session?.user?.email || 'kelvin202maina@gmail.com';
   const webhookUrl = 'https://6da03ff7-234d-4d3e-ab48df5075fb7.codeward.app/reposeive';
 
+  // ── Billing portal & live billing info ─────────────────────────────────────
+  const [openingPortal, setOpeningPortal] = useState(false);
+  const [billingInfo, setBillingInfo] = useState<{
+    plan: PlanId;
+    trialPrsUsed: number;
+    trialPrLimit: number;
+    prQuotaLimit: number;
+    hasSubscription: boolean;
+    currentPeriodEnd?: string | null;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!session?.user) return;
+    fetch(`${API_URL}/api/users/me/billing-info`, { credentials: 'include' })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.success) {
+          setBillingInfo({
+            plan: (data.plan as PlanId) || 'free',
+            trialPrsUsed: data.trialPrsUsed ?? 0,
+            trialPrLimit: data.trialPrLimit ?? FREE_PLAN_SCAN_LIMIT,
+            prQuotaLimit: data.prQuotaLimit ?? 100,
+            hasSubscription: Boolean(data.hasSubscription),
+            currentPeriodEnd: data.currentPeriodEnd || null,
+          });
+        }
+      })
+      .catch((err) => console.warn('[Settings] Could not fetch billing info:', err));
+  }, [session?.user]);
+
+  const handleOpenBillingPortal = async () => {
+    if (!session?.user) {
+      toast.error('Please sign in to access billing management');
+      return;
+    }
+    setOpeningPortal(true);
+    try {
+      const res = await fetch(`${API_URL}/api/billing/portal`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+      });
+      const data = await res.json();
+      if (!res.ok || !data.url) {
+        throw new Error(data.message || data.error || 'Failed to open billing portal session');
+      }
+      window.location.href = data.url;
+    } catch (err: any) {
+      console.error('[Billing Portal Error]:', err);
+      toast.error(err?.message || 'Unable to open billing portal');
+      setOpeningPortal(false);
+    }
+  };
+
   // ── Billing checkout (shared with the public pricing page) ─────────────────
   const goProCheckout = () => {
     if (session?.user) {
-      window.location.href = `${POLAR_PRO_CHECKOUT}?client_reference_id=${session.user.id}`;
+      window.location.href = `${POLAR_PRO_CHECKOUT}?client_reference_id=${encodeURIComponent(session.user.id)}&customer_email=${encodeURIComponent(session.user.email)}`;
     } else {
       toast.error('Sign in to upgrade your plan');
     }
   };
   const goTeamCheckout = () => {
     if (session?.user) {
-      window.location.href = `${POLAR_TEAM_CHECKOUT}?client_reference_id=${session.user.id}`;
+      window.location.href = `${POLAR_TEAM_CHECKOUT}?client_reference_id=${encodeURIComponent(session.user.id)}&customer_email=${encodeURIComponent(session.user.email)}`;
     } else {
       toast.error('Sign in to upgrade your plan');
     }
   };
 
-  const currentPlan: PlanId = 'free';
-  const freeUsagePct = Math.min(100, Math.round((FREE_PLAN_SCANS_USED / FREE_PLAN_SCAN_LIMIT) * 100));
+  const currentPlan: PlanId = billingInfo?.plan || 'free';
+  const effectiveScanLimit = currentPlan === 'free' ? (billingInfo?.trialPrLimit || FREE_PLAN_SCAN_LIMIT) : (billingInfo?.prQuotaLimit || 100);
+  const effectiveScansUsed = currentPlan === 'free' ? (billingInfo?.trialPrsUsed || FREE_PLAN_SCANS_USED) : 0;
+  const freeUsagePct = Math.min(100, Math.round((effectiveScansUsed / effectiveScanLimit) * 100));
   const activeTabMeta = TABS.find((t) => t.id === activeTab) ?? TABS[0];
 
   return (
@@ -690,31 +767,44 @@ export function Settings() {
                 </SectionCard>
 
                 <SectionCard
-                  title="Plan & credits"
+                  title="Subscription & PR quota"
                   icon={Sparkles}
-                  description="Your current subscription and available credits"
+                  description="Your active Codeward plan and pull request review capacity"
                   actions={
                     <button type="button" onClick={() => setActiveTab('billing')} className={BTN_PRIMARY}>
-                      Upgrade <ArrowUpRight size={12} />
+                      {currentPlan === 'free' ? 'Upgrade plan' : 'Manage subscription'} <ArrowUpRight size={12} />
                     </button>
                   }
                 >
-                  <div className="flex items-center gap-2 py-3 border-b border-cw-bdr">
-                    <span className="text-[15px] font-semibold text-cw-txt tracking-tight">Free</span>
-                    <Pill tone="purple" dot>Active</Pill>
+                  <div className="flex items-center justify-between py-3 border-b border-cw-bdr">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[15px] font-semibold text-cw-txt tracking-tight capitalize">{currentPlan} Plan</span>
+                      <Pill tone={currentPlan === 'free' ? 'neutral' : 'purple'} dot>
+                        {currentPlan === 'free' ? 'Free trial' : 'Active subscription'}
+                      </Pill>
+                    </div>
+                    <span className="text-[13px] font-semibold tabular-nums text-cw-txt">
+                      {currentPlan === 'pro' ? '$19 / mo' : currentPlan === 'team' ? '$39 / seat / mo' : '$0 / mo'}
+                    </span>
                   </div>
                   <SetRow
-                    label="Credits"
-                    desc="Free credits: 205"
-                    control={<span className="font-mono text-[13px] font-semibold tabular-nums text-cw-txt">205</span>}
+                    label="PR review quota"
+                    desc={currentPlan === 'free'
+                      ? `${effectiveScanLimit} lifetime PR reviews included. Force-pushes to the same PR do not consume additional slots.`
+                      : 'Unlimited autonomous PR code reviews across all connected repositories.'}
+                    control={
+                      <span className="font-mono text-[13px] font-semibold tabular-nums text-cw-txt">
+                        {effectiveScansUsed} / {currentPlan === 'free' ? effectiveScanLimit : '∞'}
+                      </span>
+                    }
                   />
                   <SetRow
-                    label="Daily refresh credits"
-                    desc="Refresh to 300 at 00:00 every day"
+                    label="Review queue priority"
+                    desc={currentPlan === 'team' ? 'Highest priority (Dedicated sandbox compute)' : currentPlan === 'pro' ? 'High priority (Fast review queue)' : 'Standard community queue'}
                     control={
-                      <span className="inline-flex items-center gap-1.5 font-mono text-[13px] font-semibold tabular-nums text-cw-txt">
-                        <Calendar size={12} className="text-cw-txt3" /> 300
-                      </span>
+                      <Pill tone={currentPlan === 'free' ? 'neutral' : 'purple'}>
+                        {currentPlan === 'team' ? 'Dedicated' : currentPlan === 'pro' ? 'Fast Queue' : 'Standard'}
+                      </Pill>
                     }
                   />
                 </SectionCard>
@@ -875,34 +965,61 @@ export function Settings() {
             {/* ── TAB 3: BILLING & USAGE ── */}
             {activeTab === 'billing' && (
               <>
-                <SectionCard title="Current plan" icon={CreditCard} description="Your subscription and this month's usage" flush>
+                <SectionCard
+                  title="Current plan"
+                  icon={CreditCard}
+                  description="Your subscription, billing method, and monthly PR review quota"
+                  flush
+                  actions={
+                    <button
+                      type="button"
+                      onClick={handleOpenBillingPortal}
+                      disabled={openingPortal}
+                      className={`${BTN_SECONDARY} text-[11px] h-7 px-2.5 gap-1.5`}
+                      title="Open Polar customer portal to manage cards, subscriptions, and download invoices"
+                    >
+                      {openingPortal ? <LoaderCircle size={12} className="animate-spin text-cw-purple" /> : <CreditCard size={12} />}
+                      <span>Manage Payment & Billing</span>
+                      <ArrowUpRight size={11} className="text-cw-txt3" />
+                    </button>
+                  }
+                >
                   <div className="grid grid-cols-1 md:grid-cols-2 md:divide-x divide-cw-bdr">
                     <div className="px-4 sm:px-5 py-4 flex flex-col gap-3">
                       <div className="flex items-center gap-2">
-                        <span className="text-[20px] font-semibold tracking-tight text-cw-txt">Free</span>
-                        <Pill tone="purple" dot>Current plan</Pill>
+                        <span className="text-[20px] font-semibold tracking-tight text-cw-txt capitalize">{currentPlan}</span>
+                        <Pill tone={currentPlan === 'free' ? 'neutral' : 'purple'} dot>Current plan</Pill>
                       </div>
                       <div className="flex items-baseline gap-1">
-                        <span className="text-[24px] leading-none font-semibold tracking-tight tabular-nums text-cw-txt">$0</span>
+                        <span className="text-[24px] leading-none font-semibold tracking-tight tabular-nums text-cw-txt">
+                          {currentPlan === 'pro' ? '$19' : currentPlan === 'team' ? '$39' : '$0'}
+                        </span>
                         <span className="text-[11px] text-cw-txt3">/ month</span>
                       </div>
                       <p className="text-[11px] text-cw-txt3 leading-4">
-                        {FREE_PLAN_SCAN_LIMIT} free PR scans every month, forever. Upgrade for unlimited autonomous code reviews.
+                        {currentPlan === 'free'
+                          ? `${effectiveScanLimit} free PR scans included in your lifetime trial. Upgrade to Pro for unlimited autonomous code reviews.`
+                          : `Autonomous PR reviews active on your ${currentPlan} plan. Managed securely via Polar.`}
+                        {billingInfo?.currentPeriodEnd && (
+                          <span className="block mt-1 font-medium text-cw-txt2">
+                            Renews on {new Date(billingInfo.currentPeriodEnd).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                          </span>
+                        )}
                       </p>
                     </div>
                     <div className="px-4 sm:px-5 py-4 flex flex-col gap-3 border-t md:border-t-0 border-cw-bdr">
                       <div className="flex items-center justify-between gap-3">
-                        <span className={MICRO_LABEL}>PR scans this month</span>
+                        <span className={MICRO_LABEL}>PR scans quota</span>
                         <span className="font-mono text-[12px] font-semibold tabular-nums text-cw-txt">
-                          {FREE_PLAN_SCANS_USED} <span className="text-cw-txt3 font-normal">/ {FREE_PLAN_SCAN_LIMIT}</span>
+                          {effectiveScansUsed} <span className="text-cw-txt3 font-normal">/ {effectiveScanLimit}</span>
                         </span>
                       </div>
                       <div
                         role="progressbar"
-                        aria-label="Free plan PR scans used this month"
+                        aria-label="PR scans used"
                         aria-valuemin={0}
-                        aria-valuemax={FREE_PLAN_SCAN_LIMIT}
-                        aria-valuenow={FREE_PLAN_SCANS_USED}
+                        aria-valuemax={effectiveScanLimit}
+                        aria-valuenow={effectiveScansUsed}
                         className="h-1.5 w-full rounded-full bg-cw-bg3 overflow-hidden"
                       >
                         <div
@@ -911,10 +1028,16 @@ export function Settings() {
                         />
                       </div>
                       <div className="flex items-center justify-between gap-3 text-[11px] text-cw-txt3">
-                        <span>{FREE_PLAN_SCAN_LIMIT - FREE_PLAN_SCANS_USED} scans remaining · resets monthly</span>
-                        <button type="button" onClick={goProCheckout} className={BTN_LINK}>
-                          Remove the limit <ArrowUpRight size={11} />
-                        </button>
+                        <span>{Math.max(0, effectiveScanLimit - effectiveScansUsed)} scans remaining</span>
+                        {currentPlan === 'free' ? (
+                          <button type="button" onClick={goProCheckout} className={BTN_LINK}>
+                            Remove the limit <ArrowUpRight size={11} />
+                          </button>
+                        ) : (
+                          <button type="button" onClick={handleOpenBillingPortal} className={BTN_LINK}>
+                            Manage plan in Polar <ArrowUpRight size={11} />
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -967,7 +1090,7 @@ export function Settings() {
                             <div className="rounded-md border border-cw-bdr bg-cw-bg/60 px-3 py-2 flex flex-col gap-1.5">
                               <div className="flex items-center justify-between text-[10px]">
                                 <span className={MICRO_LABEL}>Monthly limit</span>
-                                <span className="font-mono font-semibold tabular-nums text-cw-txt">{FREE_PLAN_SCANS_USED} / {FREE_PLAN_SCAN_LIMIT}</span>
+                                <span className="font-mono font-semibold tabular-nums text-cw-txt">{effectiveScansUsed} / {effectiveScanLimit}</span>
                               </div>
                               <div className="h-1 w-full rounded-full bg-cw-bg3 overflow-hidden">
                                 <div className="h-full rounded-full bg-cw-purple" style={{ width: `${freeUsagePct}%` }} />
@@ -975,8 +1098,8 @@ export function Settings() {
                             </div>
                           )}
                           {isCurrent ? (
-                            <button type="button" disabled className={`${BTN_SECONDARY} w-full justify-center`}>
-                              <Check size={12} /> Current plan
+                            <button type="button" onClick={handleOpenBillingPortal} className={`${BTN_SECONDARY} w-full justify-center`}>
+                              <Check size={12} /> Manage Plan in Portal
                             </button>
                           ) : plan.id === 'pro' ? (
                             <button type="button" onClick={goProCheckout} className={`${BTN_PRIMARY} w-full justify-center`}>
@@ -993,8 +1116,55 @@ export function Settings() {
                   </div>
                 </section>
 
-                <SectionCard title="Invoices & receipts" icon={FileText} description="Payment history for this account" flush>
-                  <EmptyState icon={FileText} title="No past paid invoices found for your account." hint="Receipts for paid plans will appear here after your first billing cycle." />
+                <SectionCard
+                  title="Invoices & receipts"
+                  icon={FileText}
+                  description="Payment history, tax receipts, and payment method updates via Polar"
+                  flush
+                  actions={
+                    <button
+                      type="button"
+                      onClick={handleOpenBillingPortal}
+                      disabled={openingPortal}
+                      className={`${BTN_SECONDARY} text-[11px] h-7 px-2.5 gap-1.5`}
+                    >
+                      {openingPortal ? <LoaderCircle size={12} className="animate-spin text-cw-purple" /> : <CreditCard size={12} />}
+                      <span>Manage Invoices & Cards</span>
+                      <ArrowUpRight size={11} className="text-cw-txt3" />
+                    </button>
+                  }
+                >
+                  <div className="p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-md border border-cw-bdr bg-cw-bg3/50 flex items-center justify-center text-cw-purple shrink-0">
+                        <FileText size={16} />
+                      </div>
+                      <div>
+                        <div className="text-[12px] font-medium text-cw-txt">Self-Serve Invoices & Billing Portal</div>
+                        <p className="text-[11px] text-cw-txt3 leading-4">
+                          Download official PDF receipts, update VAT/tax identifiers, replace cards, or manage active subscriptions directly via Polar.
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleOpenBillingPortal}
+                      disabled={openingPortal}
+                      className={`${BTN_PRIMARY} text-[11px] shrink-0`}
+                    >
+                      {openingPortal ? (
+                        <>
+                          <LoaderCircle size={12} className="animate-spin" />
+                          <span>Opening Portal...</span>
+                        </>
+                      ) : (
+                        <>
+                          <span>Open Customer Portal</span>
+                          <ArrowUpRight size={12} />
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </SectionCard>
               </>
             )}

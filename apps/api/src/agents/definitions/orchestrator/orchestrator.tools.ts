@@ -54,13 +54,66 @@ export function classifyDiff(rawDiff: string, changedFiles: string[]): DiffAnaly
   else if (linesAdded > 100) overallRisk = 'MEDIUM';
 
   const agentRecommendations: AgentRecommendation[] = [
-    { agentType: 'security', recommend: true, mandatory: true, reason: 'Non-negotiable baseline on every commit regardless of diff content.' },
-    { agentType: 'broken_code', recommend: anyCodeChanged, mandatory: false, reason: anyCodeChanged ? 'Code files changed — correctness/test-suite risk.' : 'No code files changed (docs/config only) — nothing for this agent to verify.' },
-    { agentType: 'architecture', recommend: hasMigrations || linesAdded > 50, mandatory: false, reason: hasMigrations ? 'Schema/migration files touched.' : linesAdded > 50 ? `${linesAdded} lines added — large enough to risk structural/coupling issues.` : 'Small diff, no migrations — low architectural risk.' },
-    { agentType: 'bloat', recommend: linesAdded > 20 || linesRemoved > 20, mandatory: false, reason: (linesAdded > 20 || linesRemoved > 20) ? `${linesAdded} added / ${linesRemoved} removed — enough churn to check for dead code/duplication.` : 'Diff too small to meaningfully check for bloat.' },
-    { agentType: 'data_dx', recommend: touchedDataFiles || touchedCiOrTooling, mandatory: false, reason: touchedDataFiles ? 'Data pipeline/migration/analytics files touched.' : touchedCiOrTooling ? 'CI/tooling config touched.' : 'No data pipeline or tooling files touched.' },
-    { agentType: 'compliance', recommend: touchedComplianceRelevant, mandatory: false, reason: touchedComplianceRelevant ? 'UI or consent/PII/accessibility-related files touched.' : 'No UI or compliance-relevant files touched.' },
-    { agentType: 'ai_era', recommend: touchedAiCallSites, mandatory: false, reason: touchedAiCallSites ? 'Diff contains an LLM call-site pattern (openai/anthropic/completions).' : 'No LLM call-site changes detected in the diff.' },
+    {
+      agentType: 'security',
+      recommend: !isDocOrConfigOnly,
+      mandatory: !isDocOrConfigOnly,
+      reason: isDocOrConfigOnly
+        ? 'Documentation or non-workflow config only — zero code security exposure.'
+        : 'Non-negotiable baseline on all code changes.'
+    },
+    {
+      agentType: 'broken_code',
+      recommend: anyCodeChanged,
+      mandatory: false,
+      reason: anyCodeChanged
+        ? 'Code files changed — correctness/test-suite risk.'
+        : 'No code files changed (docs/config only) — nothing for this agent to verify.'
+    },
+    {
+      agentType: 'architecture',
+      recommend: !isDocOrConfigOnly && (hasMigrations || linesAdded > 50),
+      mandatory: false,
+      reason: hasMigrations
+        ? 'Schema/migration files touched.'
+        : linesAdded > 50 && !isDocOrConfigOnly
+        ? `${linesAdded} lines added — large enough to risk structural/coupling issues.`
+        : 'Small diff, docs-only, or no migrations — low architectural risk.'
+    },
+    {
+      agentType: 'bloat',
+      recommend: !isDocOrConfigOnly && (linesAdded > 20 || linesRemoved > 20),
+      mandatory: false,
+      reason: !isDocOrConfigOnly && (linesAdded > 20 || linesRemoved > 20)
+        ? `${linesAdded} added / ${linesRemoved} removed — enough churn to check for dead code/duplication.`
+        : 'Diff too small or docs-only — skipping bloat analysis.'
+    },
+    {
+      agentType: 'data_dx',
+      recommend: !isDocOrConfigOnly && (touchedDataFiles || touchedCiOrTooling),
+      mandatory: false,
+      reason: touchedDataFiles
+        ? 'Data pipeline/migration/analytics files touched.'
+        : touchedCiOrTooling
+        ? 'CI/tooling config touched.'
+        : 'No data pipeline or tooling files touched.'
+    },
+    {
+      agentType: 'compliance',
+      recommend: !isDocOrConfigOnly && touchedComplianceRelevant,
+      mandatory: false,
+      reason: touchedComplianceRelevant
+        ? 'UI or consent/PII/accessibility-related files touched.'
+        : 'No UI or compliance-relevant files touched.'
+    },
+    {
+      agentType: 'ai_era',
+      recommend: !isDocOrConfigOnly && touchedAiCallSites,
+      mandatory: false,
+      reason: touchedAiCallSites
+        ? 'Diff contains an LLM call-site pattern (openai/anthropic/completions).'
+        : 'No LLM call-site changes detected in the diff.'
+    },
   ];
   const recommendedAgents = agentRecommendations.filter(a => a.recommend).map(a => a.agentType);
   const mandatoryAgents = agentRecommendations.filter(a => a.mandatory).map(a => a.agentType);
@@ -78,6 +131,38 @@ export function classifyDiff(rawDiff: string, changedFiles: string[]): DiffAnaly
       { phase: 1, agents: recommendedAgents, reason: 'Dynamic parallel execution based on real diff signals — see agentRecommendations for the per-agent reasoning.' }
     ],
   };
+}
+
+/**
+ * Safely extracts diff content and list of changed files from the sandbox.
+ * For PRs with multiple commits, it resolves the base branch (origin/main, origin/master, origin/HEAD)
+ * and runs `git diff base...HEAD` so all commits in the PR are captured.
+ * Falls back to `git show HEAD` if base branch comparison is unavailable.
+ */
+export async function getGitDiffAndFiles(sandbox: SandboxHandle): Promise<{ rawDiff: string; changedFiles: string[] }> {
+  const baseCandidates = ['origin/main', 'origin/master', 'origin/HEAD', 'HEAD~1'];
+
+  for (const base of baseCandidates) {
+    try {
+      const check = await sandbox.exec(`git rev-parse --verify ${base}`);
+      if (check.exitCode === 0) {
+        const diffRes = await sandbox.exec(`git diff ${base}...HEAD`);
+        if (diffRes.exitCode === 0 && diffRes.stdout && diffRes.stdout.trim().length > 0) {
+          const filesRes = await sandbox.exec(`git diff --name-only ${base}...HEAD`);
+          const changedFiles = (filesRes.stdout || '').split('\n').map(s => s.trim()).filter(Boolean);
+          return { rawDiff: diffRes.stdout, changedFiles };
+        }
+      }
+    } catch {
+      // Try next candidate
+    }
+  }
+
+  const diffRes = await sandbox.exec('git show --format= HEAD');
+  const filesRes = await sandbox.exec('git show --format= --name-only HEAD');
+  const rawDiff = diffRes.stdout || '';
+  const changedFiles = (filesRes.stdout || '').split('\n').map(s => s.trim()).filter(Boolean);
+  return { rawDiff, changedFiles };
 }
 
 export const createOrchestratorTools = (sandbox: SandboxHandle) => ({
@@ -128,10 +213,7 @@ export const createOrchestratorTools = (sandbox: SandboxHandle) => ({
       repoConfig: z.object({}).passthrough().optional()
     }),
     execute: async (args: any) => {
-      const diffRes = await sandbox.exec('git show --format= HEAD');
-      const filesRes = await sandbox.exec('git show --format= --name-only HEAD');
-      const rawDiff = diffRes.stdout || '';
-      const changedFiles = (filesRes.stdout || '').split('\n').filter(Boolean);
+      const { rawDiff, changedFiles } = await getGitDiffAndFiles(sandbox);
       return classifyDiff(rawDiff, changedFiles);
     }
   },
@@ -196,7 +278,7 @@ export const createOrchestratorTools = (sandbox: SandboxHandle) => ({
   },
 
   dispatch_recommended_agents: {
-    description: 'The REAL, code-enforced dispatch step — call this ONCE per run instead of hand-calling spawn_agent for each agent. It re-derives the diff classification itself (the same real logic behind analyse_commit_diff, not whatever you remember from reading its output) and spawns exactly the recommended set, so the decision is grounded in the actual diff every time rather than left to be reconstructed correctly across several separate tool calls. Pass overrides ONLY when you have a specific, diff-grounded reason to deviate from the recommendation (e.g. search_memory showed this exact path\'s history warrants more or less scrutiny) — "just in case" is not a valid reason and both add/remove entries require reason text. Mandatory agents (currently: security) can never be removed, even via override — that request is silently ignored.',
+    description: 'The REAL, code-enforced dispatch step — call this ONCE per run instead of hand-calling spawn_agent for each agent. It re-derives the diff classification itself (the same real logic behind analyse_commit_diff, not whatever you remember from reading its output) and spawns exactly the recommended set, so the decision is grounded in the actual diff every time rather than left to be reconstructed correctly across several separate tool calls. Pass overrides ONLY when you have a specific, diff-grounded reason to deviate from the recommendation (e.g. search_memory showed this exact path\'s history warrants more or less scrutiny) — "just in case" is not a valid reason and both add/remove entries require reason text. Mandatory agents (currently: security on code changes) can never be removed, even via override — that request is silently ignored.',
     parameters: z.object({
       runId: z.string(),
       repoId: z.string(),
@@ -210,12 +292,11 @@ export const createOrchestratorTools = (sandbox: SandboxHandle) => ({
     execute: async (args: any) => {
       const { agentQueue } = await import('../../queue/agent.queue.js');
       const { db } = await import('../../../db/index.js');
-      const { agentTasks } = await import('../../../db/schema.js');
+      const { agentTasks, runs } = await import('../../../db/schema.js');
       const { eq, and } = await import('drizzle-orm');
 
-      const diffRes = await sandbox.exec('git show --format= HEAD');
-      const filesRes = await sandbox.exec('git show --format= --name-only HEAD');
-      const analysis = classifyDiff(diffRes.stdout || '', (filesRes.stdout || '').split('\n').filter(Boolean));
+      const { rawDiff, changedFiles } = await getGitDiffAndFiles(sandbox);
+      const analysis = classifyDiff(rawDiff, changedFiles);
 
       const addSet = new Set(args.overrides?.add?.map((o: any) => o.agentType) ?? []);
       const removeSet = new Set((args.overrides?.remove ?? []).filter((o: any) => !analysis.mandatoryAgents.includes(o.agentType)).map((o: any) => o.agentType));
@@ -234,6 +315,22 @@ export const createOrchestratorTools = (sandbox: SandboxHandle) => ({
         await db.insert(agentTasks).values({ runId: Number(args.runId), agentId: agentType, status: 'queued', provider: 'openai' });
         await agentQueue.add(`agent-${agentType}`, { agentId: agentType, commitSHA: args.commitSha, repoFullName: args.repoFullName, runId: Number(args.runId) });
         dispatched.push(agentType);
+      }
+
+      // Persist the diff analysis and risk profile onto runs.scope so downstream queue handlers
+      // and workers know if this run is doc-only or which agents were recommended.
+      try {
+        await db.update(runs).set({
+          scope: {
+            isDocOrConfigOnly: analysis.riskProfile.isDocOrConfigOnly,
+            overallRisk: analysis.riskProfile.overallRisk,
+            recommendedAgents: analysis.recommendedAgents,
+            dispatchedAgents: dispatched,
+            changedFilesSummary: analysis.riskProfile.changedFilesSummary,
+          }
+        }).where(eq(runs.id, Number(args.runId)));
+      } catch (err: any) {
+        console.warn(`[Orchestrator] Could not update runs.scope for run ${args.runId}:`, err.message);
       }
 
       console.log(`[Orchestrator] dispatch_recommended_agents for run ${args.runId}: recommended=[${analysis.recommendedAgents.join(',')}], dispatched=[${dispatched.join(',')}]${addSet.size ? `, added=[${[...addSet].join(',')}]` : ''}${removeSet.size ? `, removed=[${[...removeSet].join(',')}]` : ''}`);

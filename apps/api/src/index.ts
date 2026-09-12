@@ -142,6 +142,7 @@ import { mcpRouter } from './routes/mcp.js';
 import { newsletterRouter } from './routes/newsletter.js';
 import { workspacesRouter } from './routes/workspaces.js';
 import { usersRouter } from './routes/users.js';
+import { billingRouter } from './routes/billing.js';
 
 const routes = app
   .route('/api/webhooks', webhookRouter)
@@ -160,6 +161,7 @@ const routes = app
   .route('/api/newsletter', newsletterRouter)
   .route('/api/workspaces', workspacesRouter)
   .route('/api/users', usersRouter)
+  .route('/api/billing', billingRouter)
   .route('/ws', wsRouter);
 
 export type AppType = typeof routes;

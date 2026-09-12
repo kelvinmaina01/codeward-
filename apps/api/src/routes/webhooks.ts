@@ -3,7 +3,7 @@ import crypto from 'crypto';
 import { agentQueue } from '../agents/queue/agent.queue.js';
 import { triggerComprehensiveAudit } from '../agents/audit-trigger.js';
 import { db } from '../db/index.js';
-import { runs, repositories, organization, user } from '../db/schema.js';
+import { runs, repositories, organization, user, organizationMember } from '../db/schema.js';
 import { eq, desc } from 'drizzle-orm';
 import { BudgetService } from '../services/budget.service.js';
 import { appConfig } from '../config/app.config.js';
@@ -231,14 +231,71 @@ function resolvePlanFromProductId(productId: string): 'pro' | 'team' | null {
   return null;
 }
 
-/** Looks up the orgId from a userId (from clientReferenceId). */
+/** Looks up the orgId from a userId or direct orgId (from clientReferenceId or metadata). */
 async function resolveOrgFromUserId(userId: string): Promise<number | null> {
+  if (!userId) return null;
+
+  // 1. Direct numeric orgId (e.g. if passed as teamId or numeric clientReferenceId)
+  const numId = Number(userId);
+  if (!isNaN(numId) && numId > 0) {
+    const [directOrg] = await db
+      .select({ id: organization.id })
+      .from(organization)
+      .where(eq(organization.id, numId))
+      .limit(1);
+    if (directOrg) return directOrg.id;
+  }
+
+  // 2. Check organizationMember (canonical membership link for workspace/user)
+  const [member] = await db
+    .select({ orgId: organizationMember.orgId })
+    .from(organizationMember)
+    .where(eq(organizationMember.userId, userId))
+    .limit(1);
+  if (member?.orgId) return member.orgId;
+
+  // 3. Check repositories
   const [row] = await db
     .select({ orgId: repositories.orgId })
     .from(repositories)
     .where(eq(repositories.userId, userId))
     .limit(1);
-  return row?.orgId ?? null;
+  if (row?.orgId) return row.orgId;
+
+  // 4. Auto-provision organization if user exists in auth table
+  const [u] = await db.select().from(user).where(eq(user.id, userId)).limit(1);
+  if (u) {
+    const slug = (u.name || u.email.split('@')[0])
+      .toLowerCase()
+      .replace(/[^a-z0-9_-]/g, '-');
+    const uniqueLogin = `${slug}-${u.id.slice(0, 6)}`;
+
+    let [newOrg] = await db
+      .insert(organization)
+      .values({
+        githubLogin: uniqueLogin,
+        planType: 'free',
+        trialPrLimit: appConfig.billing.trialPrLimit,
+        trialPrsUsed: 0,
+      })
+      .onConflictDoNothing()
+      .returning();
+
+    if (!newOrg) {
+      [newOrg] = await db.select().from(organization).where(eq(organization.githubLogin, uniqueLogin)).limit(1);
+    }
+
+    if (newOrg) {
+      await db.insert(organizationMember).values({
+        orgId: newOrg.id,
+        userId: u.id,
+        role: 'owner',
+      }).onConflictDoNothing();
+      return newOrg.id;
+    }
+  }
+
+  return null;
 }
 
 webhookRouter.post('/polar', async (c) => {
