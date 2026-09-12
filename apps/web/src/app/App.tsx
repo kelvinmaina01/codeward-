@@ -359,6 +359,14 @@ function DashboardLayout() {
   const theme = themeOrder[themeIdx];
   const cycleTheme = () => setThemeIdx(i => (i + 1) % themeOrder.length);
 
+  useEffect(() => {
+    const themeClasses = ['theme-dark', 'theme-cream', 'theme-white'];
+    document.documentElement.classList.remove(...themeClasses);
+    document.documentElement.classList.add(`theme-${theme}`);
+    document.body.classList.remove(...themeClasses);
+    document.body.classList.add(`theme-${theme}`);
+  }, [theme]);
+
   const screen = pathToScreen(location.pathname);
 
   useEffect(() => {

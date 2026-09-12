@@ -1305,15 +1305,15 @@ export function Settings() {
                     <EmptyState icon={Users} title="No members loaded yet." hint="Members and pending invites for the active workspace appear here." />
                   ) : (
                     <div className="overflow-x-auto">
-                      <table className="w-full min-w-[700px] text-left border-collapse">
+                      <table className="w-full text-left border-collapse">
                         <thead>
-                          <tr className="text-[10px] uppercase tracking-[0.08em] text-cw-txt3 bg-cw-bg/40">
+                          <tr className="text-[10px] uppercase tracking-[0.08em] text-cw-txt3 bg-cw-bg/40 border-b border-cw-bdr">
                             <th scope="col" className={TH}>Member</th>
                             <th scope="col" className={TH}>Role</th>
                             <th scope="col" className={TH}>Status</th>
-                            <th scope="col" className={TH}>When Invited</th>
-                            <th scope="col" className={TH}>When Joined</th>
-                            <th scope="col" className={TH}>Daily Logins</th>
+                            <th scope="col" className={`${TH} hidden lg:table-cell`}>When Invited</th>
+                            <th scope="col" className={`${TH} hidden md:table-cell`}>When Joined</th>
+                            <th scope="col" className={`${TH} whitespace-nowrap`}>Daily Logins</th>
                             {isAdminOrOwner && <th scope="col" className={`${TH} text-right`}><span className="sr-only">Actions</span></th>}
                           </tr>
                         </thead>
@@ -1328,40 +1328,45 @@ export function Settings() {
                               <tr key={m.id} className="hover:bg-cw-bg3/40 transition-colors">
                                 <td className={TD}>
                                   <div className="flex items-center gap-3 min-w-0">
-                                    <Avatar src={m.image} fallback={m.name.charAt(0)} size={28} />
+                                    <Avatar src={m.image} fallback={m.name.charAt(0)} size={30} />
                                     <div className="min-w-0">
                                       <div className="font-medium text-cw-txt truncate flex items-center gap-1.5">
-                                        {m.name}
+                                        <span className="truncate">{m.name}</span>
                                         {m.isOwner && (
-                                          <span className="text-[10px] px-1.5 py-0.2 rounded bg-cw-purple/15 text-cw-purple font-mono font-medium">Owner</span>
+                                          <span className="text-[9.5px] px-1.5 py-0.5 rounded bg-cw-purple/15 text-cw-purple font-mono font-medium shrink-0">Owner</span>
                                         )}
                                         {isSelf && (
-                                          <span className="text-[10px] px-1.5 py-0.2 rounded bg-cw-bg3 text-cw-txt3 font-mono">You</span>
+                                          <span className="text-[9.5px] px-1.5 py-0.5 rounded bg-cw-bg3 text-cw-txt3 font-mono shrink-0">You</span>
                                         )}
                                       </div>
                                       <div className="text-[11px] text-cw-txt3 font-mono truncate">{m.email}</div>
+                                      {/* Mobile compact join info */}
+                                      <div className="md:hidden text-[10.5px] text-cw-txt3 mt-0.5">
+                                        Joined: {m.status === 'Invited' ? 'Pending invite' : m.joinedAt}
+                                      </div>
                                     </div>
                                   </div>
                                 </td>
                                 <td className={TD}><Pill tone="neutral">{m.role}</Pill></td>
                                 <td className={TD}><Pill tone={tone} dot pulse={isOnline}>{displayStatus}</Pill></td>
-                                <td className={`${TD} text-cw-txt3 text-[11px] whitespace-nowrap tabular-nums`}>
+                                <td className={`${TD} hidden lg:table-cell text-cw-txt3 text-[11px] whitespace-nowrap tabular-nums`}>
                                   {m.invitedAt}
                                 </td>
-                                <td className={`${TD} text-cw-txt3 text-[11px] whitespace-nowrap tabular-nums`}>
+                                <td className={`${TD} hidden md:table-cell text-cw-txt3 text-[11px] whitespace-nowrap tabular-nums`}>
                                   {m.status === 'Invited' ? (
                                     <span className="text-cw-amber italic">Pending invite</span>
                                   ) : (
                                     m.joinedAt
                                   )}
                                 </td>
-                                <td className={TD}>
+                                <td className={`${TD} whitespace-nowrap`}>
                                   {m.status === 'Invited' ? (
                                     <span className="text-cw-txt3 font-mono text-[11px]">—</span>
                                   ) : (
-                                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-mono bg-cw-purple/10 text-cw-purple border border-cw-purple/20">
-                                      <span className="w-1.5 h-1.5 rounded-full bg-cw-purple" />
-                                      {m.loginsToday ?? 0} today
+                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-mono font-medium whitespace-nowrap bg-cw-purple/10 text-cw-purple border border-cw-purple/25 shrink-0">
+                                      <span className="w-1.5 h-1.5 rounded-full bg-cw-purple shrink-0" />
+                                      <span className="tabular-nums font-semibold">{m.loginsToday ?? 0}</span>
+                                      <span className="text-cw-purple/80 text-[10.5px]">today</span>
                                     </span>
                                   )}
                                 </td>
@@ -1371,19 +1376,21 @@ export function Settings() {
                                       <button
                                         type="button"
                                         onClick={() => setInviteToRevoke(m)}
-                                        className={`${BTN_GHOST_SM} hover:text-cw-red hover:border-cw-red/40`}
+                                        className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-medium text-cw-amber hover:text-white bg-cw-amber/10 hover:bg-cw-amber border border-cw-amber/30 rounded-md transition-colors cursor-pointer"
                                         title="Revoke invitation"
                                       >
-                                        <Trash2 size={12} /> Revoke
+                                        <Trash2 size={11} />
+                                        <span>Revoke</span>
                                       </button>
                                     ) : !m.isOwner && !isSelf ? (
                                       <button
                                         type="button"
                                         onClick={() => setMemberToRemove(m)}
-                                        className={`${BTN_GHOST_SM} hover:text-cw-red hover:border-cw-red/40`}
+                                        className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-medium text-cw-red hover:text-white bg-cw-red/10 hover:bg-cw-red border border-cw-red/30 rounded-md transition-colors cursor-pointer"
                                         title="Remove member from workspace"
                                       >
-                                        <Trash2 size={12} /> Remove
+                                        <Trash2 size={11} />
+                                        <span>Remove</span>
                                       </button>
                                     ) : null}
                                   </td>
@@ -1408,7 +1415,7 @@ export function Settings() {
                       <EmptyState icon={History} title="No audit events recorded yet." hint="Administrative actions in this workspace will be logged here." />
                     ) : (
                       <div className="overflow-x-auto">
-                        <table className="w-full min-w-[640px] text-left border-collapse">
+                        <table className="w-full min-w-[600px] text-left border-collapse">
                           <thead>
                             <tr className="text-[10px] uppercase tracking-[0.08em] text-cw-txt3 bg-cw-bg/40">
                               <th scope="col" className={TH}>Timestamp</th>
@@ -1461,8 +1468,8 @@ export function Settings() {
                               <tr className="text-[10px] uppercase tracking-[0.08em] text-cw-txt3 bg-cw-bg/20">
                                 <th scope="col" className={TH}>Date</th>
                                 <th scope="col" className={TH}>Member</th>
-                                <th scope="col" className={TH}>Logins Recorded</th>
-                                <th scope="col" className={`${TH} text-right`}>Last Activity</th>
+                                <th scope="col" className={`${TH} whitespace-nowrap`}>Logins Recorded</th>
+                                <th scope="col" className={`${TH} text-right whitespace-nowrap`}>Last Activity</th>
                               </tr>
                             </thead>
                             <tbody className="text-[12px] text-cw-txt divide-y divide-cw-bdr">
@@ -1473,10 +1480,11 @@ export function Settings() {
                                     <div className="font-medium text-cw-txt">{dl.userName || 'Member'}</div>
                                     <div className="text-[11px] text-cw-txt3 font-mono">{dl.userEmail}</div>
                                   </td>
-                                  <td className={TD}>
-                                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-mono bg-cw-green/10 text-cw-green border border-cw-green/20">
-                                      <span className="w-1.5 h-1.5 rounded-full bg-cw-green" />
-                                      {dl.loginCount} {dl.loginCount === 1 ? 'login' : 'logins'}
+                                  <td className={`${TD} whitespace-nowrap`}>
+                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-mono font-medium whitespace-nowrap bg-cw-green/10 text-cw-green border border-cw-green/25 shrink-0">
+                                      <span className="w-1.5 h-1.5 rounded-full bg-cw-green shrink-0" />
+                                      <span className="tabular-nums font-semibold">{dl.loginCount}</span>
+                                      <span className="text-cw-green/80 text-[10.5px]">{dl.loginCount === 1 ? 'login' : 'logins'}</span>
                                     </span>
                                   </td>
                                   <td className={`${TD} text-right font-mono text-[11px] text-cw-txt3 whitespace-nowrap`}>

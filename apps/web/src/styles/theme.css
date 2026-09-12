@@ -39,6 +39,20 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+  --cw-bg: #0f1117;
+  --cw-bg2: #1a1d24;
+  --cw-bg3: #22262f;
+  --cw-txt: #f4f6fa;
+  --cw-txt2: #a9b1bd;
+  --cw-txt3: #7d8492;
+  --cw-bdr: #2d3139;
+  --cw-blue: #5B8FE8;
+  --cw-green: #22C55E;
+  --cw-red: #EF4444;
+  --cw-amber: #F59E0B;
+  --cw-teal: #14B8A6;
+  --cw-purple: #8957E5;
+  --cw-log-bg: #090c10;
 }
 
 .dark {
