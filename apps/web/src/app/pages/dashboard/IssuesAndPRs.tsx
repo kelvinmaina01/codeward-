@@ -5,6 +5,7 @@ import remarkGfm from 'remark-gfm';
 import {
   Loader, AlertCircle, CircleDot, CheckCircle2, GitPullRequest, GitMerge, XCircle,
   Clock, X as XIcon, MessageSquare, GitBranch, FileDiff, ShieldCheck, Bot, User as UserIcon,
+  ArrowUpRight,
 } from 'lucide-react';
 import { API_URL } from '../../../lib/api';
 import { GithubIcon, GithubLink } from '../../components/shared/GithubLink';
@@ -364,16 +365,25 @@ function EmptyState({ icon, title, sub }: { icon: React.ReactNode; title: string
 function IssueCard({ issue, onOpen }: { issue: RealIssue; onOpen: () => void }) {
   const open = issue.state === 'open';
   return (
-    <button onClick={onOpen} className="text-left bg-cw-bg2 border border-cw-bdr rounded-xl p-4 hover:border-cw-purple/50 transition-colors flex flex-col gap-2 min-w-0 w-full overflow-hidden">
+    <button
+      type="button"
+      onClick={onOpen}
+      className="group text-left bg-cw-bg2 border border-cw-bdr hover:border-cw-purple/50 hover:bg-cw-bg3/30 rounded-xl p-4 transition-all duration-200 flex flex-col gap-2 min-w-0 w-full overflow-hidden cursor-pointer relative shadow-2xs hover:shadow-md"
+    >
       <div className="flex items-start justify-between gap-2 min-w-0">
         <div className="flex items-center gap-2 min-w-0 flex-1">
-          <GithubIcon size={15} className="text-cw-txt2 shrink-0" />
+          <GithubIcon size={15} className="text-cw-txt2 shrink-0 group-hover:text-cw-purple transition-colors" />
           {open
             ? <CircleDot size={15} className="text-cw-green shrink-0" />
             : <CheckCircle2 size={15} className="text-cw-purple shrink-0" />}
-          <span className="text-[13px] font-semibold text-cw-txt truncate">{issue.title}</span>
+          <span className="text-[13px] font-semibold text-cw-txt truncate group-hover:text-cw-purple transition-colors">{issue.title}</span>
         </div>
-        {issue.severity && <span className={`text-[9px] font-bold px-2 py-0.5 rounded uppercase shrink-0 ${sevChip[issue.severity] ?? 'bg-cw-bg3 text-cw-txt3'}`}>{issue.severity}</span>}
+        <div className="flex items-center gap-2 shrink-0">
+          {issue.severity && <span className={`text-[9px] font-bold px-2 py-0.5 rounded uppercase shrink-0 ${sevChip[issue.severity] ?? 'bg-cw-bg3 text-cw-txt3'}`}>{issue.severity}</span>}
+          <span className="w-5 h-5 rounded-md bg-cw-purple/10 border border-cw-purple/20 flex items-center justify-center text-cw-purple opacity-0 -translate-x-1 translate-y-1 group-hover:opacity-100 group-hover:translate-x-0 group-hover:translate-y-0 transition-all duration-200 shadow-2xs shrink-0">
+            <ArrowUpRight size={12} className="transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+          </span>
+        </div>
       </div>
       <div className="text-[12px] text-cw-txt2 line-clamp-2">{(issue.body || '').replace(/[#*`_>]/g, '').trim() || 'No description.'}</div>
       <div className="flex items-center gap-2 text-[11px] text-cw-txt3 mt-1 flex-wrap min-w-0">
@@ -389,14 +399,23 @@ function IssueCard({ issue, onOpen }: { issue: RealIssue; onOpen: () => void }) 
 function PrCard({ pr, onOpen }: { pr: RealPR; onOpen: () => void }) {
   const meta = prStatusMeta(pr);
   return (
-    <button onClick={onOpen} className="text-left bg-cw-bg2 border border-cw-bdr rounded-xl p-4 hover:border-cw-purple/50 transition-colors flex flex-col gap-2 min-w-0 w-full overflow-hidden">
+    <button
+      type="button"
+      onClick={onOpen}
+      className="group text-left bg-cw-bg2 border border-cw-bdr hover:border-cw-purple/50 hover:bg-cw-bg3/30 rounded-xl p-4 transition-all duration-200 flex flex-col gap-2 min-w-0 w-full overflow-hidden cursor-pointer relative shadow-2xs hover:shadow-md"
+    >
       <div className="flex items-start justify-between gap-2 min-w-0">
         <div className="flex items-center gap-2 min-w-0 flex-1">
-          <GithubIcon size={15} className="text-cw-txt2 shrink-0" />
+          <GithubIcon size={15} className="text-cw-txt2 shrink-0 group-hover:text-cw-purple transition-colors" />
           {pr.kind === 'autofix' ? <Bot size={15} className="text-cw-purple shrink-0" /> : <UserIcon size={15} className="text-cw-blue shrink-0" />}
-          <span className="text-[13px] font-semibold text-cw-txt truncate">{pr.prTitle || `PR #${pr.pullRequestNumber}`}</span>
+          <span className="text-[13px] font-semibold text-cw-txt truncate group-hover:text-cw-purple transition-colors">{pr.prTitle || `PR #${pr.pullRequestNumber}`}</span>
         </div>
-        <span className={`text-[9px] font-bold px-2 py-0.5 rounded border uppercase shrink-0 flex items-center gap-1 ${meta.cls}`}><meta.Icon size={10} /> {meta.label}</span>
+        <div className="flex items-center gap-2 shrink-0">
+          <span className={`text-[9px] font-bold px-2 py-0.5 rounded border uppercase shrink-0 flex items-center gap-1 ${meta.cls}`}><meta.Icon size={10} /> {meta.label}</span>
+          <span className="w-5 h-5 rounded-md bg-cw-purple/10 border border-cw-purple/20 flex items-center justify-center text-cw-purple opacity-0 -translate-x-1 translate-y-1 group-hover:opacity-100 group-hover:translate-x-0 group-hover:translate-y-0 transition-all duration-200 shadow-2xs shrink-0">
+            <ArrowUpRight size={12} className="transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+          </span>
+        </div>
       </div>
       {pr.headBranch && pr.baseBranch && (
         <div className="flex items-center gap-1.5 text-[11px] text-cw-txt3 truncate min-w-0">

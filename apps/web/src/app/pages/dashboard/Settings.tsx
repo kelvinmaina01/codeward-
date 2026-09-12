@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   User, CreditCard, Users, Code2, Copy, Check, RefreshCw, KeyRound, Webhook, LogOut,
   Sparkles, Calendar, ExternalLink, Plus, Trash2, Mail, AlertTriangle, ShieldCheck,
@@ -299,7 +300,28 @@ const PLANS: { id: PlanId; name: string; price: string; unit: string; tagline: s
 export function Settings() {
   const { data: session } = useSession();
   const { activeWorkspace, setOpenInviteDrawer } = useWorkspace();
-  const [activeTab, setActiveTab] = useState<TabType>('account');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [activeTab, setActiveTabState] = useState<TabType>(() => {
+    const fromUrl = searchParams.get('tab') as TabType;
+    if (fromUrl && ['account', 'general', 'billing', 'team', 'developers'].includes(fromUrl)) {
+      return fromUrl;
+    }
+    const fromStorage = localStorage.getItem('codeward_settings_tab') as TabType;
+    if (fromStorage && ['account', 'general', 'billing', 'team', 'developers'].includes(fromStorage)) {
+      return fromStorage;
+    }
+    return 'account';
+  });
+
+  const setActiveTab = (tab: TabType) => {
+    setActiveTabState(tab);
+    setSearchParams((prev) => {
+      const p = new URLSearchParams(prev);
+      p.set('tab', tab);
+      return p;
+    });
+    localStorage.setItem('codeward_settings_tab', tab);
+  };
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   // User Profile State
@@ -402,6 +424,8 @@ export function Settings() {
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [dailyLogins, setDailyLogins] = useState<DailyLoginSummary[]>([]);
+  const [auditLogsCollapsed, setAuditLogsCollapsed] = useState(false);
+  const [dailyLoginsCollapsed, setDailyLoginsCollapsed] = useState(false);
   const [onlineUserIds, setOnlineUserIds] = useState<string[]>([]);
   const [memberToRemove, setMemberToRemove] = useState<TeamMember | null>(null);
   const [removingMember, setRemovingMember] = useState(false);
@@ -1305,16 +1329,16 @@ export function Settings() {
                     <EmptyState icon={Users} title="No members loaded yet." hint="Members and pending invites for the active workspace appear here." />
                   ) : (
                     <div className="overflow-x-auto">
-                      <table className="w-full text-left border-collapse">
+                      <table className="w-full min-w-[680px] text-left border-collapse">
                         <thead>
                           <tr className="text-[10px] uppercase tracking-[0.08em] text-cw-txt3 bg-cw-bg/40 border-b border-cw-bdr">
-                            <th scope="col" className={TH}>Member</th>
-                            <th scope="col" className={TH}>Role</th>
-                            <th scope="col" className={TH}>Status</th>
-                            <th scope="col" className={`${TH} hidden lg:table-cell`}>When Invited</th>
-                            <th scope="col" className={`${TH} hidden md:table-cell`}>When Joined</th>
-                            <th scope="col" className={`${TH} whitespace-nowrap`}>Daily Logins</th>
-                            {isAdminOrOwner && <th scope="col" className={`${TH} text-right`}><span className="sr-only">Actions</span></th>}
+                            <th scope="col" className={`${TH} min-w-[220px]`}>Member</th>
+                            <th scope="col" className={`${TH} w-[80px]`}>Role</th>
+                            <th scope="col" className={`${TH} w-[90px]`}>Status</th>
+                            <th scope="col" className={`${TH} w-[110px] hidden xl:table-cell whitespace-nowrap`}>When Invited</th>
+                            <th scope="col" className={`${TH} w-[110px] hidden lg:table-cell whitespace-nowrap`}>When Joined</th>
+                            <th scope="col" className={`${TH} w-[130px] whitespace-nowrap`}>Daily Logins</th>
+                            {isAdminOrOwner && <th scope="col" className={`${TH} w-[100px] text-right whitespace-nowrap`}><span className="sr-only">Actions</span></th>}
                           </tr>
                         </thead>
                         <tbody className="text-[12px] text-cw-txt divide-y divide-cw-bdr">
@@ -1328,7 +1352,7 @@ export function Settings() {
                               <tr key={m.id} className="hover:bg-cw-bg3/40 transition-colors">
                                 <td className={TD}>
                                   <div className="flex items-center gap-3 min-w-0">
-                                    <Avatar src={m.image} fallback={m.name.charAt(0)} size={30} />
+                                    <Avatar src={m.image} fallback={m.name.charAt(0)} size={32} />
                                     <div className="min-w-0">
                                       <div className="font-medium text-cw-txt truncate flex items-center gap-1.5">
                                         <span className="truncate">{m.name}</span>
@@ -1340,19 +1364,25 @@ export function Settings() {
                                         )}
                                       </div>
                                       <div className="text-[11px] text-cw-txt3 font-mono truncate">{m.email}</div>
-                                      {/* Mobile compact join info */}
-                                      <div className="md:hidden text-[10.5px] text-cw-txt3 mt-0.5">
-                                        Joined: {m.status === 'Invited' ? 'Pending invite' : m.joinedAt}
+                                      {/* Responsive compact join and login info on mobile/tablet */}
+                                      <div className="lg:hidden flex flex-wrap items-center gap-1.5 mt-1 text-[10.5px] text-cw-txt3 font-mono">
+                                        <span>{m.status === 'Invited' ? 'Pending invite' : `Joined ${m.joinedAt}`}</span>
+                                        {m.status !== 'Invited' && (
+                                          <>
+                                            <span className="text-cw-txt3/40">•</span>
+                                            <span className="text-cw-purple/90 font-medium">{(m.loginsToday ?? 0)} today</span>
+                                          </>
+                                        )}
                                       </div>
                                     </div>
                                   </div>
                                 </td>
                                 <td className={TD}><Pill tone="neutral">{m.role}</Pill></td>
                                 <td className={TD}><Pill tone={tone} dot pulse={isOnline}>{displayStatus}</Pill></td>
-                                <td className={`${TD} hidden lg:table-cell text-cw-txt3 text-[11px] whitespace-nowrap tabular-nums`}>
+                                <td className={`${TD} hidden xl:table-cell text-cw-txt3 text-[11px] whitespace-nowrap tabular-nums`}>
                                   {m.invitedAt}
                                 </td>
-                                <td className={`${TD} hidden md:table-cell text-cw-txt3 text-[11px] whitespace-nowrap tabular-nums`}>
+                                <td className={`${TD} hidden lg:table-cell text-cw-txt3 text-[11px] whitespace-nowrap tabular-nums`}>
                                   {m.status === 'Invited' ? (
                                     <span className="text-cw-amber italic">Pending invite</span>
                                   ) : (
@@ -1362,11 +1392,17 @@ export function Settings() {
                                 <td className={`${TD} whitespace-nowrap`}>
                                   {m.status === 'Invited' ? (
                                     <span className="text-cw-txt3 font-mono text-[11px]">—</span>
+                                  ) : (m.loginsToday ?? 0) > 0 ? (
+                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-mono whitespace-nowrap bg-cw-purple/10 text-cw-purple border border-cw-purple/20 shrink-0">
+                                      <span className="w-1.5 h-1.5 rounded-full bg-cw-purple shrink-0 animate-pulse" />
+                                      <span className="tabular-nums font-semibold text-cw-txt">{m.loginsToday}</span>
+                                      <span className="text-[10px] font-sans uppercase font-medium text-cw-purple/75 tracking-wider">today</span>
+                                    </span>
                                   ) : (
-                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-mono font-medium whitespace-nowrap bg-cw-purple/10 text-cw-purple border border-cw-purple/25 shrink-0">
-                                      <span className="w-1.5 h-1.5 rounded-full bg-cw-purple shrink-0" />
-                                      <span className="tabular-nums font-semibold">{m.loginsToday ?? 0}</span>
-                                      <span className="text-cw-purple/80 text-[10.5px]">today</span>
+                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-mono whitespace-nowrap bg-cw-bg3/50 text-cw-txt3 border border-cw-bdr/60 shrink-0">
+                                      <span className="w-1.5 h-1.5 rounded-full bg-cw-txt3/40 shrink-0" />
+                                      <span className="tabular-nums font-semibold text-cw-txt3">0</span>
+                                      <span className="text-[10px] font-sans uppercase font-medium text-cw-txt3/60 tracking-wider">today</span>
                                     </span>
                                   )}
                                 </td>
@@ -1376,7 +1412,7 @@ export function Settings() {
                                       <button
                                         type="button"
                                         onClick={() => setInviteToRevoke(m)}
-                                        className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-medium text-cw-amber hover:text-white bg-cw-amber/10 hover:bg-cw-amber border border-cw-amber/30 rounded-md transition-colors cursor-pointer"
+                                        className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-medium text-cw-amber hover:text-white bg-cw-amber/10 hover:bg-cw-amber border border-cw-amber/30 rounded-md transition-colors cursor-pointer shrink-0"
                                         title="Revoke invitation"
                                       >
                                         <Trash2 size={11} />
@@ -1386,7 +1422,7 @@ export function Settings() {
                                       <button
                                         type="button"
                                         onClick={() => setMemberToRemove(m)}
-                                        className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-medium text-cw-red hover:text-white bg-cw-red/10 hover:bg-cw-red border border-cw-red/30 rounded-md transition-colors cursor-pointer"
+                                        className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-medium text-cw-red hover:text-white bg-cw-red/10 hover:bg-cw-red border border-cw-red/30 rounded-md transition-colors cursor-pointer shrink-0"
                                         title="Remove member from workspace"
                                       >
                                         <Trash2 size={11} />
@@ -1410,9 +1446,34 @@ export function Settings() {
                     icon={History}
                     description="Chronological log of administrative actions, invitations, joinings, removals, and daily logins."
                     flush
+                    actions={
+                      <button
+                        type="button"
+                        onClick={() => setAuditLogsCollapsed(!auditLogsCollapsed)}
+                        className={`${BTN_SECONDARY} text-[11px] h-7 px-2.5 gap-1.5`}
+                        title={auditLogsCollapsed ? 'Expand audit log' : 'Collapse audit log'}
+                      >
+                        <span>{auditLogsCollapsed ? 'Expand Log' : 'Collapse Log'}</span>
+                        <ChevronDown
+                          size={12}
+                          className={`transition-transform duration-200 ${auditLogsCollapsed ? '-rotate-90' : 'rotate-0'}`}
+                        />
+                      </button>
+                    }
                   >
                     {auditLogs.length === 0 ? (
                       <EmptyState icon={History} title="No audit events recorded yet." hint="Administrative actions in this workspace will be logged here." />
+                    ) : auditLogsCollapsed ? (
+                      <div className="px-4 sm:px-5 py-3 text-[11.5px] text-cw-txt3 flex items-center justify-between bg-cw-bg/20">
+                        <span>Audit log entries collapsed ({auditLogs.length} events recorded).</span>
+                        <button
+                          type="button"
+                          onClick={() => setAuditLogsCollapsed(false)}
+                          className="text-cw-purple hover:underline font-medium text-[11px] cursor-pointer"
+                        >
+                          Click to expand
+                        </button>
+                      </div>
                     ) : (
                       <div className="overflow-x-auto">
                         <table className="w-full min-w-[600px] text-left border-collapse">
@@ -1455,46 +1516,70 @@ export function Settings() {
 
                     {dailyLogins.length > 0 && (
                       <div className="border-t border-cw-bdr">
-                        <div className="px-4 sm:px-5 py-3 bg-cw-bg/30 border-b border-cw-bdr flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <Activity size={13} className="text-cw-purple" />
-                            <span className="text-[12px] font-semibold text-cw-txt">Daily Login & Activity History</span>
+                        <button
+                          type="button"
+                          onClick={() => setDailyLoginsCollapsed((prev) => !prev)}
+                          className="w-full px-4 sm:px-5 py-3 bg-cw-bg/30 hover:bg-cw-bg3/30 border-b border-cw-bdr flex items-center justify-between transition-colors text-left group cursor-pointer"
+                          aria-expanded={!dailyLoginsCollapsed}
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <Activity size={14} className="text-cw-purple shrink-0" />
+                            <span className="text-[12.5px] font-semibold text-cw-txt group-hover:text-cw-purple transition-colors">
+                              Daily Login & Activity History
+                            </span>
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-cw-purple/10 text-cw-purple border border-cw-purple/20 shrink-0">
+                              {dailyLogins.length} {dailyLogins.length === 1 ? 'day' : 'days'}
+                            </span>
                           </div>
-                          <span className="text-[11px] text-cw-txt3 font-mono">Times logged in each day</span>
-                        </div>
-                        <div className="overflow-x-auto">
-                          <table className="w-full min-w-[560px] text-left border-collapse">
-                            <thead>
-                              <tr className="text-[10px] uppercase tracking-[0.08em] text-cw-txt3 bg-cw-bg/20">
-                                <th scope="col" className={TH}>Date</th>
-                                <th scope="col" className={TH}>Member</th>
-                                <th scope="col" className={`${TH} whitespace-nowrap`}>Logins Recorded</th>
-                                <th scope="col" className={`${TH} text-right whitespace-nowrap`}>Last Activity</th>
-                              </tr>
-                            </thead>
-                            <tbody className="text-[12px] text-cw-txt divide-y divide-cw-bdr">
-                              {dailyLogins.map((dl) => (
-                                <tr key={dl.id} className="hover:bg-cw-bg3/40 transition-colors">
-                                  <td className={`${TD} font-mono text-[11px] text-cw-txt2 whitespace-nowrap`}>{dl.loginDate}</td>
-                                  <td className={TD}>
-                                    <div className="font-medium text-cw-txt">{dl.userName || 'Member'}</div>
-                                    <div className="text-[11px] text-cw-txt3 font-mono">{dl.userEmail}</div>
-                                  </td>
-                                  <td className={`${TD} whitespace-nowrap`}>
-                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-mono font-medium whitespace-nowrap bg-cw-green/10 text-cw-green border border-cw-green/25 shrink-0">
-                                      <span className="w-1.5 h-1.5 rounded-full bg-cw-green shrink-0" />
-                                      <span className="tabular-nums font-semibold">{dl.loginCount}</span>
-                                      <span className="text-cw-green/80 text-[10.5px]">{dl.loginCount === 1 ? 'login' : 'logins'}</span>
-                                    </span>
-                                  </td>
-                                  <td className={`${TD} text-right font-mono text-[11px] text-cw-txt3 whitespace-nowrap`}>
-                                    {new Date(dl.lastLoginAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
-                                  </td>
+                          <div className="flex items-center gap-2.5 shrink-0 text-cw-txt3 group-hover:text-cw-txt transition-colors">
+                            <span className="hidden sm:inline text-[11px] font-mono text-cw-txt3">
+                              {dailyLoginsCollapsed ? 'Click to expand' : 'Times logged in each day'}
+                            </span>
+                            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-cw-txt2 bg-cw-bg2 border border-cw-bdr px-2 py-0.5 rounded-md group-hover:border-cw-purple/40">
+                              <span>{dailyLoginsCollapsed ? 'Expand' : 'Collapse'}</span>
+                              <ChevronDown
+                                size={12}
+                                className={`transition-transform duration-200 ${dailyLoginsCollapsed ? '-rotate-90' : 'rotate-0'}`}
+                              />
+                            </span>
+                          </div>
+                        </button>
+                        
+                        {!dailyLoginsCollapsed && (
+                          <div className="overflow-x-auto">
+                            <table className="w-full min-w-[560px] text-left border-collapse">
+                              <thead>
+                                <tr className="text-[10px] uppercase tracking-[0.08em] text-cw-txt3 bg-cw-bg/20">
+                                  <th scope="col" className={TH}>Date</th>
+                                  <th scope="col" className={TH}>Member</th>
+                                  <th scope="col" className={`${TH} whitespace-nowrap`}>Logins Recorded</th>
+                                  <th scope="col" className={`${TH} text-right whitespace-nowrap`}>Last Activity</th>
                                 </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
+                              </thead>
+                              <tbody className="text-[12px] text-cw-txt divide-y divide-cw-bdr">
+                                {dailyLogins.map((dl) => (
+                                  <tr key={dl.id} className="hover:bg-cw-bg3/40 transition-colors">
+                                    <td className={`${TD} font-mono text-[11px] text-cw-txt2 whitespace-nowrap`}>{dl.loginDate}</td>
+                                    <td className={TD}>
+                                      <div className="font-medium text-cw-txt">{dl.userName || 'Member'}</div>
+                                      <div className="text-[11px] text-cw-txt3 font-mono">{dl.userEmail}</div>
+                                    </td>
+                                    <td className={`${TD} whitespace-nowrap`}>
+                                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-mono font-medium whitespace-nowrap bg-cw-green/10 text-cw-green border border-cw-green/25 shrink-0">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-cw-green shrink-0 animate-pulse" />
+                                        <span className="tabular-nums font-semibold">{dl.loginCount}</span>
+                                        <span className="text-cw-green/80 text-[10px] font-sans uppercase tracking-wider">{dl.loginCount === 1 ? 'login' : 'logins'}</span>
+                                      </span>
+                                    </td>
+                                    <td className={`${TD} text-right font-mono text-[11px] text-cw-txt3 whitespace-nowrap`}>
+                                      {new Date(dl.lastLoginAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
                       </div>
                     )}
                   </SectionCard>
