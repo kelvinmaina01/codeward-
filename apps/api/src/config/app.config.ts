@@ -94,6 +94,11 @@ const polar = {
   accessToken: process.env.POLAR_ACCESS_TOKEN,
 
   /**
+   * Polar Organization ID for Codeward.
+   */
+  organizationId: optionalEnv('POLAR_ORGANIZATION_ID', '53f14cc0-043b-499e-9a47-512423611fd0'),
+
+  /**
    * URL shown in the "Upgrade to Pro →" link inside GitHub PR comments and
    * in trial-limit-reached emails. Defaults to the /pricing page.
    */
