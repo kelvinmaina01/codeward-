@@ -675,6 +675,13 @@ Use these EXACT values for any tool parameter named runId/repoId — never inven
   const MANDATORY_AGENTS = ['security'];
 
   async function ensureMandatoryAgentsSpawned(runId: number, repoFullName: string, commitSHA: string): Promise<boolean> {
+    const [run] = await db.select({ scope: runs.scope }).from(runs).where(eq(runs.id, runId));
+    const scope = run?.scope as any;
+    // If diff analysis concluded doc-only / non-code change, security is not mandatory
+    if (scope?.isDocOrConfigOnly) {
+      return false;
+    }
+
     const existing = await db.select().from(agentTasks).where(eq(agentTasks.runId, runId));
     const existingIds = new Set(existing.map((t: any) => t.agentId));
     const missing = MANDATORY_AGENTS.filter((a) => !existingIds.has(a));
@@ -698,7 +705,7 @@ Use these EXACT values for any tool parameter named runId/repoId — never inven
       and(eq(agentTasks.runId, runId), notLike(agentTasks.agentId, 'orchestrator%'))
     );
     const stillPending = remaining.filter((t: any) => t.status === 'queued' || t.status === 'running');
-    if (stillPending.length > 0 || remaining.length === 0) return;
+    if (stillPending.length > 0) return;
 
     console.log(`[Orchestrator] All ${remaining.length} sub-agents terminal for run #${runId}. Triggering Phase 3 (Decision).`);
     await agentQueue.add('orchestrator-phase3', {
