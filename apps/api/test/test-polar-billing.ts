@@ -68,18 +68,21 @@ async function runTests() {
   // TEST 3: Customer Lookup & Idempotency
   // ──────────────────────────────────────────────────────────────────────────
   console.log('\n👤 Test Group 3: Polar Customer Resolution & Idempotency');
+  let testCustomerId: string | null = null;
   try {
-    const existingEmail = 'saveriotifi18@gmail.com';
-    const customer = await PolarService.findCustomerByEmail(existingEmail);
-    assert(Boolean(customer && customer.id), `Customer lookup succeeded for ${existingEmail} -> ID: ${customer?.id}`);
+    const testEmail = process.env.POLAR_TEST_EMAIL || `qa-${Date.now()}@codeward.cloud`;
+    const customer = await PolarService.getOrCreateCustomer({
+      email: testEmail,
+      name: 'Codeward Test User',
+    });
+    assert(Boolean(customer && customer.id), `Customer created/resolved successfully -> ID: ${customer?.id}`);
+    testCustomerId = customer.id;
 
-    if (customer) {
-      const resolved = await PolarService.getOrCreateCustomer({
-        email: existingEmail,
-        name: 'Saverio',
-      });
-      assert(resolved.id === customer.id, 'getOrCreateCustomer is idempotent and resolves existing customer ID');
-    }
+    const resolvedAgain = await PolarService.getOrCreateCustomer({
+      email: testEmail,
+      name: 'Codeward Test User',
+    });
+    assert(resolvedAgain.id === customer.id, 'getOrCreateCustomer is idempotent and resolves same customer ID');
   } catch (err: any) {
     assert(false, `Customer lookup threw error: ${err?.message}`);
   }
@@ -89,11 +92,8 @@ async function runTests() {
   // ──────────────────────────────────────────────────────────────────────────
   console.log('\n🌐 Test Group 4: Customer Portal Session Token & URL Generation');
   try {
-    const existingEmail = 'saveriotifi18@gmail.com';
-    const customer = await PolarService.findCustomerByEmail(existingEmail);
-
-    if (customer?.id) {
-      const session = await PolarService.createCustomerSession(customer.id);
+    if (testCustomerId) {
+      const session = await PolarService.createCustomerSession(testCustomerId);
       assert(Boolean(session.token && session.token.startsWith('polar_mst_')), 'Customer session token generated (polar_mst_...)');
       assert(
         session.customerPortalUrl.startsWith('https://polar.sh/') &&
@@ -101,6 +101,18 @@ async function runTests() {
         'Authenticated Customer Portal URL is properly formatted for redirection'
       );
       assert(Boolean(session.expiresAt), `Session has valid expiration timestamp (${session.expiresAt})`);
+
+      // Cleanup test customer if created dynamically
+      if (!process.env.POLAR_TEST_EMAIL) {
+        try {
+          await fetch(`https://api.polar.sh/v1/customers/${testCustomerId}`, {
+            method: 'DELETE',
+            headers: { Authorization: `Bearer ${token}` },
+          });
+        } catch {
+          // ignore cleanup failures
+        }
+      }
     } else {
       assert(false, 'Cannot test session generation without customer record');
     }
