@@ -427,17 +427,17 @@ export function ConnectRepo({ user, onConnect, onSkip, activeOrg, setActiveOrg, 
                       href="https://github.com/apps/codeward-guardian/installations/new"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-cw-bg border border-cw-bdr hover:border-cw-purple/60 text-cw-txt2 hover:text-cw-txt rounded-lg text-xs font-medium transition cursor-pointer"
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-cw-bg border border-cw-bdr hover:border-cw-purple/60 text-cw-txt hover:text-cw-purple rounded-lg text-xs font-medium transition cursor-pointer shadow-xs"
                       title="Configure GitHub App permissions or grant access to more repositories"
                     >
-                      <Settings size={13} className="text-cw-txt3" />
+                      <Settings size={13} className="text-cw-txt2" />
                       <span>Configure GitHub App</span>
                     </a>
 
                     <button
                       onClick={() => fetchRepos(true)}
                       disabled={loadingRepos}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-cw-bg border border-cw-bdr hover:border-cw-purple text-cw-txt rounded-lg text-xs font-medium transition cursor-pointer disabled:opacity-50"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-cw-bg border border-cw-bdr hover:border-cw-purple text-cw-txt hover:text-cw-purple rounded-lg text-xs font-medium transition cursor-pointer disabled:opacity-50 shadow-xs"
                       title="Refresh repository list"
                     >
                       <RotateCw size={13} className={loadingRepos ? "animate-spin text-cw-purple" : "text-cw-txt2"} />
@@ -451,11 +451,11 @@ export function ConnectRepo({ user, onConnect, onSkip, activeOrg, setActiveOrg, 
                   <div className="relative shrink-0">
                     <button
                       onClick={() => setShowOrgDropdown(!showOrgDropdown)}
-                      className="bg-cw-bg border border-cw-bdr hover:border-cw-bdr rounded-lg px-3 py-2 text-[13px] flex items-center gap-2 cursor-pointer text-cw-txt2 transition-colors h-[42px]"
+                      className="bg-cw-bg border border-cw-bdr hover:border-cw-purple/50 rounded-lg px-3 py-2 text-[13px] font-medium flex items-center gap-2 cursor-pointer text-cw-txt transition-colors h-[42px] shadow-xs"
                     >
-                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2A10 10 0 0 0 2 12c0 4.42 2.87 8.17 6.84 9.5.5.08.66-.23.66-.5v-1.69c-2.77.6-3.36-1.34-3.36-1.34-.46-1.16-1.11-1.47-1.11-1.47-.9-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.9 1.52 2.34 1.07 2.91.83.1-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.94 0-1.1.39-1.99 1.03-2.69-.1-.25-.45-1.27.1-2.64 0 0 .84-.27 2.75 1.02.79-.22 1.65-.33 2.5-.33.85 0 1.71.11 2.5.33 1.91-1.29 2.75-1.02 2.75-1.02.55 1.37.2 2.39.1 2.64.64.7 1.03 1.6 1.03 2.69 0 3.84-2.34 4.68-4.57 4.93.36.31.68.92.68 1.85V21c0 .27.16.59.67.5C19.14 20.16 22 16.42 22 12A10 10 0 0 0 12 2z"/></svg>
-                      {typeof activeOrg === 'string' ? activeOrg : (activeOrg as any)?.name}
-                      <ChevronDown size={14} className="text-cw-txt3 ml-2" />
+                      <svg className="w-4 h-4 text-cw-txt shrink-0" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2A10 10 0 0 0 2 12c0 4.42 2.87 8.17 6.84 9.5.5.08.66-.23.66-.5v-1.69c-2.77.6-3.36-1.34-3.36-1.34-.46-1.16-1.11-1.47-1.11-1.47-.9-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.9 1.52 2.34 1.07 2.91.83.1-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.94 0-1.1.39-1.99 1.03-2.69-.1-.25-.45-1.27.1-2.64 0 0 .84-.27 2.75 1.02.79-.22 1.65-.33 2.5-.33.85 0 1.71.11 2.5.33 1.91-1.29 2.75-1.02 2.75-1.02.55 1.37.2 2.39.1 2.64.64.7 1.03 1.6 1.03 2.69 0 3.84-2.34 4.68-4.57 4.93.36.31.68.92.68 1.85V21c0 .27.16.59.67.5C19.14 20.16 22 16.42 22 12A10 10 0 0 0 12 2z"/></svg>
+                      <span>{typeof activeOrg === 'string' ? activeOrg : (activeOrg as any)?.name}</span>
+                      <ChevronDown size={14} className="text-cw-txt2 ml-1" />
                     </button>
                     {showOrgDropdown && (
                       <>
@@ -470,7 +470,7 @@ export function ConnectRepo({ user, onConnect, onSkip, activeOrg, setActiveOrg, 
                                 <button
                                   key={orgName + idx}
                                   onClick={() => { setActiveOrg?.(orgName); setShowOrgDropdown(false); }}
-                                  className="w-full flex items-center px-4 py-2 hover:bg-cw-purple/20 transition-colors text-left text-[13px] text-cw-txt2"
+                                  className="w-full flex items-center px-4 py-2 hover:bg-cw-purple/20 transition-colors text-left text-[13px] text-cw-txt font-medium"
                                 >
                                   {orgName}
                                 </button>
@@ -489,12 +489,12 @@ export function ConnectRepo({ user, onConnect, onSkip, activeOrg, setActiveOrg, 
                       placeholder="Search repositories..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full h-[42px] bg-cw-bg border border-cw-bdr rounded-lg pl-9 pr-3 py-2 text-[13px] focus:outline-none focus:border-cw-purple transition text-cw-txt" 
+                      className="w-full h-[42px] bg-cw-bg border border-cw-bdr rounded-lg pl-9 pr-3 py-2 text-[13px] focus:outline-none focus:border-cw-purple transition text-cw-txt placeholder:text-cw-txt3" 
                     />
                   </div>
                 </div>
 
-                <div className="mt-3 bg-cw-log-bg border border-cw-bdr rounded-lg divide-y divide-cw-bdr max-h-[200px] overflow-y-auto custom-scrollbar">
+                <div className="mt-3 bg-cw-bg/50 border border-cw-bdr rounded-lg divide-y divide-cw-bdr max-h-[220px] overflow-y-auto custom-scrollbar">
                   {loadingRepos ? (
                     <div className="p-8 flex justify-center"><Loader size={20} className="animate-spin text-cw-purple" /></div>
                   ) : filteredRepos.length === 0 ? (
@@ -511,33 +511,43 @@ export function ConnectRepo({ user, onConnect, onSkip, activeOrg, setActiveOrg, 
                           }}
                           className={`p-3 text-[13px] transition flex justify-between items-center ${
                             repo.connected 
-                              ? 'cursor-not-allowed text-cw-txt3 bg-cw-bg/50' 
+                              ? 'cursor-not-allowed bg-cw-bg3/40 opacity-75' 
                               : sel 
-                                ? 'cursor-pointer bg-cw-purple/10 text-cw-purple' 
-                                : 'cursor-pointer text-cw-txt2 hover:bg-cw-purple/10 hover:text-cw-purple'
+                                ? 'cursor-pointer bg-cw-purple/10' 
+                                : 'cursor-pointer hover:bg-cw-purple/5'
                           }`}
                         >
                           <div className="flex items-start gap-3">
-                            <div className={`mt-0.5 w-[16px] h-[16px] rounded-[4px] border-[1.5px] flex items-center justify-center transition-all shrink-0 ${sel ? 'border-cw-purple bg-cw-purple' : 'border-cw-bdr bg-transparent'}`}>
-                              {sel && <Check size={10} color="currentColor" />}
+                            <div className={`mt-0.5 w-[16px] h-[16px] rounded-[4px] border-[1.5px] flex items-center justify-center transition-all shrink-0 ${sel ? 'border-cw-purple bg-cw-purple' : 'border-cw-bdr bg-cw-bg2'}`}>
+                              {sel && <Check size={10} color="#FFFFFF" />}
                             </div>
                             <div className="flex flex-col min-w-0 overflow-hidden">
                               <div className="flex items-center gap-2">
                                 <img src={`https://github.com/${repo.owner}.png`} alt={repo.owner} className="w-4 h-4 rounded-full bg-cw-bg shrink-0" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
-                                <span className="font-medium truncate">{repo.name}</span>
+                                <span className="font-semibold text-cw-txt truncate text-[13px]">{repo.name}</span>
                               </div>
                               <div className="flex items-center gap-3 mt-1 text-[11px] text-cw-txt2 font-normal flex-wrap">
-                                {repo.lang && <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-slate-600" /> {repo.lang}</span>}
+                                {repo.lang && <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-cw-purple/60" /> <span className="text-cw-txt2">{repo.lang}</span></span>}
                                 {repo.pushed && <span className="flex items-center gap-1 text-cw-txt3">Updated {getRelativeTime(repo.pushed)}</span>}
-                                {repo.stars > 0 && <span className="flex items-center gap-1" title="Stars">★ {repo.stars}</span>}
-                                {repo.forks > 0 && <span className="flex items-center gap-1" title="Forks"><GitBranch size={11} /> {repo.forks}</span>}
-                                {repo.issues > 0 && <span className="flex items-center gap-1" title="Issues"><ShieldAlert size={11} /> {repo.issues}</span>}
+                                {repo.stars > 0 && <span className="flex items-center gap-1 text-cw-txt2" title="Stars">★ {repo.stars}</span>}
+                                {repo.forks > 0 && <span className="flex items-center gap-1 text-cw-txt2" title="Forks"><GitBranch size={11} /> {repo.forks}</span>}
+                                {repo.issues > 0 && <span className="flex items-center gap-1 text-cw-txt2" title="Issues"><ShieldAlert size={11} /> {repo.issues}</span>}
                               </div>
                             </div>
                           </div>
                           <div className="flex items-center gap-2 shrink-0">
-                            {repo.connected && <span className="text-[10px] bg-cw-bg border border-cw-bdr px-2 py-0.5 rounded text-cw-txt2">Connected</span>}
-                            <span className={`text-[10px] px-2 py-0.5 rounded ${repo.private ? 'bg-cw-purple/20 text-cw-purple' : 'bg-cw-green/20 text-cw-green'}`}>{repo.private ? 'Private' : 'Public'}</span>
+                            {repo.connected && (
+                              <span className="text-[10px] font-semibold bg-cw-bg2 border border-cw-bdr px-2 py-0.5 rounded text-cw-txt2 shadow-xs">
+                                Connected
+                              </span>
+                            )}
+                            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded border ${
+                              repo.private 
+                                ? 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/25' 
+                                : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/25'
+                            }`}>
+                              {repo.private ? 'Private' : 'Public'}
+                            </span>
                           </div>
                         </div>
                       );
