@@ -256,8 +256,13 @@ export function IssuesAndPRs() {
         {/* Header */}
         <div className="px-6 py-4 border-b border-cw-bdr bg-cw-bg2 flex items-center justify-between gap-3 shrink-0 flex-wrap">
           <div>
-            <div className="text-[14px] font-medium text-cw-txt">Issues & PRs</div>
-            <div className="text-[11px] text-cw-txt3">Real escalated GitHub issues and pull requests — proof of what your agents actually did.</div>
+            <div className="text-[15px] font-semibold text-cw-txt flex items-center gap-2 flex-wrap">
+              <span>Issues & PRs</span>
+              <span className="text-[11px] font-mono font-medium px-2.5 py-0.5 rounded-full bg-cw-purple/10 text-cw-purple border border-cw-purple/25">
+                (Opened by Codeward Agent)
+              </span>
+            </div>
+            <div className="text-[11.5px] text-cw-txt3 mt-0.5">Real escalated GitHub issues and pull requests opened by your Codeward agents — proof of what your agents actually did.</div>
           </div>
           <div className="flex items-center gap-2.5">
             <select

@@ -165,7 +165,7 @@ const nav: NavGroup[] = [
   { group: 'Analysis', items: [
     { id: 'diff', label: 'Diff viewer', dot: 'b', icon: GitCompare, path: '/dashboard/diff' },
     // { id: 'commits', label: 'Commit History', dot: 'p', icon: GitFork, path: '/dashboard/commits' }, // Hidden: PR-only policy
-    { id: 'issuesprs', label: 'Issues & PRs', dot: 'p', icon: GitPullRequest, path: '/dashboard/issues-prs' },
+    { id: 'issuesprs', label: 'Issues & PRs (Codeward agent)', dot: 'p', icon: GitPullRequest, path: '/dashboard/issues-prs' },
     { id: 'security', label: 'Security', dot: 'r', badge: 3, icon: ShieldAlert, path: '/dashboard/security' },
     { id: 'debt', label: 'Debt report', dot: 'a', icon: BarChart3, path: '/dashboard/debt' },
   ]},
@@ -198,7 +198,7 @@ const topbarConfig: Partial<Record<string, { title: string; sub: string }>> = {
   settings:  { title: 'Settings', sub: 'Manage your Codeward preferences' },
   integrations: { title: 'Integrations', sub: 'Connect external tools and MCP servers' },
   alerts:    { title: 'Alerts center', sub: 'Active incidents & notifications' },
-  issuesprs: { title: 'Issues & PRs', sub: 'Escalated issues and pull requests across your repos' },
+  issuesprs: { title: 'Issues & PRs (Codeward Agent)', sub: 'Real escalated GitHub issues and pull requests opened by Codeward agents' },
   commits:   { title: 'Commit History', sub: 'Agent activity per commit' },
 };
 
