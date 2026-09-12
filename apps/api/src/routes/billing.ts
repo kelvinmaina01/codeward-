@@ -145,24 +145,20 @@ billingRouter.get('/info', async (c) => {
  */
 billingRouter.get('/checkout', async (c) => {
   const session = await auth.api.getSession({ headers: c.req.raw.headers });
-  const tier = c.req.query('tier') === 'team' ? 'team' : 'pro';
+  const tier = c.req.query('tier') === 'team' || c.req.query('plan') === 'team' ? 'team' : 'pro';
 
-  try {
-    const checkoutUrl = await PolarService.createCheckoutSession({
-      tier,
-      userId: session?.user?.id,
-      userEmail: session?.user?.email,
-      userName: session?.user?.name,
-      successUrl: `${appConfig.app.frontendUrl}/dashboard/settings?tab=billing&checkout=success`,
-    });
+  const baseCheckout = tier === 'team'
+    ? 'https://buy.polar.sh/polar_cl_G8nQdTjkiE3TT0f9HwQtEzZAA1FrGatie2AYr1PiFep'
+    : 'https://buy.polar.sh/polar_cl_F6pFlJMO8NB1edLEiNLZ3ED0arMmOtoFUtpBc1J7ibY';
 
-    return c.json({
-      success: true,
-      tier,
-      url: checkoutUrl,
-    });
-  } catch (err: any) {
-    console.error('[Billing] Checkout session generation failed:', err);
-    return c.json({ error: 'Failed to generate checkout URL', message: err?.message }, 500);
-  }
+  const checkoutUrl = session?.user?.id
+    ? `${baseCheckout}?client_reference_id=${encodeURIComponent(session.user.id)}&customer_email=${encodeURIComponent(session.user.email || '')}`
+    : baseCheckout;
+
+  return c.json({
+    success: true,
+    tier,
+    plan: tier,
+    url: checkoutUrl,
+  });
 });
