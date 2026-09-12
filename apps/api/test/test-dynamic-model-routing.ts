@@ -16,7 +16,7 @@ async function testCandidateResolution() {
   console.log("  Candidates discovered:", candidates.map(c => `${c.name} -> ${c.model} (${c.baseUrl})`));
 
   assert.ok(candidates.length >= 1, "Should discover at least 1 candidate provider from environment");
-  const tokenRouterCandidate = candidates.find(c => c.name === "tokenrouter");
+  const tokenRouterCandidate = candidates.find(c => c.name === "tokenrouter" || c.name === "tokenrouter_glm");
   assert.ok(tokenRouterCandidate, "TokenRouter candidate should be discovered when key is present");
   assert.equal(tokenRouterCandidate?.baseUrl, "https://api.tokenrouter.com/v1");
 
