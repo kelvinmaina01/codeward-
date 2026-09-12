@@ -3,8 +3,8 @@ import crypto from 'crypto';
 import { agentQueue } from '../agents/queue/agent.queue.js';
 import { triggerComprehensiveAudit } from '../agents/audit-trigger.js';
 import { db } from '../db/index.js';
-import { runs, repositories, organization, user, organizationMember } from '../db/schema.js';
-import { eq, desc } from 'drizzle-orm';
+import { runs, repositories, organization, user, organizationMember, account } from '../db/schema.js';
+import { eq, desc, and } from 'drizzle-orm';
 import { BudgetService } from '../services/budget.service.js';
 import { appConfig } from '../config/app.config.js';
 import { getInstallationOctokit } from '../lib/github.js';
@@ -58,7 +58,46 @@ webhookRouter.post('/github', async (c) => {
     } else if (event === 'installation' || event === 'installation_repositories') {
       const repos = data.repositories_added || data.repositories || [];
       const installationId = data.installation?.id;
+      const accountLogin = data.installation?.account?.login;
+      const accountType = data.installation?.account?.type;
       let auditsTriggered = 0;
+
+      let orgRecord: any = null;
+      if (accountLogin && accountType === 'Organization') {
+        const existingOrgs = await db.select().from(organization).where(eq(organization.githubLogin, accountLogin));
+        if (existingOrgs.length > 0) {
+          orgRecord = existingOrgs[0];
+        } else {
+          const [insertedOrg] = await db.insert(organization).values({
+            githubLogin: accountLogin,
+            planType: 'free',
+          }).returning();
+          orgRecord = insertedOrg;
+        }
+
+        // Link the installing user if known in our database
+        if (data.sender?.id && orgRecord) {
+          try {
+            const senderAccounts = await db.select().from(account).where(
+              and(eq(account.providerId, 'github'), eq(account.accountId, String(data.sender.id)))
+            );
+            if (senderAccounts.length > 0) {
+              const existingMember = await db.select().from(organizationMember).where(
+                and(eq(organizationMember.orgId, orgRecord.id), eq(organizationMember.userId, senderAccounts[0].userId))
+              );
+              if (existingMember.length === 0) {
+                await db.insert(organizationMember).values({
+                  orgId: orgRecord.id,
+                  userId: senderAccounts[0].userId,
+                  role: 'admin',
+                });
+              }
+            }
+          } catch (mErr) {
+            console.warn('[Webhook] Could not link organization member on install:', mErr);
+          }
+        }
+      }
 
       for (const repo of repos) {
         const [existing] = await db.select().from(repositories).where(eq(repositories.fullName, repo.full_name));
@@ -69,6 +108,7 @@ webhookRouter.post('/github', async (c) => {
             auditTriggeredAt: new Date(),
             githubRepoId: repo.id,
             installationId,
+            ...(orgRecord ? { orgId: orgRecord.id } : {}),
           }).where(eq(repositories.id, existing.id));
           await triggerComprehensiveAudit(existing.id, repo.full_name);
           auditsTriggered++;
@@ -77,7 +117,7 @@ webhookRouter.post('/github', async (c) => {
         }
       }
 
-      return c.json({ status: 'ok', type: 'installation', reposSeen: repos.length, auditsTriggered });
+      return c.json({ status: 'ok', type: 'installation', reposSeen: repos.length, auditsTriggered, org: accountLogin });
 
     } else if (event === 'pull_request' && (data.action === 'opened' || data.action === 'synchronize')) {
       const prNumber    = data.pull_request.number;

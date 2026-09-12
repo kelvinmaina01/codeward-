@@ -87,19 +87,43 @@ reposRouter.get('/connected', async (c) => {
 
     // Also return user's organizations so the global UI can populate the workspace switcher
     const accounts = await db.select().from(schema.account).where(and(eq(schema.account.userId, session.user.id), eq(schema.account.providerId, 'github')));
-    let orgs: string[] = [];
+    const orgsSet = new Set<string>();
+
+    // 1. Add orgs from database where user is a member
+    if (orgIds.length > 0) {
+      const dbOrgRows = await db.select({ githubLogin: schema.organization.githubLogin })
+        .from(schema.organization)
+        .where(inArray(schema.organization.id, orgIds));
+      for (const row of dbOrgRows) {
+        if (row.githubLogin) orgsSet.add(row.githubLogin);
+      }
+    }
+
+    // 2. Add orgs and installations from GitHub OAuth
     if (accounts.length > 0 && accounts[0].accessToken) {
       try {
-        const uRes = await fetch('https://api.github.com/user', { headers: { 'Authorization': `Bearer ${accounts[0].accessToken}`, 'User-Agent': 'Codeward-App' }});
-        const oRes = await fetch('https://api.github.com/user/orgs', { headers: { 'Authorization': `Bearer ${accounts[0].accessToken}`, 'User-Agent': 'Codeward-App' }});
+        const ghHeaders = { 'Authorization': `Bearer ${accounts[0].accessToken}`, 'User-Agent': 'Codeward-App', 'Accept': 'application/vnd.github+json' };
+        const [uRes, oRes, instRes] = await Promise.all([
+          fetch('https://api.github.com/user', { headers: ghHeaders }),
+          fetch('https://api.github.com/user/orgs', { headers: ghHeaders }),
+          fetch('https://api.github.com/user/installations', { headers: ghHeaders }),
+        ]);
+
         const uData = uRes.ok ? await uRes.json() as any : null;
         const oData = oRes.ok ? await oRes.json() as any[] : [];
-        if (uData?.login) {
-          orgs = [uData.login, ...oData.map(o => o.login)];
+        const instData = instRes.ok ? await instRes.json() as any : { installations: [] };
+
+        if (uData?.login) orgsSet.add(uData.login);
+        for (const o of oData) {
+          if (o?.login) orgsSet.add(o.login);
+        }
+        for (const inst of instData.installations || []) {
+          if (inst?.account?.login) orgsSet.add(inst.account.login);
         }
       } catch (e) { console.error('Failed to fetch orgs for connected repos', e); }
     }
 
+    const orgs: string[] = Array.from(orgsSet);
     return c.json({ repos: reposWithHealth, orgs });
   } catch (err) {
     console.error('Error fetching connected repos:', err);
@@ -226,6 +250,28 @@ reposRouter.get('/', async (c) => {
         };
       }
     }
+
+    // 2.1 Fetch user's standard organizations (covers non-admin / private org memberships)
+    try {
+      const userOrgsRes = await fetch('https://api.github.com/user/orgs', {
+        headers: {
+          'Authorization': `Bearer ${githubAccount.accessToken}`,
+          'Accept': 'application/vnd.github+json',
+          'X-GitHub-Api-Version': '2022-11-28',
+          'User-Agent': 'Codeward-App',
+        },
+      });
+      if (userOrgsRes.ok) {
+        const userOrgsList = await userOrgsRes.json() as any[];
+        for (const o of userOrgsList) {
+          if (!orgRoles[o.login]) {
+            orgRoles[o.login] = { role: 'member', id: o.id };
+          }
+        }
+      }
+    } catch (e) {
+      console.error('Failed to fetch /user/orgs:', e);
+    }
     
     // 2.5 Fetch user's GitHub App installations
     const installationsResponse = await fetch('https://api.github.com/user/installations', {
@@ -240,10 +286,17 @@ reposRouter.get('/', async (c) => {
     const installationsData = installationsResponse.ok ? (await installationsResponse.json() as any) : { installations: [] };
     const installedAccountLogins = new Set<string>();
     const grantedRepoIds = new Set<number>();
+    const allInstRepos: any[] = [];
     
     for (const inst of installationsData.installations || []) {
       if (inst.account && inst.account.login) {
         installedAccountLogins.add(inst.account.login);
+        if (!orgRoles[inst.account.login]) {
+          orgRoles[inst.account.login] = {
+            role: inst.account.type === 'Organization' ? 'admin' : 'member',
+            id: inst.account.id,
+          };
+        }
         
         // Fetch repositories granted to this installation
         try {
@@ -255,10 +308,27 @@ reposRouter.get('/', async (c) => {
           });
           for (const repo of instRepos) {
             grantedRepoIds.add(repo.id);
+            allInstRepos.push(repo);
           }
         } catch (e) {
           console.error(`Failed to fetch repos for installation ${inst.id}`, e);
         }
+      }
+    }
+
+    // 2.6 Fetch database organizations where this user is already a member
+    const dbMemberships = await db.select({
+      githubLogin: schema.organization.githubLogin,
+      orgId: schema.organization.id,
+      role: schema.organizationMember.role,
+    })
+      .from(schema.organizationMember)
+      .innerJoin(schema.organization, eq(schema.organizationMember.orgId, schema.organization.id))
+      .where(eq(schema.organizationMember.userId, session.user.id));
+
+    for (const dm of dbMemberships) {
+      if (dm.githubLogin && !orgRoles[dm.githubLogin]) {
+        orgRoles[dm.githubLogin] = { role: dm.role || 'member', id: dm.orgId };
       }
     }
 
@@ -284,6 +354,15 @@ reposRouter.get('/', async (c) => {
       return c.json({ error: 'Failed to fetch repos from GitHub', details: errText }, firstPageCheck.status as any);
     }
     const ghRepos = await fetchAllPages('https://api.github.com/user/repos?sort=pushed&per_page=100&type=all', reposHeaders);
+
+    // Merge in any repositories returned directly by GitHub App installations (e.g. org repos)
+    const existingRepoFullNames = new Set(ghRepos.map((r: any) => r.full_name));
+    for (const ir of allInstRepos) {
+      if (ir.full_name && !existingRepoFullNames.has(ir.full_name)) {
+        ghRepos.push(ir);
+        existingRepoFullNames.add(ir.full_name);
+      }
+    }
 
     // 4. Check connected repos
     // We check against all repos visible to the user across their orgs
@@ -415,22 +494,34 @@ reposRouter.post('/connect', async (c) => {
       // 2. Org check
       if (repo.owner !== personalLogin) {
         // Ping github for membership role in this org
-        const membershipRes = await fetch(`https://api.github.com/user/memberships/orgs/${repo.owner}`, {
-          headers: {
-            'Authorization': `Bearer ${githubAccount.accessToken}`,
-            'Accept': 'application/vnd.github+json',
-            'X-GitHub-Api-Version': '2022-11-28',
-            'User-Agent': 'Codeward-App',
-          },
-        });
-        
-        if (membershipRes.ok) {
-          const membership = await membershipRes.json() as any;
-          if (membership.role !== 'admin') {
-            return c.json({ error: `You must be an organization admin to connect repositories for ${repo.owner}.` }, 403);
+        let isAuthorized = false;
+        try {
+          const membershipRes = await fetch(`https://api.github.com/user/memberships/orgs/${repo.owner}`, {
+            headers: {
+              'Authorization': `Bearer ${githubAccount.accessToken}`,
+              'Accept': 'application/vnd.github+json',
+              'X-GitHub-Api-Version': '2022-11-28',
+              'User-Agent': 'Codeward-App',
+            },
+          });
+          
+          if (membershipRes.ok) {
+            const membership = await membershipRes.json() as any;
+            if (membership.role === 'admin' || membership.state === 'active') {
+              isAuthorized = true;
+            }
           }
-        } else {
-          return c.json({ error: `Could not verify admin status for ${repo.owner}.` }, 403);
+        } catch (e) {
+          // ignore network failure
+        }
+
+        // Fallback: If GitHub App is installed on this organization or account, grant connection access
+        if (!isAuthorized && ownerToInstallationId[repo.owner]) {
+          isAuthorized = true;
+        }
+
+        if (!isAuthorized) {
+          return c.json({ error: `You must be a member of ${repo.owner} or have the GitHub App installed on it to connect its repositories.` }, 403);
         }
 
         // 3. Upsert Organization

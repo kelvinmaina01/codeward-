@@ -142,15 +142,19 @@ export function ConnectRepo({ user, onConnect, onSkip, activeOrg, setActiveOrg, 
       const data = await res.json() as any;
       
       // Setup initial org
-      const firstOrg = data.orgs?.[0];
-      const isPersonal = typeof firstOrg === 'string' ? firstOrg === 'personal' : firstOrg?.name === 'personal';
-      const githubUser = isPersonal ? user.name?.split(' ')[0] : (typeof firstOrg === 'string' ? firstOrg : firstOrg?.name);
+      const parsedOrgs = (data.orgs || []).map((o: any) => typeof o === 'string' ? o : o.name).filter(Boolean);
+      const urlParams = new URLSearchParams(window.location.search);
+      const installedParam = urlParams.get('installed');
+
+      setLocalOrgs(parsedOrgs);
       
-      const restOrgs = (data.orgs || []).slice(1).map((o: any) => typeof o === 'string' ? o : o.name);
-      const actualOrgs = [githubUser, ...restOrgs].filter(Boolean);
-      
-      setLocalOrgs(actualOrgs);
-      if (!activeOrg && setActiveOrg) setActiveOrg(actualOrgs[0] || '');
+      const targetOrg = installedParam && parsedOrgs.includes(installedParam)
+        ? installedParam
+        : (activeOrg || parsedOrgs[0] || '');
+
+      if (setActiveOrg && targetOrg) {
+        setActiveOrg(targetOrg);
+      }
 
       setRepos(data.repos || []);
       
@@ -252,7 +256,8 @@ export function ConnectRepo({ user, onConnect, onSkip, activeOrg, setActiveOrg, 
   };
 
   const filteredRepos = repos.filter(r => {
-    const matchesOrg = !activeOrg || r.owner === activeOrg;
+    const currentOrg = typeof activeOrg === 'string' ? activeOrg : (activeOrg as any)?.name;
+    const matchesOrg = !currentOrg || r.owner.toLowerCase() === currentOrg.toLowerCase();
     const matchesSearch = !searchQuery || r.name.toLowerCase().includes(searchQuery.toLowerCase()) || (r.desc && r.desc.toLowerCase().includes(searchQuery.toLowerCase()));
     return matchesOrg && matchesSearch;
   });
@@ -457,9 +462,10 @@ export function ConnectRepo({ user, onConnect, onSkip, activeOrg, setActiveOrg, 
                         <div className="fixed inset-0 z-40" onClick={() => setShowOrgDropdown(false)} />
                         <div className="absolute top-full left-0 mt-2 w-full min-w-[200px] bg-cw-bg2 border border-cw-bdr rounded-lg shadow-xl z-50 overflow-hidden">
                           <div className="max-h-[200px] overflow-y-auto py-1">
-                            {(propOrgs?.length ? propOrgs : localOrgs).map((orgObj, idx) => {
-                              const orgName = typeof orgObj === 'string' ? orgObj : orgObj.name;
-                              if (!orgName) return null;
+                            {Array.from(new Set([
+                              ...localOrgs,
+                              ...(propOrgs || []).map((o: any) => typeof o === 'string' ? o : o.name)
+                            ])).filter(Boolean).map((orgName, idx) => {
                               return (
                                 <button
                                   key={orgName + idx}
