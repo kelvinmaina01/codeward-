@@ -733,10 +733,12 @@ export function Settings() {
       if (!res.ok || !data.url) {
         throw new Error(data.message || data.error || 'Failed to open billing portal session');
       }
-      window.location.href = data.url;
+      window.open(data.url, '_blank', 'noopener,noreferrer');
+      toast.success('Billing portal opened in a new tab');
     } catch (err: any) {
       console.error('[Billing Portal Error]:', err);
       toast.error(err?.message || 'Unable to open billing portal');
+    } finally {
       setOpeningPortal(false);
     }
   };
