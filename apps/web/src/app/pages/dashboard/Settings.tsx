@@ -4,7 +4,7 @@ import {
   User, CreditCard, Users, Code2, Copy, Check, RefreshCw, KeyRound, Webhook, LogOut,
   Sparkles, Calendar, ExternalLink, Plus, Trash2, Mail, AlertTriangle, ShieldCheck,
   Sliders, Zap, FileText, History, Globe, GitMerge, Inbox, ArrowUpRight, ChevronDown,
-  LoaderCircle, X as XIcon, Send,
+  LoaderCircle, X as XIcon, Send, Activity,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { toast } from 'sonner';
@@ -43,10 +43,13 @@ const TONE_DOT: Record<Tone, string> = {
 };
 
 const FOCUS_RING =
-  'focus:outline-none focus-visible:ring-2 focus-visible:ring-cw-purple/60 focus-visible:ring-offset-1 focus-visible:ring-offset-cw-bg';
+  'focus:outline-none focus:ring-1 focus:ring-cw-purple/50 focus:border-cw-purple';
 const MICRO_LABEL = 'text-[10px] font-semibold uppercase tracking-[0.08em] text-cw-txt3';
-const BTN_BASE = `inline-flex items-center gap-1.5 rounded-md text-[12px] font-medium whitespace-nowrap transition-colors duration-150 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${FOCUS_RING}`;
-const BTN_PRIMARY = `${BTN_BASE} px-3 py-1.5 bg-cw-purple text-white border border-cw-purple hover:brightness-110 active:brightness-95`;
+
+// Standardized button micro-variants
+const BTN_BASE =
+  'inline-flex items-center justify-center gap-1.5 rounded-md font-medium text-[12px] cursor-pointer transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed';
+const BTN_PRIMARY = `${BTN_BASE} px-3 py-1.5 bg-cw-purple hover:bg-cw-purple-hover text-white shadow-sm`;
 const BTN_SECONDARY = `${BTN_BASE} px-3 py-1.5 bg-cw-bg2 text-cw-txt border border-cw-bdr hover:bg-cw-bg3 hover:border-cw-txt3/50`;
 const BTN_DANGER = `${BTN_BASE} px-3 py-1.5 bg-cw-red/10 text-cw-red border border-cw-red/30 hover:bg-cw-red hover:text-white hover:border-cw-red`;
 const BTN_GHOST_SM = `${BTN_BASE} px-2 py-1 text-[11px] bg-transparent text-cw-txt2 border border-cw-bdr hover:bg-cw-bg3 hover:text-cw-txt`;
@@ -76,12 +79,18 @@ interface WebhookDestination {
 
 interface TeamMember {
   id: string;
+  userId?: string;
   name: string;
   email: string;
   image?: string;
-  role: 'Owner' | 'Admin' | 'Developer' | 'Viewer';
-  status: 'Active' | 'Invited';
+  role: string;
+  status: 'Active' | 'Invited' | 'Expired';
+  isOwner?: boolean;
+  invitedAt: string;
   joinedAt: string;
+  loginsToday?: number;
+  totalLogins?: number;
+  lastLoginAt?: string | null;
 }
 
 interface AuditLog {
@@ -91,6 +100,16 @@ interface AuditLog {
   action: string;
   ip: string;
   status: 'success' | 'warning' | 'info';
+}
+
+interface DailyLoginSummary {
+  id: string;
+  userId: string;
+  userName?: string;
+  userEmail?: string;
+  loginDate: string;
+  loginCount: number;
+  lastLoginAt: string;
 }
 
 // ─── Presentational components (UI only) ────────────────────────────────────
@@ -382,7 +401,12 @@ export function Settings() {
   // Team & Audit Logs State
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
+  const [dailyLogins, setDailyLogins] = useState<DailyLoginSummary[]>([]);
   const [onlineUserIds, setOnlineUserIds] = useState<string[]>([]);
+  const [memberToRemove, setMemberToRemove] = useState<TeamMember | null>(null);
+  const [removingMember, setRemovingMember] = useState(false);
+  const [inviteToRevoke, setInviteToRevoke] = useState<TeamMember | null>(null);
+  const [revokingInvite, setRevokingInvite] = useState(false);
   
   // RBAC Roles
   const isAdminOrOwner = ['owner', 'admin'].includes(activeWorkspace?.role || '');
@@ -427,20 +451,33 @@ export function Settings() {
       .then(res => res.json())
       .then(data => {
         const active = (data.members || []).map((m: any) => ({
-          id: m.userId || m.id,
-          name: m.userName || 'Unknown User',
-          email: m.userEmail || 'No email',
+          id: m.id,
+          userId: m.userId || m.id,
+          name: m.name || m.userName || 'Unknown User',
+          email: m.email || m.userEmail || 'No email',
+          image: m.image || m.userImage,
           role: m.role.charAt(0).toUpperCase() + m.role.slice(1),
-          status: 'Active',
-          joinedAt: new Date(m.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+          status: 'Active' as const,
+          isOwner: m.isOwner,
+          invitedAt: m.invitedAt ? new Date(m.invitedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Workspace Creator',
+          joinedAt: m.joinedAt ? new Date(m.joinedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Joined',
+          loginsToday: m.loginsToday || 0,
+          totalLogins: m.totalLogins || 0,
+          lastLoginAt: m.lastLoginAt
         }));
         const pending = (data.pendingInvites || []).map((i: any) => ({
           id: i.id,
+          userId: undefined,
           name: 'Pending Invite',
           email: i.email,
           role: i.role.charAt(0).toUpperCase() + i.role.slice(1),
-          status: 'Invited',
-          joinedAt: 'Pending'
+          status: 'Invited' as const,
+          isOwner: false,
+          invitedAt: i.invitedAt ? new Date(i.invitedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Recently',
+          joinedAt: 'Pending',
+          loginsToday: 0,
+          totalLogins: 0,
+          lastLoginAt: null
         }));
         setTeamMembers([...active, ...pending]);
       })
@@ -460,10 +497,89 @@ export function Settings() {
             status: l.status
           }));
           setAuditLogs(logs);
+          setDailyLogins(data.dailyLogins || []);
         })
         .catch(console.error);
     }
   }, [activeWorkspace?.id, activeWorkspace?.role]);
+
+  const handleRemoveMember = async () => {
+    if (!memberToRemove || !activeWorkspace?.id) return;
+    try {
+      setRemovingMember(true);
+      const targetId = memberToRemove.userId || memberToRemove.id;
+      const res = await fetch(`${API_URL}/api/workspaces/${activeWorkspace.id}/members/${targetId}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error || 'Failed to remove member');
+        return;
+      }
+      toast.success(data.message || 'Member removed and notified via email');
+      setTeamMembers(prev => prev.filter(m => m.id !== memberToRemove.id && m.userId !== memberToRemove.userId));
+      setMemberToRemove(null);
+
+      // Refresh audit logs
+      fetch(`${API_URL}/api/workspaces/${activeWorkspace.id}/logs`, { credentials: 'include' })
+        .then(r => r.json())
+        .then(d => {
+          setAuditLogs((d.logs || []).map((l: any) => ({
+            id: l.id,
+            timestamp: new Date(l.createdAt).toLocaleString('en-US', { dateStyle: 'short', timeStyle: 'short' }),
+            user: l.actorName || 'System',
+            action: l.action,
+            ip: l.ipAddress || 'Unknown',
+            status: l.status
+          })));
+          setDailyLogins(d.dailyLogins || []);
+        })
+        .catch(() => {});
+    } catch (err: any) {
+      toast.error(err.message || 'Error removing member');
+    } finally {
+      setRemovingMember(false);
+    }
+  };
+
+  const handleRevokeInvite = async () => {
+    if (!inviteToRevoke || !activeWorkspace?.id) return;
+    try {
+      setRevokingInvite(true);
+      const res = await fetch(`${API_URL}/api/workspaces/${activeWorkspace.id}/invites/${inviteToRevoke.id}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error || 'Failed to revoke invitation');
+        return;
+      }
+      toast.success(data.message || 'Invitation revoked');
+      setTeamMembers(prev => prev.filter(m => m.id !== inviteToRevoke.id));
+      setInviteToRevoke(null);
+
+      // Refresh audit logs
+      fetch(`${API_URL}/api/workspaces/${activeWorkspace.id}/logs`, { credentials: 'include' })
+        .then(r => r.json())
+        .then(d => {
+          setAuditLogs((d.logs || []).map((l: any) => ({
+            id: l.id,
+            timestamp: new Date(l.createdAt).toLocaleString('en-US', { dateStyle: 'short', timeStyle: 'short' }),
+            user: l.actorName || 'System',
+            action: l.action,
+            ip: l.ipAddress || 'Unknown',
+            status: l.status
+          })));
+        })
+        .catch(() => {});
+    } catch (err: any) {
+      toast.error(err.message || 'Error revoking invitation');
+    } finally {
+      setRevokingInvite(false);
+    }
+  };
 
   // Load connected repos
   useEffect(() => {
@@ -1175,7 +1291,7 @@ export function Settings() {
                 <SectionCard
                   title="Workspace members"
                   icon={Users}
-                  description="People with access to this workspace and connected repositories."
+                  description="People with access to this workspace, invite lifecycle, and daily active sessions."
                   flush
                   actions={
                     isAdminOrOwner ? (
@@ -1189,34 +1305,89 @@ export function Settings() {
                     <EmptyState icon={Users} title="No members loaded yet." hint="Members and pending invites for the active workspace appear here." />
                   ) : (
                     <div className="overflow-x-auto">
-                      <table className="w-full min-w-[560px] text-left border-collapse">
+                      <table className="w-full min-w-[700px] text-left border-collapse">
                         <thead>
                           <tr className="text-[10px] uppercase tracking-[0.08em] text-cw-txt3 bg-cw-bg/40">
                             <th scope="col" className={TH}>Member</th>
                             <th scope="col" className={TH}>Role</th>
                             <th scope="col" className={TH}>Status</th>
-                            <th scope="col" className={`${TH} text-right`}>Joined</th>
+                            <th scope="col" className={TH}>When Invited</th>
+                            <th scope="col" className={TH}>When Joined</th>
+                            <th scope="col" className={TH}>Daily Logins</th>
+                            {isAdminOrOwner && <th scope="col" className={`${TH} text-right`}><span className="sr-only">Actions</span></th>}
                           </tr>
                         </thead>
                         <tbody className="text-[12px] text-cw-txt divide-y divide-cw-bdr">
                           {teamMembers.map((m) => {
-                            const isOnline = onlineUserIds.includes(m.id);
+                            const isOnline = onlineUserIds.includes(m.userId || m.id);
                             const displayStatus = isOnline ? 'Online' : (m.status === 'Invited' ? 'Invited' : 'Offline');
                             const tone: Tone = isOnline ? 'green' : (m.status === 'Invited' ? 'amber' : 'neutral');
+                            const isSelf = session?.user?.id === (m.userId || m.id);
+
                             return (
                               <tr key={m.id} className="hover:bg-cw-bg3/40 transition-colors">
                                 <td className={TD}>
                                   <div className="flex items-center gap-3 min-w-0">
                                     <Avatar src={m.image} fallback={m.name.charAt(0)} size={28} />
                                     <div className="min-w-0">
-                                      <div className="font-medium text-cw-txt truncate">{m.name}</div>
+                                      <div className="font-medium text-cw-txt truncate flex items-center gap-1.5">
+                                        {m.name}
+                                        {m.isOwner && (
+                                          <span className="text-[10px] px-1.5 py-0.2 rounded bg-cw-purple/15 text-cw-purple font-mono font-medium">Owner</span>
+                                        )}
+                                        {isSelf && (
+                                          <span className="text-[10px] px-1.5 py-0.2 rounded bg-cw-bg3 text-cw-txt3 font-mono">You</span>
+                                        )}
+                                      </div>
                                       <div className="text-[11px] text-cw-txt3 font-mono truncate">{m.email}</div>
                                     </div>
                                   </div>
                                 </td>
                                 <td className={TD}><Pill tone="neutral">{m.role}</Pill></td>
                                 <td className={TD}><Pill tone={tone} dot pulse={isOnline}>{displayStatus}</Pill></td>
-                                <td className={`${TD} text-right text-cw-txt3 text-[11px] whitespace-nowrap tabular-nums`}>{m.joinedAt}</td>
+                                <td className={`${TD} text-cw-txt3 text-[11px] whitespace-nowrap tabular-nums`}>
+                                  {m.invitedAt}
+                                </td>
+                                <td className={`${TD} text-cw-txt3 text-[11px] whitespace-nowrap tabular-nums`}>
+                                  {m.status === 'Invited' ? (
+                                    <span className="text-cw-amber italic">Pending invite</span>
+                                  ) : (
+                                    m.joinedAt
+                                  )}
+                                </td>
+                                <td className={TD}>
+                                  {m.status === 'Invited' ? (
+                                    <span className="text-cw-txt3 font-mono text-[11px]">—</span>
+                                  ) : (
+                                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-mono bg-cw-purple/10 text-cw-purple border border-cw-purple/20">
+                                      <span className="w-1.5 h-1.5 rounded-full bg-cw-purple" />
+                                      {m.loginsToday ?? 0} today
+                                    </span>
+                                  )}
+                                </td>
+                                {isAdminOrOwner && (
+                                  <td className={`${TD} text-right whitespace-nowrap`}>
+                                    {m.status === 'Invited' ? (
+                                      <button
+                                        type="button"
+                                        onClick={() => setInviteToRevoke(m)}
+                                        className={`${BTN_GHOST_SM} hover:text-cw-red hover:border-cw-red/40`}
+                                        title="Revoke invitation"
+                                      >
+                                        <Trash2 size={12} /> Revoke
+                                      </button>
+                                    ) : !m.isOwner && !isSelf ? (
+                                      <button
+                                        type="button"
+                                        onClick={() => setMemberToRemove(m)}
+                                        className={`${BTN_GHOST_SM} hover:text-cw-red hover:border-cw-red/40`}
+                                        title="Remove member from workspace"
+                                      >
+                                        <Trash2 size={12} /> Remove
+                                      </button>
+                                    ) : null}
+                                  </td>
+                                )}
                               </tr>
                             );
                           })}
@@ -1230,14 +1401,14 @@ export function Settings() {
                   <SectionCard
                     title="Audit & activity log"
                     icon={History}
-                    description="Chronological log of administrative actions, repo connections, and agent executions."
+                    description="Chronological log of administrative actions, invitations, joinings, removals, and daily logins."
                     flush
                   >
                     {auditLogs.length === 0 ? (
                       <EmptyState icon={History} title="No audit events recorded yet." hint="Administrative actions in this workspace will be logged here." />
                     ) : (
                       <div className="overflow-x-auto">
-                        <table className="w-full min-w-[600px] text-left border-collapse">
+                        <table className="w-full min-w-[640px] text-left border-collapse">
                           <thead>
                             <tr className="text-[10px] uppercase tracking-[0.08em] text-cw-txt3 bg-cw-bg/40">
                               <th scope="col" className={TH}>Timestamp</th>
@@ -1247,21 +1418,75 @@ export function Settings() {
                             </tr>
                           </thead>
                           <tbody className="text-[12px] text-cw-txt divide-y divide-cw-bdr">
-                            {auditLogs.map((log) => (
-                              <tr key={log.id} className="hover:bg-cw-bg3/40 transition-colors">
-                                <td className={`${TD} font-mono text-[11px] text-cw-txt3 whitespace-nowrap`}>{log.timestamp}</td>
-                                <td className={`${TD} font-medium text-cw-txt whitespace-nowrap`}>{log.user}</td>
-                                <td className={`${TD} text-cw-txt2`}>
-                                  <span className="inline-flex items-center gap-2">
-                                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${log.status === 'success' ? TONE_DOT.green : log.status === 'warning' ? TONE_DOT.amber : TONE_DOT.blue}`} />
-                                    {log.action}
-                                  </span>
-                                </td>
-                                <td className={`${TD} text-right font-mono text-[11px] text-cw-txt3 whitespace-nowrap`}>{log.ip}</td>
-                              </tr>
-                            ))}
+                            {auditLogs.map((log) => {
+                              const isRemoval = log.action.toLowerCase().includes('removed');
+                              const isRevokeOrExpiry = log.action.toLowerCase().includes('expired') || log.action.toLowerCase().includes('revoked');
+                              const dotClass = isRemoval 
+                                ? TONE_DOT.red 
+                                : isRevokeOrExpiry 
+                                  ? TONE_DOT.amber 
+                                  : TONE_DOT.green;
+
+                              return (
+                                <tr key={log.id} className="hover:bg-cw-bg3/40 transition-colors">
+                                  <td className={`${TD} font-mono text-[11px] text-cw-txt3 whitespace-nowrap`}>{log.timestamp}</td>
+                                  <td className={`${TD} font-medium text-cw-txt whitespace-nowrap`}>{log.user}</td>
+                                  <td className={`${TD} text-cw-txt2`}>
+                                    <span className="inline-flex items-center gap-2">
+                                      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${dotClass}`} />
+                                      {log.action}
+                                    </span>
+                                  </td>
+                                  <td className={`${TD} text-right font-mono text-[11px] text-cw-txt3 whitespace-nowrap`}>{log.ip}</td>
+                                </tr>
+                              );
+                            })}
                           </tbody>
                         </table>
+                      </div>
+                    )}
+
+                    {dailyLogins.length > 0 && (
+                      <div className="border-t border-cw-bdr">
+                        <div className="px-4 sm:px-5 py-3 bg-cw-bg/30 border-b border-cw-bdr flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Activity size={13} className="text-cw-purple" />
+                            <span className="text-[12px] font-semibold text-cw-txt">Daily Login & Activity History</span>
+                          </div>
+                          <span className="text-[11px] text-cw-txt3 font-mono">Times logged in each day</span>
+                        </div>
+                        <div className="overflow-x-auto">
+                          <table className="w-full min-w-[560px] text-left border-collapse">
+                            <thead>
+                              <tr className="text-[10px] uppercase tracking-[0.08em] text-cw-txt3 bg-cw-bg/20">
+                                <th scope="col" className={TH}>Date</th>
+                                <th scope="col" className={TH}>Member</th>
+                                <th scope="col" className={TH}>Logins Recorded</th>
+                                <th scope="col" className={`${TH} text-right`}>Last Activity</th>
+                              </tr>
+                            </thead>
+                            <tbody className="text-[12px] text-cw-txt divide-y divide-cw-bdr">
+                              {dailyLogins.map((dl) => (
+                                <tr key={dl.id} className="hover:bg-cw-bg3/40 transition-colors">
+                                  <td className={`${TD} font-mono text-[11px] text-cw-txt2 whitespace-nowrap`}>{dl.loginDate}</td>
+                                  <td className={TD}>
+                                    <div className="font-medium text-cw-txt">{dl.userName || 'Member'}</div>
+                                    <div className="text-[11px] text-cw-txt3 font-mono">{dl.userEmail}</div>
+                                  </td>
+                                  <td className={TD}>
+                                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-mono bg-cw-green/10 text-cw-green border border-cw-green/20">
+                                      <span className="w-1.5 h-1.5 rounded-full bg-cw-green" />
+                                      {dl.loginCount} {dl.loginCount === 1 ? 'login' : 'logins'}
+                                    </span>
+                                  </td>
+                                  <td className={`${TD} text-right font-mono text-[11px] text-cw-txt3 whitespace-nowrap`}>
+                                    {new Date(dl.lastLoginAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
                       </div>
                     )}
                   </SectionCard>
@@ -1521,6 +1746,69 @@ export function Settings() {
               onKeyDown={(e) => { if (e.key === 'Enter') handleCreateWebhook(); }}
               className={`${INPUT} w-full font-mono text-[11px]`}
             />
+          </Modal>
+        )}
+
+        {/* Modal: Remove Member ("Throw away") */}
+        {memberToRemove && (
+          <Modal
+            title="Remove workspace member"
+            description="Revoke workspace access and send formal notification."
+            onClose={() => setMemberToRemove(null)}
+            footer={
+              <>
+                <button type="button" onClick={() => setMemberToRemove(null)} className={BTN_SECONDARY}>
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={removingMember}
+                  onClick={handleRemoveMember}
+                  className={BTN_DANGER}
+                >
+                  {removingMember ? <LoaderCircle size={12} className="animate-spin" /> : <Trash2 size={12} />}
+                  <span>{removingMember ? 'Removing & Notifying...' : 'Remove Member'}</span>
+                </button>
+              </>
+            }
+          >
+            <div className="text-[12px] text-cw-txt2 space-y-3">
+              <p>
+                Are you sure you want to remove <strong className="text-cw-txt">{memberToRemove.name}</strong> (<span className="font-mono text-cw-txt3">{memberToRemove.email}</span>) from <strong>{activeWorkspace?.name}</strong>?
+              </p>
+              <div className="p-3 rounded-md bg-cw-bg border border-cw-bdr text-[11px] text-cw-txt3 leading-relaxed">
+                📧 An automated email notification will be dispatched informing them that their access as a <span className="font-semibold text-cw-txt capitalize">{memberToRemove.role}</span> has been terminated. All repository permissions and audit logs for this workspace will be immediately revoked.
+              </div>
+            </div>
+          </Modal>
+        )}
+
+        {/* Modal: Revoke Invitation */}
+        {inviteToRevoke && (
+          <Modal
+            title="Revoke workspace invitation"
+            description="Invalidate pending magic invitation link."
+            onClose={() => setInviteToRevoke(null)}
+            footer={
+              <>
+                <button type="button" onClick={() => setInviteToRevoke(null)} className={BTN_SECONDARY}>
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={revokingInvite}
+                  onClick={handleRevokeInvite}
+                  className={BTN_DANGER}
+                >
+                  {revokingInvite ? <LoaderCircle size={12} className="animate-spin" /> : <Trash2 size={12} />}
+                  <span>{revokingInvite ? 'Revoking...' : 'Revoke Invitation'}</span>
+                </button>
+              </>
+            }
+          >
+            <p className="text-[12px] text-cw-txt2 leading-relaxed">
+              Are you sure you want to revoke the pending invitation for <strong className="text-cw-txt">{inviteToRevoke.email}</strong>? The 7-day magic link sent to them will be immediately invalidated and cannot be used to join.
+            </p>
           </Modal>
         )}
 

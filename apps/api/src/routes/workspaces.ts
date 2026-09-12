@@ -1,15 +1,15 @@
 import { Hono } from 'hono';
 import { db } from '../db/index.js';
-import { workspace, workspaceMember, workspaceInvite, user, workspaceAuditLog } from '../db/schema.js';
+import { workspace, workspaceMember, workspaceInvite, user, workspaceAuditLog, workspaceDailyLogin } from '../db/schema.js';
 import { eq, and, sql, desc } from 'drizzle-orm';
 import { verifyEmailRealTime } from '../services/email-verifier.js';
-import { sendWorkspaceInviteMagicLink } from '../services/email-sender.js';
+import { sendWorkspaceInviteMagicLink, sendWorkspaceRemovalNotification } from '../services/email-sender.js';
 import { auth } from '../auth/index.js';
 import crypto from 'crypto';
 
 export const workspacesRouter = new Hono();
 
-// Helper to get authenticated user ID or fallback user record
+// Helper to get authenticated user ID
 async function getUserId(c: any): Promise<string> {
   try {
     const session = await auth.api.getSession({ headers: c.req.raw.headers });
@@ -22,38 +22,46 @@ async function getUserId(c: any): Promise<string> {
 
   const authHeader = c.req.header('Authorization');
   if (authHeader && authHeader.startsWith('User ')) {
-    return authHeader.replace('User ', '');
+    return authHeader.replace('User ', '').trim();
   }
 
-  // Find any existing real user in the database
-  const [existingUser] = await db.select({ id: user.id }).from(user).limit(1);
-  if (existingUser?.id) {
-    return existingUser.id;
+  // Check Bearer token in session table
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.replace('Bearer ', '').trim();
+    const { session: sessionTable } = await import('../db/schema.js');
+    const [foundSession] = await db
+      .select({ userId: sessionTable.userId, expiresAt: sessionTable.expiresAt })
+      .from(sessionTable)
+      .where(eq(sessionTable.token, token))
+      .limit(1);
+
+    if (foundSession && new Date() < new Date(foundSession.expiresAt)) {
+      return foundSession.userId;
+    }
   }
 
-  // Fallback user record to prevent foreign key constraint failures
-  const fallbackId = 'user-default-1';
-  try {
-    await db
-      .insert(user)
-      .values({
-        id: fallbackId,
-        name: 'Default User',
-        email: 'user-default@codeward.io',
-        emailVerified: true,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      })
-      .onConflictDoNothing();
-  } catch (e) {
-    // ignore conflict
-  }
-
-  return fallbackId;
+  // Strictly reject unauthenticated requests. NEVER fall back to another user in DB!
+  throw new Error('UNAUTHORIZED');
 }
 
-// Helper to verify user role in a workspace
-async function checkWorkspaceRole(workspaceId: string, userId: string, allowedRoles: string[]): Promise<string> {
+// Helper to verify user role in a workspace with strict personal workspace isolation
+async function checkWorkspaceRole(
+  workspaceId: string, 
+  userId: string, 
+  allowedRoles: string[]
+): Promise<{ role: string; workspace: any }> {
+  // Check target workspace existence
+  const [targetWs] = await db.select().from(workspace).where(eq(workspace.id, workspaceId));
+  if (!targetWs) {
+    throw new Error('NOT_FOUND');
+  }
+
+  // Strict personal workspace isolation:
+  // If the workspace is personal (slug starts with personal-), ONLY the owner can ever access it!
+  if (targetWs.slug.startsWith('personal-') && targetWs.ownerId !== userId) {
+    throw new Error('FORBIDDEN');
+  }
+
   const [member] = await db
     .select({ role: workspaceMember.role })
     .from(workspaceMember)
@@ -62,16 +70,17 @@ async function checkWorkspaceRole(workspaceId: string, userId: string, allowedRo
   if (!member || !allowedRoles.includes(member.role)) {
     throw new Error('FORBIDDEN');
   }
-  return member.role;
+
+  return { role: member.role, workspace: targetWs };
 }
 
-// ── 1. List user's workspaces (Auto-creates personal workspace if none exist)
+// ── 1. List user's workspaces (Strict personal workspace isolation & auto-provisioning)
 workspacesRouter.get('/', async (c) => {
   try {
     const userId = await getUserId(c);
 
     // Find all workspaces where user is owner or member
-    const userWorkspaces = await db
+    const allWorkspaces = await db
       .select({
         id: workspace.id,
         name: workspace.name,
@@ -85,9 +94,36 @@ workspacesRouter.get('/', async (c) => {
       .innerJoin(workspace, eq(workspaceMember.workspaceId, workspace.id))
       .where(eq(workspaceMember.userId, userId));
 
+    // STRICT ISOLATION: Filter out any personal workspace that doesn't belong to this user
+    const userWorkspaces = allWorkspaces.filter(ws => {
+      if (ws.slug.startsWith('personal-')) {
+        return ws.ownerId === userId;
+      }
+      return true;
+    });
+
     if (userWorkspaces.length === 0) {
+      // Check if user already owns a personal workspace that lacked a membership record
+      const [existingPersonal] = await db
+        .select()
+        .from(workspace)
+        .where(and(eq(workspace.ownerId, userId), sql`${workspace.slug} LIKE 'personal-%'`))
+        .limit(1);
+
+      if (existingPersonal) {
+        await db.insert(workspaceMember).values({
+          workspaceId: existingPersonal.id,
+          userId: userId,
+          role: 'owner'
+        }).onConflictDoNothing();
+
+        return c.json({
+          workspaces: [{ ...existingPersonal, role: 'owner' }]
+        });
+      }
+
       // Auto-create Personal Workspace
-      const personalSlug = `personal-${Date.now()}`;
+      const personalSlug = `personal-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`;
       const [newWs] = await db
         .insert(workspace)
         .values({
@@ -116,6 +152,9 @@ workspacesRouter.get('/', async (c) => {
 
     return c.json({ workspaces: userWorkspaces });
   } catch (err: any) {
+    if (err.message === 'UNAUTHORIZED') {
+      return c.json({ error: 'Unauthorized: Session missing or expired' }, 401);
+    }
     console.error('[Workspaces] List error:', err);
     return c.json({ error: 'Failed to fetch workspaces', details: err.message }, 500);
   }
@@ -181,11 +220,24 @@ workspacesRouter.post('/', async (c) => {
       role: 'owner'
     });
 
+    // Record audit log
+    await db.insert(workspaceAuditLog).values({
+      workspaceId: newWs.id,
+      userId,
+      actorName: 'Owner',
+      action: `Created workspace "${trimmedName}"`,
+      ipAddress: c.req.header('x-forwarded-for') || '127.0.0.1',
+      status: 'success'
+    });
+
     return c.json({
       message: 'Workspace created successfully',
       workspace: { ...newWs, role: 'owner' }
     }, 201);
   } catch (err: any) {
+    if (err.message === 'UNAUTHORIZED') {
+      return c.json({ error: 'Unauthorized' }, 401);
+    }
     console.error('[Workspaces] Create error:', err);
     if (err.message && err.message.includes('unique constraint')) {
       return c.json({
@@ -201,15 +253,45 @@ workspacesRouter.post('/', async (c) => {
   }
 });
 
-// ── 3. Get Workspace Members
+// ── 3. Get Workspace Members with Invite History & Daily Login Counts
 workspacesRouter.get('/:id/members', async (c) => {
   try {
     const userId = await getUserId(c);
     const workspaceId = c.req.param('id');
     
-    // RBAC: Any member of the workspace can view other members
-    await checkWorkspaceRole(workspaceId, userId, ['owner', 'admin', 'developer', 'member', 'viewer']);
+    // RBAC: Any member can view workspace members
+    const { workspace: targetWs } = await checkWorkspaceRole(workspaceId, userId, ['owner', 'admin', 'developer', 'member', 'viewer']);
 
+    // 1. Check and automatically expire pending invites past 7 days
+    const expiredInvites = await db
+      .select()
+      .from(workspaceInvite)
+      .where(
+        and(
+          eq(workspaceInvite.workspaceId, workspaceId),
+          eq(workspaceInvite.status, 'pending'),
+          sql`${workspaceInvite.expiresAt} < NOW()`
+        )
+      );
+
+    if (expiredInvites.length > 0) {
+      for (const exp of expiredInvites) {
+        await db
+          .update(workspaceInvite)
+          .set({ status: 'expired' })
+          .where(eq(workspaceInvite.id, exp.id));
+
+        await db.insert(workspaceAuditLog).values({
+          workspaceId,
+          actorName: 'System',
+          action: `Invitation for ${exp.email} expired (7-day window elapsed without login)`,
+          ipAddress: '127.0.0.1',
+          status: 'warning'
+        });
+      }
+    }
+
+    // 2. Fetch active members
     const members = await db
       .select({
         id: workspaceMember.id,
@@ -224,26 +306,88 @@ workspacesRouter.get('/:id/members', async (c) => {
       .leftJoin(user, eq(workspaceMember.userId, user.id))
       .where(eq(workspaceMember.workspaceId, workspaceId));
 
-    const invites = await db
+    // 3. Fetch all invites for this workspace (to know invitedAt for members)
+    const allInvites = await db
       .select()
       .from(workspaceInvite)
-      .where(and(eq(workspaceInvite.workspaceId, workspaceId), eq(workspaceInvite.status, 'pending')));
+      .where(eq(workspaceInvite.workspaceId, workspaceId));
 
-    return c.json({ members, pendingInvites: invites });
+    // 4. Fetch daily login stats for this workspace
+    const todayDate = new Date().toISOString().split('T')[0];
+    const loginRecords = await db
+      .select()
+      .from(workspaceDailyLogin)
+      .where(eq(workspaceDailyLogin.workspaceId, workspaceId));
+
+    // 5. Enrich members with invitedAt, joinedAt, and daily logins
+    const enrichedMembers = members.map((m) => {
+      const isOwner = m.role === 'owner' || m.userId === targetWs.ownerId;
+      const matchedInvite = allInvites.find(
+        (i) => i.email.toLowerCase() === (m.userEmail || '').toLowerCase()
+      );
+
+      const userLogins = loginRecords.filter((l) => l.userId === m.userId);
+      const todayLoginRow = userLogins.find((l) => l.loginDate === todayDate);
+      const loginsToday = todayLoginRow ? todayLoginRow.loginCount : 0;
+      const totalLogins = userLogins.reduce((acc, l) => acc + l.loginCount, 0);
+
+      const latestLogin = userLogins.length > 0
+        ? userLogins.sort((a, b) => new Date(b.lastLoginAt).getTime() - new Date(a.lastLoginAt).getTime())[0].lastLoginAt
+        : null;
+
+      return {
+        id: m.id,
+        userId: m.userId,
+        name: m.userName || (m.userEmail ? m.userEmail.split('@')[0] : 'Workspace Member'),
+        email: m.userEmail || 'No email',
+        image: m.userImage,
+        role: m.role,
+        status: 'Active',
+        isOwner,
+        invitedAt: isOwner 
+          ? targetWs.createdAt 
+          : (matchedInvite?.createdAt || m.createdAt),
+        joinedAt: m.createdAt,
+        loginsToday,
+        totalLogins,
+        lastLoginAt: latestLogin
+      };
+    });
+
+    const pendingInvites = allInvites
+      .filter((i) => i.status === 'pending')
+      .map((i) => ({
+        id: i.id,
+        email: i.email,
+        role: i.role,
+        status: 'Invited',
+        invitedAt: i.createdAt,
+        expiresAt: i.expiresAt,
+        joinedAt: null,
+        loginsToday: 0,
+        totalLogins: 0
+      }));
+
+    return c.json({ members: enrichedMembers, pendingInvites });
   } catch (err: any) {
+    if (err.message === 'UNAUTHORIZED') {
+      return c.json({ error: 'Unauthorized' }, 401);
+    }
+    if (err.message === 'FORBIDDEN') {
+      return c.json({ error: 'You do not have access to this workspace' }, 403);
+    }
     console.error('[Workspaces] Members error:', err);
     return c.json({ error: 'Failed to fetch workspace members', details: err.message }, 500);
   }
 });
 
-// ── 4. Invite user(s) to Workspace with custom per-person roles
+// ── 4. Invite user(s) to Workspace (7-Day Expiration Policy)
 workspacesRouter.post('/:id/invites', async (c) => {
   try {
     const userId = await getUserId(c);
     const workspaceId = c.req.param('id');
     const body = await c.req.json();
 
-    // Support both batch array ({ invites: [{ email, role }] }) and single ({ email, role })
     let inviteItems: { email: string; role: string }[] = [];
     if (Array.isArray(body.invites)) {
       inviteItems = body.invites;
@@ -256,15 +400,13 @@ workspacesRouter.post('/:id/invites', async (c) => {
     }
 
     // RBAC: Only Owners and Admins can invite people
-    await checkWorkspaceRole(workspaceId, userId, ['owner', 'admin']);
+    const { workspace: targetWs } = await checkWorkspaceRole(workspaceId, userId, ['owner', 'admin']);
 
-    // Check workspace existence
-    const [targetWs] = await db.select().from(workspace).where(eq(workspace.id, workspaceId));
-    if (!targetWs) {
-      return c.json({ error: 'Workspace not found' }, 404);
-    }
+    // Fetch inviter user info
+    const [inviterUser] = await db.select().from(user).where(eq(user.id, userId));
+    const inviterName = inviterUser?.name || 'Workspace Administrator';
     
-    // Fetch existing members to include in the email
+    // Fetch existing members to display in the email
     const existingMembers = await db
       .select({
         name: user.name,
@@ -292,9 +434,8 @@ workspacesRouter.post('/:id/invites', async (c) => {
         continue;
       }
 
-      // Generate 6-digit numeric OTP code
-      const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
-      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 Hours
+      // 7 DAYS EXPIRATION WINDOW
+      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
       // Save Invite in Database
       const [inviteRecord] = await db
@@ -313,7 +454,7 @@ workspacesRouter.post('/:id/invites', async (c) => {
       const emailResult = await sendWorkspaceInviteMagicLink({
         toEmail: cleanEmail,
         workspaceName: targetWs.name,
-        inviterName: 'Codeward Admin', // We could fetch actual inviter name if needed
+        inviterName,
         inviteToken: inviteRecord.id,
         role: cleanRole,
         existingMembers: existingMembers.map(m => ({
@@ -323,12 +464,12 @@ workspacesRouter.post('/:id/invites', async (c) => {
         }))
       });
 
-      // Log the action
+      // Log the action in Audit Log
       await db.insert(workspaceAuditLog).values({
         workspaceId,
         userId,
-        actorName: 'Codeward Admin',
-        action: `Invited ${cleanEmail} as ${cleanRole}`,
+        actorName: inviterName,
+        action: `Invited ${cleanEmail} as ${cleanRole} (7-day link)`,
         ipAddress: c.req.header('x-forwarded-for') || '127.0.0.1',
         status: 'success'
       });
@@ -356,6 +497,9 @@ workspacesRouter.post('/:id/invites', async (c) => {
       results
     }, 201);
   } catch (err: any) {
+    if (err.message === 'UNAUTHORIZED') {
+      return c.json({ error: 'Unauthorized' }, 401);
+    }
     if (err.message === 'FORBIDDEN') {
       return c.json({ error: 'You do not have permission to invite members to this workspace' }, 403);
     }
@@ -364,11 +508,163 @@ workspacesRouter.post('/:id/invites', async (c) => {
   }
 });
 
-// ── 5. Accept Workspace Invite (Magic Link - Passwordless Auth)
+// ── 5. Remove Member ("Throw Away") with Email Notification & Audit Logging
+workspacesRouter.delete('/:id/members/:memberId', async (c) => {
+  try {
+    const callerUserId = await getUserId(c);
+    const workspaceId = c.req.param('id');
+    const targetMemberId = c.req.param('memberId');
+
+    // RBAC: Only Owners and Admins can remove members
+    const { role: callerRole, workspace: targetWs } = await checkWorkspaceRole(workspaceId, callerUserId, ['owner', 'admin']);
+
+    // Find the target member (matching workspaceMember.id or workspaceMember.userId)
+    const [targetMember] = await db
+      .select({
+        id: workspaceMember.id,
+        userId: workspaceMember.userId,
+        role: workspaceMember.role
+      })
+      .from(workspaceMember)
+      .where(
+        and(
+          eq(workspaceMember.workspaceId, workspaceId),
+          sql`(${workspaceMember.id} = ${targetMemberId}::uuid OR ${workspaceMember.userId} = ${targetMemberId})`
+        )
+      );
+
+    if (!targetMember) {
+      return c.json({ error: 'Member not found in this workspace' }, 404);
+    }
+
+    // Safety & RBAC Rules:
+    // Rule 1: Cannot remove the workspace owner
+    if (targetMember.role === 'owner' || targetWs.ownerId === targetMember.userId) {
+      return c.json({ error: 'Cannot remove the workspace owner from their workspace' }, 403);
+    }
+
+    // Rule 2: Admins cannot remove other Admins (only Owner can)
+    if (callerRole === 'admin' && targetMember.role === 'admin') {
+      return c.json({ error: 'Admins cannot remove other admins. Only the workspace owner can remove an admin.' }, 403);
+    }
+
+    // Rule 3: User cannot remove themselves via admin remove endpoint
+    if (targetMember.userId === callerUserId) {
+      return c.json({ error: 'Cannot remove yourself using this administrative action' }, 400);
+    }
+
+    // Fetch target user's details for email and audit logging
+    const [targetUser] = await db
+      .select({ name: user.name, email: user.email })
+      .from(user)
+      .where(eq(user.id, targetMember.userId));
+
+    // Fetch caller's details
+    const [callerUser] = await db
+      .select({ name: user.name, email: user.email })
+      .from(user)
+      .where(eq(user.id, callerUserId));
+
+    const actorName = callerUser?.name || 'Workspace Administrator';
+    const targetEmail = targetUser?.email || 'Unknown User';
+
+    // 1. Delete member record
+    await db
+      .delete(workspaceMember)
+      .where(eq(workspaceMember.id, targetMember.id));
+
+    // 2. Dispatch email notification to the removed member
+    if (targetUser?.email) {
+      await sendWorkspaceRemovalNotification({
+        toEmail: targetUser.email,
+        workspaceName: targetWs.name,
+        actorName,
+        memberRole: targetMember.role
+      });
+    }
+
+    // 3. Record chronological audit log
+    await db.insert(workspaceAuditLog).values({
+      workspaceId,
+      userId: callerUserId,
+      actorName,
+      action: `Removed member ${targetEmail} (${targetMember.role}) from workspace`,
+      ipAddress: c.req.header('x-forwarded-for') || '127.0.0.1',
+      status: 'success'
+    });
+
+    return c.json({
+      message: `Member ${targetEmail} has been removed from the workspace and notified via email.`,
+      removedMemberId: targetMember.id,
+      removedUserId: targetMember.userId
+    });
+  } catch (err: any) {
+    if (err.message === 'UNAUTHORIZED') {
+      return c.json({ error: 'Unauthorized' }, 401);
+    }
+    if (err.message === 'FORBIDDEN') {
+      return c.json({ error: 'You do not have permission to remove members from this workspace' }, 403);
+    }
+    console.error('[Workspaces] Remove member error:', err);
+    return c.json({ error: 'Failed to remove workspace member', details: err.message }, 500);
+  }
+});
+
+// ── 6. Revoke Pending Invitation
+workspacesRouter.delete('/:id/invites/:inviteId', async (c) => {
+  try {
+    const callerUserId = await getUserId(c);
+    const workspaceId = c.req.param('id');
+    const inviteId = c.req.param('inviteId');
+
+    // RBAC: Only Owners and Admins can revoke invites
+    await checkWorkspaceRole(workspaceId, callerUserId, ['owner', 'admin']);
+
+    const [invite] = await db
+      .select()
+      .from(workspaceInvite)
+      .where(and(eq(workspaceInvite.id, inviteId), eq(workspaceInvite.workspaceId, workspaceId)));
+
+    if (!invite) {
+      return c.json({ error: 'Invitation not found' }, 404);
+    }
+
+    // Update status to revoked
+    await db
+      .update(workspaceInvite)
+      .set({ status: 'revoked' })
+      .where(eq(workspaceInvite.id, inviteId));
+
+    const [callerUser] = await db.select({ name: user.name }).from(user).where(eq(user.id, callerUserId));
+
+    // Audit log
+    await db.insert(workspaceAuditLog).values({
+      workspaceId,
+      userId: callerUserId,
+      actorName: callerUser?.name || 'Workspace Administrator',
+      action: `Revoked pending invitation for ${invite.email} (${invite.role})`,
+      ipAddress: c.req.header('x-forwarded-for') || '127.0.0.1',
+      status: 'warning'
+    });
+
+    return c.json({ message: `Invitation for ${invite.email} has been revoked.` });
+  } catch (err: any) {
+    if (err.message === 'UNAUTHORIZED') {
+      return c.json({ error: 'Unauthorized' }, 401);
+    }
+    if (err.message === 'FORBIDDEN') {
+      return c.json({ error: 'You do not have permission to manage invitations' }, 403);
+    }
+    console.error('[Workspaces] Revoke invite error:', err);
+    return c.json({ error: 'Failed to revoke invitation', details: err.message }, 500);
+  }
+});
+
+// ── 7. Accept Workspace Invite (Magic Link - 7-Day Expiry Verification & Passwordless Auth)
 workspacesRouter.post('/accept-invite', async (c) => {
   try {
     const body = await c.req.json();
-    const { token } = body; // token is the inviteId
+    const { token } = body;
 
     if (!token) {
       return c.json({ error: 'Invite token is required' }, 400);
@@ -389,13 +685,24 @@ workspacesRouter.post('/accept-invite', async (c) => {
       return c.json({ error: 'Invalid or already accepted invitation' }, 400);
     }
 
+    // Check 7-Day Expiry
     if (new Date() > new Date(invite.expiresAt)) {
       await db.update(workspaceInvite).set({ status: 'expired' }).where(eq(workspaceInvite.id, invite.id));
-      return c.json({ error: 'Invitation has expired' }, 400);
+
+      await db.insert(workspaceAuditLog).values({
+        workspaceId: invite.workspaceId,
+        actorName: 'System',
+        action: `Invitation for ${invite.email} expired after 7 days without login`,
+        ipAddress: c.req.header('x-forwarded-for') || '127.0.0.1',
+        status: 'warning'
+      });
+
+      return c.json({ 
+        error: 'This invitation has expired (valid for 7 days). Please contact your workspace administrator for a new invite.' 
+      }, 400);
     }
 
     // --- PASSWORDLESS AUTH LOGIC ---
-    // Check if a user with this email already exists
     let [existingUser] = await db
       .select()
       .from(user)
@@ -406,11 +713,10 @@ workspacesRouter.post('/accept-invite', async (c) => {
     if (existingUser) {
       finalUserId = existingUser.id;
     } else {
-      // Create new user instantly
       finalUserId = crypto.randomUUID();
       await db.insert(user).values({
         id: finalUserId,
-        name: invite.email.split('@')[0], // Dummy name derived from email
+        name: invite.email.split('@')[0],
         email: invite.email,
         emailVerified: true,
         createdAt: new Date(),
@@ -418,16 +724,16 @@ workspacesRouter.post('/accept-invite', async (c) => {
       });
     }
 
-    // Create a new Better-Auth compatible session directly in the DB
+    // Create session
     const { session: sessionTable } = await import('../db/schema.js');
     const sessionToken = crypto.randomBytes(32).toString('hex');
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7); // 7 days from now
+    const sessionExpiresAt = new Date();
+    sessionExpiresAt.setDate(sessionExpiresAt.getDate() + 7);
 
     await db.insert(sessionTable).values({
       id: crypto.randomUUID(),
       token: sessionToken,
-      expiresAt,
+      expiresAt: sessionExpiresAt,
       userId: finalUserId,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -445,17 +751,36 @@ workspacesRouter.post('/accept-invite', async (c) => {
       role: invite.role
     }).onConflictDoNothing();
 
-    // Log the action
+    // Record when joined in Audit Log
     await db.insert(workspaceAuditLog).values({
       workspaceId: invite.workspaceId,
       userId: finalUserId,
-      actorName: 'User',
-      action: `Accepted workspace invitation and authenticated via Magic Link`,
+      actorName: invite.email.split('@')[0],
+      action: `${invite.email} accepted invitation and joined workspace as ${invite.role}`,
       ipAddress: c.req.header('x-forwarded-for') || '127.0.0.1',
       status: 'success'
     });
 
-    // We must manually set the cookie matching Better-Auth's default format
+    // Record initial daily login
+    const today = new Date().toISOString().split('T')[0];
+    await db
+      .insert(workspaceDailyLogin)
+      .values({
+        workspaceId: invite.workspaceId,
+        userId: finalUserId,
+        loginDate: today,
+        loginCount: 1,
+        lastLoginAt: new Date()
+      })
+      .onConflictDoUpdate({
+        target: [workspaceDailyLogin.workspaceId, workspaceDailyLogin.userId, workspaceDailyLogin.loginDate],
+        set: {
+          loginCount: sql`${workspaceDailyLogin.loginCount} + 1`,
+          lastLoginAt: new Date(),
+          updatedAt: new Date()
+        }
+      });
+
     c.header('Set-Cookie', `better-auth.session_token=${sessionToken}; Path=/; HttpOnly; SameSite=Lax; Max-Age=604800`);
 
     return c.json({
@@ -470,7 +795,74 @@ workspacesRouter.post('/accept-invite', async (c) => {
   }
 });
 
-// ── 6. Get Workspace Audit Logs
+// ── 8. Record Daily Workspace Login Activity
+workspacesRouter.post('/:id/record-login', async (c) => {
+  try {
+    const userId = await getUserId(c);
+    const workspaceId = c.req.param('id');
+
+    // RBAC: Verify user is a member of this workspace
+    await checkWorkspaceRole(workspaceId, userId, ['owner', 'admin', 'developer', 'member', 'viewer']);
+
+    const todayDate = new Date().toISOString().split('T')[0];
+
+    // Check if user already logged in today
+    const [existing] = await db
+      .select()
+      .from(workspaceDailyLogin)
+      .where(
+        and(
+          eq(workspaceDailyLogin.workspaceId, workspaceId),
+          eq(workspaceDailyLogin.userId, userId),
+          eq(workspaceDailyLogin.loginDate, todayDate)
+        )
+      );
+
+    if (existing) {
+      await db
+        .update(workspaceDailyLogin)
+        .set({
+          loginCount: existing.loginCount + 1,
+          lastLoginAt: new Date(),
+          updatedAt: new Date()
+        })
+        .where(eq(workspaceDailyLogin.id, existing.id));
+
+      return c.json({ success: true, count: existing.loginCount + 1, date: todayDate });
+    } else {
+      await db.insert(workspaceDailyLogin).values({
+        workspaceId,
+        userId,
+        loginDate: todayDate,
+        loginCount: 1,
+        lastLoginAt: new Date()
+      });
+
+      // On first login of the day, log in audit log
+      const [currentUser] = await db.select({ name: user.name, email: user.email }).from(user).where(eq(user.id, userId));
+      await db.insert(workspaceAuditLog).values({
+        workspaceId,
+        userId,
+        actorName: currentUser?.name || 'Member',
+        action: `Member ${currentUser?.email || currentUser?.name || 'User'} logged in (first session today)`,
+        ipAddress: c.req.header('x-forwarded-for') || '127.0.0.1',
+        status: 'success'
+      });
+
+      return c.json({ success: true, count: 1, date: todayDate });
+    }
+  } catch (err: any) {
+    if (err.message === 'UNAUTHORIZED') {
+      return c.json({ error: 'Unauthorized' }, 401);
+    }
+    if (err.message === 'FORBIDDEN') {
+      return c.json({ error: 'Not a member of this workspace' }, 403);
+    }
+    return c.json({ error: 'Failed to record login', details: err.message }, 500);
+  }
+});
+
+// ── 9. Get Chronological Audit & Activity Logs with Daily Login Summary
 workspacesRouter.get('/:id/logs', async (c) => {
   try {
     const userId = await getUserId(c);
@@ -479,15 +871,36 @@ workspacesRouter.get('/:id/logs', async (c) => {
     // RBAC: Only Owners and Admins can view audit logs
     await checkWorkspaceRole(workspaceId, userId, ['owner', 'admin']);
     
+    // Chronological logs
     const logs = await db
       .select()
       .from(workspaceAuditLog)
       .where(eq(workspaceAuditLog.workspaceId, workspaceId))
       .orderBy(desc(workspaceAuditLog.createdAt))
+      .limit(100);
+
+    // Daily login history (grouped by day and member)
+    const dailyLogins = await db
+      .select({
+        id: workspaceDailyLogin.id,
+        userId: workspaceDailyLogin.userId,
+        loginDate: workspaceDailyLogin.loginDate,
+        loginCount: workspaceDailyLogin.loginCount,
+        lastLoginAt: workspaceDailyLogin.lastLoginAt,
+        userName: user.name,
+        userEmail: user.email
+      })
+      .from(workspaceDailyLogin)
+      .leftJoin(user, eq(workspaceDailyLogin.userId, user.id))
+      .where(eq(workspaceDailyLogin.workspaceId, workspaceId))
+      .orderBy(desc(workspaceDailyLogin.loginDate), desc(workspaceDailyLogin.lastLoginAt))
       .limit(50);
       
-    return c.json({ logs });
+    return c.json({ logs, dailyLogins });
   } catch (err: any) {
+    if (err.message === 'UNAUTHORIZED') {
+      return c.json({ error: 'Unauthorized' }, 401);
+    }
     if (err.message === 'FORBIDDEN') {
       return c.json({ error: 'You do not have permission to view audit logs for this workspace' }, 403);
     }

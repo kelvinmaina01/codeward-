@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { API_URL } from '../../lib/api';
 
 export interface Workspace {
@@ -7,18 +7,24 @@ export interface Workspace {
   slug: string;
   type: 'private' | 'public';
   ownerId: string;
-  role: 'owner' | 'admin' | 'member' | 'viewer';
+  role: 'owner' | 'admin' | 'developer' | 'member' | 'viewer';
   createdAt?: string;
 }
 
 export interface WorkspaceMember {
   id: string;
   userId: string;
-  role: 'owner' | 'admin' | 'member' | 'viewer';
-  userName?: string;
-  userEmail?: string;
-  userImage?: string;
-  createdAt?: string;
+  role: 'owner' | 'admin' | 'developer' | 'member' | 'viewer';
+  name: string;
+  email: string;
+  image?: string;
+  status: string;
+  isOwner?: boolean;
+  invitedAt?: string;
+  joinedAt?: string;
+  loginsToday?: number;
+  totalLogins?: number;
+  lastLoginAt?: string | null;
 }
 
 export interface WorkspaceInvite {
@@ -26,6 +32,11 @@ export interface WorkspaceInvite {
   email: string;
   role: string;
   status: string;
+  invitedAt?: string;
+  expiresAt?: string;
+  joinedAt?: string | null;
+  loginsToday?: number;
+  totalLogins?: number;
 }
 
 interface WorkspaceContextType {
@@ -37,6 +48,9 @@ interface WorkspaceContextType {
   fetchMembers: (workspaceId: string) => Promise<{ members: WorkspaceMember[]; pendingInvites: WorkspaceInvite[] }>;
   inviteUser: (workspaceId: string, email: string, role: string) => Promise<{ success: boolean; message?: string; error?: string }>;
   inviteBatch: (workspaceId: string, invites: { email: string; role: string }[]) => Promise<{ success: boolean; message?: string; error?: string; sentCount?: number }>;
+  removeMember: (workspaceId: string, memberId: string) => Promise<{ success: boolean; message?: string; error?: string }>;
+  revokeInvite: (workspaceId: string, inviteId: string) => Promise<{ success: boolean; message?: string; error?: string }>;
+  recordLogin: (workspaceId: string) => Promise<void>;
   verifyOtp: (email: string, otp: string) => Promise<{ success: boolean; message?: string; error?: string }>;
   openTeamDrawer: boolean;
   setOpenTeamDrawer: (open: boolean) => void;
@@ -54,11 +68,31 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [openTeamDrawer, setOpenTeamDrawer] = useState<boolean>(false);
   const [openInviteDrawer, setOpenInviteDrawer] = useState<boolean>(false);
 
+  const recordLogin = useCallback(async (workspaceId: string) => {
+    if (!workspaceId) return;
+    try {
+      await fetch(`${API_URL}/api/workspaces/${workspaceId}/record-login`, {
+        method: 'POST',
+        credentials: 'include'
+      });
+    } catch {
+      // ignore tracking errors silently
+    }
+  }, []);
+
   const fetchWorkspaces = async () => {
     try {
       setLoading(true);
       const res = await fetch(`${API_URL}/api/workspaces`, { credentials: 'include' });
-      if (!res.ok) throw new Error('Failed to fetch workspaces');
+      if (!res.ok) {
+        if (res.status === 401) {
+          setWorkspaces([]);
+          setActiveWorkspaceState(null);
+          localStorage.removeItem('codeward_active_workspace_id');
+          return;
+        }
+        throw new Error('Failed to fetch workspaces');
+      }
       const data = await res.json();
       const list: Workspace[] = data.workspaces || [];
       setWorkspaces(list);
@@ -68,9 +102,14 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       const found = list.find((w) => w.id === storedId);
       if (found) {
         setActiveWorkspaceState(found);
+        recordLogin(found.id);
       } else if (list.length > 0) {
         setActiveWorkspaceState(list[0]);
         localStorage.setItem('codeward_active_workspace_id', list[0].id);
+        recordLogin(list[0].id);
+      } else {
+        setActiveWorkspaceState(null);
+        localStorage.removeItem('codeward_active_workspace_id');
       }
     } catch (err) {
       console.error('[WorkspaceContext] Error fetching workspaces:', err);
@@ -86,6 +125,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const setActiveWorkspace = (ws: Workspace) => {
     setActiveWorkspaceState(ws);
     localStorage.setItem('codeward_active_workspace_id', ws.id);
+    recordLogin(ws.id);
   };
 
   const createWorkspace = async (name: string, type: 'private' | 'public' = 'private'): Promise<Workspace> => {
@@ -132,6 +172,56 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
   };
 
+  const inviteBatch = async (workspaceId: string, invites: { email: string; role: string }[]) => {
+    try {
+      const res = await fetch(`${API_URL}/api/workspaces/${workspaceId}/invites`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ invites })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        return { success: false, error: data.message || data.error || 'Batch invitation failed' };
+      }
+      return { success: true, message: data.message, sentCount: data.sentCount };
+    } catch (err: any) {
+      return { success: false, error: err.message || 'Network error' };
+    }
+  };
+
+  const removeMember = async (workspaceId: string, memberId: string) => {
+    try {
+      const res = await fetch(`${API_URL}/api/workspaces/${workspaceId}/members/${memberId}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        return { success: false, error: data.error || 'Failed to remove member' };
+      }
+      return { success: true, message: data.message };
+    } catch (err: any) {
+      return { success: false, error: err.message || 'Network error' };
+    }
+  };
+
+  const revokeInvite = async (workspaceId: string, inviteId: string) => {
+    try {
+      const res = await fetch(`${API_URL}/api/workspaces/${workspaceId}/invites/${inviteId}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        return { success: false, error: data.error || 'Failed to revoke invite' };
+      }
+      return { success: true, message: data.message };
+    } catch (err: any) {
+      return { success: false, error: err.message || 'Network error' };
+    }
+  };
+
   const verifyOtp = async (email: string, otp: string) => {
     try {
       const res = await fetch(`${API_URL}/api/workspaces/verify-otp`, {
@@ -161,6 +251,10 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         createWorkspace,
         fetchMembers,
         inviteUser,
+        inviteBatch,
+        removeMember,
+        revokeInvite,
+        recordLogin,
         verifyOtp,
         openTeamDrawer,
         setOpenTeamDrawer,
@@ -185,7 +279,13 @@ export const useWorkspace = () => {
       error: null,
       refreshWorkspaces: async () => {},
       inviteUser: async () => ({ success: false, error: 'Workspace context missing' }),
+      inviteBatch: async () => ({ success: false, error: 'Workspace context missing' }),
+      removeMember: async () => ({ success: false, error: 'Workspace context missing' }),
+      revokeInvite: async () => ({ success: false, error: 'Workspace context missing' }),
+      recordLogin: async () => {},
       verifyOtp: async () => ({ success: false, error: 'Workspace context missing' }),
+      openTeamDrawer: false,
+      setOpenTeamDrawer: () => {},
       openInviteDrawer: false,
       setOpenInviteDrawer: () => {},
     };

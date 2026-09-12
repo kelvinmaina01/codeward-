@@ -85,7 +85,7 @@ export async function sendWorkspaceInviteMagicLink({
             <a href="${magicLink}" style="display: inline-block; background-color: #a855f7; color: #ffffff; text-decoration: none; font-weight: 600; padding: 12px 24px; border-radius: 8px; font-size: 14px;">
               Join Workspace
             </a>
-            <p style="color: #6b7280; font-size: 12px; margin-top: 16px;">This link will expire in 24 hours.</p>
+            <p style="color: #6b7280; font-size: 12px; margin-top: 16px;">This invitation link will expire in 7 days.</p>
           </div>
 
           ${membersHtml}
@@ -153,3 +153,95 @@ export async function sendWorkspaceInviteMagicLink({
     return { success: false, error: err.message || 'Resend service failure' };
   }
 }
+
+export async function sendWorkspaceRemovalNotification({
+  toEmail,
+  workspaceName,
+  actorName,
+  memberRole = 'member'
+}: {
+  toEmail: string;
+  workspaceName: string;
+  actorName: string;
+  memberRole?: string;
+}): Promise<{ success: boolean; id?: string; error?: string }> {
+  const apiKey = process.env.RESEND_API_KEY;
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+
+  if (!apiKey) {
+    console.warn('[Resend] No RESEND_API_KEY found. Logging removal notification locally:', { toEmail, workspaceName, actorName });
+    return { success: true, id: 'mock-id-no-key' };
+  }
+
+  const htmlContent = `
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 560px; margin: 0 auto; padding: 32px 24px; background-color: #0c0d0e; color: #f3f4f6; border-radius: 12px; border: 1px solid #1f2937;">
+      <div style="margin-bottom: 24px; text-align: center;">
+        <img src="https://i.ibb.co/0jxSNrnp/codewrdlogo-png-removebg-preview.png" alt="Codeward" height="32" style="display: block; margin: 0 auto;" />
+        <p style="color: #9ca3af; font-size: 13px; margin-top: 4px;">Automated Principal Engineer Platform</p>
+      </div>
+      
+      <div style="background-color: #111827; border: 1px solid #1f2937; border-radius: 8px; padding: 24px; margin-bottom: 24px;">
+        <div style="display: inline-block; padding: 4px 10px; border-radius: 6px; background-color: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); color: #f87171; font-size: 12px; font-weight: 600; text-transform: uppercase; margin-bottom: 12px;">
+          Workspace Membership Update
+        </div>
+        <h2 style="font-size: 18px; color: #ffffff; margin-top: 0; margin-bottom: 12px;">Workspace Membership Removed</h2>
+        <p style="color: #d1d5db; font-size: 14px; line-height: 1.6;">
+          Hello, this is to inform you that your access as a <strong style="text-transform: capitalize;">${memberRole}</strong> to the <strong>${workspaceName}</strong> workspace on Codeward has been removed by <strong>${actorName}</strong>.
+        </p>
+        
+        <div style="margin-top: 20px; padding: 16px; background-color: rgba(31, 41, 55, 0.7); border: 1px solid #374151; border-radius: 8px;">
+          <h3 style="color: #e5e7eb; font-size: 13px; margin-top: 0; margin-bottom: 8px;">What this means:</h3>
+          <ul style="color: #9ca3af; font-size: 13px; padding-left: 20px; margin: 0; line-height: 1.6;">
+            <li>You will no longer be able to access repositories, audits, or pull requests in <strong>${workspaceName}</strong>.</li>
+            <li>Your personal Codeward account and any other workspaces remain active and unaffected.</li>
+            <li>If you believe this was done in error, please contact your workspace administrator directly.</li>
+          </ul>
+        </div>
+        
+        <div style="margin: 28px 0 12px; text-align: center;">
+          <a href="${frontendUrl}/dashboard" style="display: inline-block; background-color: #374151; color: #ffffff; text-decoration: none; font-weight: 600; padding: 10px 20px; border-radius: 8px; font-size: 13px;">
+            Go to Your Codeward Dashboard
+          </a>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div style="text-align: center; margin-top: 32px; padding-top: 24px; border-top: 1px solid #1f2937;">
+        <p style="color: #6b7280; font-size: 12px; margin: 0 0 16px 0;">
+          © 2026 Codeward. All rights reserved. Security & Access Control.
+        </p>
+        <p style="color: #6b7280; font-size: 12px; line-height: 1.5; margin: 0;">
+          This security notification was sent to ${toEmail}. If you have any questions, contact us at <a href="mailto:support@codeward.cloud" style="color: #a855f7; text-decoration: none;">support@codeward.cloud</a>.
+        </p>
+      </div>
+    </div>
+  `;
+
+  try {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        from: 'Codeward Workspaces <support@codeward.cloud>',
+        to: [toEmail],
+        subject: `[Codeward] You have been removed from ${workspaceName}`,
+        html: htmlContent
+      })
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      console.error('[Resend] Error sending removal email:', data);
+      return { success: false, error: data.message || 'Failed to send removal email' };
+    }
+
+    return { success: true, id: data.id };
+  } catch (err: any) {
+    console.error('[Resend] Exception sending removal email:', err);
+    return { success: false, error: err.message || 'Resend service failure' };
+  }
+}
+

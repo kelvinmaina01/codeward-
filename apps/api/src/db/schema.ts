@@ -409,6 +409,21 @@ export const workspaceAuditLog = pgTable('workspace_audit_log', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
+export const workspaceDailyLogin = pgTable('workspace_daily_login', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  workspaceId: uuid('workspace_id').notNull().references(() => workspace.id, { onDelete: 'cascade' }),
+  userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
+  loginDate: varchar('login_date', { length: 10 }).notNull(), // YYYY-MM-DD
+  loginCount: integer('login_count').default(1).notNull(),
+  lastLoginAt: timestamp('last_login_at').defaultNow().notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => {
+  return {
+    workspaceUserDateIdx: uniqueIndex('workspace_daily_login_ws_user_date_idx').on(table.workspaceId, table.userId, table.loginDate),
+  };
+});
+
 export const runLogs = pgTable('run_logs', {
   id: serial('id').primaryKey(),
   runId: integer('run_id').references(() => runs.id, { onDelete: 'cascade' }),
