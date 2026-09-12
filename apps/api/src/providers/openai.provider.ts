@@ -184,15 +184,15 @@ export class NativeOpenAIProvider implements AgentProvider {
       });
     }
 
-    // 7. TokenRouter (only when base URL is explicitly supplied)
+    // 7. TokenRouter (https://api.tokenrouter.com)
     const tokenRouterKey = process.env.TOKENROUTER_API_KEY;
-    const tokenRouterBaseUrl = process.env.TOKENROUTER_BASE_URL;
-    if (tokenRouterKey && tokenRouterBaseUrl) {
+    const tokenRouterBaseUrl = process.env.TOKENROUTER_BASE_URL || 'https://api.tokenrouter.com/v1';
+    if (tokenRouterKey) {
       candidates.push({
         name: 'tokenrouter',
         baseUrl: tokenRouterBaseUrl,
         apiKey: tokenRouterKey,
-        model: process.env.TOKENROUTER_MODEL || (config.model && config.model.includes('/') ? config.model : 'z-ai/glm-5.3-free'),
+        model: process.env.TOKENROUTER_MODEL || (config.model && config.model.includes('/') ? config.model : 'openai/gpt-5.6-terra'),
         headers: { 'User-Agent': 'Cline/3.0.0' },
         sanitizePayload: (payload: any) => {
           if (payload.tools && payload.tools.length > 0) {

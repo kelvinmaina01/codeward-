@@ -96,16 +96,16 @@ export function resolveActiveProvider(): ProviderConfig {
     };
   }
 
-  // 7. TokenRouter (only when base URL is explicitly supplied)
+  // 7. TokenRouter (https://api.tokenrouter.com)
   const tokenRouterKey = process.env.TOKENROUTER_API_KEY;
-  const tokenRouterBaseUrl = process.env.TOKENROUTER_BASE_URL;
-  if ((explicitProvider === 'tokenrouter' || (!explicitProvider && tokenRouterKey && tokenRouterBaseUrl)) && tokenRouterKey && tokenRouterBaseUrl) {
+  const tokenRouterBaseUrl = process.env.TOKENROUTER_BASE_URL || 'https://api.tokenrouter.com/v1';
+  if ((explicitProvider === 'tokenrouter' || (!explicitProvider && tokenRouterKey)) && tokenRouterKey) {
     return {
       name: 'tokenrouter',
       baseURL: tokenRouterBaseUrl,
       apiKey: tokenRouterKey,
-      defaultOrchestratorModel: process.env.TOKENROUTER_MODEL || 'z-ai/glm-5.3-free',
-      defaultAnalyzerModel: process.env.TOKENROUTER_MODEL || 'z-ai/glm-5.3-free',
+      defaultOrchestratorModel: process.env.TOKENROUTER_MODEL || 'openai/gpt-5.6-terra',
+      defaultAnalyzerModel: process.env.TOKENROUTER_ANALYZER_MODEL || process.env.TOKENROUTER_MODEL || 'openai/gpt-5.4-nano',
       headers: { 'User-Agent': 'Cline/3.0.0' },
     };
   }
