@@ -2,7 +2,7 @@ import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'rec
 import {
   ShieldAlert, Bot, Key, GitMerge, X as XIcon, Plus, AlertTriangle, CheckCircle2,
   Scissors, Cpu, Shield, ArrowRight, ArrowUpRight, ChevronDown, Timer, LoaderCircle,
-  ShieldCheck, GitCommitHorizontal, Activity, CircleDot, Inbox,
+  ShieldCheck, GitCommitHorizontal, GitPullRequest, Activity, CircleDot, Inbox,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useEffect, useState, useMemo } from 'react';
@@ -72,6 +72,7 @@ interface RecentRun {
   repoId: number;
   repoFullName: string;
   commitSha: string;
+  prNumber?: number | null;
   status: string;
   overallScore: number | null;
   createdAt: string;
@@ -1345,7 +1346,7 @@ export function Dashboard({ onRunClick }: Props) {
             <table className="w-full min-w-[680px] text-left border-collapse">
               <thead>
                 <tr className="text-[10px] uppercase tracking-[0.08em] text-cw-txt3 bg-cw-bg/40">
-                  <th scope="col" className="px-4 sm:px-5 py-2.5 font-semibold border-b border-cw-bdr">Commit</th>
+                  <th scope="col" className="px-4 sm:px-5 py-2.5 font-semibold border-b border-cw-bdr">Pull Request / Target</th>
                   <th scope="col" className="px-4 sm:px-5 py-2.5 font-semibold border-b border-cw-bdr">Repository</th>
                   <th scope="col" className="px-4 sm:px-5 py-2.5 font-semibold border-b border-cw-bdr">Findings</th>
                   <th scope="col" className="px-4 sm:px-5 py-2.5 font-semibold border-b border-cw-bdr">Status</th>
@@ -1366,9 +1367,9 @@ export function Dashboard({ onRunClick }: Props) {
                   <tr>
                     <td colSpan={6} className="p-0">
                       <EmptyState
-                        icon={GitCommitHorizontal}
-                        title={`No runs found for ${repoFilter === 'All' ? 'connected repositories' : repoFilter}.`}
-                        hint="Completed, running and failed sandbox runs will appear here with their score."
+                        icon={GitPullRequest}
+                        title={`No pull request runs found for ${repoFilter === 'All' ? 'connected repositories' : repoFilter}.`}
+                        hint="Codeward triggers sandbox analysis on every new pull request. Open a pull request or trigger a baseline scan to see automated reviews."
                       />
                     </td>
                   </tr>
@@ -1378,11 +1379,23 @@ export function Dashboard({ onRunClick }: Props) {
                     onClick={() => onRunClick?.(run.repoId, run.runId)}
                     className="hover:bg-cw-bg3/40 cursor-pointer transition-colors group"
                   >
-                    <td className="px-4 sm:px-5 py-2.5 font-mono text-cw-txt2 whitespace-nowrap">
-                      <span className="inline-flex items-center gap-1.5">
-                        <GitCommitHorizontal size={12} className="text-cw-txt3" />
-                        {run.commitSha.slice(0, 7)}
-                      </span>
+                    <td className="px-4 sm:px-5 py-2.5 whitespace-nowrap">
+                      {run.prNumber ? (
+                        <span className="inline-flex items-center gap-1.5 text-cw-purple font-medium">
+                          <GitPullRequest size={13} className="text-cw-purple shrink-0" />
+                          PR #{run.prNumber}
+                        </span>
+                      ) : run.commitSha === 'baseline' ? (
+                        <span className="inline-flex items-center gap-1.5 text-cw-green font-medium">
+                          <ShieldCheck size={13} className="text-cw-green shrink-0" />
+                          Baseline audit
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1.5 font-mono text-cw-txt2">
+                          <GitCommitHorizontal size={12} className="text-cw-txt3 shrink-0" />
+                          {run.commitSha.slice(0, 7)}
+                        </span>
+                      )}
                     </td>
                     <td className="px-4 sm:px-5 py-2.5 font-medium text-cw-txt max-w-[280px]">
                       <span className="block truncate group-hover:text-cw-purple transition-colors">{run.repoFullName}</span>

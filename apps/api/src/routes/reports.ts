@@ -58,6 +58,12 @@ async function buildRunReport(runId: number) {
   const [run] = await db.select().from(schema.runs).where(eq(schema.runs.id, runId));
   if (!run) return null;
 
+  // Check mergeApprovals for linked PR number if not stored directly on run
+  const [approval] = await db.select({ prNumber: schema.mergeApprovals.pullRequestNumber })
+    .from(schema.mergeApprovals)
+    .where(eq(schema.mergeApprovals.runId, runId))
+    .limit(1);
+
   const tasks = await db.select().from(schema.agentTasks).where(eq(schema.agentTasks.runId, runId));
 
   const agents = tasks
@@ -140,6 +146,7 @@ async function buildRunReport(runId: number) {
     runId: run.id,
     repoId: run.repoId,
     commitSha: run.commitSha,
+    prNumber: run.prNumber ?? approval?.prNumber ?? null,
     status: run.status,
     overallScore: run.score,
     createdAt: run.createdAt,
@@ -189,6 +196,17 @@ reportsRouter.get('/recent', async (c) => {
     .orderBy(desc(schema.runs.createdAt))
     .limit(limit);
 
+  const runIds = recentRuns.map((r) => r.id);
+  const approvals = runIds.length > 0
+    ? await db.select({
+        runId: schema.mergeApprovals.runId,
+        prNumber: schema.mergeApprovals.pullRequestNumber,
+      })
+      .from(schema.mergeApprovals)
+      .where(inArray(schema.mergeApprovals.runId, runIds))
+    : [];
+  const prByRunId = new Map(approvals.filter(a => a.runId != null).map(a => [a.runId!, a.prNumber]));
+
   const repoById = new Map(accessibleRepos.map((r) => [r.id, r]));
   const fifteenMinutesAgo = Date.now() - 15 * 60 * 1000;
 
@@ -206,6 +224,7 @@ reportsRouter.get('/recent', async (c) => {
       repoId: r.repoId,
       repoFullName: r.repoId != null ? repoById.get(r.repoId)?.fullName ?? 'unknown' : 'unknown',
       commitSha: r.commitSha,
+      prNumber: r.prNumber ?? prByRunId.get(r.id) ?? null,
       status: derivedStatus,
       overallScore: r.score,
       createdAt: r.createdAt,
@@ -1422,26 +1441,58 @@ reportsRouter.post('/:runId/retry-failed', async (c) => {
   const runId = parseInt(c.req.param('runId'), 10);
   if (isNaN(runId)) return c.json({ error: 'Invalid run ID' }, 400);
 
-  // We should verify the user has access to the repo this run belongs to, but for now we trust the session
   const [run] = await db.select().from(schema.runs).where(eq(schema.runs.id, runId));
   if (!run) return c.json({ error: 'Run not found' }, 404);
+
+  // Access check
+  if (run.repoId && !(await userCanAccessRepo(session.user.id, run.repoId))) {
+    return c.json({ error: 'Forbidden' }, 403);
+  }
+
+  const [repo] = run.repoId ? await db.select().from(schema.repositories).where(eq(schema.repositories.id, run.repoId)) : [null];
+  const repoFullName = repo?.fullName ?? 'unknown';
 
   const failedTasks = await db.select()
     .from(schema.agentTasks)
     .where(and(
       eq(schema.agentTasks.runId, runId),
-      eq(schema.agentTasks.status, 'failed')
+      or(eq(schema.agentTasks.status, 'failed'), eq(schema.agentTasks.status, 'agent_failed'))
     ));
 
   if (failedTasks.length === 0) {
-    return c.json({ message: 'No failed tasks found to retry' }, 200);
+    // If the run itself failed at orchestrator level or timed out, re-enqueue orchestrator-phase1
+    const { agentQueue } = await import('../agents/queue/agent.queue.js');
+    await agentQueue.add('orchestrator-phase1', {
+      agentId: 'orchestrator_phase1',
+      commitSHA: run.commitSha,
+      repoFullName,
+      runId: run.id,
+    }, {
+      jobId: `retry-orchestrator-${runId}-${Date.now()}`
+    });
+
+    await db.update(schema.runs).set({ status: 'running' }).where(eq(schema.runs.id, runId));
+    return c.json({ 
+      message: 'Rerun enqueued for orchestrator pipeline',
+      runId, 
+      retriedAgents: ['orchestrator_phase1'] 
+    });
   }
 
+  const { agentQueue } = await import('../agents/queue/agent.queue.js');
   for (const task of failedTasks) {
+    await db.update(schema.agentTasks)
+      .set({ status: 'queued', error: null, completedAt: null })
+      .where(eq(schema.agentTasks.id, task.id));
+
     await agentQueue.add(`agent-${task.agentId}-${runId}`, {
       runId,
       agentId: task.agentId,
-      providerName: task.provider || 'openai',
+      provider: task.provider || 'openai',
+      commitSHA: run.commitSha,
+      repoFullName,
+    }, {
+      jobId: `retry-task-${task.id}-${Date.now()}`
     });
   }
 
@@ -1452,6 +1503,7 @@ reportsRouter.post('/:runId/retry-failed', async (c) => {
 
   return c.json({ 
     message: `Enqueued ${failedTasks.length} failed tasks for retry`,
+    runId,
     retriedAgents: failedTasks.map(t => t.agentId)
   });
 });
