@@ -584,8 +584,8 @@ export function Settings() {
     }
     setOpeningPortal(true);
     try {
-      const res = await fetch(`${API_URL}/api/users/me/billing-portal`, {
-        method: 'POST',
+      const res = await fetch(`${API_URL}/api/billing/portal`, {
+        method: 'GET',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
       });
