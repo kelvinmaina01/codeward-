@@ -511,24 +511,24 @@ export function ConnectRepo({ user, onConnect, onSkip, activeOrg, setActiveOrg, 
                           }}
                           className={`p-3 text-[13px] transition flex justify-between items-center ${
                             repo.connected 
-                              ? 'cursor-not-allowed bg-cw-bg3/40 opacity-75' 
+                              ? 'cursor-not-allowed bg-cw-bg/30' 
                               : sel 
                                 ? 'cursor-pointer bg-cw-purple/10' 
                                 : 'cursor-pointer hover:bg-cw-purple/5'
                           }`}
                         >
                           <div className="flex items-start gap-3">
-                            <div className={`mt-0.5 w-[16px] h-[16px] rounded-[4px] border-[1.5px] flex items-center justify-center transition-all shrink-0 ${sel ? 'border-cw-purple bg-cw-purple' : 'border-cw-bdr bg-cw-bg2'}`}>
+                            <div className={`mt-0.5 w-[16px] h-[16px] rounded-[4px] border-[1.5px] flex items-center justify-center transition-all shrink-0 ${sel ? 'border-cw-purple bg-cw-purple' : 'border-cw-bdr bg-cw-bg2 hover:border-cw-purple/60'}`}>
                               {sel && <Check size={10} color="#FFFFFF" />}
                             </div>
                             <div className="flex flex-col min-w-0 overflow-hidden">
                               <div className="flex items-center gap-2">
                                 <img src={`https://github.com/${repo.owner}.png`} alt={repo.owner} className="w-4 h-4 rounded-full bg-cw-bg shrink-0" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
-                                <span className="font-semibold text-cw-txt truncate text-[13px]">{repo.name}</span>
+                                <span className={`font-semibold text-cw-txt truncate text-[13.5px] ${repo.connected ? 'text-cw-txt2' : ''}`}>{repo.name}</span>
                               </div>
-                              <div className="flex items-center gap-3 mt-1 text-[11px] text-cw-txt2 font-normal flex-wrap">
-                                {repo.lang && <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-cw-purple/60" /> <span className="text-cw-txt2">{repo.lang}</span></span>}
-                                {repo.pushed && <span className="flex items-center gap-1 text-cw-txt3">Updated {getRelativeTime(repo.pushed)}</span>}
+                              <div className="flex items-center gap-3 mt-1.5 text-[11.5px] text-cw-txt2 font-medium flex-wrap">
+                                {repo.lang && <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-cw-purple shrink-0" /> <span>{repo.lang}</span></span>}
+                                {repo.pushed && <span className="flex items-center gap-1 text-cw-txt2/90 font-normal">Updated {getRelativeTime(repo.pushed)}</span>}
                                 {repo.stars > 0 && <span className="flex items-center gap-1 text-cw-txt2" title="Stars">★ {repo.stars}</span>}
                                 {repo.forks > 0 && <span className="flex items-center gap-1 text-cw-txt2" title="Forks"><GitBranch size={11} /> {repo.forks}</span>}
                                 {repo.issues > 0 && <span className="flex items-center gap-1 text-cw-txt2" title="Issues"><ShieldAlert size={11} /> {repo.issues}</span>}
@@ -537,14 +537,14 @@ export function ConnectRepo({ user, onConnect, onSkip, activeOrg, setActiveOrg, 
                           </div>
                           <div className="flex items-center gap-2 shrink-0">
                             {repo.connected && (
-                              <span className="text-[10px] font-semibold bg-cw-bg2 border border-cw-bdr px-2 py-0.5 rounded text-cw-txt2 shadow-xs">
+                              <span className="text-[10.5px] font-semibold bg-cw-bg2 border border-cw-bdr px-2.5 py-0.5 rounded text-cw-txt2 shadow-xs">
                                 Connected
                               </span>
                             )}
-                            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded border ${
+                            <span className={`text-[10.5px] font-semibold px-2.5 py-0.5 rounded border ${
                               repo.private 
-                                ? 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/25' 
-                                : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/25'
+                                ? 'bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-500/30' 
+                                : 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30'
                             }`}>
                               {repo.private ? 'Private' : 'Public'}
                             </span>
