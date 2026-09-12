@@ -111,39 +111,57 @@ export class NativeOpenAIProvider implements AgentProvider {
   resolveCandidates(config: AgentRunConfig): ModelCandidate[] {
     const candidates: ModelCandidate[] = [];
 
-    // 1. TokenRouter (e.g. z-ai/glm-5.3-free or custom model)
-    const tokenRouterKey = process.env.TOKENROUTER_API_KEY;
-    if (tokenRouterKey) {
-      candidates.push({
-        name: 'tokenrouter',
-        baseUrl: process.env.TOKENROUTER_BASE_URL || 'https://api.tokenrouter.com/v1',
-        apiKey: tokenRouterKey,
-        model: process.env.TOKENROUTER_MODEL || (config.model && config.model.includes('/') ? config.model : 'z-ai/glm-5.3-free'),
-        headers: { 'User-Agent': 'Cline/3.0.0' },
-        sanitizePayload: (payload: any) => {
-          // TokenRouter reasoning models (GLM, etc.) prefer required tool_choice and no strict schema flag
-          if (payload.tools && payload.tools.length > 0) {
-            payload.tool_choice = 'required';
-          }
-          return payload;
-        },
-      });
-    }
-
-    // 2. Custom OpenAI-Compatible Gateway / Self-hosted (e.g. DeepSeek, vLLM, Ollama, Kimi)
-    const customBaseUrl = process.env.OPENAI_BASE_URL;
-    const customKey = process.env.OPENAI_API_KEY;
+    // 1. Custom OpenAI-Compatible Gateway / Self-hosted (e.g. OpenRouter, DeepSeek, vLLM, Ollama, Together AI, LiteLLM)
+    const customBaseUrl = process.env.AI_BASE_URL || process.env.OPENAI_BASE_URL;
+    const customKey = process.env.AI_API_KEY || process.env.OPENAI_API_KEY;
     if (customBaseUrl && customKey && !customBaseUrl.includes('api.openai.com')) {
       candidates.push({
         name: 'custom_gateway',
         baseUrl: customBaseUrl,
         apiKey: customKey,
-        model: process.env.OPENAI_MODEL || config.model || 'gpt-4o-mini',
-        headers: { 'User-Agent': 'Cline/3.0.0' },
+        model: process.env.AI_MODEL || process.env.OPENAI_MODEL || config.model || 'gpt-4o-mini',
+        headers: { 'User-Agent': 'Codeward/1.0.0' },
       });
     }
 
-    // 3. Official OpenAI Direct (if standard OpenAI API key is set)
+    // 2. OpenRouter (https://openrouter.ai)
+    const openRouterKey = process.env.OPENROUTER_API_KEY;
+    if (openRouterKey) {
+      candidates.push({
+        name: 'openrouter',
+        baseUrl: process.env.OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1',
+        apiKey: openRouterKey,
+        model: process.env.OPENROUTER_MODEL || (config.model && config.model.includes('/') ? config.model : 'anthropic/claude-3.5-sonnet'),
+        headers: {
+          'HTTP-Referer': process.env.APP_URL || 'https://codeward.net',
+          'X-Title': 'Codeward',
+        },
+      });
+    }
+
+    // 3. DeepSeek (https://api.deepseek.com)
+    const deepseekKey = process.env.DEEPSEEK_API_KEY;
+    if (deepseekKey) {
+      candidates.push({
+        name: 'deepseek',
+        baseUrl: process.env.DEEPSEEK_BASE_URL || 'https://api.deepseek.com/v1',
+        apiKey: deepseekKey,
+        model: process.env.DEEPSEEK_MODEL || 'deepseek-chat',
+      });
+    }
+
+    // 4. Groq (https://groq.com)
+    const groqKey = process.env.GROQ_API_KEY;
+    if (groqKey) {
+      candidates.push({
+        name: 'groq',
+        baseUrl: process.env.GROQ_BASE_URL || 'https://api.groq.com/openai/v1',
+        apiKey: groqKey,
+        model: process.env.GROQ_MODEL || 'llama-3.3-70b-versatile',
+      });
+    }
+
+    // 5. Official OpenAI Direct (if standard OpenAI API key is set)
     const openAiKey = process.env.OPENAI_API_KEY;
     if (openAiKey && (!customBaseUrl || customBaseUrl.includes('api.openai.com'))) {
       candidates.push({
@@ -154,7 +172,7 @@ export class NativeOpenAIProvider implements AgentProvider {
       });
     }
 
-    // 4. AgentRouter Reverse Proxy (fallback)
+    // 6. AgentRouter Reverse Proxy (fallback)
     const agentRouterKey = process.env.AGENTROUTER_API_KEY;
     if (agentRouterKey) {
       candidates.push({
@@ -166,7 +184,26 @@ export class NativeOpenAIProvider implements AgentProvider {
       });
     }
 
-    // 5. Moonshot / Kimi (if configured)
+    // 7. TokenRouter (only when base URL is explicitly supplied)
+    const tokenRouterKey = process.env.TOKENROUTER_API_KEY;
+    const tokenRouterBaseUrl = process.env.TOKENROUTER_BASE_URL;
+    if (tokenRouterKey && tokenRouterBaseUrl) {
+      candidates.push({
+        name: 'tokenrouter',
+        baseUrl: tokenRouterBaseUrl,
+        apiKey: tokenRouterKey,
+        model: process.env.TOKENROUTER_MODEL || (config.model && config.model.includes('/') ? config.model : 'z-ai/glm-5.3-free'),
+        headers: { 'User-Agent': 'Cline/3.0.0' },
+        sanitizePayload: (payload: any) => {
+          if (payload.tools && payload.tools.length > 0) {
+            payload.tool_choice = 'required';
+          }
+          return payload;
+        },
+      });
+    }
+
+    // 8. Moonshot / Kimi (if configured)
     const kimiKey = process.env.KIMI_API_KEY || process.env.MOONSHOT_API_KEY;
     if (kimiKey) {
       candidates.push({
@@ -177,8 +214,18 @@ export class NativeOpenAIProvider implements AgentProvider {
       });
     }
 
-    // Allow custom cascade ordering if specified (e.g. AI_PROVIDER_CASCADE="tokenrouter,openai_direct")
-    if (process.env.AI_PROVIDER_CASCADE) {
+    // Explicit AI_PROVIDER priority takes precedence
+    const preferredProvider = process.env.AI_PROVIDER?.toLowerCase()?.trim();
+    if (preferredProvider) {
+      candidates.sort((a, b) => {
+        const aMatches = a.name.toLowerCase() === preferredProvider || (preferredProvider === 'openai' && a.name === 'openai_direct');
+        const bMatches = b.name.toLowerCase() === preferredProvider || (preferredProvider === 'openai' && b.name === 'openai_direct');
+        if (aMatches && !bMatches) return -1;
+        if (!aMatches && bMatches) return 1;
+        return 0;
+      });
+    } else if (process.env.AI_PROVIDER_CASCADE) {
+      // Allow custom cascade ordering if specified (e.g. AI_PROVIDER_CASCADE="openrouter,deepseek,openai_direct")
       const order = process.env.AI_PROVIDER_CASCADE.split(',').map(s => s.trim().toLowerCase());
       candidates.sort((a, b) => {
         const idxA = order.indexOf(a.name.toLowerCase());
