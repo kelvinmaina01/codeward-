@@ -15,11 +15,21 @@ export const organization = pgTable('organization', {
   githubLogin: varchar('github_login', { length: 255 }).notNull().unique(),
   planType: varchar('plan_type', { length: 50 }).notNull().default('free'),
   prQuotaLimit: integer('pr_quota_limit').notNull().default(10),
+  // ── Legacy Stripe fields (kept for backward compat) ─────────────────
   stripeCustomerId: varchar('stripe_customer_id', { length: 255 }),
   stripeSubscriptionId: varchar('stripe_subscription_id', { length: 255 }),
   stripePriceId: varchar('stripe_price_id', { length: 255 }),
   currentPeriodStart: timestamp('current_period_start'),
   currentPeriodEnd: timestamp('current_period_end'),
+  // ── Polar billing ────────────────────────────────────────────────────
+  polarCustomerId: varchar('polar_customer_id', { length: 255 }),
+  polarSubscriptionId: varchar('polar_subscription_id', { length: 255 }),
+  polarProductId: varchar('polar_product_id', { length: 255 }),
+  // ── Lifetime trial counter (free-tier only) ──────────────────────────
+  // Counts DISTINCT PR numbers ever scanned. Force-pushing the same PR
+  // N times consumes exactly 1 slot — de-duplicated atomically at the gate.
+  trialPrsUsed: integer('trial_prs_used').notNull().default(0),
+  trialPrLimit: integer('trial_pr_limit').notNull().default(10),
   createdAt: timestamp('created_at').defaultNow(),
 });
 
@@ -73,6 +83,8 @@ export const runs = pgTable('runs', {
   rawLogs: text('raw_logs'),
   scope: jsonb('scope'),
   prNumber: integer('pr_number'),
+  githubCheckRunId: integer('github_check_run_id'),
+  githubStatusCommentId: integer('github_status_comment_id'),
   createdAt: timestamp('created_at').defaultNow(),
 }, (table) => ({
   repoIdIdx: index('runs_repo_id_idx').on(table.repoId),

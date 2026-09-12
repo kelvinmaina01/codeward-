@@ -6,12 +6,12 @@ interface FooterTrustBadgesProps {
 }
 
 export function FooterTrustBadges({ dark = true, className = '' }: FooterTrustBadgesProps) {
-  const iconColor = dark ? 'text-cw-purple' : 'text-slate-700';
+  const iconColor = dark ? 'text-cw-purple' : 'text-slate-800';
   const titleColor = dark ? 'text-cw-txt font-bold' : 'text-slate-900 font-bold';
   const subtitleColor = dark ? 'text-cw-txt3 font-medium' : 'text-slate-600 font-medium';
 
   return (
-    <div className={`flex flex-wrap items-center justify-center gap-x-4 sm:gap-x-5 lg:gap-x-6 gap-y-2 ${className}`}>
+    <div className={`grid grid-cols-2 sm:grid-cols-3 gap-x-6 sm:gap-x-8 lg:gap-x-10 gap-y-3 sm:gap-y-4 items-center ${className}`}>
       {/* 1. ISO 27001 Certified */}
       <div className="flex items-center gap-2">
         <svg className={`w-6 h-6 sm:w-7 sm:h-7 ${iconColor} shrink-0`} viewBox="0 0 36 40" fill="none" xmlns="http://www.w3.org/2000/svg">

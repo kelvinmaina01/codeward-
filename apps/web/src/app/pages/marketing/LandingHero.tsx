@@ -155,6 +155,7 @@ function FAQSection() {
 }
 
 function SecuritySection() {
+  const navigate = useNavigate();
   return (
     <section className="bg-[#05060a] pt-12 md:pt-16 pb-12 md:pb-16 px-4 sm:px-8 md:px-20 font-['DM_Sans'] relative overflow-hidden">
       <FadeInSection>
@@ -172,15 +173,30 @@ function SecuritySection() {
                 </svg>
               </div>
               <h3 className="text-[22px] font-bold text-black mb-3 flex items-center gap-2">
-                SOC 2 Type II
+                Ephemeral MicroVMs
                 <svg className="w-5 h-5 text-black/50" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
               </h3>
-              <p className="text-black/80 leading-relaxed text-[16px] pr-4">
-                Your data is protected with enterprise-grade rigor. We never train models on your code.
+              <p className="text-black/80 leading-relaxed text-[15px] sm:text-[16px] pr-2">
+                Every commit executes inside an isolated Firecracker sandbox destroyed immediately after run. Zero code persistence, zero LLM training.
               </p>
             </div>
             
             <div className="p-8 md:p-10 border-b md:border-b-0 md:border-r border-black/10 relative bg-[#E8EAF6] z-10 transition-colors">
+              <div className="h-10 mb-8 flex items-center opacity-70">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-black">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                </svg>
+              </div>
+              <h3 className="text-[22px] font-bold text-black mb-3">
+                18 Security Hard-Gates
+              </h3>
+              <p className="text-black/80 leading-relaxed text-[15px] sm:text-[16px] pr-2">
+                Automated OWASP ZAP penetration tests, TruffleHog v3 secret scans, CVE advisory audits, and database RLS policy validation on every PR.
+              </p>
+            </div>
+            
+            <div className="p-8 md:p-10 relative bg-[#FCE4EC] z-10 transition-colors rounded-b-3xl md:rounded-bl-none md:rounded-r-3xl">
               <div className="h-10 mb-8 flex items-center opacity-70">
                 <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-black">
                   <rect x="2" y="2" width="20" height="8" rx="2" ry="2" />
@@ -190,40 +206,26 @@ function SecuritySection() {
                 </svg>
               </div>
               <h3 className="text-[22px] font-bold text-black mb-3">
-                Flexible Deployment
+                Private VPC & Self-Hosting
               </h3>
-              <p className="text-black/80 leading-relaxed text-[16px] pr-4">
-                Deploy Codeward on-prem, in your own VPC, or use our secure cloud infrastructure.
-              </p>
-            </div>
-            
-            <div className="p-8 md:p-10 relative bg-[#FCE4EC] z-10 transition-colors rounded-b-3xl md:rounded-bl-none md:rounded-r-3xl">
-              <div className="h-10 mb-8 flex items-center opacity-70">
-                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-black">
-                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                  <circle cx="9" cy="7" r="4"></circle>
-                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                  <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                </svg>
-              </div>
-              <h3 className="text-[22px] font-bold text-black mb-3">
-                RBAC
-              </h3>
-              <p className="text-black/80 leading-relaxed text-[16px] pr-4">
-                Role-based access control to set granular user roles, permissions, and boundaries.
+              <p className="text-black/80 leading-relaxed text-[15px] sm:text-[16px] pr-2">
+                Complete data sovereignty: run 100% open-source via Docker, deploy inside your private VPC, or use our zero-egress cloud infrastructure.
               </p>
             </div>
           </div>
 
-          {/* Learn more button Ã¢â‚¬â€ right aligned */}
+          {/* Learn more button — links to Trust center */}
           <div className="mt-12 flex justify-end relative z-10">
-            <button className="cursor-pointer group inline-flex w-fit items-center gap-2 px-8 py-3.5 rounded-full bg-white text-black text-sm font-bold transition-all duration-300 hover:bg-white/20 ">
+            <button 
+              onClick={() => navigate('/trust')}
+              className="cursor-pointer group inline-flex w-fit items-center gap-2 px-8 py-3.5 rounded-full bg-white text-black text-sm font-bold transition-all duration-300 hover:bg-white/80 active:scale-95"
+            >
               Learn more <ArrowRight className="w-4 h-4 ml-1 transition-transform group-hover:translate-x-1" strokeWidth={2.5} />
             </button>
           </div>
         </div>
 
-        {/* Dot pattern Ã¢â‚¬â€ absolute to the section, completely independent of content flow */}
+        {/* Dot pattern — absolute to the section */}
         <div className="absolute bottom-0 left-0 w-full h-20 z-0 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(255,255,255,0.35) 2px, transparent 0)', backgroundSize: '24px 24px' }}></div>
       </FadeInSection>
     </section>

@@ -129,6 +129,16 @@ function ToolResultSummary({ name, output }: { name: string; output: any }) {
       <Zap size={11} /> {tokens} used so far
     </div> : null;
   }
+  if (name === 'get_run_status' && output.runId) {
+    const score = output.overallScore == null ? 'not scored yet' : `${output.overallScore}/100`;
+    return <div className="mt-1.5 rounded-md border border-cw-blue/20 bg-cw-blue/5 px-2.5 py-2 text-[11px] text-cw-txt2">
+      <span className="font-semibold text-cw-txt">Current health snapshot</span>
+      <span className="mx-1.5 text-cw-txt3">·</span>
+      Run #{output.runId} is <span className="font-semibold text-cw-blue">{output.status}</span>
+      <span className="mx-1.5 text-cw-txt3">·</span>
+      score <span className="font-semibold text-cw-txt">{score}</span>
+    </div>;
+  }
   if ((name === 'create_github_issue' || name === 'create_issue_from_finding') && output.htmlUrl) {
     return <a href={output.htmlUrl} target="_blank" rel="noreferrer" className="mt-1.5 inline-flex items-center gap-1.5 rounded-md border border-cw-green/20 bg-cw-green/5 px-2.5 py-1.5 text-[11px] text-cw-green no-underline hover:brightness-110">
       <GitPullRequestIcon size={12} /> GitHub issue #{output.issueNumber}
@@ -159,6 +169,27 @@ function ActivityRow({ name, state, active, onOpen }: { name: string; state: str
       {running && <span className="shrink-0 text-cw-txt3 italic">working…</span>}
       <ChevronRight size={11} className={`shrink-0 text-cw-txt3 transition-opacity ${active ? 'opacity-100' : 'opacity-0 group-hover:opacity-70'}`} />
     </button>
+  );
+}
+
+/** A useful first response while the server begins real work — never a generic transport status. */
+function ActiveTurn({ message }: { message: UIMessage }) {
+  const text = (message.parts ?? []).filter((p: any) => p.type === 'text').map((p: any) => p.text).join(' ').toLowerCase();
+  const intent = /health|score|status|where.*at/.test(text)
+    ? 'Checking the latest health signal and scan status.'
+    : /scan|analy[sz]e|security|audit/.test(text)
+      ? 'Preparing the evidence needed for this analysis.'
+      : /diff|commit|branch/.test(text)
+        ? 'Reading the relevant repository change.'
+        : 'Working on your request.';
+  return (
+    <div className="flex gap-3 items-start animate-in fade-in duration-200">
+      <GordonIcon size={28} />
+      <div className="pt-1 text-xs text-cw-txt2">
+        <span className="font-medium text-cw-txt">{intent}</span>
+        <span className="block mt-1 text-[11px] text-cw-txt3">Live evidence will appear here as it arrives.</span>
+      </div>
+    </div>
   );
 }
 
@@ -573,6 +604,25 @@ function LogsDrawer({ onClose }: { onClose: () => void }) {
           </div>
         </div>
 
+        {/* Dense, inspectable trajectory map: each block is a real tool invocation, newest at right. */}
+        {!loading && logs.length > 0 && (
+          <div className="border-b border-cw-bdr bg-cw-bg px-5 py-2.5">
+            <div className="flex items-center gap-3 text-[10px] text-cw-txt3 mb-2">
+              <span className="font-semibold uppercase tracking-wide text-cw-txt2">Trajectory map</span>
+              <span>{filtered.length} visible steps</span>
+              <span className="ml-auto">click a step below for payload and result</span>
+            </div>
+            <div className="flex items-end gap-1 overflow-x-auto pb-0.5 min-h-7">
+              {[...filtered].reverse().map((l) => (
+                <button key={l.id} onClick={() => setExpanded(l.id)} title={`${TOOL_LABELS[l.toolName] ?? l.toolName} · ${fmtDur(l.durationMs)}`}
+                  className={`group shrink-0 rounded-sm transition-all ${l.success ? (l.requiredApproval ? 'bg-cw-amber' : 'bg-cw-purple') : 'bg-cw-red'} ${expanded === l.id ? 'ring-2 ring-cw-blue ring-offset-1 ring-offset-cw-bg' : 'hover:brightness-125'}`}
+                  style={{ width: Math.min(38, Math.max(10, 8 + Math.log10(Math.max(l.durationMs, 1)) * 7)), height: l.requiredApproval ? 15 : 9 }} />
+              ))}
+            </div>
+            <div className="mt-1.5 flex gap-3 text-[9px] text-cw-txt3"><span><i className="inline-block w-2 h-2 rounded-sm bg-cw-purple mr-1" />read / tool</span><span><i className="inline-block w-2 h-2 rounded-sm bg-cw-amber mr-1" />gated action</span><span><i className="inline-block w-2 h-2 rounded-sm bg-cw-red mr-1" />failed</span></div>
+          </div>
+        )}
+
         {/* table */}
         <div className="flex-1 overflow-auto">
           {loading ? (
@@ -670,6 +720,7 @@ export function AIAgent() {
   const [detail, setDetail] = useState<ToolDetail | null>(null);
   const [attachedFiles, setAttachedFiles] = useState<AttachmentFile[]>([]);
   const [isPlanMode, setIsPlanMode] = useState(false);
+  const [lastPrompt, setLastPrompt] = useState('');
   const [permissionMode, setPermissionMode] = useState<PermissionMode>(() => {
     const saved = localStorage.getItem('cw_gordon_permission_mode');
     return saved === 'auto_review' || saved === 'full_access' ? saved : 'default';
@@ -678,6 +729,8 @@ export function AIAgent() {
   const pinnedRepoRef = useRef<Repo | null>(null);
   const selectedRefRef = useRef('');
   const permissionModeRef = useRef<PermissionMode>('default');
+  const attachmentsRef = useRef<AttachmentFile[]>([]);
+  const planModeRef = useRef(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const { data: session } = useSession();
   const userImage = session?.user?.image ?? null;
@@ -685,6 +738,8 @@ export function AIAgent() {
 
   useEffect(() => { pinnedRepoRef.current = pinnedRepo; }, [pinnedRepo]);
   useEffect(() => { selectedRefRef.current = selectedRef; }, [selectedRef]);
+  useEffect(() => { attachmentsRef.current = attachedFiles; }, [attachedFiles]);
+  useEffect(() => { planModeRef.current = isPlanMode; }, [isPlanMode]);
   useEffect(() => {
     permissionModeRef.current = permissionMode;
     localStorage.setItem('cw_gordon_permission_mode', permissionMode);
@@ -740,9 +795,15 @@ export function AIAgent() {
   const transport = useMemo(() => new DefaultChatTransport({
     api: `${API_URL}/api/chat`,
     credentials: 'include',
-    body: () => ({ sessionId: sessionIdRef.current, repoId: pinnedRepoRef.current?.id, ref: selectedRefRef.current || undefined, permissionMode: permissionModeRef.current }),
+    body: () => ({
+      sessionId: sessionIdRef.current, repoId: pinnedRepoRef.current?.id, ref: selectedRefRef.current || undefined,
+      permissionMode: permissionModeRef.current, planMode: planModeRef.current,
+      attachments: attachmentsRef.current.map(({ name, content, size }) => ({ name, content, size })),
+    }),
     fetch: (async (info: RequestInfo | URL, init?: RequestInit) => {
-      const res = await fetch(info, init);
+      let res = await fetch(info, init);
+      // A transient cold start or upstream 5xx should not turn into a dead conversation.
+      if (!res.ok && (res.status === 408 || res.status >= 500)) res = await fetch(info, init);
       const sid = res.headers.get('X-Chat-Session-Id');
       if (sid && sid !== sessionIdRef.current) {
         sessionIdRef.current = sid; setActiveSessionId(sid);
@@ -773,8 +834,11 @@ export function AIAgent() {
   const send = (text: string) => {
     const val = text.trim();
     if (!val || busy) return;
+    setLastPrompt(val);
     setInput('');
     sendMessage({ text: val });
+    // The server has already captured the attachment context in the request body.
+    setAttachedFiles([]);
   };
 
   const newChat = () => { stop(); sessionIdRef.current = null; setActiveSessionId(null); setMessages([]); };
@@ -852,19 +916,8 @@ export function AIAgent() {
             </div>
           ))}
 
-          {busy && messages[messages.length - 1]?.role === 'user' && (
-            <div className="flex gap-3 items-center">
-              <GordonIcon size={28} />
-              <div className="flex items-center gap-1.5 text-cw-txt3 text-[12px]">
-                Gordon is thinking
-                <span className="inline-flex gap-0.5">
-                  <span className="w-1 h-1 rounded-full bg-cw-txt3 animate-bounce" style={{ animationDelay: '-0.3s' }} />
-                  <span className="w-1 h-1 rounded-full bg-cw-txt3 animate-bounce" style={{ animationDelay: '-0.15s' }} />
-                  <span className="w-1 h-1 rounded-full bg-cw-txt3 animate-bounce" />
-                </span>
-              </div>
-            </div>
-          )}
+          {busy && messages[messages.length - 1]?.role === 'user' && <ActiveTurn message={messages[messages.length - 1]} />}
+
           <div ref={bottomRef} />
           </div>
         </div>
@@ -881,10 +934,11 @@ export function AIAgent() {
                   {error.message?.includes('429') || error.message?.includes('quota')
                     ? "Gordon is experiencing high demand right now. Please wait a few moments before trying again."
                     : error.message?.includes('500')
-                    ? "Gordon encountered a temporary server hiccup. You can retry your message in a moment."
-                    : "Connection to Gordon was interrupted. Please try re-sending your message."}
+                    ? "Gordon hit a temporary server error after retrying once. Your prompt is ready to retry."
+                    : "Gordon’s stream stopped before it could finish. Your prompt is ready to retry."}
                 </span>
               </div>
+              {lastPrompt && <button onClick={() => setInput(lastPrompt)} className="ml-3 shrink-0 rounded-md border border-cw-amber/40 px-2 py-1 text-[11px] font-semibold hover:bg-cw-amber/10">Restore prompt</button>}
             </div>
           )}
           {/* slash-command menu */}

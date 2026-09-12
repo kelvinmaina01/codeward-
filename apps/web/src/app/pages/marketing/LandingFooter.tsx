@@ -48,7 +48,7 @@ export function LandingFooter() {
             
             {/* Trust & Security Badges (ISO 27001, GDPR, CCPA, HIPAA) */}
             <div className="my-2 xl:my-0">
-              <FooterTrustBadges />
+              <FooterTrustBadges dark={false} />
             </div>
 
             {/* Email Contact with Slanted Gmail & Outlook Logos + say hi badge */}
