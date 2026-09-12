@@ -142,21 +142,32 @@ webhookRouter.post('/github', async (c) => {
         runRecord = inserted;
       }
 
-      await agentQueue.add('orchestrator-phase1', {
-        agentId: 'orchestrator_phase1',
-        commitSHA,
-        repoFullName: repoName,
-        runId: runRecord.id,
-      });
+      try {
+        const { isRedisQuotaExceeded } = await import('../lib/redis.js');
+        if (!isRedisQuotaExceeded()) {
+          await Promise.race([
+            agentQueue.add('orchestrator-phase1', {
+              agentId: 'orchestrator_phase1',
+              commitSHA,
+              repoFullName: repoName,
+              runId: runRecord.id,
+            }),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Queue timeout (Redis unavailable)')), 2500))
+          ]);
+        } else {
+          console.warn(`[Webhook] Redis quota exceeded — run #${runRecord.id} recorded in Postgres, queue dispatch deferred.`);
+        }
+      } catch (queueErr: any) {
+        console.warn(`[Webhook] Could not enqueue orchestrator-phase1 for run #${runRecord.id}:`, queueErr?.message);
+      }
 
       // Visible immediately on GitHub, but never block the webhook acknowledgement if GitHub
       // is temporarily unavailable. The run remains the idempotency anchor for retries.
-      try {
-        const { startPrLifecycle } = await import('../services/github-pr-lifecycle.service.js');
-        await startPrLifecycle(runRecord.id);
-      } catch (lifecycleError) {
-        console.error(`[Webhook] Could not start PR lifecycle for run #${runRecord.id}:`, (lifecycleError as Error).message);
-      }
+      void import('../services/github-pr-lifecycle.service.js')
+        .then(({ startPrLifecycle }) => startPrLifecycle(runRecord.id))
+        .catch((lifecycleError) => {
+          console.error(`[Webhook] Could not start PR lifecycle for run #${runRecord.id}:`, (lifecycleError as Error).message);
+        });
 
       return c.json({ status: 'queued', type: 'orchestrator', commitSHA, runId: runRecord.id, prNumber });
     } else if ((event === 'issue_comment' || event === 'pull_request_review_comment') && data.action === 'created') {
@@ -600,13 +611,15 @@ async function postTrialExhaustedComment(params: {
 
   try {
     const octokit = await getInstallationOctokit(installationId);
-    await (octokit as any).rest.issues.createComment({
-      owner,
-      repo: repoName,
-      issue_number: prNumber,
-      body,
-    });
-    console.log(`[Trial Gate] Posted trial-exhausted comment on ${owner}/${repoName}#${prNumber}`);
+    if ((octokit as any)?.rest?.issues?.createComment) {
+      await (octokit as any).rest.issues.createComment({
+        owner,
+        repo: repoName,
+        issue_number: prNumber,
+        body,
+      });
+      console.log(`[Trial Gate] Posted trial-exhausted comment on ${owner}/${repoName}#${prNumber}`);
+    }
   } catch (err) {
     // Non-fatal — the 403 response is still returned to GitHub, the comment is just cosmetic.
     console.error(`[Trial Gate] Failed to post trial comment on ${owner}/${repoName}#${prNumber}:`, err);

@@ -24,14 +24,26 @@ import { runs } from '../db/schema.js';
 export async function triggerComprehensiveAudit(repoId: number, repoFullName: string): Promise<{ runId: number }> {
   const [run] = await db.insert(runs).values({ repoId, commitSha: 'baseline', status: 'queued' }).returning();
 
-  const { agentQueue } = await import('./queue/agent.queue.js');
-  await agentQueue.add('orchestrator-phase1', {
-    agentId: 'orchestrator_phase1',
-    commitSHA: 'baseline',
-    repoFullName,
-    runId: run.id,
-  }, { jobId: `audit-${repoId}-${run.id}` });
+  try {
+    const { isRedisQuotaExceeded } = await import('../lib/redis.js');
+    if (!isRedisQuotaExceeded()) {
+      const { agentQueue } = await import('./queue/agent.queue.js');
+      await Promise.race([
+        agentQueue.add('orchestrator-phase1', {
+          agentId: 'orchestrator_phase1',
+          commitSHA: 'baseline',
+          repoFullName,
+          runId: run.id,
+        }, { jobId: `audit-${repoId}-${run.id}` }),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Queue timeout (Redis unavailable)')), 2500))
+      ]);
+      console.log(`[AuditTrigger] Real comprehensive audit dispatched for ${repoFullName} (repoId=${repoId}, run #${run.id}).`);
+    } else {
+      console.warn(`[AuditTrigger] Redis quota exceeded — baseline run #${run.id} recorded in Postgres, queue dispatch deferred.`);
+    }
+  } catch (queueErr: any) {
+    console.warn(`[AuditTrigger] Could not enqueue orchestrator job (non-fatal):`, queueErr?.message);
+  }
 
-  console.log(`[AuditTrigger] Real comprehensive audit dispatched for ${repoFullName} (repoId=${repoId}, run #${run.id}).`);
   return { runId: run.id };
 }
