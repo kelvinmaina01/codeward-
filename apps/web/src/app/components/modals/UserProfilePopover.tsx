@@ -19,6 +19,7 @@ import {
 } from 'hugeicons-react';
 import { signOut, useSession } from '../../../lib/auth';
 import { useWorkspace, type WorkspaceMember } from '../../contexts/WorkspaceContext';
+import { API_URL } from '../../../lib/api';
 
 interface UserProfilePopoverProps {
   onClose: () => void;
@@ -32,10 +33,28 @@ export function UserProfilePopover({ onClose, onOpenThemeModal }: UserProfilePop
   const popoverRef = useRef<HTMLDivElement>(null);
 
   const [members, setMembers] = useState<WorkspaceMember[]>([]);
+  const [billingPlan, setBillingPlan] = useState<string>('free');
+  const [trialUsed, setTrialUsed] = useState<number>(0);
+  const [trialLimit, setTrialLimit] = useState<number>(10);
 
   const userName = session?.user?.name || 'kelvin maina';
   const userImage = session?.user?.image || null;
   const userInitial = userName.charAt(0).toUpperCase();
+
+  // Load real billing info
+  useEffect(() => {
+    if (!session?.user) return;
+    fetch(`${API_URL}/api/users/me/billing-info`, { credentials: 'include' })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.success) {
+          setBillingPlan(data.plan || 'free');
+          setTrialUsed(data.trialPrsUsed ?? 0);
+          setTrialLimit(data.trialPrLimit ?? 10);
+        }
+      })
+      .catch(() => {});
+  }, [session?.user]);
 
   // Load real workspace members from database
   useEffect(() => {
@@ -108,45 +127,56 @@ export function UserProfilePopover({ onClose, onOpenThemeModal }: UserProfilePop
         </div>
       </div>
 
-      {/* 2. Free Plan & Credits Card */}
+      {/* 2. Real Plan & PR Quota Card */}
       <div className="my-2 p-3 bg-cw-bg3 border border-cw-bdr/60 rounded-xl flex flex-col gap-1.5">
-        {/* Top Row: Free Title + 505 > + Upgrade Button */}
+        {/* Top Row: Plan Title + Quota + Action */}
         <div className="flex items-center justify-between">
-          <div className="font-bold text-cw-txt text-[14px] font-serif">Free Plan</div>
+          <div className="font-bold text-cw-txt text-[13px] capitalize flex items-center gap-1.5 font-serif">
+            <span>{billingPlan} Plan</span>
+            {billingPlan !== 'free' && (
+              <span className="text-[9px] uppercase tracking-wider px-1.5 py-0.2 rounded-full bg-cw-purple/20 text-cw-purple font-mono font-semibold">
+                Active
+              </span>
+            )}
+          </div>
           <div className="flex items-center gap-1.5">
             <span
               onClick={() => {
-                navigate('/dashboard/settings');
+                navigate('/dashboard/settings?tab=billing');
                 onClose();
               }}
-              className="font-mono font-bold text-[12px] text-cw-txt2 hover:text-cw-txt cursor-pointer transition-colors"
+              className="font-mono font-bold text-[11px] text-cw-txt2 hover:text-cw-txt cursor-pointer transition-colors"
             >
-              505 ›
+              {billingPlan === 'free' ? `${trialUsed}/${trialLimit} PRs ›` : 'Unlimited ›'}
             </span>
             <button
               type="button"
               onClick={() => {
-                navigate('/dashboard/settings');
+                navigate('/dashboard/settings?tab=billing');
                 onClose();
               }}
-              className="px-2.5 py-0.5 bg-cw-txt text-cw-bg text-[11px] font-bold rounded-lg hover:opacity-90 transition-opacity cursor-pointer shadow-sm"
+              className="px-2.5 py-0.5 bg-cw-txt text-cw-bg text-[10px] font-bold rounded-md hover:opacity-90 transition-opacity cursor-pointer shadow-sm"
             >
-              Upgrade
+              {billingPlan === 'free' ? 'Upgrade' : 'Manage'}
             </button>
           </div>
         </div>
 
-        {/* Bottom Row: ✨ Credits ⓘ */}
+        {/* Bottom Row: PR Review Quota Progress / Status */}
         <div
-          className="flex items-center gap-1.5 text-[11px] text-cw-txt2 hover:text-cw-purple cursor-pointer font-medium transition-colors"
+          className="flex items-center justify-between text-[11px] text-cw-txt2 hover:text-cw-purple cursor-pointer transition-colors mt-0.5"
           onClick={() => {
-            navigate('/dashboard/settings');
+            navigate('/dashboard/settings?tab=billing');
             onClose();
           }}
         >
-          <SparklesIcon size={13} className="text-cw-purple shrink-0" />
-          <span>Credits</span>
-          <span className="text-[10px] text-cw-txt3">ⓘ</span>
+          <span className="flex items-center gap-1.5 font-medium">
+            <SparklesIcon size={13} className="text-cw-purple shrink-0" />
+            <span>PR Review Quota</span>
+          </span>
+          <span className="text-[10px] font-mono text-cw-txt3">
+            {billingPlan === 'free' ? `${Math.max(0, trialLimit - trialUsed)} remaining` : 'Dedicated Priority'}
+          </span>
         </div>
       </div>
 

@@ -241,18 +241,39 @@ type PlanId = 'free' | 'pro' | 'team';
 const PLANS: { id: PlanId; name: string; price: string; unit: string; tagline: string; features: string[]; recommended?: boolean }[] = [
   {
     id: 'free', name: 'Free', price: '$0', unit: '/ month',
-    tagline: 'For trying Codeward on a personal project.',
-    features: [`${FREE_PLAN_SCAN_LIMIT} free PR scans per month`, 'Automated PR reviews on every scan', 'No credit card required'],
+    tagline: 'Start for free with zero credit card required.',
+    features: [
+      '10 free PR scans (lifetime trial)',
+      'Unlimited connected repositories',
+      'All 8 core agents (Security, Architecture, Bloat, AI Era)',
+      'Tree-sitter AST parsing & secret scanning',
+      'Standard community review priority',
+    ],
   },
   {
     id: 'pro', name: 'Pro', price: '$19', unit: '/ month', recommended: true,
-    tagline: 'For individual developers shipping every day.',
-    features: ['Unlimited individual repositories', 'Advanced LLM context for deeper reviews', 'Everything in Free'],
+    tagline: 'For individual developers shipping daily.',
+    features: [
+      'Unlimited autonomous PR code reviews',
+      'High priority (Fast review queue)',
+      'Claude 3.5 Sonnet agentic reasoning',
+      'Automated PR fix branches & code suggestions',
+      'Ephemeral Firecracker microVM sandboxes',
+      'Everything in Free',
+    ],
   },
   {
     id: 'team', name: 'Team', price: '$39', unit: '/ month / seat',
-    tagline: 'For engineering organizations.',
-    features: ['Organization-wide access', 'Priority support', 'SAML / SSO', 'Everything in Pro'],
+    tagline: 'For engineering organizations and teams.',
+    features: [
+      'Unlimited autonomous PR code reviews',
+      'Highest dedicated execution priority',
+      'Compliance agent (SOC2 & GDPR audits)',
+      'Manager escalation routing & auto-merge controls',
+      'Custom codeward.yml rules engine',
+      'Organization team dashboard & audit logs',
+      'Everything in Pro',
+    ],
   },
 ];
 
@@ -534,6 +555,7 @@ export function Settings() {
     trialPrLimit: number;
     prQuotaLimit: number;
     hasSubscription: boolean;
+    currentPeriodEnd?: string | null;
   } | null>(null);
 
   useEffect(() => {
@@ -548,6 +570,7 @@ export function Settings() {
             trialPrLimit: data.trialPrLimit ?? FREE_PLAN_SCAN_LIMIT,
             prQuotaLimit: data.prQuotaLimit ?? 100,
             hasSubscription: Boolean(data.hasSubscription),
+            currentPeriodEnd: data.currentPeriodEnd || null,
           });
         }
       })
@@ -581,14 +604,14 @@ export function Settings() {
   // ── Billing checkout (shared with the public pricing page) ─────────────────
   const goProCheckout = () => {
     if (session?.user) {
-      window.location.href = `${POLAR_PRO_CHECKOUT}?client_reference_id=${session.user.id}`;
+      window.location.href = `${POLAR_PRO_CHECKOUT}?client_reference_id=${encodeURIComponent(session.user.id)}&customer_email=${encodeURIComponent(session.user.email)}`;
     } else {
       toast.error('Sign in to upgrade your plan');
     }
   };
   const goTeamCheckout = () => {
     if (session?.user) {
-      window.location.href = `${POLAR_TEAM_CHECKOUT}?client_reference_id=${session.user.id}`;
+      window.location.href = `${POLAR_TEAM_CHECKOUT}?client_reference_id=${encodeURIComponent(session.user.id)}&customer_email=${encodeURIComponent(session.user.email)}`;
     } else {
       toast.error('Sign in to upgrade your plan');
     }
@@ -744,31 +767,44 @@ export function Settings() {
                 </SectionCard>
 
                 <SectionCard
-                  title="Plan & credits"
+                  title="Subscription & PR quota"
                   icon={Sparkles}
-                  description="Your current subscription and available credits"
+                  description="Your active Codeward plan and pull request review capacity"
                   actions={
                     <button type="button" onClick={() => setActiveTab('billing')} className={BTN_PRIMARY}>
-                      Upgrade <ArrowUpRight size={12} />
+                      {currentPlan === 'free' ? 'Upgrade plan' : 'Manage subscription'} <ArrowUpRight size={12} />
                     </button>
                   }
                 >
-                  <div className="flex items-center gap-2 py-3 border-b border-cw-bdr">
-                    <span className="text-[15px] font-semibold text-cw-txt tracking-tight">Free</span>
-                    <Pill tone="purple" dot>Active</Pill>
+                  <div className="flex items-center justify-between py-3 border-b border-cw-bdr">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[15px] font-semibold text-cw-txt tracking-tight capitalize">{currentPlan} Plan</span>
+                      <Pill tone={currentPlan === 'free' ? 'neutral' : 'purple'} dot>
+                        {currentPlan === 'free' ? 'Free trial' : 'Active subscription'}
+                      </Pill>
+                    </div>
+                    <span className="text-[13px] font-semibold tabular-nums text-cw-txt">
+                      {currentPlan === 'pro' ? '$19 / mo' : currentPlan === 'team' ? '$39 / seat / mo' : '$0 / mo'}
+                    </span>
                   </div>
                   <SetRow
-                    label="Credits"
-                    desc="Free credits: 205"
-                    control={<span className="font-mono text-[13px] font-semibold tabular-nums text-cw-txt">205</span>}
+                    label="PR review quota"
+                    desc={currentPlan === 'free'
+                      ? `${effectiveScanLimit} lifetime PR reviews included. Force-pushes to the same PR do not consume additional slots.`
+                      : 'Unlimited autonomous PR code reviews across all connected repositories.'}
+                    control={
+                      <span className="font-mono text-[13px] font-semibold tabular-nums text-cw-txt">
+                        {effectiveScansUsed} / {currentPlan === 'free' ? effectiveScanLimit : '∞'}
+                      </span>
+                    }
                   />
                   <SetRow
-                    label="Daily refresh credits"
-                    desc="Refresh to 300 at 00:00 every day"
+                    label="Review queue priority"
+                    desc={currentPlan === 'team' ? 'Highest priority (Dedicated sandbox compute)' : currentPlan === 'pro' ? 'High priority (Fast review queue)' : 'Standard community queue'}
                     control={
-                      <span className="inline-flex items-center gap-1.5 font-mono text-[13px] font-semibold tabular-nums text-cw-txt">
-                        <Calendar size={12} className="text-cw-txt3" /> 300
-                      </span>
+                      <Pill tone={currentPlan === 'free' ? 'neutral' : 'purple'}>
+                        {currentPlan === 'team' ? 'Dedicated' : currentPlan === 'pro' ? 'Fast Queue' : 'Standard'}
+                      </Pill>
                     }
                   />
                 </SectionCard>
@@ -964,6 +1000,11 @@ export function Settings() {
                         {currentPlan === 'free'
                           ? `${effectiveScanLimit} free PR scans included in your lifetime trial. Upgrade to Pro for unlimited autonomous code reviews.`
                           : `Autonomous PR reviews active on your ${currentPlan} plan. Managed securely via Polar.`}
+                        {billingInfo?.currentPeriodEnd && (
+                          <span className="block mt-1 font-medium text-cw-txt2">
+                            Renews on {new Date(billingInfo.currentPeriodEnd).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                          </span>
+                        )}
                       </p>
                     </div>
                     <div className="px-4 sm:px-5 py-4 flex flex-col gap-3 border-t md:border-t-0 border-cw-bdr">

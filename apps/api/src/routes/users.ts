@@ -85,6 +85,7 @@ usersRouter.get('/me/billing-portal', async (c) => {
 
 /**
  * Returns billing & subscription information for the authenticated user and their active organization.
+ * Automatically provisions an organization record if the user does not have one yet.
  */
 usersRouter.get('/me/billing-info', async (c) => {
   const session = await auth.api.getSession({ headers: c.req.raw.headers });
@@ -93,7 +94,7 @@ usersRouter.get('/me/billing-info', async (c) => {
   }
 
   try {
-    const [membership] = await db
+    let [membership] = await db
       .select({
         orgId: organization.id,
         planType: organization.planType,
@@ -102,11 +103,63 @@ usersRouter.get('/me/billing-info', async (c) => {
         trialPrLimit: organization.trialPrLimit,
         polarCustomerId: organization.polarCustomerId,
         polarSubscriptionId: organization.polarSubscriptionId,
+        currentPeriodStart: organization.currentPeriodStart,
+        currentPeriodEnd: organization.currentPeriodEnd,
       })
       .from(organizationMember)
       .innerJoin(organization, eq(organizationMember.orgId, organization.id))
       .where(eq(organizationMember.userId, session.user.id))
       .limit(1);
+
+    // If user has no organization entry yet, provision one dynamically
+    if (!membership) {
+      const slug = (session.user.name || session.user.email.split('@')[0])
+        .toLowerCase()
+        .replace(/[^a-z0-9_-]/g, '-');
+      const uniqueLogin = `${slug}-${session.user.id.slice(0, 6)}`;
+
+      let [newOrg] = await db
+        .insert(organization)
+        .values({
+          githubLogin: uniqueLogin,
+          planType: 'free',
+          trialPrLimit: appConfig.billing.trialPrLimit,
+          trialPrsUsed: 0,
+        })
+        .onConflictDoNothing()
+        .returning();
+
+      if (!newOrg) {
+        [newOrg] = await db
+          .select()
+          .from(organization)
+          .where(eq(organization.githubLogin, uniqueLogin))
+          .limit(1);
+      }
+
+      if (newOrg) {
+        await db
+          .insert(organizationMember)
+          .values({
+            orgId: newOrg.id,
+            userId: session.user.id,
+            role: 'owner',
+          })
+          .onConflictDoNothing();
+
+        membership = {
+          orgId: newOrg.id,
+          planType: newOrg.planType,
+          prQuotaLimit: newOrg.prQuotaLimit,
+          trialPrsUsed: newOrg.trialPrsUsed,
+          trialPrLimit: newOrg.trialPrLimit,
+          polarCustomerId: newOrg.polarCustomerId,
+          polarSubscriptionId: newOrg.polarSubscriptionId,
+          currentPeriodStart: newOrg.currentPeriodStart,
+          currentPeriodEnd: newOrg.currentPeriodEnd,
+        };
+      }
+    }
 
     return c.json({
       success: true,
@@ -116,11 +169,36 @@ usersRouter.get('/me/billing-info', async (c) => {
       prQuotaLimit: membership?.prQuotaLimit ?? appConfig.billing.proPrLimit,
       hasSubscription: Boolean(membership?.polarSubscriptionId),
       polarCustomerId: membership?.polarCustomerId || null,
+      currentPeriodStart: membership?.currentPeriodStart || null,
+      currentPeriodEnd: membership?.currentPeriodEnd || null,
     });
   } catch (err: any) {
     console.error('[Billing Info] Error fetching billing info:', err);
     return c.json({ error: 'Failed to fetch billing info' }, 500);
   }
+});
+
+/**
+ * Returns pre-authenticated checkout URL for Pro or Team plan on Polar.
+ */
+usersRouter.get('/me/checkout-url', async (c) => {
+  const session = await auth.api.getSession({ headers: c.req.raw.headers });
+  if (!session || !session.user) {
+    return c.json({ error: 'Unauthorized' }, 401);
+  }
+
+  const plan = c.req.query('plan') === 'team' ? 'team' : 'pro';
+  const baseCheckout = plan === 'team'
+    ? 'https://buy.polar.sh/polar_cl_G8nQdTjkiE3TT0f9HwQtEzZAA1FrGatie2AYr1PiFep'
+    : 'https://buy.polar.sh/polar_cl_F6pFlJMO8NB1edLEiNLZ3ED0arMmOtoFUtpBc1J7ibY';
+
+  const checkoutUrl = `${baseCheckout}?client_reference_id=${encodeURIComponent(session.user.id)}&customer_email=${encodeURIComponent(session.user.email)}`;
+
+  return c.json({
+    success: true,
+    plan,
+    url: checkoutUrl,
+  });
 });
 
 usersRouter.post('/me/delete', async (c) => {
