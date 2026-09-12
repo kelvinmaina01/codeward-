@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Search, GitPullRequest, ShieldCheck, GitCommit, Inbox } from 'lucide-react';
 import { API_URL } from '../../../lib/api';
 
@@ -38,10 +39,17 @@ function ScoreBar({ score }: { score: number }) {
 }
 
 export function DeployHistory({ onRunClick }: Props) {
-  const [search, setSearch] = useState('');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialSearch = searchParams.get('search') || searchParams.get('repo') || '';
+  const [search, setSearch] = useState(initialSearch);
   const [filterStatus, setFilterStatus] = useState('ALL STATUSES');
   const [rows, setRows] = useState<HistoryRow[]>([]);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const s = searchParams.get('search') || searchParams.get('repo');
+    if (s != null) setSearch(s);
+  }, [searchParams]);
 
   useEffect(() => {
     fetch(`${API_URL}/api/reports/recent?limit=100`, { credentials: 'include' })

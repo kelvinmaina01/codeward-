@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import {
@@ -142,13 +143,43 @@ const sevChip: Record<string, string> = {
 
 // ── Page ─────────────────────────────────────────────────────────────────────
 export function IssuesAndPRs() {
-  const [tab, setTab] = useState<'issues' | 'prs'>('issues');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlTab = searchParams.get('tab');
+  const urlRepo = searchParams.get('repo');
+
+  const [tab, setTab] = useState<'issues' | 'prs'>(urlTab === 'prs' ? 'prs' : 'issues');
   const [issues, setIssues] = useState<RealIssue[]>([]);
   const [prs, setPrs] = useState<RealPR[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [repoFilter, setRepoFilter] = useState('All');
+  const [repoFilter, setRepoFilter] = useState(urlRepo || 'All');
   const [stateFilter, setStateFilter] = useState<'all' | 'open' | 'closed'>('all');
+
+  useEffect(() => {
+    const t = searchParams.get('tab');
+    if (t === 'prs' || t === 'issues') setTab(t);
+    const r = searchParams.get('repo');
+    if (r) setRepoFilter(r);
+  }, [searchParams]);
+
+  const handleTabChange = (nextTab: 'issues' | 'prs') => {
+    setTab(nextTab);
+    setSearchParams((prev) => {
+      const p = new URLSearchParams(prev);
+      p.set('tab', nextTab);
+      return p;
+    });
+  };
+
+  const handleRepoFilterChange = (nextRepo: string) => {
+    setRepoFilter(nextRepo);
+    setSearchParams((prev) => {
+      const p = new URLSearchParams(prev);
+      if (nextRepo === 'All') p.delete('repo');
+      else p.set('repo', nextRepo);
+      return p;
+    });
+  };
 
   const [selectedIssue, setSelectedIssue] = useState<RealIssue | null>(null);
   const [selectedPr, setSelectedPr] = useState<RealPR | null>(null);
@@ -230,7 +261,7 @@ export function IssuesAndPRs() {
           <div className="flex items-center gap-2.5">
             <select
               value={repoFilter}
-              onChange={(e) => setRepoFilter(e.target.value)}
+              onChange={(e) => handleRepoFilterChange(e.target.value)}
               className="bg-cw-bg2 border border-cw-bdr rounded-lg text-[12px] text-cw-txt py-2 px-3 outline-none focus:border-cw-purple max-w-[220px]"
             >
               <option value="All">All repos & workspaces</option>
@@ -243,13 +274,13 @@ export function IssuesAndPRs() {
         {/* Tabs */}
         <div className="px-6 pt-4 flex items-center gap-2 border-b border-cw-bdr bg-cw-bg2/40 shrink-0">
           <button
-            onClick={() => setTab('issues')}
+            onClick={() => handleTabChange('issues')}
             className={`flex items-center gap-2 px-3 py-2 text-[13px] font-medium border-b-2 -mb-px transition-colors ${tab === 'issues' ? 'border-cw-purple text-cw-txt' : 'border-transparent text-cw-txt3 hover:text-cw-txt2'}`}
           >
             <CircleDot size={15} /> Issues <span className="text-[11px] text-cw-txt3">({visibleIssues.length})</span>
           </button>
           <button
-            onClick={() => setTab('prs')}
+            onClick={() => handleTabChange('prs')}
             className={`flex items-center gap-2 px-3 py-2 text-[13px] font-medium border-b-2 -mb-px transition-colors ${tab === 'prs' ? 'border-cw-purple text-cw-txt' : 'border-transparent text-cw-txt3 hover:text-cw-txt2'}`}
           >
             <GitPullRequest size={15} /> Pull requests <span className="text-[11px] text-cw-txt3">({visiblePrs.length})</span>
