@@ -133,7 +133,7 @@ export function RepoSelector({
       </button>
 
       {open && (
-        <div className="absolute right-0 sm:right-auto sm:left-0 mt-1.5 w-72 bg-cw-bg2 border border-cw-bdr rounded-xl shadow-2xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
+        <div className="absolute right-0 mt-1.5 w-72 bg-cw-bg2 border border-cw-bdr rounded-xl shadow-2xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
           {/* Search box */}
           <div className="p-2 border-b border-cw-bdr bg-cw-bg3/50 flex items-center gap-2">
             <Search size={13} className="text-cw-txt3 shrink-0 ml-1" />

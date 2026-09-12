@@ -237,7 +237,7 @@ export function Repositories({ activeOrg }: { activeOrg?: string }) {
   const languages = ['All', ...Array.from(new Set(repos.map(r => r.language))).filter(Boolean)];
 
   const filteredRepos = repos.filter(r => {
-    const matchesOrg = !activeOrg || r.owner === activeOrg;
+    const matchesOrg = true; // TEMP FIX: !activeOrg || r.owner === activeOrg;
     const matchesSearch = !search || r.name.toLowerCase().includes(search.toLowerCase()) || (r.description && r.description.toLowerCase().includes(search.toLowerCase()));
     const matchesLang = filterLang === 'All' || r.language === filterLang;
     return matchesOrg && matchesSearch && matchesLang;
