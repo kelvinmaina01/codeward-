@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
-import { X, RefreshCw, ChevronDown, ChevronRight, Wrench, ShieldCheck, GitPullRequest, AlertTriangle } from 'lucide-react';
+import { useEffect, useState, useCallback } from 'react';
+import { X, RefreshCw, ChevronDown, ChevronRight, Wrench, ShieldCheck, GitPullRequest, AlertTriangle, RotateCcw } from 'lucide-react';
+import { toast } from 'sonner';
 import { API_URL } from '../../../lib/api';
 import { GithubIcon } from '../../components/shared/GithubLink';
 
@@ -69,6 +70,7 @@ interface RunReport {
   runId: number;
   repoId: number;
   commitSha: string;
+  prNumber?: number | null;
   status: string;
   overallScore: number | null;
   createdAt: string;
@@ -245,9 +247,10 @@ function AgentSection({ agent }: { agent: AgentReport }) {
 export function RunDetail({ repoId, runId, onBack }: Props) {
   const [report, setReport] = useState<RunReport | null>(null);
   const [loading, setLoading] = useState(true);
+  const [retrying, setRetrying] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const fetchReport = useCallback(() => {
     setLoading(true);
     setError(null);
     fetch(`${API_URL}/api/reports/${repoId}/runs/${runId}`, { credentials: 'include' })
@@ -260,6 +263,32 @@ export function RunDetail({ repoId, runId, onBack }: Props) {
       .finally(() => setLoading(false));
   }, [repoId, runId]);
 
+  useEffect(() => {
+    fetchReport();
+  }, [fetchReport]);
+
+  const hasFailedTasks = (report?.agents ?? []).some((a) => a.status === 'failed' || a.status === 'agent_failed');
+  const canRerun = report?.status === 'failed' || report?.status === 'agent_failed' || hasFailedTasks;
+
+  const handleRerunFailed = async () => {
+    if (retrying) return;
+    setRetrying(true);
+    try {
+      const res = await fetch(`${API_URL}/api/reports/${runId}/retry-failed`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || `Retry failed (${res.status})`);
+      toast.success(data?.message || 'Rerun enqueued successfully');
+      fetchReport();
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to trigger rerun');
+    } finally {
+      setRetrying(false);
+    }
+  };
+
   return (
     <div className="flex-1 flex flex-col bg-cw-bg2 overflow-hidden relative border-l border-cw-bdr">
       {/* Header */}
@@ -270,15 +299,31 @@ export function RunDetail({ repoId, runId, onBack }: Props) {
           </div>
           <div>
             <span className="text-[15px] font-semibold text-cw-txt">Run Report</span>
-            <div className="text-[11px] text-cw-txt2 mt-0.5">Run #{runId}{report ? ` · ${report.commitSha.slice(0, 7)}` : ''}</div>
+            <div className="text-[11px] text-cw-txt2 mt-0.5">
+              Run #{runId}
+              {report?.prNumber ? ` · PR #${report.prNumber}` : (report?.commitSha === 'baseline' ? ' · Baseline audit' : (report ? ` · ${report.commitSha.slice(0, 7)}` : ''))}
+            </div>
           </div>
         </div>
-        <button
-          onClick={onBack}
-          className="w-8 h-8 rounded-full hover:bg-cw-bg3 flex items-center justify-center text-cw-txt3 hover:text-cw-txt transition-colors border-none bg-transparent cursor-pointer"
-        >
-          <X size={16} />
-        </button>
+        <div className="flex items-center gap-2">
+          {canRerun && (
+            <button
+              type="button"
+              disabled={retrying}
+              onClick={handleRerunFailed}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-medium bg-cw-purple/10 text-cw-purple border border-cw-purple/30 hover:bg-cw-purple/20 transition-all cursor-pointer disabled:opacity-50"
+            >
+              <RotateCcw size={12} className={retrying ? 'animate-spin' : ''} />
+              {retrying ? 'Retrying...' : 'Rerun Failed Checks'}
+            </button>
+          )}
+          <button
+            onClick={onBack}
+            className="w-8 h-8 rounded-full hover:bg-cw-bg3 flex items-center justify-center text-cw-txt3 hover:text-cw-txt transition-colors border-none bg-transparent cursor-pointer"
+          >
+            <X size={16} />
+          </button>
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto px-5 py-5 flex flex-col gap-4">

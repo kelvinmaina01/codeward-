@@ -414,13 +414,13 @@ export function AgentCanvas({ repoId, repoFilter, onRepoChange, repoList, viewMo
   return (
     <div className="agent-canvas-container">
       <div className="canvas-wrap">
-        <div className="top-bar">
-          <div className="top-row">
-            <div className="top-left">
+        <div className="top-bar w-full">
+          <div className="top-row flex items-center justify-between flex-wrap gap-3 w-full">
+            <div className="top-left flex items-center gap-2.5 shrink-0 min-w-0">
               <div className="logo">Agent <span>Canvas</span></div>
               <div className="run-badge">Run #{runInfo.id}</div>
             </div>
-            <div className="top-right flex items-center gap-2.5">
+            <div className="top-right flex items-center gap-2.5 flex-wrap">
               {onViewModeChange && (
                 <div className="inline-flex p-0.5 bg-cw-bg2 border border-cw-bdr rounded-lg items-center shadow-xs">
                   <button

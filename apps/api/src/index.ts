@@ -99,19 +99,27 @@ app.on(['POST', 'GET', 'OPTIONS'], '/api/auth/*', async (c) => {
     });
   }
 
-  const res = await auth.handler(c.req.raw);
+  try {
+    const res = await auth.handler(c.req.raw);
 
-  // Rebuild the response with mutable headers and always inject CORS headers.
-  const headers = new Headers(res.headers);
-  headers.set('Access-Control-Allow-Origin', origin || defaultFrontend);
-  headers.set('Access-Control-Allow-Credentials', 'true');
-  headers.set('Vary', 'Origin');
+    // Rebuild the response with mutable headers and always inject CORS headers.
+    const headers = new Headers(res.headers);
+    headers.set('Access-Control-Allow-Origin', origin || defaultFrontend);
+    headers.set('Access-Control-Allow-Credentials', 'true');
+    headers.set('Vary', 'Origin');
 
-  return new Response(res.body, {
-    status: res.status,
-    statusText: res.statusText,
-    headers,
-  });
+    return new Response(res.body, {
+      status: res.status,
+      statusText: res.statusText,
+      headers,
+    });
+  } catch (authErr: any) {
+    console.error(`[Auth] Handler error on ${c.req.method} ${c.req.path}:`, authErr);
+    return c.json({
+      error: 'Authentication Error',
+      message: authErr?.message || 'Failed to process authentication request.'
+    }, 500);
+  }
 });
 
 

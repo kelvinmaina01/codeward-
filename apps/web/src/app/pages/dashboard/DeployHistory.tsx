@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Search, Filter } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
+import { Search, GitPullRequest, ShieldCheck, GitCommit, Inbox } from 'lucide-react';
 import { API_URL } from '../../../lib/api';
 
 interface Props {
@@ -11,6 +12,7 @@ interface HistoryRow {
   repoId: number;
   repoFullName: string;
   commitSha: string;
+  prNumber?: number | null;
   status: string;
   overallScore: number | null;
   createdAt: string;
@@ -37,10 +39,17 @@ function ScoreBar({ score }: { score: number }) {
 }
 
 export function DeployHistory({ onRunClick }: Props) {
-  const [search, setSearch] = useState('');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialSearch = searchParams.get('search') || searchParams.get('repo') || '';
+  const [search, setSearch] = useState(initialSearch);
   const [filterStatus, setFilterStatus] = useState('ALL STATUSES');
   const [rows, setRows] = useState<HistoryRow[]>([]);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const s = searchParams.get('search') || searchParams.get('repo');
+    if (s != null) setSearch(s);
+  }, [searchParams]);
 
   useEffect(() => {
     fetch(`${API_URL}/api/reports/recent?limit=100`, { credentials: 'include' })
@@ -51,7 +60,11 @@ export function DeployHistory({ onRunClick }: Props) {
   }, []);
 
   const filtered = rows.filter(r => {
-    const matchSearch = !search || r.repoFullName.toLowerCase().includes(search.toLowerCase()) || r.commitSha.includes(search);
+    const prStr = r.prNumber ? `pr #${r.prNumber}` : '';
+    const matchSearch = !search || 
+      r.repoFullName.toLowerCase().includes(search.toLowerCase()) || 
+      r.commitSha.includes(search) ||
+      prStr.includes(search.toLowerCase());
     const matchStatus = filterStatus === 'ALL STATUSES' || r.status.toUpperCase() === filterStatus;
     return matchSearch && matchStatus;
   });
@@ -60,7 +73,7 @@ export function DeployHistory({ onRunClick }: Props) {
     <div className="flex-1 overflow-y-auto px-5 py-4">
       {/* Header description */}
       <div className="text-[11px] text-cw-txt3 mb-3">
-        History of all autonomous agent runs and checks.
+        History of all autonomous agent runs and checks across connected repositories.
       </div>
 
       {/* Search + filter bar */}
@@ -70,7 +83,7 @@ export function DeployHistory({ onRunClick }: Props) {
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Search commits..."
+            placeholder="Search repositories, PRs, or commits..."
             className="w-full py-1.5 pr-2.5 pl-7 border border-cw-bdr rounded-md text-[11px] bg-cw-bg2 text-cw-txt outline-none"
           />
         </div>
@@ -88,34 +101,58 @@ export function DeployHistory({ onRunClick }: Props) {
       {/* Table */}
       <div className="bg-cw-bg2 border border-cw-bdr rounded-[10px] overflow-hidden">
         {/* Header */}
-        <div className="grid grid-cols-[48px_130px_1fr_100px_120px_100px] gap-2 px-3.5 py-2 text-[9px] font-bold text-cw-txt3 uppercase tracking-[.08em] border-b border-cw-bdr bg-cw-bg3">
-          <span>RUN ID</span><span>REPOSITORY</span><span>COMMIT</span><span>STATUS</span><span>SCORE</span><span>TIME</span>
+        <div className="grid grid-cols-[48px_140px_1fr_100px_120px_110px] gap-2 px-3.5 py-2 text-[9px] font-bold text-cw-txt3 uppercase tracking-[.08em] border-b border-cw-bdr bg-cw-bg3">
+          <span>RUN ID</span><span>REPOSITORY</span><span>PULL REQUEST / TARGET</span><span>STATUS</span><span>SCORE</span><span>TIME</span>
         </div>
 
         {loading ? (
-          <div className="px-3.5 py-6 text-center text-cw-txt3 text-[11px]">Loading history...</div>
+          <div className="px-3.5 py-8 text-center text-cw-txt3 text-[11px]">Loading run history...</div>
         ) : filtered.length === 0 ? (
-          <div className="px-3.5 py-6 text-center text-cw-txt3 text-[11px]">No runs found.</div>
+          <div className="px-6 py-12 text-center flex flex-col items-center justify-center gap-2">
+            <GitPullRequest size={28} className="text-cw-purple/60 mb-1" />
+            <div className="text-[13px] font-semibold text-cw-txt">No Pull Request runs yet</div>
+            <div className="text-[11px] text-cw-txt3 max-w-[440px] leading-relaxed">
+              Codeward operates on Pull Requests. Open or update a Pull Request on any connected repository to trigger an automated multi-agent security and code review.
+            </div>
+          </div>
         ) : filtered.map((row) => {
           const st = statusStyle[row.status] || statusStyle.queued;
           return (
             <div
               key={row.runId}
               onClick={() => onRunClick?.(row.repoId, row.runId)}
-              className="grid grid-cols-[48px_130px_1fr_100px_120px_100px] gap-2 px-3.5 py-2.5 text-[11px] cursor-pointer transition-colors hover:bg-cw-bg3 border-b border-cw-bg3 last:border-b-0"
+              className="grid grid-cols-[48px_140px_1fr_100px_120px_110px] gap-2 px-3.5 py-2.5 text-[11px] cursor-pointer transition-colors hover:bg-cw-bg3 border-b border-cw-bg3 last:border-b-0 items-center"
             >
               <span className="text-cw-txt3 font-mono">#{row.runId}</span>
-              <span className="text-cw-txt font-medium">{row.repoFullName}</span>
-              <div>
-                <span className="font-mono text-cw-blue">→ {row.commitSha.slice(0, 7)}</span>
+              <span className="text-cw-txt font-medium truncate">{row.repoFullName}</span>
+              <div className="min-w-0 truncate">
+                {row.prNumber != null ? (
+                  <span className="inline-flex items-center gap-1.5 font-medium text-cw-txt">
+                    <GitPullRequest size={12} className="text-cw-purple shrink-0" />
+                    <span className="text-cw-txt font-semibold">PR #{row.prNumber}</span>
+                    {row.commitSha && row.commitSha !== 'baseline' && (
+                      <span className="text-[10px] text-cw-txt3 font-mono hidden sm:inline">({row.commitSha.slice(0, 7)})</span>
+                    )}
+                  </span>
+                ) : row.commitSha === 'baseline' ? (
+                  <span className="inline-flex items-center gap-1 text-[11px] text-cw-blue font-medium">
+                    <ShieldCheck size={12} className="shrink-0" />
+                    <span>Baseline audit</span>
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 font-mono text-cw-txt2 text-[11px]">
+                    <GitCommit size={12} className="text-cw-txt3 shrink-0" />
+                    <span>{row.commitSha.slice(0, 7)}</span>
+                  </span>
+                )}
               </div>
-              <span className={`${st} text-[9px] font-bold px-[7px] py-[3px] rounded tracking-[.04em] inline-block h-fit uppercase`}>
+              <span className={`${st} text-[9px] font-bold px-[7px] py-[3px] rounded tracking-[.04em] inline-block h-fit uppercase w-fit`}>
                 {row.status}
               </span>
               <div>
                 {row.overallScore != null ? <ScoreBar score={row.overallScore} /> : <span className="text-cw-txt3 text-[10px]">N/A</span>}
               </div>
-              <span className="text-cw-txt3 text-[10px]">{new Date(row.createdAt).toLocaleString()}</span>
+              <span className="text-cw-txt3 text-[10px] truncate">{new Date(row.createdAt).toLocaleString()}</span>
             </div>
           );
         })}

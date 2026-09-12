@@ -285,9 +285,9 @@ export function LiveFeed({ viewMode = 'canvas', onViewModeChange }: LiveFeedProp
         <div className="flex-1 flex flex-col h-full overflow-hidden px-6 py-4">
           
           {/* Header Bar with Repo Filter & Terminal Action Controls */}
-          <div className="flex items-center gap-4 mb-4 pb-3 border-b border-cw-bdr/50 shrink-0">
-            <div className="shrink-0">
-              <div className="text-[14px] font-bold text-cw-txt flex items-center gap-2">
+          <div className="flex items-center justify-between gap-3 mb-4 pb-3 border-b border-cw-bdr/50 flex-wrap shrink-0 w-full">
+            <div className="shrink-0 min-w-0">
+              <div className="text-[14px] font-bold text-cw-txt flex items-center gap-2 flex-wrap">
                 Live Agent Execution Feed
                 {isLiveScanning && (
                   <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-cw-purple/20 text-cw-purple border border-cw-purple/30 animate-pulse">
@@ -300,8 +300,8 @@ export function LiveFeed({ viewMode = 'canvas', onViewModeChange }: LiveFeedProp
               </div>
             </div>
 
-            {/* Filter & Terminal Actions Bar — pushed to extreme right */}
-            <div className="ml-auto flex items-center gap-2.5 shrink-0">
+            {/* Filter & Terminal Actions Bar — wraps nicely on smaller widths */}
+            <div className="flex items-center gap-2.5 flex-wrap shrink-0">
               {onViewModeChange && (
                 <div className="inline-flex p-0.5 bg-cw-bg2 border border-cw-bdr rounded-lg items-center shadow-xs shrink-0">
                   <button
