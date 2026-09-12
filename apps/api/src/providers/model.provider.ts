@@ -8,7 +8,7 @@ export function getModel(phase?: "orchestrator" | "analyzer", requestedModel?: s
 
   const customBaseUrl = process.env.OPENAI_BASE_URL;
   const tokenRouterBaseUrl = process.env.TOKENROUTER_BASE_URL;
-  const isTokenRouter = Boolean(tokenRouterKey) && (Boolean(tokenRouterBaseUrl) || !customBaseUrl || customBaseUrl.includes('tokenrouter'));
+  const isTokenRouter = Boolean(tokenRouterKey) && (Boolean(tokenRouterBaseUrl) || Boolean(customBaseUrl?.includes('tokenrouter')));
   const useAgentRouterDirectly = process.env.USE_AGENTROUTER_DIRECTLY === 'true';
   const isAgentRouter = !isTokenRouter && (useAgentRouterDirectly || (!primaryKey && Boolean(agentRouterKey)));
 

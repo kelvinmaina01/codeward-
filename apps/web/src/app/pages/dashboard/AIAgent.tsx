@@ -804,6 +804,23 @@ export function AIAgent() {
       let res = await fetch(info, init);
       // A transient cold start or upstream 5xx should not turn into a dead conversation.
       if (!res.ok && (res.status === 408 || res.status >= 500)) res = await fetch(info, init);
+      if (!res.ok) {
+        let errText = '';
+        try {
+          const clone = res.clone();
+          const json = await clone.json();
+          if (json?.error) errText = typeof json.error === 'string' ? json.error : JSON.stringify(json.error);
+        } catch {
+          try {
+            const clone = res.clone();
+            errText = await clone.text();
+          } catch {}
+        }
+        if (errText && errText.length < 300) {
+          throw new Error(errText);
+        }
+        throw new Error(`Server returned HTTP ${res.status}: ${res.statusText || 'Unable to get response'}`);
+      }
       const sid = res.headers.get('X-Chat-Session-Id');
       if (sid && sid !== sessionIdRef.current) {
         sessionIdRef.current = sid; setActiveSessionId(sid);
@@ -927,18 +944,51 @@ export function AIAgent() {
         <div className="pt-2.5 mt-auto shrink-0">
           <div className="max-w-3xl w-full mx-auto relative">
           {error && (
-            <div className="mb-3 p-3 rounded-lg border border-cw-amber/30 bg-cw-amber/10 text-cw-amber flex items-center justify-between text-xs animate-in fade-in duration-200">
-              <div className="flex items-center gap-2">
-                <AlertTriangle size={15} className="shrink-0 text-cw-amber" />
-                <span>
-                  {error.message?.includes('429') || error.message?.includes('quota')
-                    ? "Gordon is experiencing high demand right now. Please wait a few moments before trying again."
-                    : error.message?.includes('500')
-                    ? "Gordon hit a temporary server error after retrying once. Your prompt is ready to retry."
-                    : "Gordon’s stream stopped before it could finish. Your prompt is ready to retry."}
-                </span>
+            <div className="mb-3 p-3.5 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-300 flex items-center justify-between text-xs animate-in fade-in duration-200">
+              <div className="flex items-start gap-2.5">
+                <AlertTriangle size={16} className="shrink-0 text-rose-400 mt-0.5" />
+                <div className="flex flex-col gap-0.5">
+                  <span className="font-semibold text-rose-200">
+                    {/quota|credit|balance/i.test(error.message || '')
+                      ? "AI Credits Exhausted"
+                      : /unauthorized|401|api key/i.test(error.message || '')
+                      ? "AI Authentication Error"
+                      : /429|rate limit|demand/i.test(error.message || '')
+                      ? "Rate Limit Reached"
+                      : "Unable to get a response"}
+                  </span>
+                  <span className="text-rose-300/90 leading-relaxed text-[11px]">
+                    {error.message?.toLowerCase().includes('quota') || error.message?.toLowerCase().includes('credit') || error.message?.toLowerCase().includes('balance')
+                      ? (error.message.length < 180 ? error.message : "AI provider credit limit or quota exhausted. Please check your provider account billing.")
+                      : error.message?.toLowerCase().includes('unauthorized') || error.message?.includes('401')
+                      ? (error.message.length < 180 ? error.message : "Authentication failed with the AI provider. Please verify your API key.")
+                      : error.message?.includes('429') || error.message?.toLowerCase().includes('rate limit')
+                      ? "Gordon is experiencing high demand right now. Please wait a few moments before trying again."
+                      : error.message && error.message.length < 180 && !error.message.includes('Internal Server Error')
+                      ? error.message
+                      : "Gordon was unable to get a response from the AI provider. Your prompt is ready to retry."}
+                  </span>
+                </div>
               </div>
-              {lastPrompt && <button onClick={() => setInput(lastPrompt)} className="ml-3 shrink-0 rounded-md border border-cw-amber/40 px-2 py-1 text-[11px] font-semibold hover:bg-cw-amber/10">Restore prompt</button>}
+              <div className="flex items-center gap-2 shrink-0 ml-3">
+                {lastPrompt && (
+                  <>
+                    <button
+                      onClick={() => send(lastPrompt)}
+                      disabled={busy}
+                      className="rounded-lg bg-rose-500/20 border border-rose-500/40 text-rose-200 px-2.5 py-1 text-[11px] font-semibold hover:bg-rose-500/30 transition-colors disabled:opacity-50 cursor-pointer"
+                    >
+                      Retry
+                    </button>
+                    <button
+                      onClick={() => setInput(lastPrompt)}
+                      className="rounded-lg border border-rose-500/30 px-2 py-1 text-[11px] text-rose-300 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                    >
+                      Restore prompt
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
           )}
           {/* slash-command menu */}

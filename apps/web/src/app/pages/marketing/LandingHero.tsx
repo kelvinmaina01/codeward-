@@ -1361,7 +1361,7 @@ function TestimonialsSection() {
     <section 
       className="bg-[#05060a] py-16 sm:py-20 px-4 sm:px-8 md:px-16 lg:px-20 relative overflow-hidden"
     >
-      <div className="max-w-[1500px] mx-auto">
+      <div className="max-w-[1040px] mx-auto">
         {/* Section Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 md:mb-12 gap-4">
           <div>
@@ -1398,28 +1398,28 @@ function TestimonialsSection() {
         </div>
 
         {/* True Sliding Carousel */}
-        <div onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)} className="relative w-full overflow-hidden mt-10 rounded-3xl">
+        <div onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)} className="relative w-full overflow-hidden mt-8 rounded-2xl md:rounded-3xl">
           <div 
             className="flex transition-transform duration-700 ease-in-out will-change-transform"
             style={{ transform: `translateX(-${activeIndex * 100}%)` }}
           >
             {testimonials.map((item) => (
               <div key={item.id} className="w-full shrink-0 flex-none px-1">
-                <div className="relative w-full min-h-[420px] lg:min-h-[480px] rounded-3xl overflow-hidden border border-white/10 bg-white/[0.03]  p-8 md:p-12 flex flex-col justify-between">
-                  {/* Subtle Gradient Glow */}
-                  <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 via-transparent to-emerald-500/5 pointer-events-none" />
+                <div className="relative w-full min-h-[300px] md:min-h-[330px] rounded-2xl md:rounded-3xl overflow-hidden border border-slate-200/90 bg-[#F8F9FC] shadow-[0_10px_35px_-5px_rgba(0,0,0,0.18)] p-6 sm:p-8 md:p-9 flex flex-col justify-between">
+                  {/* Subtle Accent Glow */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-purple-500/[0.03] via-transparent to-blue-500/[0.03] pointer-events-none" />
 
-                  {/* Top Section: Category & Lowered Metric */}
-                  <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                  {/* Top Section: Category & Metric */}
+                  <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
                     <div>
-                      <span className="text-xs font-semibold text-emerald-400 tracking-widest uppercase mb-3 block">
+                      <span className="text-[11px] font-bold text-emerald-700 tracking-wider uppercase bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 rounded-full inline-block mb-2.5">
                         {item.category}
                       </span>
-                      <div className="flex items-baseline gap-3">
-                        <div className="text-4xl md:text-5xl font-black text-white tracking-tight ">
+                      <div className="flex items-baseline gap-2.5">
+                        <div className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">
                           {item.metric}
                         </div>
-                        <div className="text-sm font-semibold text-white/60">
+                        <div className="text-xs sm:text-sm font-semibold text-slate-500">
                           {item.metricLabel}
                         </div>
                       </div>
@@ -1427,26 +1427,26 @@ function TestimonialsSection() {
                   </div>
 
                   {/* Middle Section: Centered Quote */}
-                  <div className="relative z-10 my-auto py-8">
-                    <p className="text-xl md:text-2xl lg:text-3xl text-white/90 font-medium leading-relaxed tracking-tight">
+                  <div className="relative z-10 my-auto py-3 sm:py-4">
+                    <p className="text-base sm:text-lg md:text-xl text-slate-800 font-medium leading-relaxed tracking-tight">
                       "{item.text}"
                     </p>
                   </div>
 
                   {/* Bottom Author Section */}
-                  <div className="relative z-10 pt-6 border-t border-white/10 flex items-center justify-between">
-                    <div className="flex items-center gap-4">
+                  <div className="relative z-10 pt-4 border-t border-slate-200/80 flex items-center justify-between">
+                    <div className="flex items-center gap-3.5">
                       <img 
                         src={item.avatar} 
                         alt={item.author} 
                         loading="eager"
-                        className="h-14 w-14 rounded-full border-2 border-white/10 object-cover shrink-0" 
+                        className="h-11 w-11 sm:h-12 sm:w-12 rounded-full border border-slate-300/80 object-cover shrink-0 shadow-sm" 
                       />
                       <div>
-                        <div className="text-white font-bold text-lg leading-snug">
+                        <div className="text-slate-900 font-bold text-base leading-snug">
                           {item.author}
                         </div>
-                        <div className="text-white/50 text-sm font-medium">
+                        <div className="text-slate-500 text-xs sm:text-sm font-medium">
                           {item.role}
                         </div>
                       </div>
