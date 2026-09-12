@@ -663,6 +663,19 @@ export const createOrchestratorTools = (sandbox: SandboxHandle) => ({
     execute: async (args: any) => {
       console.log(`[Orchestrator] Final Decision for Run ${args.runId}: ${args.gateDecision}`);
       console.log(`[Orchestrator] Rationale: ${args.rationale}`);
+
+      // Enqueue the flagship Run Completed report email with idempotency guard
+      try {
+        const { emailQueue } = await import('../../../queue/email.queue.js');
+        await emailQueue.add(
+          'run-completed',
+          { type: 'run-completed', runId: Number(args.runId) },
+          { jobId: `run-completed:${args.runId}` }
+        );
+      } catch (queueErr) {
+        console.warn(`[Orchestrator] Failed to enqueue run-completed email:`, queueErr);
+      }
+
       return { success: true, message: "Decision submitted successfully.", gateDecision: args.gateDecision };
     }
   }

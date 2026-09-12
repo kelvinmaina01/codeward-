@@ -1,91 +1,148 @@
 import * as React from 'react';
+import { BrandEmailLayout, brandColors } from './BrandEmailLayout.js';
+import { BrandHeader } from './components/BrandHeader.js';
+import { BrandFooter } from './components/BrandFooter.js';
+import { BrandButton } from './components/BrandButton.js';
 
 interface PlanUpgradedEmailProps {
   userName: string;
   orgName: string;
   planType: 'pro' | 'team';
   dashboardUrl: string;
-  supportEmail: string;
+  supportEmail?: string;
 }
 
 const planLabels: Record<string, string> = {
-  pro:  'Pro',
-  team: 'Team',
+  pro: 'Codeward Pro',
+  team: 'Codeward Team',
 };
 
 const planFeatures: Record<string, string[]> = {
   pro: [
-    '100 PR scans per billing period',
-    'Security agent — auth, secrets, injection patterns',
-    'Architecture agent — design and structure issues',
-    'Bloat agent — dead code, redundant patterns',
-    'AI Era agent — LLM misuse & prompt injection risks',
-    'Full compliance & data-dx agents',
-    'Priority support',
+    '100 Full PR scans per billing period',
+    'Runtime Security Agent — SQLi, secret scans, RLS leaks',
+    'Architecture Agent — Circular dependencies, cyclomatic debt',
+    'Bloat & Tech Debt Agent — Dead code, duplicated logic',
+    'AI-Era Flaws Agent — LLM misuse & prompt injection vectors',
+    'Firecracker MicroVM Sandbox Test Execution',
+    'Guardian Auto-Fix PR Remediation',
   ],
   team: [
-    'Unlimited PR scans',
-    'All Pro features',
-    'Multi-repo dashboards',
-    'Team RBAC & audit logs',
-    'Dedicated onboarding support',
-    'SLA-backed uptime',
+    'Unlimited PR Scans across all repositories',
+    'All Pro Tier Capabilities included',
+    'Multi-Repo Global Code Quality Dashboard',
+    'Team RBAC, Member Roles & Audit Logs',
+    'Dedicated Priority Onboarding & Live Support',
+    'SLA-Backed MicroVM Infrastructure',
   ],
 };
 
-export function PlanUpgradedEmail({ userName, orgName, planType, dashboardUrl, supportEmail }: PlanUpgradedEmailProps) {
-  const label    = planLabels[planType] ?? planType;
-  const features = planFeatures[planType] ?? [];
+export function PlanUpgradedEmail({
+  userName,
+  orgName,
+  planType,
+  dashboardUrl,
+  supportEmail: _supportEmail = 'support@codeward.cloud',
+}: PlanUpgradedEmailProps) {
+  const label = planLabels[planType] ?? 'Codeward Pro';
+  const features = planFeatures[planType] ?? planFeatures.pro;
 
   return (
-    <div style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif", maxWidth: '560px', margin: '0 auto', padding: '32px 24px', backgroundColor: '#0c0d0e', color: '#f3f4f6', borderRadius: '12px', border: '1px solid #1f2937' }}>
+    <BrandEmailLayout previewText={`Welcome to ${label}! Your scans are now active for ${orgName}`}>
+      {/* 1. Header with Logo, #020203 Headline, and Hero Stat */}
+      <BrandHeader
+        headline={`You're on ${label}!`}
+        subtitle={`${orgName} is now upgraded · Unlimited review capabilities unlocked`}
+        heroStat={{
+          value: planType.toUpperCase(),
+          label: 'Plan Active on All Repositories',
+          valueColor: brandColors.textPrimary,
+          labelColor: brandColors.successGreen,
+        }}
+      />
 
-      {/* Header */}
-      <div style={{ marginBottom: '24px', textAlign: 'center' }}>
-        <img src="https://i.ibb.co/0jxSNrnp/codewrdlogo-png-removebg-preview.png" alt="Codeward" height="32" style={{ display: 'block', margin: '0 auto' }} />
-        <p style={{ color: '#9ca3af', fontSize: '13px', marginTop: '4px' }}>Automated Principal Engineer Platform</p>
-      </div>
-
-      {/* Hero */}
-      <div style={{ backgroundColor: '#111827', border: '1px solid #1f2937', borderRadius: '8px', padding: '24px', marginBottom: '24px' }}>
-        <div style={{ textAlign: 'center', marginBottom: '16px' }}>
-          <span style={{ fontSize: '36px' }}>🚀</span>
-        </div>
-        <h2 style={{ fontSize: '20px', color: '#ffffff', margin: '0 0 8px 0', textAlign: 'center' }}>
-          You're on {label}!
-        </h2>
-        <p style={{ color: '#d1d5db', fontSize: '14px', lineHeight: '1.6', textAlign: 'center', margin: '0' }}>
-          Hi <strong>{userName}</strong> — <strong>{orgName}</strong> is now on the <strong>{label} plan</strong>.
-          Your next PR will get the full Codeward treatment automatically.
+      {/* 2. Message */}
+      <div style={messageContainer}>
+        <p style={leadText}>
+          Hi <strong style={{ color: brandColors.textPrimary }}>{userName}</strong>,
+        </p>
+        <p style={bodyText}>
+          Thank you for trusting Codeward! Your subscription for <strong>{orgName}</strong> is active. Every incoming pull request will now automatically trigger the full autonomous agent review pipeline.
         </p>
       </div>
 
-      {/* Feature list */}
-      <div style={{ marginBottom: '24px', padding: '20px', backgroundColor: 'rgba(168, 85, 247, 0.07)', border: '1px solid rgba(168, 85, 247, 0.2)', borderRadius: '8px' }}>
-        <h3 style={{ color: '#a855f7', fontSize: '12px', margin: '0 0 14px 0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>What's unlocked</h3>
-        <ul style={{ color: '#d1d5db', fontSize: '13px', paddingLeft: '20px', margin: '0', lineHeight: '1.8' }}>
-          {features.map((f, i) => <li key={i}>{f}</li>)}
+      {/* 3. Unlocked Features Card */}
+      <div style={featuresBox}>
+        <h3 style={featuresTitle}>🚀 Unlocked for Your Team:</h3>
+        <ul style={featuresList}>
+          {features.map((f, i) => (
+            <li key={i} style={featureItem}>
+              {f}
+            </li>
+          ))}
         </ul>
       </div>
 
-      {/* CTA */}
-      <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-        <a href={dashboardUrl} style={{ display: 'inline-block', backgroundColor: '#a855f7', color: '#ffffff', textDecoration: 'none', fontWeight: 600, padding: '12px 28px', borderRadius: '8px', fontSize: '14px' }}>
-          Open Dashboard →
-        </a>
-      </div>
+      {/* 4. Action Button (#FCE2BA Pill) */}
+      <BrandButton href={dashboardUrl}>
+        Launch Codeward Dashboard →
+      </BrandButton>
 
-      {/* Footer */}
-      <div style={{ textAlign: 'center', paddingTop: '24px', borderTop: '1px solid #1f2937' }}>
-        <p style={{ color: '#6b7280', fontSize: '12px', margin: '0 0 8px 0' }}>
-          Questions? Reply to this email or reach us at{' '}
-          <a href={`mailto:${supportEmail}`} style={{ color: '#a855f7', textDecoration: 'none' }}>{supportEmail}</a>.
-        </p>
-        <p style={{ color: '#374151', fontSize: '11px', margin: '0' }}>
-          © 2026 Codeward. All rights reserved. Nairobi, Kenya.
-        </p>
-      </div>
-
-    </div>
+      {/* 5. Dynamic Footer */}
+      <BrandFooter
+        recipientName={userName}
+        recipientMeta={`Owner @ ${orgName}`}
+        purposeText={`This is a subscription confirmation for your ${label} plan.`}
+        isMandatoryTransactional={true}
+      />
+    </BrandEmailLayout>
   );
 }
+
+const messageContainer: React.CSSProperties = {
+  textAlign: 'center',
+  marginBottom: '20px',
+};
+
+const leadText: React.CSSProperties = {
+  fontSize: '15px',
+  color: brandColors.textPrimary,
+  margin: '0 0 8px 0',
+};
+
+const bodyText: React.CSSProperties = {
+  fontSize: '13px',
+  color: brandColors.textSecondary,
+  lineHeight: '1.6',
+  margin: '0',
+};
+
+const featuresBox: React.CSSProperties = {
+  margin: '22px 0',
+  padding: '18px 20px',
+  backgroundColor: 'rgba(16, 185, 129, 0.05)',
+  border: '1px solid rgba(16, 185, 129, 0.25)',
+  borderRadius: '8px',
+  textAlign: 'left',
+};
+
+const featuresTitle: React.CSSProperties = {
+  margin: '0 0 12px 0',
+  fontSize: '13px',
+  color: brandColors.successGreen,
+  fontWeight: 700,
+};
+
+const featuresList: React.CSSProperties = {
+  margin: '0',
+  paddingLeft: '18px',
+  fontSize: '12px',
+  color: brandColors.textPrimary,
+  lineHeight: '1.7',
+};
+
+const featureItem: React.CSSProperties = {
+  marginBottom: '4px',
+};
+
+export default PlanUpgradedEmail;

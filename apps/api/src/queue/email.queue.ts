@@ -1,20 +1,6 @@
 /**
  * ============================================================================
- * Email Queue — BullMQ async email delivery
- * ============================================================================
- *
- * All outbound emails go through this queue so that:
- *  - Polar payment webhooks return 200 in < 10ms (never blocked by Resend)
- *  - Failed sends are automatically retried with exponential back-off
- *  - Email jobs are visible in Bull Board for debugging
- *
- * Job types:
- *  - 'plan-upgraded'        → sent when an org upgrades to Pro or Team
- *  - 'trial-limit-reached'  → sent when a free org exhausts their 10 PR slots
- *
- * Usage:
- *   import { emailQueue } from './email.queue.js';
- *   await emailQueue.add('plan-upgraded', { type: 'plan-upgraded', orgId: 42, planType: 'pro' });
+ * Email Queue — BullMQ async email delivery with Dynamic Payload Resolution
  * ============================================================================
  */
 
@@ -25,6 +11,7 @@ import { organization, repositories, user } from '../db/schema.js';
 import { eq } from 'drizzle-orm';
 import { appConfig } from '../config/app.config.js';
 import { NotificationService } from '../notifications/NotificationService.js';
+import { EmailPayloadResolver } from '../services/email-payload-resolver.js';
 
 // ─── Job Payload Types ────────────────────────────────────────────────────────
 
@@ -37,6 +24,19 @@ export type EmailJobData =
   | {
       type: 'trial-limit-reached';
       orgId: number;
+    }
+  | {
+      type: 'run-completed';
+      runId: number;
+    }
+  | {
+      type: 'escalation';
+      repoName: string;
+      prNumber: number;
+      prTitle: string;
+      failingTestName: string;
+      runId: number;
+      recipientEmail?: string;
     };
 
 // ─── Queue ───────────────────────────────────────────────────────────────────
@@ -46,24 +46,23 @@ const connection = createRedisConnection();
 export const emailQueue = new Queue<EmailJobData>('email-jobs', {
   connection: connection as any,
   defaultJobOptions: {
-    attempts:     4,
-    backoff:      { type: 'exponential', delay: 5_000 },
+    attempts: 4,
+    backoff: { type: 'exponential', delay: 5_000 },
     removeOnComplete: { count: 100 },
-    removeOnFail:     { count: 50 },
+    removeOnFail: { count: 50 },
   },
 });
 
 // ─── Helper: resolve org owner's email ───────────────────────────────────────
 
 async function getOrgOwnerEmail(orgId: number): Promise<{ email: string; name: string; orgName: string } | null> {
-  // Find the first repository for this org, then its owning user
   const [repo] = await db
     .select({ userId: repositories.userId, orgId: repositories.orgId })
     .from(repositories)
     .where(eq(repositories.orgId, orgId))
     .limit(1);
 
-  if (!repo) return null;
+  if (!repo || !repo.userId) return null;
 
   const [u] = await db
     .select({ email: user.email, name: user.name })
@@ -79,7 +78,7 @@ async function getOrgOwnerEmail(orgId: number): Promise<{ email: string; name: s
 
   return {
     email: u.email,
-    name:  u.name,
+    name: u.name,
     orgName: org?.githubLogin ?? 'your organization',
   };
 }
@@ -93,6 +92,19 @@ export const emailWorker = new Worker<EmailJobData>(
     console.log(`[EmailQueue] Processing job ${job.id} — type: ${data.type}`);
 
     switch (data.type) {
+      // ── Run completed (Flagship PR report) ──────────────────────────────
+      case 'run-completed': {
+        const payload = await EmailPayloadResolver.resolveRunCompleted(data.runId);
+        if (!payload) {
+          console.warn(`[EmailQueue] run-completed: could not resolve payload for run #${data.runId} — skipping.`);
+          return;
+        }
+
+        await NotificationService.sendRunCompleted(payload);
+        console.log(`[EmailQueue] run-completed report sent to ${payload.recipientEmail} for run #${data.runId}`);
+        break;
+      }
+
       // ── Plan upgraded ────────────────────────────────────────────────────
       case 'plan-upgraded': {
         const owner = await getOrgOwnerEmail(data.orgId);
@@ -128,6 +140,21 @@ export const emailWorker = new Worker<EmailJobData>(
           upgradeUrl,
         );
         console.log(`[EmailQueue] trial-limit-reached email sent to ${owner.email}`);
+        break;
+      }
+
+      // ── Escalation (Manual review required) ──────────────────────────────
+      case 'escalation': {
+        const recipient = data.recipientEmail || 'support@codeward.cloud';
+        await NotificationService.sendEscalation(
+          recipient,
+          data.repoName,
+          data.prNumber,
+          data.prTitle,
+          data.failingTestName,
+          data.runId
+        );
+        console.log(`[EmailQueue] escalation email sent for PR #${data.prNumber}`);
         break;
       }
 

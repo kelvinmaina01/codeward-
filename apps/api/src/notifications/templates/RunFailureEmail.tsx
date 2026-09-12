@@ -1,19 +1,12 @@
 import * as React from 'react';
-import {
-  Html,
-  Head,
-  Body,
-  Container,
-  Section,
-  Text,
-  Button,
-  Heading,
-  Hr,
-  Img,
-  Preview,
-} from '@react-email/components';
+import { BrandEmailLayout, brandColors } from './BrandEmailLayout.js';
+import { BrandHeader } from './components/BrandHeader.js';
+import { BrandFooter } from './components/BrandFooter.js';
+import { BrandButton } from './components/BrandButton.js';
+import { TerminalLogBox } from './components/TerminalLogBox.js';
 
 interface RunFailureEmailProps {
+  recipientName?: string;
   repoName: string;
   agentId: string;
   runId: number;
@@ -24,6 +17,7 @@ interface RunFailureEmailProps {
 }
 
 export const RunFailureEmail: React.FC<RunFailureEmailProps> = ({
+  recipientName = 'Developer',
   repoName,
   agentId,
   runId,
@@ -32,271 +26,107 @@ export const RunFailureEmail: React.FC<RunFailureEmailProps> = ({
   logTail,
   retryUrl,
 }) => {
+  const shortSha = commitSha ? commitSha.slice(0, 7) : 'latest';
+
   return (
-    <Html>
-      <Head />
-      <Preview>Agent {agentId} failed on {repoName}</Preview>
-      <Body style={main}>
-        <Container style={container}>
-          <Section style={header}>
-            <Img
-              src="https://i.postimg.cc/Jh77M5j8/kelvin-bot.png"
-              width="48"
-              height="48"
-              alt="Codeward Logo"
-              style={logo}
-            />
-            <div style={badge}>Run Failed After Exhausting Retries</div>
-            <Heading style={h1}>Your agent run hit a wall</Heading>
-            <Text style={subtitle}>
-              We automatically retried this run but the sandbox encountered an unrecoverable error. Here's what happened.
-            </Text>
-          </Section>
-          
-          <Section style={content}>
-            <Text style={sectionTitle}>Run Details</Text>
-            <div style={card}>
-              <div style={row}>
-                <span style={label}>Agent</span>
-                <span style={value}>{agentId}</span>
-              </div>
-              <div style={row}>
-                <span style={label}>Project</span>
-                <span style={value}>{repoName}</span>
-              </div>
-              <div style={row}>
-                <span style={label}>Commit</span>
-                <span style={{ ...value, ...code }}>{commitSha.substring(0, 7)}</span>
-              </div>
-              <div style={row}>
-                <span style={label}>Run ID</span>
-                <span style={{ ...value, ...code }}>run_{runId}</span>
-              </div>
-              <div style={row}>
-                <span style={label}>Root Cause</span>
-                <span style={{ ...value, ...error }}>{errorMessage}</span>
-              </div>
-            </div>
+    <BrandEmailLayout previewText={`[Action Required] Agent ${agentId} failed on ${repoName}`}>
+      {/* 1. Header with Logo, #020203 Headline, and Error Stat */}
+      <BrandHeader
+        headline="Agent Execution Error"
+        subtitle={`${repoName} · run #${runId} · commit ${shortSha}`}
+        heroStat={{
+          value: 'FAILED',
+          label: `Agent: ${agentId}`,
+          valueColor: brandColors.dangerRed,
+          labelColor: brandColors.textSecondary,
+        }}
+      />
 
-            {logTail && (
-              <>
-                <Text style={sectionTitle}>Last Logs Recorded</Text>
-                <div style={terminal}>
-                  <div style={terminalHeader}>
-                    <div style={{ ...terminalDot, backgroundColor: '#ff5f56' }} />
-                    <div style={{ ...terminalDot, backgroundColor: '#ffbd2e' }} />
-                    <div style={{ ...terminalDot, backgroundColor: '#27c93f' }} />
-                    <span style={terminalTitle}>sandbox — execution</span>
-                  </div>
-                  <div style={terminalBody}>
-                    <pre style={logPre}>{logTail}</pre>
-                  </div>
-                </div>
-              </>
-            )}
+      {/* 2. Error Explanation */}
+      <div style={messageBox}>
+        <p style={leadText}>
+          Hi <strong style={{ color: brandColors.textPrimary }}>{recipientName}</strong>,
+        </p>
+        <p style={bodyText}>
+          Codeward automatically attempted to execute the <strong>{agentId}</strong> agent on your repository, but the execution encountered an unrecoverable runtime exception after retrying.
+        </p>
+      </div>
 
-            <Section style={buttonContainer}>
-              <Button style={buttonPrimary} href={retryUrl}>
-                View Logs & Retry
-              </Button>
-            </Section>
-          </Section>
-          
-          <Hr style={hr} />
-          
-          <Text style={footer}>
-            Codeward, Inc. • You are receiving this because you are an admin of {repoName}.
-            <br />
-            Need help? Check our Docs or contact support.
-          </Text>
-        </Container>
-      </Body>
-    </Html>
+      {/* 3. Error Diagnostic Card */}
+      <div style={errorCard}>
+        <div style={errorCardHeader}>
+          <strong>Exception Summary:</strong>
+        </div>
+        <p style={errorMessageText}>
+          {errorMessage || 'Unknown execution failure.'}
+        </p>
+      </div>
+
+      {/* 4. Terminal Log Box */}
+      {logTail && (
+        <TerminalLogBox
+          logs={logTail}
+          title="Sandbox Error Log (Tail)"
+          maxLines={12}
+        />
+      )}
+
+      {/* 5. Action Button (#FCE2BA Pill) */}
+      <BrandButton href={retryUrl}>
+        Retry Run in Clean Sandbox →
+      </BrandButton>
+
+      {/* 6. Dynamic Footer */}
+      <BrandFooter
+        recipientName={recipientName}
+        purposeText={`This is a runtime alert regarding an agent failure on ${repoName}.`}
+        isMandatoryTransactional={true}
+      />
+    </BrandEmailLayout>
   );
 };
 
-// Styles
-const main = {
-  backgroundColor: '#0f0f13',
-  fontFamily: 'system-ui, -apple-system, sans-serif',
-  padding: '40px 16px',
-};
-
-const container = {
-  backgroundColor: '#16161e',
-  margin: '0 auto',
-  borderRadius: '16px',
-  overflow: 'hidden',
-  border: '1px solid #23232d',
-  maxWidth: '640px',
-};
-
-const header = {
-  background: 'linear-gradient(135deg, #1a1a24 0%, #0f0f13 100%)',
-  padding: '40px 32px 32px',
-  textAlign: 'center' as const,
-  borderBottom: '1px solid #23232d',
-};
-
-const logo = {
-  margin: '0 auto 20px',
-  borderRadius: '8px',
-};
-
-const badge = {
-  display: 'inline-block',
-  background: 'rgba(239, 68, 68, 0.12)',
-  color: '#ef4444',
-  fontSize: '12px',
-  fontWeight: '600',
-  letterSpacing: '0.08em',
-  textTransform: 'uppercase' as const,
-  padding: '6px 14px',
-  borderRadius: '999px',
-  border: '1px solid rgba(239, 68, 68, 0.25)',
+const messageBox: React.CSSProperties = {
+  textAlign: 'center',
   marginBottom: '20px',
 };
 
-const h1 = {
-  color: '#f0f0f5',
-  fontSize: '24px',
-  fontWeight: '700',
-  margin: '0 0 8px',
-  lineHeight: '1.3',
-};
-
-const subtitle = {
-  color: '#8b8b9a',
+const leadText: React.CSSProperties = {
   fontSize: '15px',
-  margin: '0',
+  color: brandColors.textPrimary,
+  margin: '0 0 8px 0',
+};
+
+const bodyText: React.CSSProperties = {
+  fontSize: '13px',
+  color: brandColors.textSecondary,
   lineHeight: '1.6',
-};
-
-const content = {
-  padding: '32px',
-};
-
-const sectionTitle = {
-  color: '#a0a0b0',
-  fontSize: '11px',
-  fontWeight: '600',
-  letterSpacing: '0.12em',
-  textTransform: 'uppercase' as const,
-  margin: '0 0 12px',
-};
-
-const card = {
-  background: '#1e1e28',
-  borderRadius: '12px',
-  padding: '20px',
-  border: '1px solid #2a2a38',
-  marginBottom: '28px',
-};
-
-const row = {
-  display: 'block',
-  width: '100%',
-  marginBottom: '14px',
-};
-
-const label = {
-  display: 'inline-block',
-  color: '#6e6e80',
-  fontSize: '13px',
-  width: '120px',
-  verticalAlign: 'top',
-};
-
-const value = {
-  display: 'inline-block',
-  color: '#e0e0ea',
-  fontSize: '13px',
-  fontWeight: '500',
-  verticalAlign: 'top',
-  maxWidth: '380px',
-};
-
-const code = {
-  fontFamily: 'monospace',
-  background: '#15151c',
-  padding: '2px 8px',
-  borderRadius: '4px',
-  fontSize: '12px',
-  color: '#a5b4fc',
-};
-
-const error = {
-  color: '#f87171',
-};
-
-const terminal = {
-  background: '#0d0d12',
-  borderRadius: '10px',
-  border: '1px solid #23232d',
-  overflow: 'hidden',
-  marginBottom: '28px',
-};
-
-const terminalHeader = {
-  background: '#15151c',
-  padding: '10px 16px',
-  borderBottom: '1px solid #23232d',
-};
-
-const terminalDot = {
-  width: '10px',
-  height: '10px',
-  borderRadius: '50%',
-  display: 'inline-block',
-  marginRight: '8px',
-};
-
-const terminalTitle = {
-  color: '#6e6e80',
-  fontSize: '11px',
-  fontFamily: 'monospace',
-  marginLeft: '4px',
-};
-
-const terminalBody = {
-  padding: '16px',
-};
-
-const logPre = {
-  color: '#a0a0b0',
-  fontFamily: 'monospace',
-  fontSize: '12px',
-  lineHeight: '1.7',
   margin: '0',
-  whiteSpace: 'pre-wrap' as const,
-  wordBreak: 'break-all' as const,
 };
 
-const buttonContainer = {
-  textAlign: 'center' as const,
-  padding: '8px 0 16px',
-};
-
-const buttonPrimary = {
-  background: '#6366f1',
-  color: '#ffffff',
-  padding: '12px 28px',
+const errorCard: React.CSSProperties = {
+  margin: '20px 0',
+  padding: '14px 16px',
+  backgroundColor: 'rgba(239, 68, 68, 0.05)',
+  border: '1px solid rgba(239, 68, 68, 0.25)',
   borderRadius: '8px',
-  fontSize: '14px',
-  fontWeight: '600',
-  textDecoration: 'none',
-  display: 'inline-block',
+  textAlign: 'left',
 };
 
-const hr = {
-  borderColor: '#23232d',
-  margin: '0',
-};
-
-const footer = {
-  padding: '24px 32px',
-  textAlign: 'center' as const,
-  color: '#4b4b5a',
+const errorCardHeader: React.CSSProperties = {
   fontSize: '12px',
-  lineHeight: '18px',
+  color: brandColors.dangerRed,
+  marginBottom: '4px',
+  textTransform: 'uppercase',
+  letterSpacing: '0.4px',
 };
+
+const errorMessageText: React.CSSProperties = {
+  margin: '0',
+  fontSize: '13px',
+  color: brandColors.textPrimary,
+  fontFamily: 'monospace',
+  lineHeight: '1.5',
+};
+
+export default RunFailureEmail;

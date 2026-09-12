@@ -61,13 +61,12 @@ export const auth = betterAuth({
             // this will safely log to the console instead of throwing errors.
             const { NotificationService } = await import("../notifications/NotificationService.js");
             
-            // Assume it's OAuth if there's no password field or based on the context.
-            // BetterAuth handles verification natively for OAuth. We will pass a default 
-            // verification link (this would ideally route to your frontend verification page).
-            const verificationLink = `${process.env.FRONTEND_URL || "http://localhost:5173"}/verify?token=example`;
-            
-            // For now, we assume if we reach here via social provider, we can flag isOAuth based on if the user is verified
-            const isOAuth = user.emailVerified === true; 
+            const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+            const isOAuth = user.emailVerified === true;
+            // For OAuth users, route to repo connection; for password users, route to verification
+            const verificationLink = isOAuth 
+              ? `${frontendUrl}/connect-repo` 
+              : `${frontendUrl}/verify-email?email=${encodeURIComponent(user.email)}`;
 
             await NotificationService.sendWelcomeVerification(
               user.email,

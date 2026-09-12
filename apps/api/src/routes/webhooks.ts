@@ -168,6 +168,18 @@ webhookRouter.post('/github', async (c) => {
             reason: reservation.reason,
           });
 
+          // Enqueue trial-limit-reached email with idempotency guard
+          try {
+            const { emailQueue } = await import('../queue/email.queue.js');
+            await emailQueue.add(
+              'trial-limit-reached',
+              { type: 'trial-limit-reached', orgId: repo.orgId },
+              { jobId: `trial-limit:${repo.orgId}` }
+            );
+          } catch (emailErr) {
+            console.warn('[Webhook] Failed to enqueue trial limit email:', emailErr);
+          }
+
           return c.json({ status: 'ignored', reason: reservation.reason }, 403);
         }
 

@@ -1,11 +1,14 @@
 import * as React from 'react';
-import { Button, Heading, Text, Section, Row, Column } from '@react-email/components';
-import { Layout, colors } from './Layout.js';
+import { BrandEmailLayout, brandColors } from './BrandEmailLayout.js';
+import { BrandHeader } from './components/BrandHeader.js';
+import { BrandFooter } from './components/BrandFooter.js';
+import { BrandButton } from './components/BrandButton.js';
+import { TerminalLogBox } from './components/TerminalLogBox.js';
 
 interface WelcomeVerificationEmailProps {
   userName: string;
   verificationLink: string;
-  isOAuth?: boolean; // If true, they logged in via GitHub and don't need email verification
+  isOAuth?: boolean;
 }
 
 export const WelcomeVerificationEmail: React.FC<WelcomeVerificationEmailProps> = ({
@@ -13,152 +16,140 @@ export const WelcomeVerificationEmail: React.FC<WelcomeVerificationEmailProps> =
   verificationLink,
   isOAuth = false,
 }) => {
+  const terminalDemo = `> codeward analyze --commit 4f2a8c1
+[✓] Firecracker microVM booted (125ms)
+[✓] 8 Autonomous Agents running in parallel...
+[!] Security Agent caught 1 Critical SQL Injection
+[✓] Gate decision: BLOCKED. Auto-remediation PR dispatched.`;
+
   return (
-    <Layout previewText={`Welcome to Codeward, ${userName}!`}>
-      <Heading style={heading}>
-        Welcome to Codeward.<br />Your AI Principal Engineer is Ready.
-      </Heading>
-      
-      <Text style={text}>
-        Hi {userName},
-      </Text>
-      
-      <Text style={text}>
-        You are seconds away from unleashing the most advanced, multi-agent code review engine on your pull requests. Codeward isn't a simple linter—it's a <strong>full testing and security engine</strong> that runs directly on your commits.
-      </Text>
+    <BrandEmailLayout previewText={`Welcome to Codeward, ${userName}!`}>
+      {/* 1. Header with Logo and Headline */}
+      <BrandHeader
+        headline="Welcome to Codeward"
+        subtitle="Your Autonomous AI Principal Engineer is ready"
+        heroStat={{
+          value: '8 Agents',
+          label: 'Autonomous Code Review Pipeline',
+          valueColor: brandColors.textPrimary,
+          labelColor: brandColors.purpleAccent,
+        }}
+      />
 
-      <Section style={pillarsSection}>
-        <Row style={pillarRow}>
-          <Column style={pillarEmoji}>🛡️</Column>
-          <Column>
-            <Text style={pillarTitle}>Unmatched Security</Text>
-            <Text style={pillarDescription}>Catch 18+ critical vulnerabilities, including AI-era flaws, prompt injections, and database RLS gaps.</Text>
-          </Column>
-        </Row>
-        <Row style={pillarRow}>
-          <Column style={pillarEmoji}>🚀</Column>
-          <Column>
-            <Text style={pillarTitle}>Zero Bloat</Text>
-            <Text style={pillarDescription}>Automatically detect semantic duplicates, dead code, and God files via deep AST scanning.</Text>
-          </Column>
-        </Row>
-        <Row style={pillarRow}>
-          <Column style={pillarEmoji}>🔬</Column>
-          <Column>
-            <Text style={pillarTitle}>Flawless Execution</Text>
-            <Text style={pillarDescription}>We run your code in a Firecracker microVM to detect memory leaks and race conditions before production.</Text>
-          </Column>
-        </Row>
-      </Section>
+      {/* 2. Personalized Welcome Message */}
+      <div style={messageContainer}>
+        <p style={leadParagraph}>
+          Hi <strong style={{ color: brandColors.textPrimary }}>{userName}</strong>,
+        </p>
+        <p style={bodyParagraph}>
+          You are seconds away from unleashing a multi-agent review engine on your pull requests. Codeward isn't a simple linter — it's an end-to-end testing and runtime security engine executing directly on your commits.
+        </p>
+      </div>
 
-      <Section style={terminalSection}>
-        <Text style={terminalText}>
-          <span style={{ color: colors.blue }}>{'>'}</span> codeward analyze --commit 4f2a8c1<br />
-          <span style={{ color: colors.green }}>[✓]</span> Firecracker sandbox booted (125ms)<br />
-          <span style={{ color: colors.green }}>[✓]</span> 8 Agents running in parallel...<br />
-          <span style={{ color: colors.red }}>[!]</span> Security Agent caught 1 Critical SQLi<br />
-          <span style={{ color: colors.green }}>[✓]</span> Merge blocked. Fix suggestion posted to PR.
-        </Text>
-      </Section>
+      {/* 3. Feature Highlights Matrix */}
+      <div style={featuresContainer}>
+        <div style={featureRow}>
+          <span style={featureIcon}>🛡️</span>
+          <div style={featureContent}>
+            <strong style={featureTitle}>Runtime Security Guard</strong>
+            <p style={featureDesc}>Catches 18+ critical vulnerability classes, prompt injections, and database RLS leaks.</p>
+          </div>
+        </div>
 
-      <Text style={text}>
-        To get started, please {isOAuth ? 'connect your first repository' : 'verify your email address'} below:
-      </Text>
+        <div style={featureRow}>
+          <span style={featureIcon}>🧹</span>
+          <div style={featureContent}>
+            <strong style={featureTitle}>Zero Tech Debt & Bloat</strong>
+            <p style={featureDesc}>Deep AST scanning eliminates dead code, God files, and duplicated business logic.</p>
+          </div>
+        </div>
 
-      <Button href={verificationLink} style={button}>
-        {isOAuth ? 'Connect Your First Repository' : 'Verify Email Address'}
-      </Button>
-      
-      <Text style={subtext}>
-        If you didn't request this email, you can safely ignore it.
-      </Text>
-    </Layout>
+        <div style={featureRow}>
+          <span style={featureIcon}>⚡</span>
+          <div style={featureContent}>
+            <strong style={featureTitle}>Firecracker Sandbox Execution</strong>
+            <p style={featureDesc}>Runs verification tests inside isolated microVMs before risky code ever merges.</p>
+          </div>
+        </div>
+      </div>
+
+      {/* 4. Terminal Snapshot */}
+      <TerminalLogBox
+        logs={terminalDemo}
+        title="Codeward Runtime Simulation"
+        maxLines={5}
+      />
+
+      {/* 5. Primary Action Button (#FCE2BA Pill) */}
+      <BrandButton href={verificationLink}>
+        {isOAuth ? 'Connect Your First Repository →' : 'Verify Email Address →'}
+      </BrandButton>
+
+      {/* 6. Dynamic Footer */}
+      <BrandFooter
+        recipientName={userName}
+        purposeText="This is an essential account security notification from Codeward."
+        isMandatoryTransactional={true}
+      />
+    </BrandEmailLayout>
   );
 };
 
-export default WelcomeVerificationEmail;
-
-const heading = {
-  fontSize: '24px',
-  fontWeight: 'bold',
-  color: '#ffffff',
-  textAlign: 'center' as const,
-  marginBottom: '32px',
-  lineHeight: '1.3',
-};
-
-const text = {
-  fontSize: '16px',
-  color: colors.cream,
-  lineHeight: '24px',
+const messageContainer: React.CSSProperties = {
+  textAlign: 'center',
   marginBottom: '20px',
 };
 
-const pillarsSection = {
-  marginBottom: '32px',
-  padding: '24px',
-  backgroundColor: '#1c2130',
-  borderRadius: '8px',
-  border: `1px solid ${colors.border}`,
+const leadParagraph: React.CSSProperties = {
+  fontSize: '15px',
+  color: brandColors.textPrimary,
+  margin: '0 0 8px 0',
 };
 
-const pillarRow = {
-  marginBottom: '16px',
-};
-
-const pillarEmoji = {
-  width: '32px',
-  fontSize: '20px',
-  verticalAlign: 'top' as const,
-};
-
-const pillarTitle = {
-  fontSize: '16px',
-  fontWeight: 'bold',
-  color: '#ffffff',
-  margin: '0 0 4px 0',
-};
-
-const pillarDescription = {
-  fontSize: '14px',
-  color: colors.textMuted,
-  margin: '0',
-  lineHeight: '1.4',
-};
-
-const terminalSection = {
-  backgroundColor: '#000000',
-  padding: '16px',
-  borderRadius: '6px',
-  border: '1px solid #333333',
-  marginBottom: '32px',
-};
-
-const terminalText = {
-  fontFamily: 'monospace, "Courier New", Courier',
+const bodyParagraph: React.CSSProperties = {
   fontSize: '13px',
-  color: '#c9d1d9',
-  margin: '0',
+  color: brandColors.textSecondary,
   lineHeight: '1.6',
+  margin: '0',
 };
 
-const subtext = {
-  fontSize: '14px',
-  color: colors.textMuted,
-  textAlign: 'center' as const,
-  marginTop: '32px',
+const featuresContainer: React.CSSProperties = {
+  margin: '24px 0',
+  padding: '16px 20px',
+  backgroundColor: '#F9FAFB',
+  border: `1px solid ${brandColors.cardBorder}`,
+  borderRadius: '8px',
+  textAlign: 'left',
 };
 
-const button = {
-  backgroundColor: colors.blue,
-  borderRadius: '6px',
-  color: '#ffffff',
-  fontSize: '16px',
-  fontWeight: 'bold',
-  textDecoration: 'none',
-  textAlign: 'center' as const,
+const featureRow: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'flex-start',
+  marginBottom: '12px',
+};
+
+const featureIcon: React.CSSProperties = {
+  fontSize: '18px',
+  marginRight: '12px',
+  lineHeight: '1.2',
+};
+
+const featureContent: React.CSSProperties = {
+  flex: 1,
+};
+
+const featureTitle: React.CSSProperties = {
   display: 'block',
-  width: '100%',
-  padding: '14px 0',
-  border: '1px solid #3a63cc',
+  fontSize: '13px',
+  color: brandColors.textPrimary,
+  marginBottom: '2px',
 };
+
+const featureDesc: React.CSSProperties = {
+  fontSize: '12px',
+  color: brandColors.textSecondary,
+  lineHeight: '1.4',
+  margin: '0',
+};
+
+export default WelcomeVerificationEmail;
