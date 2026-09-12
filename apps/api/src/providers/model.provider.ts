@@ -96,16 +96,29 @@ export function resolveActiveProvider(): ProviderConfig {
     };
   }
 
-  // 7. TokenRouter (https://api.tokenrouter.com)
-  const tokenRouterKey = process.env.TOKENROUTER_API_KEY;
+  // 7a. TokenRouter GPT / Kimi ($50 balance)
+  const tokenRouterGptKey = process.env.TOKENROUTER_GPT_API_KEY;
+  if ((explicitProvider === 'tokenrouter-gpt' || explicitProvider === 'tokenrouter_gpt') && tokenRouterGptKey) {
+    return {
+      name: 'tokenrouter-gpt',
+      baseURL: process.env.TOKENROUTER_BASE_URL || 'https://api.tokenrouter.com/v1',
+      apiKey: tokenRouterGptKey,
+      defaultOrchestratorModel: process.env.TOKENROUTER_GPT_MODEL || 'openai/gpt-5.6-terra',
+      defaultAnalyzerModel: process.env.TOKENROUTER_GPT_ANALYZER_MODEL || 'openai/gpt-5.4-nano',
+      headers: { 'User-Agent': 'Cline/3.0.0' },
+    };
+  }
+
+  // 7b. TokenRouter GLM (Free Unlimited Quota) / Default TokenRouter
+  const tokenRouterKey = process.env.TOKENROUTER_GLM_API_KEY || process.env.TOKENROUTER_API_KEY;
   const tokenRouterBaseUrl = process.env.TOKENROUTER_BASE_URL || 'https://api.tokenrouter.com/v1';
-  if ((explicitProvider === 'tokenrouter' || (!explicitProvider && tokenRouterKey)) && tokenRouterKey) {
+  if ((explicitProvider === 'tokenrouter' || explicitProvider === 'tokenrouter-glm' || explicitProvider === 'tokenrouter_glm' || (!explicitProvider && tokenRouterKey)) && tokenRouterKey) {
     return {
       name: 'tokenrouter',
       baseURL: tokenRouterBaseUrl,
       apiKey: tokenRouterKey,
-      defaultOrchestratorModel: process.env.TOKENROUTER_MODEL || 'openai/gpt-5.6-terra',
-      defaultAnalyzerModel: process.env.TOKENROUTER_ANALYZER_MODEL || process.env.TOKENROUTER_MODEL || 'openai/gpt-5.4-nano',
+      defaultOrchestratorModel: process.env.TOKENROUTER_GLM_MODEL || process.env.TOKENROUTER_MODEL || 'z-ai/glm-5.3-free',
+      defaultAnalyzerModel: process.env.TOKENROUTER_GLM_MODEL || process.env.TOKENROUTER_MODEL || 'z-ai/glm-5.3-free',
       headers: { 'User-Agent': 'Cline/3.0.0' },
     };
   }

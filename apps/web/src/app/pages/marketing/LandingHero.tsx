@@ -1712,18 +1712,19 @@ export default function CodewardHero() {
             {session?.user ? (
               <button
                 onClick={() => navigate('/dashboard')}
-                className="group cursor-pointer rounded-full bg-[#8B5CF6] px-10 py-4 text-sm font-semibold text-white transition-all hover:bg-[#7c3aed]   duration-300 flex items-center gap-2"
+                className="group cursor-pointer rounded-full bg-[#8B5CF6] hover:bg-[#7c3aed] px-6 sm:px-7 py-2.5 sm:py-3 text-sm sm:text-[15px] font-semibold text-white transition-all duration-200 shadow-[0_2px_14px_rgba(139,92,246,0.35)] hover:shadow-[0_6px_28px_rgba(139,92,246,0.55)] hover:scale-[1.02] active:scale-[0.98] flex items-center gap-2"
               >
-                Back to app <ArrowRight className="w-4 h-4 ml-1 transition-transform group-hover:translate-x-1" strokeWidth={2.5} />
+                <span>Back to app</span>
+                <ArrowRight className="w-4 h-4 ml-0.5 transition-transform duration-200 group-hover:translate-x-1" strokeWidth={2.5} />
               </button>
             ) : (
               <button
                 onClick={() => navigate('/signup')}
-                className="rounded-full bg-white px-9 py-4 text-sm font-semibold text-black transition-all hover:bg-white/90 shadow-white/10   duration-300 flex items-center gap-2.5 cursor-pointer"
+                className="group cursor-pointer rounded-full bg-white hover:bg-white text-slate-950 px-6 sm:px-7 py-2.5 sm:py-3 text-sm sm:text-[15px] font-semibold transition-all duration-200 shadow-[0_2px_12px_rgba(255,255,255,0.1),0_0_0_1px_rgba(255,255,255,0.2)] hover:shadow-[0_6px_28px_rgba(139,92,246,0.35),0_0_0_1px_rgba(255,255,255,0.4)] hover:scale-[1.02] active:scale-[0.98] flex items-center gap-2.5"
               >
-                <FlashIcon className="w-5 h-5 text-[#8B5CF6]" />
-                <span>Start Free</span>
-                <ArrowRight className="w-4 h-4 ml-1 transition-transform group-hover:translate-x-1" strokeWidth={2.5} />
+                <FlashIcon className="w-4 h-4 sm:w-[18px] sm:h-[18px] text-[#8B5CF6] transition-transform duration-200 group-hover:scale-110 group-hover:rotate-6" />
+                <span className="tracking-tight">Start Free</span>
+                <ArrowRight className="w-4 h-4 text-slate-800 transition-transform duration-200 group-hover:translate-x-1" strokeWidth={2.5} />
               </button>
             )}
           </div>

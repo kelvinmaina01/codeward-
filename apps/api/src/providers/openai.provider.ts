@@ -184,15 +184,33 @@ export class NativeOpenAIProvider implements AgentProvider {
       });
     }
 
-    // 7. TokenRouter (https://api.tokenrouter.com)
-    const tokenRouterKey = process.env.TOKENROUTER_API_KEY;
+    // 7a. TokenRouter GLM Free Unlimited Quota (codeward)
+    const tokenRouterGlmKey = process.env.TOKENROUTER_GLM_API_KEY || process.env.TOKENROUTER_API_KEY;
     const tokenRouterBaseUrl = process.env.TOKENROUTER_BASE_URL || 'https://api.tokenrouter.com/v1';
-    if (tokenRouterKey) {
+    if (tokenRouterGlmKey) {
       candidates.push({
-        name: 'tokenrouter',
+        name: 'tokenrouter_glm',
         baseUrl: tokenRouterBaseUrl,
-        apiKey: tokenRouterKey,
-        model: process.env.TOKENROUTER_MODEL || (config.model && config.model.includes('/') ? config.model : 'openai/gpt-5.6-terra'),
+        apiKey: tokenRouterGlmKey,
+        model: process.env.TOKENROUTER_GLM_MODEL || process.env.TOKENROUTER_MODEL || (config.model && config.model.includes('/') ? config.model : 'z-ai/glm-5.3-free'),
+        headers: { 'User-Agent': 'Cline/3.0.0' },
+        sanitizePayload: (payload: any) => {
+          if (payload.tools && payload.tools.length > 0) {
+            payload.tool_choice = 'required';
+          }
+          return payload;
+        },
+      });
+    }
+
+    // 7b. TokenRouter GPT ($50 balance)
+    const tokenRouterGptKey = process.env.TOKENROUTER_GPT_API_KEY;
+    if (tokenRouterGptKey) {
+      candidates.push({
+        name: 'tokenrouter_gpt',
+        baseUrl: tokenRouterBaseUrl,
+        apiKey: tokenRouterGptKey,
+        model: process.env.TOKENROUTER_GPT_MODEL || (config.model && config.model.includes('/') ? config.model : 'openai/gpt-5.6-terra'),
         headers: { 'User-Agent': 'Cline/3.0.0' },
         sanitizePayload: (payload: any) => {
           if (payload.tools && payload.tools.length > 0) {
@@ -217,15 +235,24 @@ export class NativeOpenAIProvider implements AgentProvider {
     // Explicit AI_PROVIDER priority takes precedence
     const preferredProvider = process.env.AI_PROVIDER?.toLowerCase()?.trim();
     if (preferredProvider) {
+      const matchesPref = (name: string) => {
+        const n = name.toLowerCase();
+        if (n === preferredProvider) return true;
+        if (preferredProvider === 'openai' && n === 'openai_direct') return true;
+        if (preferredProvider === 'tokenrouter' && (n === 'tokenrouter_glm' || n === 'tokenrouter')) return true;
+        if ((preferredProvider === 'tokenrouter-glm' || preferredProvider === 'tokenrouter_glm') && n === 'tokenrouter_glm') return true;
+        if ((preferredProvider === 'tokenrouter-gpt' || preferredProvider === 'tokenrouter_gpt') && n === 'tokenrouter_gpt') return true;
+        return false;
+      };
       candidates.sort((a, b) => {
-        const aMatches = a.name.toLowerCase() === preferredProvider || (preferredProvider === 'openai' && a.name === 'openai_direct');
-        const bMatches = b.name.toLowerCase() === preferredProvider || (preferredProvider === 'openai' && b.name === 'openai_direct');
+        const aMatches = matchesPref(a.name);
+        const bMatches = matchesPref(b.name);
         if (aMatches && !bMatches) return -1;
         if (!aMatches && bMatches) return 1;
         return 0;
       });
     } else if (process.env.AI_PROVIDER_CASCADE) {
-      // Allow custom cascade ordering if specified (e.g. AI_PROVIDER_CASCADE="openrouter,deepseek,openai_direct")
+      // Allow custom cascade ordering if specified (e.g. AI_PROVIDER_CASCADE="tokenrouter_glm,deepseek,openai_direct")
       const order = process.env.AI_PROVIDER_CASCADE.split(',').map(s => s.trim().toLowerCase());
       candidates.sort((a, b) => {
         const idxA = order.indexOf(a.name.toLowerCase());
