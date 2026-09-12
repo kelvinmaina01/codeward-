@@ -83,6 +83,8 @@ export const runs = pgTable('runs', {
   rawLogs: text('raw_logs'),
   scope: jsonb('scope'),
   prNumber: integer('pr_number'),
+  githubCheckRunId: integer('github_check_run_id'),
+  githubStatusCommentId: integer('github_status_comment_id'),
   createdAt: timestamp('created_at').defaultNow(),
 }, (table) => ({
   repoIdIdx: index('runs_repo_id_idx').on(table.repoId),

@@ -461,6 +461,23 @@ Use these EXACT values for any tool parameter named runId/repoId — never inven
       }
     }
 
+    // Complete the same GitHub Check Run and initial status comment created at webhook time.
+    // This is deliberately deterministic rather than relying on a model to remember an API call.
+    if (agentId === 'orchestrator_phase3' && runRow?.prNumber != null) {
+      try {
+        const { completePrLifecycle } = await import('../../services/github-pr-lifecycle.service.js');
+        const decision = String(result.gateDecision ?? 'COMMENT');
+        const conclusion = decision === 'APPROVE' ? 'success' : decision === 'BLOCK' ? 'failure' : 'neutral';
+        await completePrLifecycle(runId, {
+          conclusion,
+          title: `Codeward review · ${decision}`,
+          summary: (result as any).rationale ?? `Codeward completed its review with decision: ${decision}.`,
+        });
+      } catch (lifecycleError) {
+        console.error(`[AgentWorker] Could not complete PR lifecycle for run #${runId}:`, (lifecycleError as Error).message);
+      }
+    }
+
     // -----------------------------------------------------------------------
     // 6d. Mark the repo active once its real FIRST scan completes. A full user-journey audit
     // found nothing ever did this: repositories.status stayed 'pending_audit' forever, which

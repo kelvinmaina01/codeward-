@@ -129,6 +129,16 @@ function ToolResultSummary({ name, output }: { name: string; output: any }) {
       <Zap size={11} /> {tokens} used so far
     </div> : null;
   }
+  if (name === 'get_run_status' && output.runId) {
+    const score = output.overallScore == null ? 'not scored yet' : `${output.overallScore}/100`;
+    return <div className="mt-1.5 rounded-md border border-cw-blue/20 bg-cw-blue/5 px-2.5 py-2 text-[11px] text-cw-txt2">
+      <span className="font-semibold text-cw-txt">Current health snapshot</span>
+      <span className="mx-1.5 text-cw-txt3">·</span>
+      Run #{output.runId} is <span className="font-semibold text-cw-blue">{output.status}</span>
+      <span className="mx-1.5 text-cw-txt3">·</span>
+      score <span className="font-semibold text-cw-txt">{score}</span>
+    </div>;
+  }
   if ((name === 'create_github_issue' || name === 'create_issue_from_finding') && output.htmlUrl) {
     return <a href={output.htmlUrl} target="_blank" rel="noreferrer" className="mt-1.5 inline-flex items-center gap-1.5 rounded-md border border-cw-green/20 bg-cw-green/5 px-2.5 py-1.5 text-[11px] text-cw-green no-underline hover:brightness-110">
       <GitPullRequestIcon size={12} /> GitHub issue #{output.issueNumber}
@@ -162,19 +172,23 @@ function ActivityRow({ name, state, active, onOpen }: { name: string; state: str
   );
 }
 
-/** The composer status is driven by the actual streamed tool parts, never a simulated delay. */
-function StreamStatus({ messages, status }: { messages: UIMessage[]; status: string }) {
-  if (status !== 'submitted' && status !== 'streaming') return null;
-  const latest = messages[messages.length - 1];
-  const activeTool = latest?.role === 'assistant'
-    ? [...latest.parts].reverse().find((p) => isToolUIPart(p) && ((p as any).state === 'input-streaming' || (p as any).state === 'input-available'))
-    : null;
-  const toolName = activeTool ? getToolName(activeTool as any) : null;
+/** A useful first response while the server begins real work — never a generic transport status. */
+function ActiveTurn({ message }: { message: UIMessage }) {
+  const text = (message.parts ?? []).filter((p: any) => p.type === 'text').map((p: any) => p.text).join(' ').toLowerCase();
+  const intent = /health|score|status|where.*at/.test(text)
+    ? 'Checking the latest health signal and scan status.'
+    : /scan|analy[sz]e|security|audit/.test(text)
+      ? 'Preparing the evidence needed for this analysis.'
+      : /diff|commit|branch/.test(text)
+        ? 'Reading the relevant repository change.'
+        : 'Working on your request.';
   return (
-    <div className="flex items-center gap-2 rounded-lg border border-cw-blue/20 bg-cw-blue/[0.045] px-3 py-2 text-[11px] text-cw-txt2">
-      <Radio size={12} className="text-cw-blue animate-pulse" />
-      <span>{toolName ? `${TOOL_LABELS[toolName] ?? toolName}…` : status === 'submitted' ? 'Routing your request…' : 'Streaming response…'}</span>
-      <span className="ml-auto text-cw-txt3">live</span>
+    <div className="flex gap-3 items-start animate-in fade-in duration-200">
+      <GordonIcon size={28} />
+      <div className="pt-1 text-xs text-cw-txt2">
+        <span className="font-medium text-cw-txt">{intent}</span>
+        <span className="block mt-1 text-[11px] text-cw-txt3">Live evidence will appear here as it arrives.</span>
+      </div>
     </div>
   );
 }
@@ -706,6 +720,7 @@ export function AIAgent() {
   const [detail, setDetail] = useState<ToolDetail | null>(null);
   const [attachedFiles, setAttachedFiles] = useState<AttachmentFile[]>([]);
   const [isPlanMode, setIsPlanMode] = useState(false);
+  const [lastPrompt, setLastPrompt] = useState('');
   const [permissionMode, setPermissionMode] = useState<PermissionMode>(() => {
     const saved = localStorage.getItem('cw_gordon_permission_mode');
     return saved === 'auto_review' || saved === 'full_access' ? saved : 'default';
@@ -786,7 +801,9 @@ export function AIAgent() {
       attachments: attachmentsRef.current.map(({ name, content, size }) => ({ name, content, size })),
     }),
     fetch: (async (info: RequestInfo | URL, init?: RequestInit) => {
-      const res = await fetch(info, init);
+      let res = await fetch(info, init);
+      // A transient cold start or upstream 5xx should not turn into a dead conversation.
+      if (!res.ok && (res.status === 408 || res.status >= 500)) res = await fetch(info, init);
       const sid = res.headers.get('X-Chat-Session-Id');
       if (sid && sid !== sessionIdRef.current) {
         sessionIdRef.current = sid; setActiveSessionId(sid);
@@ -817,6 +834,7 @@ export function AIAgent() {
   const send = (text: string) => {
     const val = text.trim();
     if (!val || busy) return;
+    setLastPrompt(val);
     setInput('');
     sendMessage({ text: val });
     // The server has already captured the attachment context in the request body.
@@ -898,7 +916,8 @@ export function AIAgent() {
             </div>
           ))}
 
-          <StreamStatus messages={messages} status={status} />
+          {busy && messages[messages.length - 1]?.role === 'user' && <ActiveTurn message={messages[messages.length - 1]} />}
+
           <div ref={bottomRef} />
           </div>
         </div>
@@ -915,10 +934,11 @@ export function AIAgent() {
                   {error.message?.includes('429') || error.message?.includes('quota')
                     ? "Gordon is experiencing high demand right now. Please wait a few moments before trying again."
                     : error.message?.includes('500')
-                    ? "Gordon encountered a temporary server hiccup. You can retry your message in a moment."
-                    : "Connection to Gordon was interrupted. Please try re-sending your message."}
+                    ? "Gordon hit a temporary server error after retrying once. Your prompt is ready to retry."
+                    : "Gordon’s stream stopped before it could finish. Your prompt is ready to retry."}
                 </span>
               </div>
+              {lastPrompt && <button onClick={() => setInput(lastPrompt)} className="ml-3 shrink-0 rounded-md border border-cw-amber/40 px-2 py-1 text-[11px] font-semibold hover:bg-cw-amber/10">Restore prompt</button>}
             </div>
           )}
           {/* slash-command menu */}
