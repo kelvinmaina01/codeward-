@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, lazy, Suspense, startTransition } from 'react';
+import { useState, useEffect, useRef, useMemo, lazy, Suspense, startTransition } from 'react';
 import { useRoutes, Navigate, useNavigate, useLocation, useParams, NavLink } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import {
@@ -156,33 +156,6 @@ const themeIcons: Record<Theme, React.ReactNode> = {
 interface NavItem { id: Screen; label: string; dot: 'g'|'a'|'r'|'b'|'p'|''; badge?: number; beta?: boolean; icon: LucideIcon; path: string; }
 interface NavGroup { group: string; items: NavItem[] }
 
-const nav: NavGroup[] = [
-  { group: 'Overview', items: [
-    { id: 'dashboard', label: 'Dashboard', dot: 'g', icon: LayoutDashboard, path: '/dashboard' },
-    { id: 'alerts', label: 'Alerts', dot: 'r', badge: 7, icon: Bell, path: '/dashboard/alerts' },
-    { id: 'livefeed', label: 'Live feed', dot: 'a', badge: 1, icon: Radio, path: '/dashboard/livefeed' },
-  ]},
-  { group: 'Analysis', items: [
-    { id: 'diff', label: 'Diff viewer', dot: 'b', icon: GitCompare, path: '/dashboard/diff' },
-    // { id: 'commits', label: 'Commit History', dot: 'p', icon: GitFork, path: '/dashboard/commits' }, // Hidden: PR-only policy
-    { id: 'issuesprs', label: 'Issues & PRs (Codeward agent)', dot: 'p', icon: GitPullRequest, path: '/dashboard/issues-prs' },
-    { id: 'security', label: 'Security', dot: 'r', badge: 3, icon: ShieldAlert, path: '/dashboard/security' },
-    { id: 'debt', label: 'Debt report', dot: 'a', icon: BarChart3, path: '/dashboard/debt' },
-  ]},
-  { group: 'AI Agent', items: [
-    { id: 'agent', label: 'Gordon', dot: 'p', beta: true, icon: GordonIcon as unknown as LucideIcon, path: '/dashboard/agent' },
-  ]},
-  { group: 'Deploy', items: [
-    { id: 'staging', label: 'Staging', dot: 'a', icon: Monitor, path: '/dashboard/staging' },
-    { id: 'history', label: 'Runs', dot: '', icon: Clock, path: '/dashboard/history' },
-  ]},
-  { group: 'Health', items: [
-    { id: 'repos', label: 'Repositories', dot: '', icon: GitFork, path: '/dashboard/repos' },
-    { id: 'cert', label: 'Certificate', dot: 'g', icon: Award, path: '/dashboard/cert' },
-    { id: 'settings', label: 'Settings', dot: '', icon: SettingsIcon, path: '/dashboard/settings' },
-    // { id: 'integrations', label: 'Integrations', dot: 'b', icon: Blocks, path: '/dashboard/integrations' },
-  ]},
-];
 
 const topbarConfig: Partial<Record<string, { title: string; sub: string }>> = {
   dashboard: { title: 'Dashboard', sub: 'Overview of connected repositories' },
@@ -258,6 +231,94 @@ function DashboardLayout() {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [isHelpDrawerOpen, setIsHelpDrawerOpen] = useState(false);
   const bellRef = useRef<HTMLButtonElement>(null);
+
+  // Real dynamic system badge counts (replaces mock alerts/security/livefeed counts)
+  const [systemBadges, setSystemBadges] = useState<{
+    alerts: number;
+    security: number;
+    livefeed: number;
+  }>({ alerts: 0, security: 0, livefeed: 0 });
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchBadgeCounts = async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/alerts`, { credentials: 'include' });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!isMounted) return;
+
+        const alertsList = Array.isArray(data?.alerts) ? data.alerts : [];
+        const totalAlerts = Number(data?.stats?.total ?? alertsList.length) || 0;
+        const secCount = alertsList.filter((a: any) =>
+          a.kind === 'finding' && (a.source === 'Security Agent' || a.severity === 'CRITICAL' || a.severity === 'HIGH')
+        ).length;
+        const activeRuns = alertsList.filter((a: any) => a.kind === 'running' || a.status === 'in_progress').length;
+
+        setSystemBadges({
+          alerts: totalAlerts,
+          security: secCount,
+          livefeed: activeRuns,
+        });
+      } catch {
+        // Silently fallback without crashing UI
+      }
+    };
+
+    fetchBadgeCounts();
+    const interval = setInterval(fetchBadgeCounts, 30000);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, []);
+
+  const nav: NavGroup[] = useMemo(() => [
+    { group: 'Overview', items: [
+      { id: 'dashboard', label: 'Dashboard', dot: 'g', icon: LayoutDashboard, path: '/dashboard' },
+      { 
+        id: 'alerts', 
+        label: 'Alerts', 
+        dot: systemBadges.alerts > 0 ? 'r' : '', 
+        badge: systemBadges.alerts > 0 ? systemBadges.alerts : undefined, 
+        icon: Bell, 
+        path: '/dashboard/alerts' 
+      },
+      { 
+        id: 'livefeed', 
+        label: 'Live feed', 
+        dot: systemBadges.livefeed > 0 ? 'a' : '', 
+        badge: systemBadges.livefeed > 0 ? systemBadges.livefeed : undefined, 
+        icon: Radio, 
+        path: '/dashboard/livefeed' 
+      },
+    ]},
+    { group: 'Analysis', items: [
+      { id: 'diff', label: 'Diff viewer', dot: 'b', icon: GitCompare, path: '/dashboard/diff' },
+      { id: 'issuesprs', label: 'Issues & PRs (Codeward agent)', dot: 'p', icon: GitPullRequest, path: '/dashboard/issues-prs' },
+      { 
+        id: 'security', 
+        label: 'Security', 
+        dot: systemBadges.security > 0 ? 'r' : '', 
+        badge: systemBadges.security > 0 ? systemBadges.security : undefined, 
+        icon: ShieldAlert, 
+        path: '/dashboard/security' 
+      },
+      { id: 'debt', label: 'Debt report', dot: 'a', icon: BarChart3, path: '/dashboard/debt' },
+    ]},
+    { group: 'AI Agent', items: [
+      { id: 'agent', label: 'Gordon', dot: 'p', beta: true, icon: GordonIcon as unknown as LucideIcon, path: '/dashboard/agent' },
+    ]},
+    { group: 'Deploy', items: [
+      { id: 'staging', label: 'Staging', dot: 'a', icon: Monitor, path: '/dashboard/staging' },
+      { id: 'history', label: 'Runs', dot: '', icon: Clock, path: '/dashboard/history' },
+    ]},
+    { group: 'Health', items: [
+      { id: 'repos', label: 'Repositories', dot: '', icon: GitFork, path: '/dashboard/repos' },
+      { id: 'cert', label: 'Certificate', dot: 'g', icon: Award, path: '/dashboard/cert' },
+      { id: 'settings', label: 'Settings', dot: '', icon: SettingsIcon, path: '/dashboard/settings' },
+    ]},
+  ], [systemBadges]);
 
   // Global Feed Leaderboard State
   const [leaderboardList, setLeaderboardList] = useState<Array<{
