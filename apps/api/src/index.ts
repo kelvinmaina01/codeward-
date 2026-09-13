@@ -115,10 +115,18 @@ app.on(['POST', 'GET', 'OPTIONS'], '/api/auth/*', async (c) => {
     });
   } catch (authErr: any) {
     console.error(`[Auth] Handler error on ${c.req.method} ${c.req.path}:`, authErr);
-    return c.json({
+    return new Response(JSON.stringify({
       error: 'Authentication Error',
       message: authErr?.message || 'Failed to process authentication request.'
-    }, 500);
+    }), {
+      status: 500,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': origin || defaultFrontend,
+        'Access-Control-Allow-Credentials': 'true',
+        'Vary': 'Origin',
+      }
+    });
   }
 });
 
