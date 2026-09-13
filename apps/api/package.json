@@ -5,6 +5,7 @@
   "license": "Apache-2.0",
   "type": "module",
   "scripts": {
+    "reset-repo": "tsx scripts/reset-repo.ts",
     "dev": "tsx watch src/index.ts",
     "worker": "tsx src/worker.ts",
     "test:harness": "npm run test:guardian:mock && npm run test:guardian:renderer && npm run test:fixer:verification && npm run test:escalation && npm run test:sandbox:lfs",
