@@ -57,6 +57,13 @@ export function OnboardingStatusPage() {
 
   // If no repos provided in state, fetch the latest connected repositories from API
   useEffect(() => {
+    // Returning members visiting /onboarding/status directly should go to dashboard
+    const stateRepos = (location.state as any)?.repos;
+    if (!stateRepos && localStorage.getItem('cw_has_onboarded') === 'true') {
+      navigate('/dashboard', { replace: true });
+      return;
+    }
+
     if (reposList.length === 0) {
       fetch(`${API_URL}/api/repos/connected`, { credentials: 'include' })
         .then((res) => (res.ok ? res.json() : { repos: [] }))

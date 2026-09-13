@@ -851,12 +851,40 @@ function ConnectRepoWrapper() {
   const navigate = useNavigate();
   const [globalOrgs, setGlobalOrgs] = useState<string[]>([]);
   const [activeOrg, setActiveOrg] = useState<string>('');
+  const [isExistingMember, setIsExistingMember] = useState(() => {
+    return localStorage.getItem('cw_has_onboarded') === 'true';
+  });
+
+  useEffect(() => {
+    if (!isExistingMember) {
+      fetch(`${API_URL}/api/repos/connected`, { credentials: 'include' })
+        .then(res => res.ok ? res.json() : { repos: [] })
+        .then(data => {
+          if (data?.repos && data.repos.length > 0) {
+            setIsExistingMember(true);
+            localStorage.setItem('cw_has_onboarded', 'true');
+          }
+        })
+        .catch(() => {});
+    }
+  }, [isExistingMember]);
 
   if (!session?.user) return null;
+
+  const handleConnect = (connectedRepos: any) => {
+    // Existing members connecting another repo go directly to dashboard (as it works now)
+    // Only first-time onboarding users go through the status/preparing screen
+    if (isExistingMember || localStorage.getItem('cw_has_onboarded') === 'true') {
+      navigate('/dashboard');
+    } else {
+      navigate('/onboarding/status', { state: { repos: connectedRepos } });
+    }
+  };
+
   return (
     <ConnectRepo
       user={{ name: session.user.name, email: session.user.email, image: session.user.image }}
-      onConnect={(connectedRepos: any) => navigate('/onboarding/status', { state: { repos: connectedRepos } })}
+      onConnect={handleConnect}
       onSkip={() => navigate('/dashboard')}
       activeOrg={activeOrg}
       setActiveOrg={setActiveOrg}
