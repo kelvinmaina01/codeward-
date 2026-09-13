@@ -104,6 +104,9 @@ const STEPS = {
 export function ConnectRepo({ user, onConnect, onSkip, activeOrg, setActiveOrg, orgs: propOrgs, theme, onCycleTheme }: Props) {
   const [activeStep, setActiveStep] = useState(STEPS.SELECT_METHOD);
   const [authProvider, setAuthProvider] = useState<'github' | 'gitlab' | null>(null);
+  // True until the mount-time repo fetch settles, so the wizard stays hidden while we work out
+  // which step the user actually belongs on.
+  const [isInitialCheck, setIsInitialCheck] = useState(true);
   
   // GitLab state form values
   const [gitlabUrl, setGitlabUrl] = useState('https://gitlab.com');
@@ -173,6 +176,7 @@ export function ConnectRepo({ user, onConnect, onSkip, activeOrg, setActiveOrg, 
       }
     } finally {
       setLoadingRepos(false);
+      setIsInitialCheck(false);
     }
   }, [user.name, activeOrg, setActiveOrg]);
 
@@ -261,6 +265,18 @@ export function ConnectRepo({ user, onConnect, onSkip, activeOrg, setActiveOrg, 
     const matchesSearch = !searchQuery || r.name.toLowerCase().includes(searchQuery.toLowerCase()) || (r.desc && r.desc.toLowerCase().includes(searchQuery.toLowerCase()));
     return matchesOrg && matchesSearch;
   });
+
+  // Mounting straight into SELECT_METHOD turned Step 1 into an unintended loading screen for
+  // anyone returning from the OAuth redirect, and the UI then snapped to Step 3 the moment the
+  // fetch resolved. Hold the wizard back until we know which step the user belongs on.
+  if (isInitialCheck) {
+    return (
+      <div className={`theme-${currentTheme} min-h-screen bg-cw-bg text-cw-txt flex flex-col items-center justify-center gap-4 p-6 font-sans`}>
+        <Loader size={28} className="animate-spin text-cw-purple" />
+        <p className="text-[13px] text-cw-txt2">Verifying connection...</p>
+      </div>
+    );
+  }
 
   return (
     <div className={`theme-${currentTheme} min-h-screen bg-cw-bg text-cw-txt flex items-center justify-center p-6 font-sans relative`}>
