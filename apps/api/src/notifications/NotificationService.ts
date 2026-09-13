@@ -3,6 +3,8 @@ import * as React from 'react';
 import { WelcomeVerificationEmail } from './templates/WelcomeVerificationEmail.js';
 import { EscalationEmail } from './templates/EscalationEmail.js';
 import { RepoConnectedSuccessEmail } from './templates/RepoConnectedSuccessEmail.js';
+import { ReposConnectedInitiatedEmail } from './templates/ReposConnectedInitiatedEmail.js';
+import { QueuedRepoStartedEmail } from './templates/QueuedRepoStartedEmail.js';
 import { RunFailureEmail } from './templates/RunFailureEmail.js';
 import { AccountDeletionEmail } from './templates/AccountDeletionEmail.js';
 import { PlanUpgradedEmail } from './templates/PlanUpgradedEmail.js';
@@ -172,6 +174,49 @@ export class NotificationService {
       React.createElement(EscalationEmail, { repoName, prNumber, prTitle, failingTestName, runId }),
       {
         fromAddress: 'Codeward Guardian <alerts@codeward.cloud>',
+        replyTo: 'support@codeward.cloud',
+      }
+    );
+  }
+
+  static async sendReposConnectedInitiated(payload: {
+    to: string;
+    userName: string;
+    activeRepo: string;
+    queuedRepos: string[];
+    streamUrl: string;
+  }) {
+    const subject = payload.queuedRepos.length > 0
+      ? `Codeward Protection Initiated: ${payload.activeRepo} scanning now (${payload.queuedRepos.length} queued)`
+      : `Codeward Protection Initiated: ${payload.activeRepo} scanning now`;
+
+    return this.sendEmail(
+      payload.to,
+      subject,
+      React.createElement(ReposConnectedInitiatedEmail, payload),
+      {
+        fromAddress: 'Codeward <notifications@codeward.cloud>',
+        replyTo: 'support@codeward.cloud',
+      }
+    );
+  }
+
+  static async sendQueuedRepoStarted(payload: {
+    to: string;
+    userName: string;
+    previousRepo: string;
+    activeRepo: string;
+    remainingQueuedRepos?: string[];
+    streamUrl: string;
+  }) {
+    const subject = `Next Repository Dequeued: ${payload.activeRepo} scanning now`;
+
+    return this.sendEmail(
+      payload.to,
+      subject,
+      React.createElement(QueuedRepoStartedEmail, payload),
+      {
+        fromAddress: 'Codeward <notifications@codeward.cloud>',
         replyTo: 'support@codeward.cloud',
       }
     );
