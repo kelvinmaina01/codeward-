@@ -1,8 +1,0 @@
-apps/api
-apps/api/**
-docker
-docker/**
-docs
-docs/**
-legal
-legal/**
