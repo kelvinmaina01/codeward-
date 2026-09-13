@@ -295,7 +295,7 @@ function DashboardLayout() {
     ]},
     { group: 'Analysis', items: [
       { id: 'diff', label: 'Diff viewer', dot: 'b', icon: GitCompare, path: '/dashboard/diff' },
-      { id: 'issuesprs', label: 'Issues & PRs (Codeward agent)', dot: 'p', icon: GitPullRequest, path: '/dashboard/issues-prs' },
+      { id: 'issuesprs', label: 'Issues & PRs', dot: 'p', icon: GitPullRequest, path: '/dashboard/issues-prs' },
       { 
         id: 'security', 
         label: 'Security', 
@@ -519,10 +519,10 @@ function DashboardLayout() {
                       <div className={`${isActive ? 'text-cw-blue' : 'text-cw-txt3 group-hover:text-cw-txt'} shrink-0 transition-colors`}>
                         <item.icon size={20} strokeWidth={2.5} absoluteStrokeWidth />
                       </div>
-                      <div className={`flex items-center flex-1 whitespace-nowrap overflow-hidden transition-opacity duration-300 ${isSidebarPinned ? 'opacity-100' : 'opacity-0'}`}>
-                        {item.label}
-                        {item.beta && <span className="ml-auto text-[9px] px-[6px] py-[1px] rounded-full border border-cw-purple text-cw-purple font-semibold tracking-wide">BETA</span>}
-                        {item.badge && <span className="ml-auto text-[10px] px-[6px] py-[2px] rounded-full bg-cw-red text-white font-medium">{item.badge}</span>}
+                      <div className={`flex items-center flex-1 min-w-0 overflow-hidden transition-opacity duration-300 ${isSidebarPinned ? 'opacity-100' : 'opacity-0'}`}>
+                        <span className="truncate">{item.label}</span>
+                        {item.beta && <span className="ml-auto shrink-0 text-[9px] px-[6px] py-[1px] rounded-full border border-cw-purple text-cw-purple font-semibold tracking-wide">BETA</span>}
+                        {item.badge && <span className="ml-auto shrink-0 text-[10px] px-[6px] py-[2px] rounded-full bg-cw-red text-white font-medium">{item.badge}</span>}
                       </div>
                     </>
                   )}
