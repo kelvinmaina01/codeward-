@@ -17,10 +17,10 @@ export const WelcomeVerificationEmail: React.FC<WelcomeVerificationEmailProps> =
   isOAuth = false,
 }) => {
   const terminalDemo = `> codeward analyze --commit 4f2a8c1
-[✓] Firecracker microVM booted (125ms)
-[✓] 8 Autonomous Agents running in parallel...
+[OK] Firecracker microVM booted (125ms)
+[OK] 8 Autonomous Agents running in parallel...
 [!] Security Agent caught 1 Critical SQL Injection
-[✓] Gate decision: BLOCKED. Auto-remediation PR dispatched.`;
+[OK] Gate decision: BLOCKED. Auto-remediation PR dispatched.`;
 
   return (
     <BrandEmailLayout previewText={`Welcome to Codeward, ${userName}!`}>
@@ -49,7 +49,7 @@ export const WelcomeVerificationEmail: React.FC<WelcomeVerificationEmailProps> =
       {/* 3. Feature Highlights Matrix */}
       <div style={featuresContainer}>
         <div style={featureRow}>
-          <span style={featureIcon}>🛡️</span>
+          <span style={featureBadge}>01</span>
           <div style={featureContent}>
             <strong style={featureTitle}>Runtime Security Guard</strong>
             <p style={featureDesc}>Catches 18+ critical vulnerability classes, prompt injections, and database RLS leaks.</p>
@@ -57,7 +57,7 @@ export const WelcomeVerificationEmail: React.FC<WelcomeVerificationEmailProps> =
         </div>
 
         <div style={featureRow}>
-          <span style={featureIcon}>🧹</span>
+          <span style={featureBadge}>02</span>
           <div style={featureContent}>
             <strong style={featureTitle}>Zero Tech Debt & Bloat</strong>
             <p style={featureDesc}>Deep AST scanning eliminates dead code, God files, and duplicated business logic.</p>
@@ -65,7 +65,7 @@ export const WelcomeVerificationEmail: React.FC<WelcomeVerificationEmailProps> =
         </div>
 
         <div style={featureRow}>
-          <span style={featureIcon}>⚡</span>
+          <span style={featureBadge}>03</span>
           <div style={featureContent}>
             <strong style={featureTitle}>Firecracker Sandbox Execution</strong>
             <p style={featureDesc}>Runs verification tests inside isolated microVMs before risky code ever merges.</p>
@@ -128,10 +128,17 @@ const featureRow: React.CSSProperties = {
   marginBottom: '12px',
 };
 
-const featureIcon: React.CSSProperties = {
-  fontSize: '18px',
+const featureBadge: React.CSSProperties = {
+  fontFamily: 'SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+  fontSize: '11px',
+  fontWeight: 600,
+  color: brandColors.textSecondary,
+  backgroundColor: '#F3F4F6',
+  border: '1px solid #E5E7EB',
+  borderRadius: '4px',
+  padding: '2px 6px',
   marginRight: '12px',
-  lineHeight: '1.2',
+  lineHeight: '1.4',
 };
 
 const featureContent: React.CSSProperties = {

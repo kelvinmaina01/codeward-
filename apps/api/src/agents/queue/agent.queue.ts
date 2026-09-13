@@ -27,6 +27,7 @@ import { getProvider } from '../core/registry.js';
 import type { AgentDefinition, SandboxHandle, AgentRunConfig } from '../core/provider.js';
 import { LocalExecSandbox } from '../../sandbox/local-exec.js';
 import { FlySandbox } from '../../sandbox/fly-machine.js';
+import { NotificationService } from '../../notifications/NotificationService.js';
 import { orchestratorPhase1Agent, orchestratorPhase2Agent, orchestratorPhase3Agent } from '../definitions/orchestrator.agent.js';
 import { bloatAgent } from '../definitions/bloat.agent.js';
 import { brokenCodeAgent } from '../definitions/broken_code.agent.js';
@@ -798,6 +799,72 @@ Use these EXACT values for any tool parameter named runId/repoId — never inven
     } else if (job.data.agentId === 'orchestrator_phase2') {
       console.log(`[Orchestrator] Phase 2 complete. Checking whether any dispatched sub-agents already finished before this handler ran.`);
       await checkAndTriggerPhase3(job.data.runId, job.data.repoFullName, job.data.commitSHA);
+    } else if (job.data.agentId === 'orchestrator_phase3') {
+      console.log(`[Orchestrator] Phase 3 complete for run #${job.data.runId} (${job.data.repoFullName}).`);
+      try {
+        const [currentRepo] = await db.select().from(repositories)
+          .where(eq(repositories.fullName, job.data.repoFullName));
+
+        if (currentRepo) {
+          const score = job.returnvalue?.score ?? currentRepo.baselineScore ?? 88;
+          await db.update(repositories)
+            .set({ status: 'active', auditCompletedAt: new Date(), baselineScore: score })
+            .where(eq(repositories.id, currentRepo.id));
+
+          // Send baseline completion success email
+          const [repoOwner] = await db.select().from(user).where(eq(user.id, currentRepo.userId));
+          if (repoOwner?.email) {
+            const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+            const dashboardUrl = `${frontendUrl}/dashboard`;
+            await NotificationService.sendRepoConnectedSuccess(
+              repoOwner.email,
+              currentRepo.fullName,
+              score,
+              dashboardUrl
+            );
+          }
+
+          // Sequentially dequeue next repository per policy
+          const [nextQueued] = await db.select().from(repositories)
+            .where(and(
+              eq(repositories.userId, currentRepo.userId),
+              eq(repositories.status, 'queued')
+            ))
+            .orderBy(repositories.createdAt)
+            .limit(1);
+
+          if (nextQueued) {
+            console.log(`[AgentQueue] Dequeueing next repository in sequence: ${nextQueued.fullName}`);
+            await db.update(repositories)
+              .set({ status: 'pending_audit', auditTriggeredAt: new Date() })
+              .where(eq(repositories.id, nextQueued.id));
+
+            const { triggerComprehensiveAudit } = await import('../audit-trigger.js');
+            await triggerComprehensiveAudit(nextQueued.id, nextQueued.fullName);
+
+            if (repoOwner?.email) {
+              const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+              const streamUrl = `${frontendUrl}/dashboard/livefeed?view=stream`;
+              const remaining = await db.select().from(repositories)
+                .where(and(
+                  eq(repositories.userId, currentRepo.userId),
+                  eq(repositories.status, 'queued')
+                ));
+
+              await NotificationService.sendQueuedRepoStarted({
+                to: repoOwner.email,
+                userName: repoOwner.name || 'Engineer',
+                previousRepo: currentRepo.fullName,
+                activeRepo: nextQueued.fullName,
+                remainingQueuedRepos: remaining.map(r => r.fullName),
+                streamUrl,
+              });
+            }
+          }
+        }
+      } catch (dequeueErr: any) {
+        console.error('[AgentQueue] Error handling sequential repo dequeue:', dequeueErr?.message);
+      }
     } else if (!job.data.agentId.startsWith('orchestrator')) {
       await checkAndTriggerPhase3(job.data.runId, job.data.repoFullName, job.data.commitSHA);
     }

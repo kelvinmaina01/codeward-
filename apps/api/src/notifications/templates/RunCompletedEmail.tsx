@@ -101,7 +101,7 @@ export const RunCompletedEmail: React.FC<RunCompletedEmailProps> = ({
       {criticalFindings.length > 0 && (
         <div style={findingsBox}>
           <h3 style={findingsBoxTitle}>
-            ⚠️ Top Findings Requiring Attention ({criticalFindings.length})
+            Top Findings Requiring Attention ({criticalFindings.length})
           </h3>
           <ul style={findingsList}>
             {criticalFindings.slice(0, 3).map((f, i) => (
@@ -123,7 +123,7 @@ export const RunCompletedEmail: React.FC<RunCompletedEmailProps> = ({
       {autoFixPrUrl && (
         <div style={autoFixCard}>
           <div style={autoFixTitle}>
-            🤖 Codeward Guardian Auto-Fix Available
+            Codeward Guardian Auto-Fix Available
           </div>
           <p style={autoFixBody}>
             An automated remediation PR has been created to resolve blocking issues detected during this run.

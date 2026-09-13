@@ -13,6 +13,9 @@ import { Theme, Screen } from './components/types';
 import { AuthPage } from './pages/auth/AuthPage';
 import { ConnectRepo } from './pages/auth/ConnectRepo';
 import { InviteAcceptPage } from './pages/auth/InviteAcceptPage';
+import { OnboardingPage } from './pages/auth/OnboardingPage';
+import { OnboardingPlanPage } from './pages/auth/OnboardingPlanPage';
+import { OnboardingStatusPage } from './pages/auth/OnboardingStatusPage';
 
 // Marketing Pages (eagerly loaded — landing page needs instant paint)
 import CodewardHero from './pages/marketing/LandingHero';
@@ -431,10 +434,13 @@ function DashboardLayout() {
   const screen = pathToScreen(location.pathname);
 
   useEffect(() => {
-    if (screen === 'livefeed' && sessionStorage.getItem('cw_target_agent_id')) {
+    const urlParams = new URLSearchParams(location.search);
+    if (urlParams.get('view') === 'stream') {
+      setLiveFeedView('stream');
+    } else if (screen === 'livefeed' && sessionStorage.getItem('cw_target_agent_id')) {
       setLiveFeedView('canvas');
     }
-  }, [location.pathname]);
+  }, [location.pathname, location.search]);
 
   useEffect(() => {
     if (session?.user && globalOrgs.length === 0) {
@@ -845,12 +851,40 @@ function ConnectRepoWrapper() {
   const navigate = useNavigate();
   const [globalOrgs, setGlobalOrgs] = useState<string[]>([]);
   const [activeOrg, setActiveOrg] = useState<string>('');
+  const [isExistingMember, setIsExistingMember] = useState(() => {
+    return localStorage.getItem('cw_has_onboarded') === 'true';
+  });
+
+  useEffect(() => {
+    if (!isExistingMember) {
+      fetch(`${API_URL}/api/repos/connected`, { credentials: 'include' })
+        .then(res => res.ok ? res.json() : { repos: [] })
+        .then(data => {
+          if (data?.repos && data.repos.length > 0) {
+            setIsExistingMember(true);
+            localStorage.setItem('cw_has_onboarded', 'true');
+          }
+        })
+        .catch(() => {});
+    }
+  }, [isExistingMember]);
 
   if (!session?.user) return null;
+
+  const handleConnect = (connectedRepos: any) => {
+    // Existing members connecting another repo go directly to dashboard (as it works now)
+    // Only first-time onboarding users go through the status/preparing screen
+    if (isExistingMember || localStorage.getItem('cw_has_onboarded') === 'true') {
+      navigate('/dashboard');
+    } else {
+      navigate('/onboarding/status', { state: { repos: connectedRepos } });
+    }
+  };
+
   return (
     <ConnectRepo
       user={{ name: session.user.name, email: session.user.email, image: session.user.image }}
-      onConnect={() => navigate('/dashboard')}
+      onConnect={handleConnect}
       onSkip={() => navigate('/dashboard')}
       activeOrg={activeOrg}
       setActiveOrg={setActiveOrg}
@@ -925,6 +959,30 @@ export const routes = [
   {
     path: "/signup",
     element: <AuthPage theme="dark" onCycleTheme={() => {}} onNavigate={() => {}} />
+  },
+  {
+    path: "/onboarding",
+    element: (
+      <RequireAuth>
+        <OnboardingPage />
+      </RequireAuth>
+    )
+  },
+  {
+    path: "/onboarding/plan",
+    element: (
+      <RequireAuth>
+        <OnboardingPlanPage />
+      </RequireAuth>
+    )
+  },
+  {
+    path: "/onboarding/status",
+    element: (
+      <RequireAuth>
+        <OnboardingStatusPage />
+      </RequireAuth>
+    )
   },
   {
     path: "/connect",

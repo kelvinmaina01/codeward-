@@ -14,15 +14,15 @@ interface AgentMatrixTableProps {
 }
 
 const agentLabels: Record<string, string> = {
-  security: '🛡️ Security',
-  architecture: '🏛️ Architecture',
-  bloat: '🧹 Bloat & Debt',
-  ai_era: '🤖 AI-Era Flaws',
-  compliance: '⚖️ Compliance',
-  data_dx: '📊 Data & DX',
-  broken_code: '🔧 Broken Code',
-  guardian: '🛡️ Guardian Gate',
-  orchestrator: '🎯 Orchestrator',
+  security: 'Security',
+  architecture: 'Architecture',
+  bloat: 'Bloat & Debt',
+  ai_era: 'AI-Era Flaws',
+  compliance: 'Compliance',
+  data_dx: 'Data & DX',
+  broken_code: 'Broken Code',
+  guardian: 'Guardian Gate',
+  orchestrator: 'Orchestrator',
 };
 
 export const AgentMatrixTable: React.FC<AgentMatrixTableProps> = ({ tasks }) => {

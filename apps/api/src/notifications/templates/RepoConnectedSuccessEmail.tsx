@@ -1,91 +1,107 @@
 import * as React from 'react';
-import { Button, Heading, Text, Section } from '@react-email/components';
-import { Layout, colors } from './Layout.js';
+import { BrandEmailLayout, brandColors } from './BrandEmailLayout.js';
+import { BrandHeader } from './components/BrandHeader.js';
+import { BrandFooter } from './components/BrandFooter.js';
+import { BrandButton } from './components/BrandButton.js';
 
 interface RepoConnectedSuccessEmailProps {
   repoName: string;
   baselineScore: number;
   dashboardUrl: string;
+  recipientName?: string;
 }
 
 export const RepoConnectedSuccessEmail: React.FC<RepoConnectedSuccessEmailProps> = ({
   repoName,
   baselineScore,
   dashboardUrl,
+  recipientName = 'Engineer',
 }) => {
+  const isHealthy = baselineScore >= 80;
+  const scoreColor = isHealthy ? brandColors.successGreen : baselineScore >= 60 ? brandColors.warningYellow : brandColors.dangerRed;
+
   return (
-    <Layout previewText={`Initial scan complete for ${repoName}`}>
-      <Heading style={heading}>Repository Connected! 🚀</Heading>
-      
-      <Text style={text}>
-        Your repository <strong>{repoName}</strong> has been successfully connected to Codeward. We have completed the Initial Deep Scan and established the baseline context for your agents.
-      </Text>
+    <BrandEmailLayout previewText={`Initial Deep Scan Complete: ${repoName} (Score: ${baselineScore}/100)`}>
+      {/* 1. Brand Header with Logo, Bold Headline, and Hero Stat */}
+      <BrandHeader
+        headline="Initial Deep Scan Complete"
+        subtitle={`Repository baseline established · PR guard active for ${repoName}`}
+        heroStat={{
+          value: `${baselineScore}/100`,
+          label: 'Baseline Code & Security Score',
+          valueColor: scoreColor,
+          labelColor: brandColors.textSecondary,
+        }}
+      />
 
-      <Section style={scoreBox}>
-        <Text style={scoreTitle}>Initial Security & Debt Score</Text>
-        <Heading style={scoreValue}>{baselineScore}/100</Heading>
-      </Section>
+      {/* 2. Introductory Context */}
+      <div style={contentBlock}>
+        <p style={paragraph}>
+          Hello <strong>{recipientName}</strong>,
+        </p>
+        <p style={paragraph}>
+          We have completed the comprehensive Initial Deep Scan for <strong>{repoName}</strong>. Our 7 autonomous agents have mapped your AST graph, identified vulnerabilities, and calibrated continuous PR test environments.
+        </p>
+      </div>
 
-      <Text style={text}>
-        From now on, Codeward will intercept all Pull Requests, run them in an isolated sandbox, and auto-fix security vulnerabilities and broken code before they ever reach production.
-      </Text>
+      {/* 3. Protection Guarantee Card */}
+      <div style={protectionCard}>
+        <div style={protectionTitle}>Continuous Autonomous Protection Active</div>
+        <p style={protectionText}>
+          From now on, Codeward will intercept incoming Pull Requests, execute test suites inside isolated microVM sandboxes, and automatically remediate vulnerabilities before they reach production.
+        </p>
+      </div>
 
-      <Button href={dashboardUrl} style={button}>
-        View Full Dashboard
-      </Button>
-    </Layout>
+      {/* 4. Primary CTA: View Full Dashboard */}
+      <BrandButton href={dashboardUrl}>
+        View Full Health Report & Audit
+      </BrandButton>
+
+      {/* 5. Compliant Brand Footer */}
+      <BrandFooter
+        recipientName={recipientName}
+        purposeText="This transactional notification was sent because your repository's baseline audit completed."
+        isMandatoryTransactional={true}
+        appUrl={dashboardUrl}
+      />
+    </BrandEmailLayout>
   );
 };
 
 export default RepoConnectedSuccessEmail;
 
-const heading = {
-  fontSize: '24px',
-  fontWeight: 'bold',
-  color: colors.green, // Green for success
-  textAlign: 'center' as const,
-  marginBottom: '24px',
+// ─── STYLES ────────────────────────────────────────────────────────
+const contentBlock: React.CSSProperties = {
+  textAlign: 'left',
+  margin: '20px 0 16px',
 };
 
-const text = {
-  fontSize: '16px',
-  color: colors.cream,
-  lineHeight: '24px',
-  marginBottom: '20px',
-};
-
-const scoreBox = {
-  backgroundColor: 'rgba(34, 197, 94, 0.1)', // Light green bg
-  border: `1px solid ${colors.green}`,
-  padding: '24px',
-  marginBottom: '24px',
-  borderRadius: '8px',
-  textAlign: 'center' as const,
-};
-
-const scoreTitle = {
+const paragraph: React.CSSProperties = {
   fontSize: '14px',
-  color: colors.green,
+  lineHeight: '22px',
+  color: brandColors.textSecondary,
+  margin: '0 0 12px',
+};
+
+const protectionCard: React.CSSProperties = {
+  backgroundColor: '#FAF9FF',
+  border: `1px solid ${brandColors.cardBorder}`,
+  borderRadius: '10px',
+  padding: '16px 20px',
+  textAlign: 'left',
+  margin: '18px 0',
+};
+
+const protectionTitle: React.CSSProperties = {
+  fontSize: '14px',
+  fontWeight: '700',
+  color: brandColors.textPrimary,
+  marginBottom: '6px',
+};
+
+const protectionText: React.CSSProperties = {
+  fontSize: '13px',
+  lineHeight: '19px',
+  color: brandColors.textSecondary,
   margin: '0',
-  textTransform: 'uppercase' as const,
-  letterSpacing: '1px',
-};
-
-const scoreValue = {
-  fontSize: '48px',
-  color: colors.cream,
-  margin: '10px 0 0 0',
-};
-
-const button = {
-  backgroundColor: colors.green,
-  borderRadius: '6px',
-  color: '#fff',
-  fontSize: '16px',
-  fontWeight: 'bold',
-  textDecoration: 'none',
-  textAlign: 'center' as const,
-  display: 'block',
-  width: '100%',
-  padding: '12px 0',
 };

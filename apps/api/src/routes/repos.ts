@@ -4,6 +4,7 @@ import { db } from '../db/index.js';
 import * as schema from '../db/schema.js';
 import { eq, and, or, inArray, desc, isNotNull } from 'drizzle-orm';
 import { triggerComprehensiveAudit } from '../agents/audit-trigger.js';
+import { NotificationService } from '../notifications/NotificationService.js';
 
 export const reposRouter = new Hono();
 
@@ -553,8 +554,10 @@ reposRouter.post('/connect', async (c) => {
         }
       }
 
-      // 5. Connect the repo
+      // 5. Connect the repo with Sequential Queue Policy
       const repoInstallationId = ownerToInstallationId[repo.owner] || 0;
+      const isFirst = connected.length === 0;
+      const repoStatus = isFirst ? 'pending_audit' : 'queued';
 
       const inserted = await db.insert(schema.repositories).values({
         userId: session.user.id,
@@ -566,8 +569,8 @@ reposRouter.post('/connect', async (c) => {
         language: repo.lang || null,
         isPrivate: repo.isPrivate,
         installationId: repoInstallationId,
-        status: 'pending_audit',
-        auditTriggeredAt: new Date(),
+        status: repoStatus,
+        auditTriggeredAt: isFirst ? new Date() : null,
         config: repo.config || {
           agents: { security: true, bloat: true, broken_code: true, architecture: true, ai_era: true, compliance: true, data_dx: true },
           alerts: { slack: true, email: true, whatsapp: false, calendar: false }
@@ -575,27 +578,46 @@ reposRouter.post('/connect', async (c) => {
       }).onConflictDoNothing().returning();
       connected.push(repo.full);
 
-      // 6. Trigger the REAL comprehensive audit — a full user-journey audit found the previous
-      // 'baseline-audit' job here was silently broken (wrong payload shape for the real
-      // worker), so no repo connected through this endpoint ever got a real first scan.
-      let repoRow = inserted[0];
-      if (!repoRow) {
-        // onConflictDoNothing means this repo already existed — look it up so we still have a
-        // real id to trigger against (e.g. reconnecting, or a race with the install webhook).
-        [repoRow] = await db.select().from(schema.repositories).where(eq(schema.repositories.fullName, repo.full));
-      }
-      if (repoRow) {
-        try {
-          await triggerComprehensiveAudit(repoRow.id, repo.full);
-        } catch (auditErr) {
-          console.error(`Failed to trigger comprehensive audit for ${repo.full}:`, auditErr);
+      // 6. Trigger comprehensive audit ONLY for the primary active repo
+      // Secondary repos are queued sequentially per policy to preserve resources and avoid rate limits
+      if (isFirst) {
+        let repoRow = inserted[0];
+        if (!repoRow) {
+          [repoRow] = await db.select().from(schema.repositories).where(eq(schema.repositories.fullName, repo.full));
         }
-      } else {
-        console.error(`Could not resolve a real repositories row for ${repo.full} — audit not triggered.`);
+        if (repoRow) {
+          try {
+            await triggerComprehensiveAudit(repoRow.id, repo.full);
+          } catch (auditErr) {
+            console.error(`Failed to trigger comprehensive audit for ${repo.full}:`, auditErr);
+          }
+        } else {
+          console.error(`Could not resolve a real repositories row for ${repo.full} — audit not triggered.`);
+        }
       }
 
     } catch (err) {
       console.error(`Failed to connect repo ${repo.full}:`, err);
+    }
+  }
+
+  // 7. Dispatch Dynamic Initiation Email to the User
+  if (connected.length > 0 && session.user.email) {
+    try {
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+      const streamUrl = `${frontendUrl}/dashboard/livefeed?view=stream`;
+      const activeRepo = connected[0];
+      const queuedRepos = connected.slice(1);
+
+      await NotificationService.sendReposConnectedInitiated({
+        to: session.user.email,
+        userName: session.user.name || 'Engineer',
+        activeRepo,
+        queuedRepos,
+        streamUrl,
+      });
+    } catch (emailErr: any) {
+      console.warn(`[ReposRoute] Could not dispatch initiation email:`, emailErr?.message);
     }
   }
 

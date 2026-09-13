@@ -3,6 +3,8 @@ import * as React from 'react';
 import { WelcomeVerificationEmail } from './templates/WelcomeVerificationEmail.js';
 import { EscalationEmail } from './templates/EscalationEmail.js';
 import { RepoConnectedSuccessEmail } from './templates/RepoConnectedSuccessEmail.js';
+import { ReposConnectedInitiatedEmail } from './templates/ReposConnectedInitiatedEmail.js';
+import { QueuedRepoStartedEmail } from './templates/QueuedRepoStartedEmail.js';
 import { RunFailureEmail } from './templates/RunFailureEmail.js';
 import { AccountDeletionEmail } from './templates/AccountDeletionEmail.js';
 import { PlanUpgradedEmail } from './templates/PlanUpgradedEmail.js';
@@ -39,7 +41,7 @@ export class NotificationService {
     // Mock Mode if no valid API key is present
     if (!resend) {
       console.log(`\n======================================================`);
-      console.log(`📧 [MOCK EMAIL DISPATCHED]`);
+      console.log(`[MOCK EMAIL DISPATCHED]`);
       console.log(`To:       ${to}`);
       console.log(`From:     ${from}`);
       console.log(`Reply-To: ${replyTo}`);
@@ -168,10 +170,53 @@ export class NotificationService {
   ) {
     return this.sendEmail(
       to,
-      `🚨 Action Required: PR #${prNumber} on ${repoName} blocked`,
+      `Action Required: PR #${prNumber} on ${repoName} blocked`,
       React.createElement(EscalationEmail, { repoName, prNumber, prTitle, failingTestName, runId }),
       {
         fromAddress: 'Codeward Guardian <alerts@codeward.cloud>',
+        replyTo: 'support@codeward.cloud',
+      }
+    );
+  }
+
+  static async sendReposConnectedInitiated(payload: {
+    to: string;
+    userName: string;
+    activeRepo: string;
+    queuedRepos: string[];
+    streamUrl: string;
+  }) {
+    const subject = payload.queuedRepos.length > 0
+      ? `Codeward Protection Initiated: ${payload.activeRepo} scanning now (${payload.queuedRepos.length} queued)`
+      : `Codeward Protection Initiated: ${payload.activeRepo} scanning now`;
+
+    return this.sendEmail(
+      payload.to,
+      subject,
+      React.createElement(ReposConnectedInitiatedEmail, payload),
+      {
+        fromAddress: 'Codeward <notifications@codeward.cloud>',
+        replyTo: 'support@codeward.cloud',
+      }
+    );
+  }
+
+  static async sendQueuedRepoStarted(payload: {
+    to: string;
+    userName: string;
+    previousRepo: string;
+    activeRepo: string;
+    remainingQueuedRepos?: string[];
+    streamUrl: string;
+  }) {
+    const subject = `Next Repository Dequeued: ${payload.activeRepo} scanning now`;
+
+    return this.sendEmail(
+      payload.to,
+      subject,
+      React.createElement(QueuedRepoStartedEmail, payload),
+      {
+        fromAddress: 'Codeward <notifications@codeward.cloud>',
         replyTo: 'support@codeward.cloud',
       }
     );
@@ -201,7 +246,7 @@ export class NotificationService {
   ) {
     return this.sendEmail(
       to,
-      `⚠️ Agent Run Failed: ${agentId} on ${repoName} (Run #${runId})`,
+      `Agent Run Failed: ${agentId} on ${repoName} (Run #${runId})`,
       React.createElement(RunFailureEmail, {
         repoName,
         agentId,

@@ -146,14 +146,25 @@ billingRouter.get('/info', async (c) => {
 billingRouter.get('/checkout', async (c) => {
   const session = await auth.api.getSession({ headers: c.req.raw.headers });
   const tier = c.req.query('tier') === 'team' || c.req.query('plan') === 'team' ? 'team' : 'pro';
+  const returnUrl = c.req.query('return_url') || c.req.query('redirect_url') || c.req.query('success_url');
 
   const baseCheckout = tier === 'team'
     ? 'https://buy.polar.sh/polar_cl_G8nQdTjkiE3TT0f9HwQtEzZAA1FrGatie2AYr1PiFep'
     : 'https://buy.polar.sh/polar_cl_F6pFlJMO8NB1edLEiNLZ3ED0arMmOtoFUtpBc1J7ibY';
 
-  const checkoutUrl = session?.user?.id
-    ? `${baseCheckout}?client_reference_id=${encodeURIComponent(session.user.id)}&customer_email=${encodeURIComponent(session.user.email || '')}`
-    : baseCheckout;
+  const params = new URLSearchParams();
+  if (session?.user?.id) {
+    params.set('client_reference_id', session.user.id);
+  }
+  if (session?.user?.email) {
+    params.set('customer_email', session.user.email);
+  }
+  if (returnUrl) {
+    params.set('confirmation_url', returnUrl);
+  }
+
+  const queryString = params.toString();
+  const checkoutUrl = queryString ? `${baseCheckout}?${queryString}` : baseCheckout;
 
   return c.json({
     success: true,
