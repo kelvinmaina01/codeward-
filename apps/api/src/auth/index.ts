@@ -23,7 +23,12 @@ export const auth = betterAuth({
   },
   trustedOrigins: (request?: Request) => {
     const origin = request?.headers.get("origin") || "";
-    if (origin.startsWith("http://localhost:") || origin.startsWith("http://127.0.0.1:")) {
+    if (
+      origin.startsWith("http://localhost:") ||
+      origin.startsWith("http://127.0.0.1:") ||
+      origin.endsWith(".codeward.cloud") ||
+      origin === "https://codeward.cloud"
+    ) {
       return [origin];
     }
     return [
@@ -31,6 +36,9 @@ export const auth = betterAuth({
       "http://localhost:5173", 
       "http://localhost:5174", 
       "http://localhost:5175",
+      "https://codeward.cloud",
+      "https://www.codeward.cloud",
+      "https://app.codeward.cloud",
       process.env.FRONTEND_URL || "",
       process.env.API_URL || ""
     ].filter(Boolean);
