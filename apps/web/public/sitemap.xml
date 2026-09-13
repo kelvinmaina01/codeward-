@@ -91,55 +91,49 @@
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://codeward.cloud/blogs/eliminate-technical-debt-production</loc>
+    <loc>https://codeward.cloud/blogs/eliminate-technical-debt-before-production</loc>
     <lastmod>2026-09-13</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://codeward.cloud/blogs/specialized-ai-agents-code-reviews</loc>
+    <loc>https://codeward.cloud/blogs/specialized-ai-agents-automated-code-reviews</loc>
     <lastmod>2026-09-13</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://codeward.cloud/blogs/catching-zero-day-vulnerabilities</loc>
+    <loc>https://codeward.cloud/blogs/catching-zero-day-vulnerabilities-in-prs</loc>
     <lastmod>2026-09-13</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://codeward.cloud/blogs/orchestrator-agent-gatekeeper</loc>
+    <loc>https://codeward.cloud/blogs/orchestrator-agent-ultimate-gatekeeper</loc>
     <lastmod>2026-09-13</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://codeward.cloud/blogs/firecracker-microvms-for-secure-testing</loc>
+    <loc>https://codeward.cloud/blogs/running-untrusted-code-firecracker-microvms</loc>
     <lastmod>2026-09-13</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://codeward.cloud/blogs/measuring-engineering-velocity</loc>
+    <loc>https://codeward.cloud/blogs/metrics-that-matter-engineering-velocity</loc>
     <lastmod>2026-09-13</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://codeward.cloud/blogs/refactoring-legacy-monoliths</loc>
+    <loc>https://codeward.cloud/blogs/strategies-safely-refactoring-legacy-monoliths</loc>
     <lastmod>2026-09-13</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://codeward.cloud/blogs/the-future-of-compliance-as-code</loc>
-    <lastmod>2026-09-13</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://codeward.cloud/blogs/building-resilient-webhooks</loc>
+    <loc>https://codeward.cloud/blogs/future-of-compliance-checklists-to-code</loc>
     <lastmod>2026-09-13</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>

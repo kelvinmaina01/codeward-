@@ -7,7 +7,15 @@ export const SingleBlogPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   
-  const post = blogs.find(b => b.slug === slug);
+  const post = blogs.find(b => b.slug === slug) || 
+    (slug === 'eliminate-technical-debt-production' ? blogs.find(b => b.slug === 'eliminate-technical-debt-before-production') : undefined) ||
+    (slug === 'specialized-ai-agents-code-reviews' ? blogs.find(b => b.slug === 'specialized-ai-agents-automated-code-reviews') : undefined) ||
+    (slug === 'catching-zero-day-vulnerabilities' ? blogs.find(b => b.slug === 'catching-zero-day-vulnerabilities-in-prs') : undefined) ||
+    (slug === 'orchestrator-agent-gatekeeper' ? blogs.find(b => b.slug === 'orchestrator-agent-ultimate-gatekeeper') : undefined) ||
+    (slug === 'firecracker-microvms-for-secure-testing' ? blogs.find(b => b.slug === 'running-untrusted-code-firecracker-microvms') : undefined) ||
+    (slug === 'measuring-engineering-velocity' ? blogs.find(b => b.slug === 'metrics-that-matter-engineering-velocity') : undefined) ||
+    (slug === 'refactoring-legacy-monoliths' ? blogs.find(b => b.slug === 'strategies-safely-refactoring-legacy-monoliths') : undefined) ||
+    (slug === 'the-future-of-compliance-as-code' ? blogs.find(b => b.slug === 'future-of-compliance-checklists-to-code') : undefined);
 
   useEffect(() => {
     window.scrollTo(0, 0);
