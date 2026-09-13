@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import type { SandboxHandle } from '../core/provider.js';
 import { createGuardianTools } from '../definitions/guardian/guardian.tools.js';
 import { renderGuardianIssueBody, type EscalationReason } from '../guardian/github-renderer.js';
+import { assessFinding } from '../policy/finding-policy.js';
 
 export { type EscalationReason };
 
@@ -113,6 +114,11 @@ export async function escalateTaskFindings(params: {
       const severity = String(f.severity ?? '').toUpperCase();
       if (!ESCALATABLE_SEVERITIES.has(severity)) continue;
       if (f.dismissed) continue;
+      // A GitHub issue is a durable, developer-visible artifact — it has to clear the same
+      // evidence and confidence bar as a PR comment. Severity alone is the model's own
+      // claim, and a CRITICAL with nothing to point at is exactly the finding that should
+      // never become an issue someone has to triage and close.
+      if (!assessFinding(f).surfaced) continue;
       if (f.file && fixedFiles.has(f.file)) continue; // already got a real fix PR — no need to also file an issue
 
       // Determine explicit reason why this finding was not auto-resolved

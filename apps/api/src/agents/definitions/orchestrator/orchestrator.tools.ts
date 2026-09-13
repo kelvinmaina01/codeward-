@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { SandboxHandle } from '../../core/provider.js';
 import { createMemoryTools } from '../../tools/memory.tools.js';
+import { assessFinding } from '../../policy/finding-policy.js';
 
 export interface AgentRecommendation { agentType: string; recommend: boolean; mandatory: boolean; reason: string }
 
@@ -417,15 +418,27 @@ export const createOrchestratorTools = (sandbox: SandboxHandle) => ({
         }
         
         if (task.findings && Array.isArray(task.findings)) {
-          const criticals = task.findings.filter((f: any) => f.severity === 'critical' || f.severity === 'CRITICAL');
+          // Only findings that clear the backend policy count as blockers. The previous
+          // filter matched on the model's severity string alone, so a CRITICAL asserted
+          // with no file, no tool output and hedged wording carried exactly as much weight
+          // as one confirmed by a scanner.
+          const criticals = task.findings.filter((f: any) => {
+            const a = assessFinding(f);
+            return a.blocking;
+          });
           criticalFindings.push(...criticals.map(c => ({ ...c, agentType: task.agentId })));
         }
       }
-      
+
+      // Reported for the dashboard's trend line only. It is deliberately NOT the gate:
+      // averaging lets a pile of mediums drag a run under a threshold while diluting the one
+      // agent that found something real. The gate is decided by decideGate() over validated
+      // findings in agent.queue.ts, which is max-based rather than additive.
       const weightedScore = count > 0 ? Math.round(totalScore / count) : 100;
-      
+
       return {
         weightedScore,
+        scoreIsAdvisoryOnly: true,
         criticalFindings,
         allBlockReasons: criticalFindings.map(c => `[${c.agentType}] ${c.title}`),
         agentScoreSummary,
