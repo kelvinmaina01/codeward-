@@ -95,6 +95,19 @@ export class OpenAIProvider implements AgentProvider {
       const score = reportArgs?.score ?? reportArgs?.overallWeightedScore ?? (findings.length === 0 ? 100 : null) ?? 0;
       const gateDecision = reportArgs?.gateDecision ?? reportArgs?.riskLevel;
 
+      // Assess every finding against the backend policy. Nothing is dropped here — the full
+      // set is still persisted and still drives the dashboard — but the assessment travels
+      // with the result so the developer-facing surfaces downstream (guardian's PR review,
+      // escalation's GitHub issues, the run's gate) can act on validated data rather than
+      // re-deriving trust from the model's self-reported severity.
+      const { applyFindingPolicy } = await import('../../policy/finding-policy.js');
+      const policyResult = applyFindingPolicy(findings);
+      if (policyResult.suppressed.length > 0) {
+        console.log(
+          `[OpenAIProvider] ${config.agentId}: policy surfaced ${policyResult.surfaced.length}/${findings.length} finding(s); suppressed ${policyResult.suppressed.length} (${Object.entries(policyResult.suppressionBreakdown).map(([k, v]) => `${k}=${v}`).join(', ')}).`
+        );
+      }
+
       return {
         agentId: config.agentId,
         status: gateDecision === 'BLOCK' || findings.some((f: any) => (f.severity ?? '').toUpperCase() === 'CRITICAL') ? 'failed' : 'passed',
@@ -106,6 +119,11 @@ export class OpenAIProvider implements AgentProvider {
         gateDecision,
         toolsExecuted: reportArgs?.toolsExecuted,
         summary: reportArgs?.summary,
+        policy: {
+          surfacedCount: policyResult.surfaced.length,
+          suppressedCount: policyResult.suppressed.length,
+          suppressionBreakdown: policyResult.suppressionBreakdown,
+        },
       };
     } catch (error) {
       const err = error as Error;

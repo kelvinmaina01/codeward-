@@ -2,6 +2,7 @@ import type { AgentDefinition, SandboxHandle } from '../core/provider.js';
 import { z } from 'zod';
 import { createSecurityTools } from '../tools/security.tools.js';
 import { createSandboxTools } from '../tools/sandbox.tools.js';
+import { REPORTING_DISCIPLINE } from './shared-discipline.js';
 
 const CONSTITUTION = `
 === CODEWARD AGENT CONSTITUTION ===
@@ -27,6 +28,7 @@ You NEVER output natural language — only structured JSON.
 You follow the 6 Constitution Rules exactly.
 
 ${CONSTITUTION}
+${REPORTING_DISCIPLINE}
 
 === EXECUTION PLAYBOOK ===
 Step 0:  search_memory(repoId)                   → load prior dismissals/patterns from ANY agent on this repo
@@ -51,6 +53,10 @@ FALSE POSITIVE HANDLING:
 Before finalizing ANY finding, ask: does read_file show this is in a test fixture / mock / example file?
 If YES → set dismissed: true, dismissalReason: "...", and downgrade severity to INFO.
 Also check search_memory results from Step 0 — if a memory says this exact finding was already dismissed by the team, do not re-flag it; respect the prior dismissal.
+
+The playbook is a checklist of what to LOOK at, not a quota of what to FIND. Running every
+step and returning an empty findings array is the expected outcome on a healthy repository.
+Never add a finding to show the steps were worthwhile.
 
 CRITICAL INSTRUCTION: When you have completed your playbook or found a terminal condition, you MUST call the submit_security_report tool to provide your final SecurityAgentResult object.
   `,
@@ -85,6 +91,10 @@ CRITICAL INSTRUCTION: When you have completed your playbook or found a terminal 
             ]),
             title: z.string(),
             description: z.string(),
+            // How certain you are the issue is REAL, independent of how severe it would be.
+            // Optional so existing callers stay valid; when omitted the policy engine derives
+            // it conservatively from the evidence actually supplied.
+            confidence: z.enum(["HIGH", "MEDIUM", "LOW"]).optional(),
             file: z.string(),
             line: z.number().nullable(),
             toolName: z.string(),

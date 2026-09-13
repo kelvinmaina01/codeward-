@@ -82,6 +82,16 @@ export interface AgentResult {
   gateDecision?: string;     // 'PASS' | 'WARN' | 'BLOCK' | 'HIGH' etc. — varies per agent's schema
   toolsExecuted?: Array<{ toolName: string; calledAt: string; durationMs: number; resultSummary: string }>;
   summary?: Record<string, unknown>;
+  /**
+   * What the backend finding policy made of this agent's findings. Recorded per-agent so a
+   * prompt or threshold change can be evaluated against real runs: a sudden jump in
+   * suppressedCount is the signal that a change went too far and started hiding real work.
+   */
+  policy?: {
+    surfacedCount: number;
+    suppressedCount: number;
+    suppressionBreakdown: Record<string, number>;
+  };
 }
 
 // ---------------------------------------------------------------------------

@@ -38,6 +38,7 @@ import { aiEraAgent } from '../definitions/ai_era.agent.js';
 import { guardianAgent } from '../definitions/guardian.agent.js';
 import { chatAgent } from '../definitions/chat.agent.js';
 import { broadcast } from '../../routes/ws.js';
+import { applyFindingPolicy, decideGate } from '../policy/finding-policy.js';
 
 export async function logAndBroadcast(
   type: string,
@@ -416,8 +417,59 @@ Use these EXACT values for any tool parameter named runId/repoId — never inven
     // escalate" path — orchestrator Phase 3 is the natural trigger since it's the one place
     // that makes ONE decision for the whole run, after every agent has reported.
     // -----------------------------------------------------------------------
+    // -----------------------------------------------------------------------
+    // 6a. The run's authoritative gate decision, computed by the backend policy engine from
+    // every sub-agent's persisted findings — not taken from the model's own gateDecision.
+    // A model that decides it wants to block must still produce findings that survive the
+    // evidence and confidence checks; conversely a model that stayed quiet cannot wave
+    // through a critical that did survive them. Phase 3 is the one point in the pipeline
+    // where the complete, validated finding set for the run exists, so the decision that
+    // reaches escalation, guardian and the GitHub check run is made here, once.
+    // -----------------------------------------------------------------------
+    let runPolicy: {
+      decision: 'PASS' | 'WARN' | 'BLOCK';
+      reasons: string[];
+      surfacedFindings: Array<{ agentId: string; severity: string; title: string; file: string | null; line: number | null }>;
+      suppressedCount: number;
+    } | null = null;
+
+    if (agentId === 'orchestrator_phase3') {
+      try {
+        const subAgentTasks = await db.select().from(agentTasks).where(
+          and(eq(agentTasks.runId, runId), notLike(agentTasks.agentId, 'orchestrator%'))
+        );
+        const rawFindings = subAgentTasks.flatMap((t) =>
+          ((t.findings as any[]) ?? []).map((f) => ({ ...f, agentId: t.agentId }))
+        );
+        const policy = applyFindingPolicy(rawFindings);
+        const gate = decideGate(policy.assessed);
+        runPolicy = {
+          decision: gate.decision,
+          reasons: gate.reasons,
+          surfacedFindings: policy.surfaced.map((f: any) => ({
+            agentId: String(f.agentId ?? 'unknown'),
+            severity: String(f.severity ?? 'INFO'),
+            title: String(f.title ?? 'Untitled finding'),
+            file: f.file ?? null,
+            line: f.line ?? null,
+          })),
+          suppressedCount: policy.suppressed.length,
+        };
+        console.log(
+          `[AgentWorker] Run #${runId} policy gate: ${gate.decision} — ${policy.surfaced.length} surfaced, ${policy.suppressed.length} suppressed of ${rawFindings.length} total (model said: ${result.gateDecision ?? 'none'}).`
+        );
+      } catch (policyError) {
+        console.error(`[AgentWorker] Finding policy evaluation failed for run #${runId}:`, (policyError as Error).message);
+      }
+    }
+
+    // The gate that drives every developer-facing action below. Falls back to the model's own
+    // decision only if the policy evaluation itself threw, so a bug here degrades to previous
+    // behaviour rather than silently passing every run.
+    const effectiveGateDecision = runPolicy ? runPolicy.decision : result.gateDecision;
+
     let escalation: any = null;
-    if (agentId === 'orchestrator_phase3' && result.gateDecision === 'BLOCK' && runRow?.repoId != null) {
+    if (agentId === 'orchestrator_phase3' && effectiveGateDecision === 'BLOCK' && runRow?.repoId != null) {
       try {
         const { escalationQueue } = await import('../escalation/escalation.queue.js');
         const escalationJob = await escalationQueue.add(`escalate-${runId}`, {
@@ -444,14 +496,14 @@ Use these EXACT values for any tool parameter named runId/repoId — never inven
     let humanPrReview: any = null;
     if (agentId === 'orchestrator_phase3' && runRow?.prNumber != null && runRow.repoId != null) {
       try {
-        const allTasks = await db.select().from(agentTasks).where(and(eq(agentTasks.runId, runId), notLike(agentTasks.agentId, 'orchestrator%')));
-        const findings = allTasks.flatMap((t) => ((t.findings as any[]) ?? []).map((f) => ({
-          agentId: t.agentId, severity: String(f.severity ?? 'INFO'), title: f.title, file: f.file ?? null, line: f.line ?? null,
-        })));
+        // Guardian only ever sees findings that cleared the policy. Previously every finding
+        // in the run was handed over verbatim, including INFO-level style notes, so anything
+        // an agent emitted could become a comment on a developer's pull request.
+        const findings = runPolicy?.surfacedFindings ?? [];
         const { reviewHumanPR } = await import('../guardian/review.service.js');
         const review = await reviewHumanPR({
           sandbox: sandbox!, repoId: String(runRow.repoId), pullRequestNumber: runRow.prNumber, runId,
-          findings, gateDecision: result.gateDecision ?? null,
+          findings, gateDecision: effectiveGateDecision ?? null,
         });
         humanPrReview = review;
         console.log(`[AgentWorker] guardian human-PR review of #${runRow.prNumber}: ${review.reviewed ? review.event : `did not complete (${review.reason})`}`);
@@ -466,12 +518,14 @@ Use these EXACT values for any tool parameter named runId/repoId — never inven
     if (agentId === 'orchestrator_phase3' && runRow?.prNumber != null) {
       try {
         const { completePrLifecycle } = await import('../../services/github-pr-lifecycle.service.js');
-        const decision = String(result.gateDecision ?? 'COMMENT');
-        const conclusion = decision === 'APPROVE' ? 'success' : decision === 'BLOCK' ? 'failure' : 'neutral';
+        const decision = String(effectiveGateDecision ?? 'COMMENT');
+        const conclusion = decision === 'APPROVE' || decision === 'PASS' ? 'success' : decision === 'BLOCK' ? 'failure' : 'neutral';
         await completePrLifecycle(runId, {
           conclusion,
           title: `Codeward review · ${decision}`,
-          summary: (result as any).rationale ?? `Codeward completed its review with decision: ${decision}.`,
+          summary: runPolicy?.reasons.length
+            ? `${runPolicy.reasons.slice(0, 5).join('\n')}`
+            : (result as any).rationale ?? `Codeward completed its review with decision: ${decision}.`,
         });
       } catch (lifecycleError) {
         console.error(`[AgentWorker] Could not complete PR lifecycle for run #${runId}:`, (lifecycleError as Error).message);
@@ -520,7 +574,13 @@ Use these EXACT values for any tool parameter named runId/repoId — never inven
         score: result.score,
         findingsCount: result.findings.length,
         findings: result.findings,
-        reportMeta: { gateDecision: result.gateDecision ?? null, toolsExecuted: result.toolsExecuted ?? [], summary: result.summary ?? null, autoFixPR, escalation, humanPrReview },
+        reportMeta: {
+          gateDecision: effectiveGateDecision ?? null,
+          modelGateDecision: result.gateDecision ?? null,
+          policy: result.policy ?? null,
+          runPolicy: runPolicy ? { decision: runPolicy.decision, suppressedCount: runPolicy.suppressedCount, surfacedCount: runPolicy.surfacedFindings.length } : null,
+          toolsExecuted: result.toolsExecuted ?? [], summary: result.summary ?? null, autoFixPR, escalation, humanPrReview,
+        },
         model: result.modelUsed,
         tokenUsage: result.tokenUsage,
         duration: result.duration,
