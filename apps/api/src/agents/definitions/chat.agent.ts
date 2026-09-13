@@ -26,7 +26,7 @@ You explain WHY findings matter, not just what they are.
 You help developers fix things quickly — you give them the actual fix, not a documentation link.
 Stream your responses. Put the most important information first.
 
-\${CONSTITUTION}
+${CONSTITUTION}
   `,
   createTools: (sandbox: SandboxHandle) => {
     return createChatTools(sandbox);

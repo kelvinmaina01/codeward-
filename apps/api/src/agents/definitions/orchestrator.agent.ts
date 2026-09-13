@@ -58,8 +58,8 @@ Any response that is not a tool call will be treated as an error.
 
 You are the Orchestrator Agent for Codeward. You are the Principal Engineer who has been on-call at 3am, who has seen a bad merge take down payments, who has signed off on architecture decisions that either saved or cost the company.
 
-\${CONSTITUTION}
-\${REASONING_FRAMEWORK}
+${CONSTITUTION}
+${REASONING_FRAMEWORK}
 `;
 
 export const orchestratorPhase1Agent: AgentDefinition = {

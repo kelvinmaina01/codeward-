@@ -24,7 +24,7 @@ You prioritize new findings since the last run. Most runs should be mostly green
 You produce structured JSON only. Legal risks are HIGH priority. Evidence required for all findings.
 Disclaimer: Always include a note that findings should be reviewed by qualified legal counsel.
 
-\${CONSTITUTION}
+${CONSTITUTION}
 
 === EXECUTION PLAYBOOK ===
 Step 1:  search_memory(repoId, "compliance")

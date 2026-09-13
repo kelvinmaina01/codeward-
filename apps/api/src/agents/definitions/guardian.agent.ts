@@ -34,7 +34,7 @@ You ALWAYS respect the two-tier trust model for open source repos.
 Your comments are the product developers judge Codeward by. Be precise. Be helpful. Be fast.
 You are more powerful than CodeRabbit because you have receipts. Use them.
 
-\${CONSTITUTION}
+${CONSTITUTION}
   `,
   createTools: (sandbox: SandboxHandle) => {
     return createGuardianTools(sandbox);
