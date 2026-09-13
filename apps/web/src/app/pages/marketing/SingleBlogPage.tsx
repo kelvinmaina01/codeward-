@@ -153,12 +153,10 @@ export const SingleBlogPage: React.FC = () => {
             {/* AUTHOR BLOCK */}
             <div className="flex items-center justify-between border-y border-white/10 py-5 mb-10">
               <div className="flex items-center gap-3.5">
-                <div className="h-11 w-11 rounded-full bg-purple-500/15 border border-purple-500/30 p-1 flex items-center justify-center shrink-0">
-                  <img src="/codeward-logo.png" alt="Codeward Team" className="h-6 w-6 object-contain" />
-                </div>
+                <img src="/codeward-logo.png" alt="Codeward Team" className="h-9 w-9 object-contain shrink-0" />
                 <div>
                   <div className="text-base font-bold text-white">Codeward Team</div>
-                  <div className="text-xs text-purple-400/80 font-medium">Autonomous Engineering &amp; AI Research</div>
+                  <div className="text-xs text-purple-300/80 font-medium">Autonomous Engineering &amp; AI Research</div>
                 </div>
               </div>
               <div className="text-xs text-white/40 font-medium">
@@ -204,7 +202,7 @@ export const SingleBlogPage: React.FC = () => {
               <div 
                 onClick={() => navigate(`/blogs/${relatedPost.slug}`)} 
                 key={idx} 
-                className="group/blog cursor-pointer flex flex-col h-full bg-[#0d0e14] hover:bg-[#10121a] p-4 rounded-xl border border-white/10 hover:border-purple-500/40 transition-all duration-300"
+                className="group/blog cursor-pointer flex flex-col h-full bg-[#0d0e14] hover:bg-[#10121a] p-4 rounded-xl border border-white/10 hover:border-[#d8b4fe]/60 hover:shadow-[0_0_30px_rgba(216,180,254,0.2)] transition-all duration-300"
               >
                 <div className="relative h-[150px] w-full rounded-lg overflow-hidden border border-white/5 mb-3 bg-[#08090d]">
                   <img 
@@ -219,16 +217,14 @@ export const SingleBlogPage: React.FC = () => {
                     </span>
                   </div>
                 </div>
-                <div className="text-[10px] font-bold text-purple-400 uppercase tracking-wider mb-2">
+                <div className="text-[10px] font-bold text-[#d8b4fe] uppercase tracking-wider mb-2">
                   {relatedPost.category}
                 </div>
-                <h5 className="font-bold text-base leading-snug text-white mb-2 group-hover/blog:text-purple-300 transition-colors line-clamp-2">
+                <h5 className="font-bold text-base leading-snug text-white mb-2 group-hover/blog:text-[#e9d5ff] transition-colors line-clamp-2">
                   {relatedPost.title}
                 </h5>
                 <div className="flex items-center gap-2 mt-auto pt-3 border-t border-white/5">
-                  <div className="h-5 w-5 rounded-full bg-purple-500/15 border border-purple-500/25 p-0.5 flex items-center justify-center">
-                    <img src="/codeward-logo.png" alt="Codeward Team" className="h-3 w-3 object-contain" />
-                  </div>
+                  <img src="/codeward-logo.png" alt="Codeward Team" className="h-4 w-4 object-contain shrink-0" />
                   <div className="flex items-center justify-between w-full">
                     <span className="text-xs font-bold text-white/80">Codeward Team</span>
                     <span className="text-[11px] text-white/40">{relatedPost.readTime}</span>

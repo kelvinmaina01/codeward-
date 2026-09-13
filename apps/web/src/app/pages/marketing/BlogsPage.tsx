@@ -98,7 +98,7 @@ export const BlogsPage: React.FC = () => {
           <FadeInSection direction="up">
             <div 
               onClick={() => navigate(`/blogs/${featuredPost.slug}`)}
-              className="group cursor-pointer grid grid-cols-1 lg:grid-cols-12 gap-8 mb-16 items-center bg-[#0d0e14] hover:bg-[#10121a] p-6 lg:p-8 rounded-2xl border border-white/10 hover:border-purple-500/40 shadow-xl hover:shadow-[0_0_40px_rgba(139,92,246,0.15)] transition-all duration-300"
+              className="group cursor-pointer grid grid-cols-1 lg:grid-cols-12 gap-8 mb-16 items-center bg-[#0d0e14] hover:bg-[#10121a] p-6 lg:p-8 rounded-2xl border border-white/10 hover:border-[#d8b4fe]/60 shadow-xl hover:shadow-[0_0_40px_rgba(216,180,254,0.2)] transition-all duration-300"
             >
               {/* Compact Thumbnail Image */}
               <div className="lg:col-span-6 relative h-[220px] sm:h-[260px] lg:h-[280px] w-full rounded-xl overflow-hidden border border-white/10 bg-[#08090d]">
@@ -108,15 +108,11 @@ export const BlogsPage: React.FC = () => {
                   className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500" 
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-                <div className="absolute top-4 left-4 flex items-center gap-2 bg-black/60 backdrop-blur-md px-3 py-1 rounded-md border border-white/10">
-                  <img src="/codeward-logo.png" alt="Codeward" className="h-4 w-4 object-contain" />
-                  <span className="text-xs font-bold tracking-tight text-white">Code<span className="text-purple-400">ward</span></span>
-                </div>
                 <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between">
                   <span className="text-[11px] font-bold tracking-widest text-white/90 uppercase bg-black/60 backdrop-blur-md px-3 py-1 rounded-full border border-white/10">
                     {featuredPost.overlayText || 'FEATURED'}
                   </span>
-                  <span className="text-[11px] font-semibold text-purple-300 bg-purple-500/20 backdrop-blur-md px-2.5 py-0.5 rounded-full border border-purple-500/30">
+                  <span className="text-[11px] font-semibold text-[#d8b4fe] bg-[#d8b4fe]/15 backdrop-blur-md px-2.5 py-0.5 rounded-full border border-[#d8b4fe]/30">
                     5 min read
                   </span>
                 </div>
@@ -125,24 +121,22 @@ export const BlogsPage: React.FC = () => {
               {/* Text Meta Content */}
               <div className="lg:col-span-6 flex flex-col justify-center">
                 <div className="flex items-center gap-3 mb-4">
-                  <span className="text-[11px] font-bold text-purple-400 uppercase tracking-wider bg-purple-400/10 border border-purple-400/20 px-2.5 py-0.5 rounded-md">
+                  <span className="text-[11px] font-bold text-[#d8b4fe] uppercase tracking-wider bg-[#d8b4fe]/10 border border-[#d8b4fe]/20 px-2.5 py-0.5 rounded-md">
                     {featuredPost.category}
                   </span>
                   <span className="text-xs text-white/40">{featuredPost.date}</span>
                 </div>
-                <h2 className="text-2xl sm:text-3xl lg:text-3xl font-bold text-white leading-snug mb-3 group-hover:text-purple-300 transition-colors">
+                <h2 className="text-2xl sm:text-3xl lg:text-3xl font-bold text-white leading-snug mb-3 group-hover:text-[#e9d5ff] transition-colors">
                   {featuredPost.title}
                 </h2>
                 <p className="text-sm sm:text-base text-white/60 mb-6 leading-relaxed line-clamp-3">
                   {featuredPost.seoDescription}
                 </p>
                 <div className="flex items-center gap-3 pt-4 border-t border-white/5">
-                  <div className="h-9 w-9 rounded-full bg-purple-500/15 border border-purple-500/30 p-1 flex items-center justify-center shrink-0">
-                    <img src="/codeward-logo.png" alt="Codeward Team" className="h-5 w-5 object-contain" />
-                  </div>
+                  <img src="/codeward-logo.png" alt="Codeward Team" className="h-8 w-8 object-contain shrink-0" />
                   <div>
                     <div className="text-sm font-bold text-white">Codeward Team</div>
-                    <div className="text-xs text-purple-400/80 font-medium">Platform &amp; Autonomous AI Engineering</div>
+                    <div className="text-xs text-purple-300/80 font-medium">Platform &amp; Autonomous AI Engineering</div>
                   </div>
                 </div>
               </div>
@@ -156,7 +150,7 @@ export const BlogsPage: React.FC = () => {
             <FadeInSection key={idx} delay={idx * 60}>
               <div 
                 onClick={() => navigate(`/blogs/${post.slug}`)} 
-                className="group cursor-pointer flex flex-col h-full bg-[#0d0e14] hover:bg-[#10121a] p-4 rounded-2xl border border-white/10 hover:border-purple-500/40 hover:shadow-[0_0_30px_rgba(139,92,246,0.15)] transition-all duration-300"
+                className="group cursor-pointer flex flex-col h-full bg-[#0d0e14] hover:bg-[#10121a] p-4 rounded-2xl border border-white/10 hover:border-[#d8b4fe]/60 hover:shadow-[0_0_30px_rgba(216,180,254,0.2)] transition-all duration-300"
               >
                 {/* Compact Thumbnail Container */}
                 <div className="relative h-[180px] sm:h-[190px] w-full rounded-xl overflow-hidden border border-white/5 mb-4 bg-[#08090d]">
@@ -166,10 +160,6 @@ export const BlogsPage: React.FC = () => {
                     className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500" 
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/15 to-transparent" />
-                  <div className="absolute top-3 left-3 flex items-center gap-1.5 bg-black/65 backdrop-blur-md px-2.5 py-1 rounded-md border border-white/10">
-                    <img src="/codeward-logo.png" alt="Codeward" className="h-3.5 w-3.5 object-contain" />
-                    <span className="text-[11px] font-bold tracking-tight text-white">Code<span className="text-purple-400">ward</span></span>
-                  </div>
                   <div className="absolute bottom-3 left-3">
                     <span className="text-[10px] font-bold tracking-widest text-white/80 uppercase bg-black/50 backdrop-blur-sm px-2 py-0.5 rounded border border-white/10">
                       {post.overlayText}
@@ -180,12 +170,12 @@ export const BlogsPage: React.FC = () => {
                 {/* Content */}
                 <div className="flex flex-col gap-2.5 flex-grow">
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-bold text-purple-400 uppercase tracking-wider bg-purple-400/10 border border-purple-400/20 px-2 py-0.5 rounded">
+                    <span className="text-[11px] font-bold text-[#d8b4fe] uppercase tracking-wider bg-[#d8b4fe]/10 border border-[#d8b4fe]/20 px-2 py-0.5 rounded">
                       {post.category}
                     </span>
                     <span className="text-xs font-medium text-white/40">{post.date}</span>
                   </div>
-                  <h3 className="text-lg font-bold text-white leading-snug group-hover:text-purple-300 transition-colors line-clamp-2">
+                  <h3 className="text-lg font-bold text-white leading-snug group-hover:text-[#e9d5ff] transition-colors line-clamp-2">
                     {post.title}
                   </h3>
                   <p className="text-xs text-white/50 line-clamp-2 leading-relaxed">
@@ -193,9 +183,7 @@ export const BlogsPage: React.FC = () => {
                   </p>
                   <div className="mt-auto pt-4 flex items-center justify-between border-t border-white/5">
                     <div className="flex items-center gap-2">
-                      <div className="h-6 w-6 rounded-full bg-purple-500/15 border border-purple-500/25 p-0.5 flex items-center justify-center">
-                        <img src="/codeward-logo.png" alt="Codeward Team" className="h-3.5 w-3.5 object-contain" />
-                      </div>
+                      <img src="/codeward-logo.png" alt="Codeward Team" className="h-5 w-5 object-contain shrink-0" />
                       <span className="text-xs font-bold text-white/90">Codeward Team</span>
                     </div>
                     <span className="text-xs text-white/40">{post.readTime}</span>
