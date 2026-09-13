@@ -247,7 +247,7 @@ export class BudgetService {
           return { allowed: true, runRecord };
         }
 
-        const planType = (org.plan_type || 'free') as string;
+        const planType = ((org.plan_type || 'free') as string).toLowerCase();
 
         // ── Team tier: unlimited ──────────────────────────────────────────
         if (planType === 'team') {

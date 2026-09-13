@@ -124,7 +124,7 @@ export const SingleBlogPage: React.FC = () => {
             {/* ARTICLE HERO PREVIEW IMAGE */}
             <div className="relative h-[220px] sm:h-[280px] md:h-[340px] w-full rounded-2xl overflow-hidden mb-10 shadow-2xl border border-white/10 bg-[#08090d]">
               <img 
-                src={post.heroImage || '/og-preview.jpg'} 
+                src={post.heroImage || '/blog-card-cover.jpg'} 
                 alt={post.title} 
                 className="w-full h-full object-cover object-center" 
               />
@@ -151,14 +151,14 @@ export const SingleBlogPage: React.FC = () => {
             </h1>
 
             {/* AUTHOR BLOCK */}
-            <div className="flex items-center justify-between border-y border-white/10 py-5 mb-10">
-              <div className="flex items-center gap-3.5">
-                <img src="/codeward-logo.png" alt="Codeward Team" className="h-9 w-9 object-contain shrink-0" />
-                <div>
-                  <div className="text-base font-bold text-white">Codeward Team</div>
-                  <div className="text-xs text-purple-300/80 font-medium">Autonomous Engineering &amp; AI Research</div>
+              <div className="flex items-center justify-between border-y border-white/10 py-5 mb-10">
+                <div className="flex items-center gap-3.5">
+                  <img src="/codeward-logo.png" alt="Codeward Team" className="h-9 w-auto object-contain shrink-0" />
+                  <div>
+                    <div className="text-base font-bold text-white">Codeward Team</div>
+                    <div className="text-xs text-purple-300/80 font-medium">Autonomous Engineering &amp; AI Research</div>
+                  </div>
                 </div>
-              </div>
               <div className="text-xs text-white/40 font-medium">
                 {post.readTime}
               </div>
@@ -171,7 +171,7 @@ export const SingleBlogPage: React.FC = () => {
             />
 
             {/* IN-ARTICLE PRODUCT CTA */}
-            <div className="my-14 p-8 rounded-2xl bg-gradient-to-r from-purple-950/40 via-[#0e1017] to-purple-950/30 border border-purple-500/20 text-center shadow-2xl">
+            <div className="my-14 p-8 rounded-2xl bg-[#0d0e14] border border-white/10 text-center shadow-2xl">
               <h3 className="text-2xl font-bold text-white mb-3 tracking-tight">Ship faster with zero technical debt</h3>
               <p className="text-sm sm:text-base text-white/70 mb-6 max-w-lg mx-auto leading-relaxed">
                 Codeward's AI review agents analyze pull requests in seconds, running deterministic tests in Firecracker microVMs and pushing verified fixes.
@@ -202,32 +202,34 @@ export const SingleBlogPage: React.FC = () => {
               <div 
                 onClick={() => navigate(`/blogs/${relatedPost.slug}`)} 
                 key={idx} 
-                className="group/blog cursor-pointer flex flex-col h-full bg-[#0d0e14] hover:bg-[#10121a] p-4 rounded-xl border border-white/10 hover:border-[#d8b4fe]/60 hover:shadow-[0_0_30px_rgba(216,180,254,0.2)] transition-all duration-300"
+                className="group/blog cursor-pointer flex flex-col h-full bg-[#0d0e14] hover:bg-[#10121a] rounded-xl overflow-hidden border border-white/10 hover:border-[#f3e8ff]/80 hover:shadow-[0_0_30px_rgba(243,232,255,0.2)] transition-all duration-300"
               >
-                <div className="relative h-[150px] w-full rounded-lg overflow-hidden border border-white/5 mb-3 bg-[#08090d]">
+                <div className="relative h-[160px] w-full overflow-hidden bg-[#08090d]">
                   <img 
-                    src={relatedPost.heroImage || '/og-preview.jpg'} 
+                    src={relatedPost.heroImage || '/blog-card-cover.jpg'} 
                     alt={relatedPost.title} 
-                    className="w-full h-full object-cover group-hover/blog:scale-105 transition-transform duration-500" 
+                    className="w-full h-full object-cover" 
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-transparent" />
-                  <div className="absolute bottom-2.5 left-2.5">
+                  <div className="absolute bottom-2.5 left-3">
                     <span className="text-[10px] font-bold tracking-widest text-white/90 uppercase bg-black/50 backdrop-blur-sm px-2 py-0.5 rounded border border-white/10">
                       {relatedPost.overlayText || 'ENGINEERING'}
                     </span>
                   </div>
                 </div>
-                <div className="text-[10px] font-bold text-[#d8b4fe] uppercase tracking-wider mb-2">
-                  {relatedPost.category}
-                </div>
-                <h5 className="font-bold text-base leading-snug text-white mb-2 group-hover/blog:text-[#e9d5ff] transition-colors line-clamp-2">
-                  {relatedPost.title}
-                </h5>
-                <div className="flex items-center gap-2 mt-auto pt-3 border-t border-white/5">
-                  <img src="/codeward-logo.png" alt="Codeward Team" className="h-4 w-4 object-contain shrink-0" />
-                  <div className="flex items-center justify-between w-full">
-                    <span className="text-xs font-bold text-white/80">Codeward Team</span>
-                    <span className="text-[11px] text-white/40">{relatedPost.readTime}</span>
+                <div className="p-4 flex flex-col flex-grow">
+                  <div className="text-[10px] font-bold text-[#d8b4fe] uppercase tracking-wider mb-2">
+                    {relatedPost.category}
+                  </div>
+                  <h5 className="font-bold text-base leading-snug text-white mb-2 group-hover/blog:text-[#e9d5ff] transition-colors line-clamp-2">
+                    {relatedPost.title}
+                  </h5>
+                  <div className="flex items-center gap-2 mt-auto pt-3 border-t border-white/5">
+                    <img src="/codeward-logo.png" alt="Codeward Team" className="h-4 w-auto object-contain shrink-0" />
+                    <div className="flex items-center justify-between w-full">
+                      <span className="text-xs font-bold text-white/80">Codeward Team</span>
+                      <span className="text-[11px] text-white/40">{relatedPost.readTime}</span>
+                    </div>
                   </div>
                 </div>
               </div>

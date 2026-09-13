@@ -25,7 +25,7 @@ export const blogs: BlogPost[] = [
     readTime: '9 min read',
     author: 'Codeward Team',
     authorAvatar: 'Codeward+Team',
-    heroImage: '/og-preview.jpg',
+    heroImage: '/blog-card-cover.jpg',
     heroImageAlt: 'Diagram showing a pull request flowing through automated debt-detection agents before merge',
     seoDescription: "Technical debt doesn't accumulate in production — it accumulates in the fifteen seconds between 'looks good to me' and merge. Here's how we catch it before it ships.",
     content: `
@@ -174,7 +174,7 @@ export const blogs: BlogPost[] = [
     readTime: '10 min read',
     author: 'Codeward Team',
     authorAvatar: 'Codeward+Team',
-    heroImage: '/og-preview.jpg',
+    heroImage: '/blog-card-cover.jpg',
     heroImageAlt: 'Diagram of multiple specialized AI agents each analyzing a different aspect of a pull request',
     seoDescription: "One large prompt asked to 'review this PR for everything' produces shallow findings across the board. Here's why we split code review into specialized agents instead.",
     content: `
@@ -204,25 +204,8 @@ export const blogs: BlogPost[] = [
         Each agent runs independently, inside its own ephemeral sandbox per scan. That isolation isn't just a security boundary — it's also what lets each agent operate with a clean, focused context instead of a shared, cluttered one. A security-focused pass reasoning only about security produces measurably sharper findings than the same model reasoning about security as one bullet point among ten.
       </p>
 
-      <!-- Architecture Diagram Slot -->
-      <div class="my-10 p-6 md:p-8 rounded-2xl bg-[#0d0e14] border border-purple-500/30 shadow-2xl relative overflow-hidden">
-        <div class="flex items-center justify-between mb-4 pb-3 border-b border-white/10">
-          <div class="flex items-center gap-2">
-            <span class="w-2.5 h-2.5 rounded-full bg-purple-400 animate-pulse"></span>
-            <span class="text-xs font-bold text-purple-300 uppercase tracking-wider">Multi-Agent Dispatch Flow</span>
-          </div>
-          <span class="text-[11px] font-mono text-white/40">Parallel Execution</span>
-        </div>
-        <div class="py-10 px-4 flex flex-col items-center justify-center text-center bg-black/40 rounded-xl border border-dashed border-white/15">
-          <div class="h-12 w-12 rounded-full bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400 mb-3">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"></path></svg>
-          </div>
-          <p class="text-sm md:text-base font-semibold text-white/90 max-w-md mb-1">
-            PR diff &rarr; Orchestrator dispatches to N specialized agents in parallel sandboxes &rarr; Each returns structured findings &rarr; Orchestrator merges and deduplicates
-          </p>
-          <span class="text-xs text-purple-400/80 font-medium">Excalidraw Multi-Agent Architecture Slot</span>
-        </div>
-      </div>
+      <!-- Architecture Diagram -->
+      <img src="/excalidraw-dispatch-flow.jpg" alt="Multi-Agent Dispatch Flow" class="w-full rounded-2xl shadow-2xl border border-white/10 my-10 object-contain bg-[#121212]" />
 
       <h2 class="text-2xl md:text-3xl font-bold text-white mt-12 mb-5 tracking-tight">Specialization forces better prompts</h2>
       <p>
@@ -280,7 +263,7 @@ export const blogs: BlogPost[] = [
     readTime: '8 min read',
     author: 'Codeward Team',
     authorAvatar: 'Codeward+Team',
-    heroImage: '/og-preview.jpg',
+    heroImage: '/blog-card-cover.jpg',
     heroImageAlt: 'Diagram of a security agent analyzing a pull request diff for vulnerability patterns before merge',
     seoDescription: "Signature-based scanners only catch what's already been named. Here's how PR-time analysis catches the vulnerability classes that don't have a CVE yet.",
     content: `
@@ -371,7 +354,7 @@ export const blogs: BlogPost[] = [
     readTime: '9 min read',
     author: 'Codeward Team',
     authorAvatar: 'Codeward+Team',
-    heroImage: '/og-preview.jpg',
+    heroImage: '/blog-card-cover.jpg',
     heroImageAlt: 'Diagram showing an orchestrator agent aggregating findings from multiple specialized agents and deciding merge status',
     seoDescription: "Five specialized agents produce five sets of opinions. Something has to decide what actually matters. That's the orchestrator's entire job.",
     content: `
@@ -469,7 +452,7 @@ export const blogs: BlogPost[] = [
     readTime: '8 min read',
     author: 'Codeward Team',
     authorAvatar: 'Codeward+Team',
-    heroImage: '/og-preview.jpg',
+    heroImage: '/blog-card-cover.jpg',
     heroImageAlt: 'Diagram of a Firecracker microVM lifecycle: creation, execution, teardown, per pull request scan',
     seoDescription: "Reviewing a pull request means executing code you've never seen, written by someone you don't control, from a repository that might be compromised. Here's how we sandbox that safely.",
     content: `
@@ -554,7 +537,7 @@ export const blogs: BlogPost[] = [
     readTime: '7 min read',
     author: 'Codeward Team',
     authorAvatar: 'Codeward+Team',
-    heroImage: '/og-preview.jpg',
+    heroImage: '/blog-card-cover.jpg',
     heroImageAlt: 'Chart comparing surface-level velocity metrics against deeper engineering health signals over time',
     seoDescription: "Lines of code and PRs merged per week measure motion, not progress. Here's what we think actually correlates with a healthy, fast-moving engineering org.",
     content: `
@@ -649,7 +632,7 @@ export const blogs: BlogPost[] = [
     readTime: '10 min read',
     author: 'Codeward Team',
     authorAvatar: 'Codeward+Team',
-    heroImage: '/og-preview.jpg',
+    heroImage: '/blog-card-cover.jpg',
     heroImageAlt: 'Diagram showing a monolith gradually decomposed into bounded modules with guardrails preventing regression',
     seoDescription: "The riskiest part of refactoring a monolith isn't the redesign. It's the thousand small PRs afterward that each have a chance to quietly undo it.",
     content: `
@@ -729,7 +712,7 @@ export const blogs: BlogPost[] = [
     readTime: '7 min read',
     author: 'Codeward Team',
     authorAvatar: 'Codeward+Team',
-    heroImage: '/og-preview.jpg',
+    heroImage: '/blog-card-cover.jpg',
     heroImageAlt: 'Diagram showing compliance requirements translated into automated PR-time checks instead of periodic manual audits',
     seoDescription: "A compliance checklist filled out once a quarter tells you what was true on the day someone filled it out. Enforcement embedded in the PR pipeline tells you what's true right now.",
     content: `
