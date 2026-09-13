@@ -3,6 +3,18 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { db } from "../db/index.js";
 import * as schema from "../db/schema.js";
 
+if (process.env.BETTER_AUTH_URL && process.env.BETTER_AUTH_URL.includes("your-railway-api")) {
+  process.env.BETTER_AUTH_URL = "https://codewardapi-production.up.railway.app";
+}
+if (process.env.API_URL && process.env.API_URL.includes("your-railway-api")) {
+  process.env.API_URL = "https://codewardapi-production.up.railway.app";
+}
+
+const rawApiUrl = process.env.API_URL || "";
+const safeApiUrl = rawApiUrl.includes("your-railway-api") || !rawApiUrl
+  ? "https://codewardapi-production.up.railway.app"
+  : rawApiUrl;
+
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
     provider: "pg",
@@ -13,7 +25,7 @@ export const auth = betterAuth({
       verification: schema.verification
     }
   }),
-  baseURL: process.env.API_URL || "http://localhost:3000",
+  baseURL: safeApiUrl,
   secret: process.env.BETTER_AUTH_SECRET || "development-secret-key-change-in-prod",
   advanced: {
     defaultCookieAttributes: {
