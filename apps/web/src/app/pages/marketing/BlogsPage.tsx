@@ -2,8 +2,6 @@ import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { blogs } from '../../data/blogs';
-import { FooterTrustBadges } from '../../components/shared/FooterTrustBadges';
-import { NewsletterForm } from './NewsletterForm';
 
 const FadeInSection: React.FC<{ children: React.ReactNode; direction?: 'up' | 'left' | 'right'; className?: string; delay?: number }> = ({ children, direction = 'up', className = '', delay = 0 }) => {
   const [isVisible, setVisible] = React.useState(false);
@@ -44,122 +42,163 @@ export const BlogsPage: React.FC = () => {
   const gridPosts = blogs.slice(1);
 
   return (
-    <div className="h-screen overflow-y-auto overflow-x-hidden bg-[#05060a] font-['DM_Sans']">
+    <div className="min-h-screen bg-[#05060a] text-white font-['DM_Sans',sans-serif] selection:bg-purple-500/30">
       <Helmet>
-        <title>Codeward Blog | Engineering Velocity, AI Agents & Code Quality</title>
-        <meta name="description" content="Insights, technical deep dives, and expert perspectives on automated reviews, refactoring legacy debt, and running secure code execution." />
+        <title>Codeward Engineering Blog | AI Code Review, Automated Refactoring & Velocity</title>
+        <meta name="description" content="Technical deep dives, architecture guides, and research from the Codeward team on eliminating technical debt, autonomous code review agents, and microVM test execution." />
         <link rel="canonical" href="https://codeward.cloud/blogs" />
+        <meta property="og:title" content="Codeward Engineering Blog | AI Code Review & Autonomous Refactoring" />
+        <meta property="og:description" content="Technical deep dives and architecture guides from the Codeward engineering team." />
+        <meta property="og:image" content="https://codeward.cloud/og-preview.jpg" />
+        <meta property="og:url" content="https://codeward.cloud/blogs" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:image" content="https://codeward.cloud/og-preview.jpg" />
       </Helmet>
-      {/* ── HEADER ── */}
-      <header className="relative z-50 flex items-center justify-between px-8 py-6 md:px-14">
+
+      {/* ── TOP NAVIGATION ── */}
+      <header className="sticky top-0 z-50 flex items-center justify-between px-6 md:px-14 py-4 backdrop-blur-xl bg-[#05060a]/85 border-b border-white/5">
         <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/')}>
-          <img src="/codeward-logo.png" alt="Codeward Logo" className="h-8 w-auto object-contain mr-2.5" />
+          <img src="/codeward-logo.png" alt="Codeward Logo" className="h-8 w-auto object-contain mr-1" />
           <span className="text-2xl font-bold tracking-tight text-white">
             Code<span className="text-purple-500">ward</span>
           </span>
         </div>
         <nav className="hidden gap-8 text-sm font-medium text-white/80 md:flex items-center">
-          <a href="#" className="hover:text-white transition-colors">Products</a>
-          <a href="#" className="hover:text-white transition-colors">Solutions</a>
-          <a href="#pricing" className="hover:text-white transition-colors">Pricing</a>
-          <a href="#" className="hover:text-white transition-colors">Resources</a>
-          <a href="#" className="hover:text-white transition-colors">Developers</a>
-          <a href="#docs" className="hover:text-white transition-colors">Docs</a>
-          <a href="/blogs" className="text-white font-bold border-b-2 border-purple-500 pb-1">Blogs</a>
+          <a href="/#features" className="hover:text-white transition-colors">Products</a>
+          <a href="/#solutions" className="hover:text-white transition-colors">Solutions</a>
+          <a href="/pricing" className="hover:text-white transition-colors">Pricing</a>
+          <a href="/docs" className="hover:text-white transition-colors">Docs</a>
+          <a href="/blogs" className="text-white font-bold border-b-2 border-purple-500 pb-0.5">Blogs</a>
         </nav>
-        <div className="flex items-center gap-6">
-          <button onClick={() => navigate('/login')} className="text-sm font-semibold text-white hover:text-gray-300 transition-colors">Log in</button>
-          <button onClick={() => navigate('/signup')} className="rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-black transition-all hover:bg-gray-200">Get Started</button>
+        <div className="flex items-center gap-4">
+          <button onClick={() => navigate('/login')} className="text-sm font-semibold text-white/80 hover:text-white transition-colors px-3 py-1.5">Log in</button>
+          <button onClick={() => navigate('/signup')} className="rounded-full bg-white px-5 py-2 text-sm font-semibold text-black transition-all hover:bg-gray-200">Get Started</button>
         </div>
       </header>
 
-      <main className="pb-32 pt-20 px-8 md:px-14 max-w-[1500px] mx-auto">
+      <main className="pb-28 pt-12 md:pt-16 px-6 md:px-14 max-w-[1440px] mx-auto">
+        {/* Hero Section */}
         <FadeInSection>
-          <div className="mb-16 text-center">
-            <h1 className="text-5xl md:text-7xl font-bold text-white mb-6 tracking-tight">Engineering Insights</h1>
-            <p className="text-xl text-white/60 max-w-2xl mx-auto font-medium">Stories, updates, and deep dives into autonomous code generation and technical debt management.</p>
+          <div className="mb-14 text-center">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-300 text-xs font-bold uppercase tracking-widest mb-4">
+              <span className="w-2 h-2 rounded-full bg-purple-400 animate-pulse" />
+              Codeward Engineering Hub
+            </div>
+            <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-white mb-4 tracking-tight leading-[1.1]">
+              Engineering Insights &amp; Research
+            </h1>
+            <p className="text-base sm:text-lg text-white/60 max-w-2xl mx-auto font-normal leading-relaxed">
+              In-depth technical perspectives on autonomous code review, refactoring legacy architecture, security sandboxing, and engineering velocity.
+            </p>
           </div>
         </FadeInSection>
 
-        {/* Featured Post */}
-        <FadeInSection direction="up">
-          <div 
-            onClick={() => navigate(`/blogs/${featuredPost.slug}`)}
-            className="group cursor-pointer grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 mb-24 items-center bg-[#111218] p-6 lg:p-12 rounded-[2rem] border border-white/10 shadow-2xl hover:border-white/20 transition-all"
-          >
-            <div className={`relative h-[300px] lg:h-[450px] w-full rounded-2xl overflow-hidden bg-gradient-to-br ${featuredPost.gradient}`}>
-              <div className="absolute inset-0 bg-gradient-to-tr from-black/20 via-transparent to-white/20 mix-blend-overlay" />
-              <div className="absolute inset-0 bg-black/10" />
-              <div className="absolute inset-0 p-8 flex flex-col justify-end">
-                 <span className="text-sm font-bold tracking-widest text-white/70 uppercase drop-shadow-md">
-                   {featuredPost.overlayText}
-                 </span>
-              </div>
-            </div>
-            <div>
-              <div className="flex items-center gap-3 mb-6">
-                <span className="text-[12px] font-bold text-purple-400 uppercase tracking-widest bg-purple-400/10 px-3 py-1 rounded-full">{featuredPost.category}</span>
-                <span className="text-sm font-medium text-white/40">{featuredPost.date}</span>
-              </div>
-              <h2 className="text-4xl lg:text-5xl font-bold text-white leading-tight mb-6 group-hover:text-purple-300 transition-colors">
-                {featuredPost.title}
-              </h2>
-              <p className="text-lg text-white/60 mb-8 leading-relaxed line-clamp-3">
-                {featuredPost.seoDescription}
-              </p>
-              <div className="flex items-center">
-                <div className="h-10 w-10 rounded-full bg-white/10 overflow-hidden">
-                  <img src={`https://api.dicebear.com/7.x/initials/svg?seed=${featuredPost.authorAvatar}`} alt={featuredPost.author} className="h-full w-full object-cover" />
+        {/* Featured Blog Post */}
+        {featuredPost && (
+          <FadeInSection direction="up">
+            <div 
+              onClick={() => navigate(`/blogs/${featuredPost.slug}`)}
+              className="group cursor-pointer grid grid-cols-1 lg:grid-cols-12 gap-8 mb-16 items-center bg-[#0d0e14] hover:bg-[#10121a] p-6 lg:p-8 rounded-2xl border border-white/10 hover:border-purple-500/40 shadow-xl hover:shadow-[0_0_40px_rgba(139,92,246,0.15)] transition-all duration-300"
+            >
+              {/* Compact Thumbnail Image */}
+              <div className="lg:col-span-6 relative h-[220px] sm:h-[260px] lg:h-[280px] w-full rounded-xl overflow-hidden border border-white/10 bg-[#08090d]">
+                <img 
+                  src={featuredPost.heroImage || '/og-preview.jpg'} 
+                  alt={featuredPost.title} 
+                  className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500" 
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                <div className="absolute top-4 left-4 flex items-center gap-2 bg-black/60 backdrop-blur-md px-3 py-1 rounded-md border border-white/10">
+                  <img src="/codeward-logo.png" alt="Codeward" className="h-4 w-4 object-contain" />
+                  <span className="text-xs font-bold tracking-tight text-white">Code<span className="text-purple-400">ward</span></span>
                 </div>
-                <div>
-                  <div className="text-sm font-bold text-white/90">{featuredPost.author}</div>
-                  <div className="text-xs text-white/40">{featuredPost.readTime}</div>
+                <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between">
+                  <span className="text-[11px] font-bold tracking-widest text-white/90 uppercase bg-black/60 backdrop-blur-md px-3 py-1 rounded-full border border-white/10">
+                    {featuredPost.overlayText || 'FEATURED'}
+                  </span>
+                  <span className="text-[11px] font-semibold text-purple-300 bg-purple-500/20 backdrop-blur-md px-2.5 py-0.5 rounded-full border border-purple-500/30">
+                    5 min read
+                  </span>
                 </div>
               </div>
-            </div>
-          </div>
-        </FadeInSection>
 
-        {/* Grid Posts */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-10">
-          {gridPosts.map((post, idx) => (
-            <FadeInSection key={idx} delay={idx * 100}>
-              <div onClick={() => navigate(`/blogs/${post.slug}`)} className="group cursor-pointer flex flex-col h-full">
-                <div className={`relative h-[400px] rounded-[1.25rem] overflow-hidden bg-gradient-to-br ${post.gradient} border border-white/10 group-hover:shadow-[0_0_30px_rgba(139,92,246,0.3)] transition-all duration-300`}>
-                  <div className="absolute inset-0 bg-gradient-to-tr from-black/20 via-transparent to-white/20 mix-blend-overlay" />
-                  <div className="absolute inset-0 bg-black/10" />
-                  <div className="absolute inset-0 p-6 flex flex-col justify-between z-10">
-                    <div className="flex justify-start">
-                      <div className="flex items-center gap-2">
-                        <img src="/codeward-logo.png" alt="Codeward" className="h-4 w-4 object-contain drop-shadow-md" />
-                        <span className="text-sm font-bold tracking-tight text-white drop-shadow-md">Code<span className="text-purple-400">ward</span></span>
-                      </div>
-                    </div>
-                    <div>
-                      <span className="text-[10px] font-bold tracking-widest text-white/70 uppercase block drop-shadow-md">
-                        {post.overlayText}
-                      </span>
-                    </div>
+              {/* Text Meta Content */}
+              <div className="lg:col-span-6 flex flex-col justify-center">
+                <div className="flex items-center gap-3 mb-4">
+                  <span className="text-[11px] font-bold text-purple-400 uppercase tracking-wider bg-purple-400/10 border border-purple-400/20 px-2.5 py-0.5 rounded-md">
+                    {featuredPost.category}
+                  </span>
+                  <span className="text-xs text-white/40">{featuredPost.date}</span>
+                </div>
+                <h2 className="text-2xl sm:text-3xl lg:text-3xl font-bold text-white leading-snug mb-3 group-hover:text-purple-300 transition-colors">
+                  {featuredPost.title}
+                </h2>
+                <p className="text-sm sm:text-base text-white/60 mb-6 leading-relaxed line-clamp-3">
+                  {featuredPost.seoDescription}
+                </p>
+                <div className="flex items-center gap-3 pt-4 border-t border-white/5">
+                  <div className="h-9 w-9 rounded-full bg-purple-500/15 border border-purple-500/30 p-1 flex items-center justify-center shrink-0">
+                    <img src="/codeward-logo.png" alt="Codeward Team" className="h-5 w-5 object-contain" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-bold text-white">Codeward Team</div>
+                    <div className="text-xs text-purple-400/80 font-medium">Platform &amp; Autonomous AI Engineering</div>
                   </div>
                 </div>
-                
-                <div className="mt-6 flex flex-col gap-3 flex-grow">
+              </div>
+            </div>
+          </FadeInSection>
+        )}
+
+        {/* Grid Posts */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
+          {gridPosts.map((post, idx) => (
+            <FadeInSection key={idx} delay={idx * 60}>
+              <div 
+                onClick={() => navigate(`/blogs/${post.slug}`)} 
+                className="group cursor-pointer flex flex-col h-full bg-[#0d0e14] hover:bg-[#10121a] p-4 rounded-2xl border border-white/10 hover:border-purple-500/40 hover:shadow-[0_0_30px_rgba(139,92,246,0.15)] transition-all duration-300"
+              >
+                {/* Compact Thumbnail Container */}
+                <div className="relative h-[180px] sm:h-[190px] w-full rounded-xl overflow-hidden border border-white/5 mb-4 bg-[#08090d]">
+                  <img 
+                    src={post.heroImage || '/og-preview.jpg'} 
+                    alt={post.title} 
+                    className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500" 
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/15 to-transparent" />
+                  <div className="absolute top-3 left-3 flex items-center gap-1.5 bg-black/65 backdrop-blur-md px-2.5 py-1 rounded-md border border-white/10">
+                    <img src="/codeward-logo.png" alt="Codeward" className="h-3.5 w-3.5 object-contain" />
+                    <span className="text-[11px] font-bold tracking-tight text-white">Code<span className="text-purple-400">ward</span></span>
+                  </div>
+                  <div className="absolute bottom-3 left-3">
+                    <span className="text-[10px] font-bold tracking-widest text-white/80 uppercase bg-black/50 backdrop-blur-sm px-2 py-0.5 rounded border border-white/10">
+                      {post.overlayText}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Content */}
+                <div className="flex flex-col gap-2.5 flex-grow">
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-bold text-purple-400 uppercase tracking-widest bg-purple-400/10 px-2 py-1 rounded-sm">
+                    <span className="text-[11px] font-bold text-purple-400 uppercase tracking-wider bg-purple-400/10 border border-purple-400/20 px-2 py-0.5 rounded">
                       {post.category}
                     </span>
                     <span className="text-xs font-medium text-white/40">{post.date}</span>
                   </div>
-                  <h3 className="text-xl font-bold text-white leading-snug group-hover:text-purple-300 transition-colors">
+                  <h3 className="text-lg font-bold text-white leading-snug group-hover:text-purple-300 transition-colors line-clamp-2">
                     {post.title}
                   </h3>
-                  <div className="mt-auto pt-4 flex items-center gap-2">
-                    <div className="h-6 w-6 rounded-full bg-white/10 overflow-hidden">
-                      <img src={`https://api.dicebear.com/7.x/initials/svg?seed=${post.authorAvatar}`} alt={post.author} className="h-full w-full object-cover" />
+                  <p className="text-xs text-white/50 line-clamp-2 leading-relaxed">
+                    {post.seoDescription}
+                  </p>
+                  <div className="mt-auto pt-4 flex items-center justify-between border-t border-white/5">
+                    <div className="flex items-center gap-2">
+                      <div className="h-6 w-6 rounded-full bg-purple-500/15 border border-purple-500/25 p-0.5 flex items-center justify-center">
+                        <img src="/codeward-logo.png" alt="Codeward Team" className="h-3.5 w-3.5 object-contain" />
+                      </div>
+                      <span className="text-xs font-bold text-white/90">Codeward Team</span>
                     </div>
-                    <span className="text-sm font-medium text-white/60">{post.author}</span>
-                    <span className="text-white/30">•</span>
-                    <span className="text-sm text-white/40">{post.readTime}</span>
+                    <span className="text-xs text-white/40">{post.readTime}</span>
                   </div>
                 </div>
               </div>
@@ -167,127 +206,6 @@ export const BlogsPage: React.FC = () => {
           ))}
         </div>
       </main>
-
-      {/* Ã¢â€â‚¬Ã¢â€â‚¬ Footer Section Ã¢â€â‚¬Ã¢â€â‚¬ */}
-      <div className="px-4 md:px-8 pb-4 md:pb-8 bg-[#05060a] mt-10">
-        <footer className="relative bg-[#C3DBFF] rounded-[16px] pt-32 pb-8 px-8 md:px-14 overflow-hidden shadow-2xl">
-          {/* Fabric Gradient Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-tr from-white/40 via-transparent to-black/5 mix-blend-overlay pointer-events-none" />
-          
-          <div className="mx-auto max-w-[1500px] relative z-10">
-            {/* Huge Logo/Text Graphic */}
-
-            {/* Mission, Trust Badges & Contact */}
-            <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-8 mb-16 pb-10 border-b border-black/10">
-              <p className="text-black/80 text-lg md:text-xl font-medium max-w-xs leading-relaxed shrink-0">
-                Codeward builds, tests, and optimizes your codebase.<br />
-                Automatically.
-              </p>
-
-              <div className="my-2 xl:my-0">
-                <FooterTrustBadges />
-              </div>
-
-              <a href="mailto:hello@codeward.ai" className="text-black hover:text-[#8B5CF6] transition-colors text-lg md:text-xl font-bold flex items-center gap-2 group shrink-0">
-                <span className="group-hover:translate-x-1 transition-transform">→</span> hello@codeward.ai
-              </a>
-            </div>
-
-          {/* Links Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-12 mb-24">
-            <div className="flex flex-col gap-4">
-              <h4 className="text-black font-bold mb-2">Product</h4>
-              <a href="#" className="text-black/70 hover:text-black transition-colors text-sm font-semibold">AI Code Builder</a>
-              <a href="#" className="text-black/70 hover:text-black transition-colors text-sm font-semibold">Automated Code Reviews</a>
-              <a href="#" className="text-black/70 hover:text-black transition-colors text-sm font-semibold">Technical Debt Management</a>
-              <a href="#" className="text-black/70 hover:text-black transition-colors text-sm font-semibold">Security Sandboxes</a>
-              <a href="#" className="text-black/70 hover:text-black transition-colors text-sm font-semibold">Architecture Refactoring</a>
-              <a href="#" className="text-black/70 hover:text-black transition-colors text-sm font-semibold">Tech Debt Calculator</a>
-              <a href="#" className="text-black/70 hover:text-black transition-colors text-sm font-semibold">Playbooks</a>
-            </div>
-            <div className="flex flex-col gap-4">
-              <h4 className="text-black font-bold mb-2">Solutions</h4>
-              <a href="#" className="text-black/70 hover:text-black transition-colors text-sm font-semibold">For Startups</a>
-              <a href="#" className="text-black/70 hover:text-black transition-colors text-sm font-semibold">For Enterprise</a>
-              <a href="#" className="text-black/70 hover:text-black transition-colors text-sm font-semibold">For Open Source</a>
-              <a href="#" className="text-black/70 hover:text-black transition-colors text-sm font-semibold">Y Combinator</a>
-            </div>
-            <div className="flex flex-col gap-4">
-              <h4 className="text-black font-bold mb-2">Compare</h4>
-              <button onClick={() => navigate('/compare/coderabbit')} className="text-black/70 hover:text-black transition-colors text-sm font-semibold text-left">Codeward vs CodeRabbit</button>
-              <button onClick={() => navigate('/compare/greptile')} className="text-black/70 hover:text-black transition-colors text-sm font-semibold text-left">Codeward vs Greptile</button>
-              <button onClick={() => navigate('/compare/copilot')} className="text-black/70 hover:text-black transition-colors text-sm font-semibold text-left">Codeward vs Copilot</button>
-              <button onClick={() => navigate('/compare/cursor')} className="text-black/70 hover:text-black transition-colors text-sm font-semibold text-left">Codeward vs Cursor</button>
-              <button onClick={() => navigate('/compare/sonarqube')} className="text-black/70 hover:text-black transition-colors text-sm font-semibold text-left">Codeward vs SonarQube</button>
-              <button onClick={() => navigate('/compare/snyk')} className="text-black/70 hover:text-black transition-colors text-sm font-semibold text-left">Codeward vs Snyk</button>
-              <button onClick={() => navigate('/compare/deepsource')} className="text-black/70 hover:text-black transition-colors text-sm font-semibold text-left">Codeward vs DeepSource</button>
-              <button onClick={() => navigate('/compare/codeclimate')} className="text-black/70 hover:text-black transition-colors text-sm font-semibold text-left">Codeward vs Code Climate</button>
-              <button onClick={() => navigate('/compare/codacy')} className="text-black/70 hover:text-black transition-colors text-sm font-semibold text-left">Codeward vs Codacy</button>
-              <button onClick={() => navigate('/compare/fallow')} className="text-black/70 hover:text-black transition-colors text-sm font-semibold text-left">Codeward vs Fallow</button>
-            </div>
-            <div className="flex flex-col gap-4">
-              <h4 className="text-black font-bold mb-2">Company</h4>
-              <a href="/book-demo" className="text-black/70 hover:text-black transition-colors text-sm font-semibold">Get a demo</a>
-              <a href="#" className="text-black/70 hover:text-black transition-colors text-sm font-semibold">Blog</a>
-              <a href="#" className="text-black/70 hover:text-black transition-colors text-sm font-semibold">Documentation</a>
-              <a href="#" className="text-black/70 hover:text-black transition-colors text-sm font-semibold">FAQ</a>
-              <a href="#" className="text-black/70 hover:text-black transition-colors text-sm font-semibold">The Codeward Effect</a>
-              <a href="#" className="text-black/70 hover:text-black transition-colors text-sm font-semibold">Careers</a>
-              <a href="#" className="text-black/70 hover:text-black transition-colors text-sm font-semibold">Contact</a>
-            </div>
-          </div>
-
-          {/* Integrations Block */}
-          <div className="mb-16">
-            <h4 className="text-black font-bold mb-6">Integrations</h4>
-            <div className="text-black/70 text-sm font-semibold leading-loose flex flex-wrap gap-x-3">
-              {["GitHub", "GitLab", "Bitbucket", "Jira", "Linear", "Slack", "Discord", "VS Code", "JetBrains", "Vercel", "AWS", "Google Cloud", "Azure", "Supabase", "Stripe", "Docker", "Kubernetes", "Datadog", "Sentry"].map((integration, i, arr) => (
-                <span key={integration} className="whitespace-nowrap">
-                  <a href="#" className="hover:text-black transition-colors">{integration}</a>
-                  {i < arr.length - 1 && <span className="ml-3">Ã‚Â·</span>}
-                </span>
-              ))}
-            </div>
-          </div>
-
-          {/* Newsletter Block */}
-          <NewsletterForm />
-
-          {/* Bottom Bar */}
-          <div className="flex flex-col md:flex-row justify-between items-center gap-6 pt-8 border-t border-black/10 text-black/50 text-sm font-semibold">
-            <div className="flex flex-wrap items-center gap-6">
-              <span>Ã‚Â©2026, Codeward</span>
-              <a href="#" className="hover:text-black transition-colors">Privacy</a>
-              <a href="#" className="hover:text-black transition-colors">Terms</a>
-              <a href="#" className="hover:text-black transition-colors">Trust</a>
-              <a href="#" className="hover:text-black transition-colors">Status</a>
-              <div className="flex items-center gap-4 ml-2">
-                <a href="#" className="hover:text-black transition-colors" aria-label="Instagram">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></svg>
-                </a>
-                <a href="#" className="hover:text-black transition-colors" aria-label="YouTube">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2.5 7.1c0-1.7 1.4-3.1 3.1-3.1h12.8c1.7 0 3.1 1.4 3.1 3.1v9.8c0 1.7-1.4 3.1-3.1 3.1H5.6C3.9 20 2.5 18.6 2.5 16.9V7.1Z"/><path d="m9.5 10 6.5 3-6.5 3v-6Z"/></svg>
-                </a>
-                <a href="#" className="hover:text-black transition-colors" aria-label="LinkedIn">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect width="4" height="12" x="2" y="9"/><circle cx="4" cy="4" r="2"/></svg>
-                </a>
-                <a href="#" className="hover:text-black transition-colors" aria-label="X (Twitter)">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z"/></svg>
-                </a>
-                <a href="#" className="hover:text-black transition-colors" aria-label="Website">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/><path d="M2 12h20"/></svg>
-                </a>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              Made on Codeward by <span className="text-black font-black text-lg leading-none">✦</span>
-            </div>
-          </div>
-        </div>
-      </footer>
-      </div>
     </div>
   );
 };
-

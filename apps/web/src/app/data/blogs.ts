@@ -24,6 +24,7 @@ export const blogs: BlogPost[] = [
     readTime: '5 min read',
     author: 'Codeward Team',
     authorAvatar: 'Codeward+Team',
+    heroImage: '/og-preview.jpg',
     seoDescription: 'Discover how Codeward helps engineering teams eliminate technical debt by catching it early in the PR phase.',
     content: `
       <p>Technical debt is the silent killer of engineering velocity. Every team accumulates it, but the best teams manage it proactively rather than reactively.</p>
@@ -47,8 +48,9 @@ export const blogs: BlogPost[] = [
     overlayText: 'AI AGENTS',
     date: 'May 18, 2026',
     readTime: '6 min read',
-    author: 'Alex TypeScript',
-    authorAvatar: 'Alex+TypeScript',
+    author: 'Codeward Team',
+    authorAvatar: 'Codeward+Team',
+    heroImage: '/og-preview.jpg',
     seoDescription: 'Learn how specialized AI agents out-perform generic LLMs in automated code reviews and technical debt management.',
     content: `
       <p>Generic language models are impressive, but when it comes to enterprise-grade code reviews, you need specialists.</p>
@@ -75,8 +77,9 @@ export const blogs: BlogPost[] = [
     overlayText: 'SECURITY SHIELD',
     date: 'May 12, 2026',
     readTime: '4 min read',
-    author: 'Sam Hacker',
-    authorAvatar: 'Sam+Hacker',
+    author: 'Codeward Team',
+    authorAvatar: 'Codeward+Team',
+    heroImage: '/og-preview.jpg',
     seoDescription: 'Prevent zero-day vulnerabilities from reaching production by scanning pull requests directly.',
     content: `
       <p>Security cannot be an afterthought. In a world where zero-day vulnerabilities are increasingly common, relying on periodic penetration testing is no longer sufficient.</p>
@@ -98,8 +101,9 @@ export const blogs: BlogPost[] = [
     overlayText: 'ORCHESTRATOR',
     date: 'April 30, 2026',
     readTime: '7 min read',
-    author: 'Elena Systems',
-    authorAvatar: 'Elena+Systems',
+    author: 'Codeward Team',
+    authorAvatar: 'Codeward+Team',
+    heroImage: '/og-preview.jpg',
     seoDescription: 'Deep dive into how the Orchestrator agent manages multiple specialized agents to provide a unified review.',
     content: `
       <p>Managing multiple AI agents can quickly become chaotic. If the Security Agent flags a risk, but the Performance Agent suggests a change that exacerbates that risk, how do you resolve the conflict?</p>
@@ -125,8 +129,9 @@ export const blogs: BlogPost[] = [
     overlayText: 'FIRECRACKER',
     date: 'April 15, 2026',
     readTime: '5 min read',
-    author: 'Mark Infra',
-    authorAvatar: 'Mark+Infra',
+    author: 'Codeward Team',
+    authorAvatar: 'Codeward+Team',
+    heroImage: '/og-preview.jpg',
     seoDescription: 'Why Firecracker microVMs are the perfect infrastructure for running untrusted code during automated testing.',
     content: `
       <p>When you build an automated code quality platform, you inevitably have to run untrusted code. Doing this securely at scale is one of the hardest infrastructure challenges in modern engineering.</p>
@@ -148,8 +153,9 @@ export const blogs: BlogPost[] = [
     overlayText: 'METRICS',
     date: 'April 02, 2026',
     readTime: '6 min read',
-    author: 'Sarah Data',
-    authorAvatar: 'Sarah+Data',
+    author: 'Codeward Team',
+    authorAvatar: 'Codeward+Team',
+    heroImage: '/og-preview.jpg',
     seoDescription: 'Move beyond lines of code and story points. Discover the metrics that actually measure engineering productivity.',
     content: `
       <p>Lines of code written is a terrible metric. Story points completed is only marginally better. How do you actually measure if an engineering team is moving fast and building things of value?</p>
@@ -177,6 +183,7 @@ export const blogs: BlogPost[] = [
     readTime: '8 min read',
     author: 'Codeward Team',
     authorAvatar: 'Codeward+Team',
+    heroImage: '/og-preview.jpg',
     seoDescription: 'A step-by-step guide to safely refactoring monolithic applications into modern architectures.',
     content: `
       <p>No one sets out to build a "legacy monolith." They happen naturally as successful products grow over time. But eventually, the sheer weight of the codebase slows down development.</p>
@@ -196,8 +203,9 @@ export const blogs: BlogPost[] = [
     overlayText: 'COMPLIANCE',
     date: 'March 05, 2026',
     readTime: '4 min read',
-    author: 'Jane Legal',
-    authorAvatar: 'Jane+Legal',
+    author: 'Codeward Team',
+    authorAvatar: 'Codeward+Team',
+    heroImage: '/og-preview.jpg',
     seoDescription: 'How "Compliance as Code" is revolutionizing how organizations meet regulatory requirements like GDPR and HIPAA.',
     content: `
       <p>Compliance used to mean endless spreadsheets, manual audits, and weeks of preparation. Not anymore.</p>
@@ -216,8 +224,9 @@ export const blogs: BlogPost[] = [
     overlayText: 'WEBHOOKS',
     date: 'February 18, 2026',
     readTime: '6 min read',
-    author: 'Alex TypeScript',
-    authorAvatar: 'Alex+TypeScript',
+    author: 'Codeward Team',
+    authorAvatar: 'Codeward+Team',
+    heroImage: '/og-preview.jpg',
     seoDescription: 'Technical deep dive into building a high-throughput, resilient webhook delivery system.',
     content: `
       <p>Webhooks are the glue of the modern internet, but delivering them reliably at scale is surprisingly difficult. Endpoints go down, networks timeout, and sudden spikes in traffic can overwhelm your system.</p>
