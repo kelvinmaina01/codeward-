@@ -46,23 +46,23 @@ export function TrialLimitEmail({
       {/* 3. Value At Stake Card */}
       <div style={missedCard}>
         <h3 style={missedTitle}>
-          🔒 What Unaudited PRs Miss Without Codeward Pro:
+          What Unaudited PRs Miss Without Codeward Pro:
         </h3>
         <ul style={missedList}>
           <li style={missedItem}>
-            <strong>🛡️ Runtime Security Agent</strong> — SQLi, secret exposure, broken RLS checks
+            <strong>Runtime Security Agent</strong> — SQLi, secret exposure, broken RLS checks
           </li>
           <li style={missedItem}>
-            <strong>🏛️ Architecture Agent</strong> — Circular dependencies, cyclomatic debt, structural decay
+            <strong>Architecture Agent</strong> — Circular dependencies, cyclomatic debt, structural decay
           </li>
           <li style={missedItem}>
-            <strong>🧹 Bloat Agent</strong> — Dead code branches, redundant utility libraries
+            <strong>Bloat & Tech Debt Agent</strong> — Dead code branches, redundant utility libraries
           </li>
           <li style={missedItem}>
-            <strong>🤖 AI-Era Flaws</strong> — Unvalidated LLM output vulnerabilities, prompt injection risks
+            <strong>AI-Era Flaws Agent</strong> — Unvalidated LLM output vulnerabilities, prompt injection risks
           </li>
           <li style={missedItem}>
-            <strong>🤖 Guardian Auto-Fix</strong> — Automated pull requests with ready-to-merge fixes
+            <strong>Guardian Auto-Fix</strong> — Automated pull requests with ready-to-merge fixes
           </li>
         </ul>
       </div>

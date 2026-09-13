@@ -73,7 +73,7 @@ export function PlanUpgradedEmail({
 
       {/* 3. Unlocked Features Card */}
       <div style={featuresBox}>
-        <h3 style={featuresTitle}>🚀 Unlocked for Your Team:</h3>
+        <h3 style={featuresTitle}>Unlocked for Your Team:</h3>
         <ul style={featuresList}>
           {features.map((f, i) => (
             <li key={i} style={featureItem}>

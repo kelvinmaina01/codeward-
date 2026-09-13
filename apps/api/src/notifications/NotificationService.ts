@@ -41,7 +41,7 @@ export class NotificationService {
     // Mock Mode if no valid API key is present
     if (!resend) {
       console.log(`\n======================================================`);
-      console.log(`📧 [MOCK EMAIL DISPATCHED]`);
+      console.log(`[MOCK EMAIL DISPATCHED]`);
       console.log(`To:       ${to}`);
       console.log(`From:     ${from}`);
       console.log(`Reply-To: ${replyTo}`);
@@ -170,7 +170,7 @@ export class NotificationService {
   ) {
     return this.sendEmail(
       to,
-      `🚨 Action Required: PR #${prNumber} on ${repoName} blocked`,
+      `Action Required: PR #${prNumber} on ${repoName} blocked`,
       React.createElement(EscalationEmail, { repoName, prNumber, prTitle, failingTestName, runId }),
       {
         fromAddress: 'Codeward Guardian <alerts@codeward.cloud>',
@@ -246,7 +246,7 @@ export class NotificationService {
   ) {
     return this.sendEmail(
       to,
-      `⚠️ Agent Run Failed: ${agentId} on ${repoName} (Run #${runId})`,
+      `Agent Run Failed: ${agentId} on ${repoName} (Run #${runId})`,
       React.createElement(RunFailureEmail, {
         repoName,
         agentId,
