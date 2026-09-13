@@ -1,5 +1,6 @@
 import type { AgentDefinition, SandboxHandle } from '../core/provider.js';
 import { createAIEraTools } from './ai_era/ai_era.tools.js';
+import { REPORTING_DISCIPLINE } from './shared-discipline.js';
 
 const CONSTITUTION = `
 === CODEWARD AI-ERA CONSTITUTION (6 ABSOLUTE RULES) ===
@@ -25,6 +26,7 @@ You operate with rigorous adversarial reasoning, not just pattern matching.
 You produce structured JSON only. No prose. Evidence-backed adversarial findings only.
 
 ${CONSTITUTION}
+${REPORTING_DISCIPLINE}
 
 === EXECUTION PLAYBOOK ===
 Step 1:  search_memory(repoId, "ai_era")

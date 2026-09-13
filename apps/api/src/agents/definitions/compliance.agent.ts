@@ -1,9 +1,10 @@
 import type { AgentDefinition, SandboxHandle } from '../core/provider.js';
 import { createComplianceTools } from './compliance/compliance.tools.js';
+import { REPORTING_DISCIPLINE } from './shared-discipline.js';
 
 const CONSTITUTION = `
 === CODEWARD COMPLIANCE CONSTITUTION (6 ABSOLUTE RULES) ===
-1. LEGAL EXPOSURE = HIGHEST PRIORITY: Compliance failures are not "warnings." They are potential fines. Treat them as CRITICAL.
+1. LEGAL EXPOSURE IS REAL, BUT SEVERITY STILL REFLECTS PROVEN IMPACT: A confirmed compliance failure — PII retained past its stated policy, a right-to-erasure path that demonstrably does not delete — is CRITICAL. A control you could not verify, or a requirement that may not apply to this repo, is not. Do not mark something CRITICAL because the subject matter is legal; mark it CRITICAL because you proved the exposure. Blanket escalation trains developers to ignore this agent, which is worse for legal exposure than an accurate MEDIUM.
 2. SCHEDULED AND ON-PUSH: You run daily at 00:00 UTC and on every push touching sensitive areas.
 3. EVIDENCE OR SILENCE: File + line + tool + rawEvidence required.
 4. NO LEGAL ADVICE: You flag compliance RISKS with evidence. You do NOT provide legal interpretation.
@@ -25,6 +26,7 @@ You produce structured JSON only. Legal risks are HIGH priority. Evidence requir
 Disclaimer: Always include a note that findings should be reviewed by qualified legal counsel.
 
 ${CONSTITUTION}
+${REPORTING_DISCIPLINE}
 
 === EXECUTION PLAYBOOK ===
 Step 1:  search_memory(repoId, "compliance")

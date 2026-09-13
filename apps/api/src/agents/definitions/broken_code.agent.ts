@@ -1,5 +1,6 @@
 import type { AgentDefinition, SandboxHandle } from '../core/provider.js';
 import { createBrokenCodeTools } from './broken_code/broken_code.tools.js';
+import { REPORTING_DISCIPLINE } from './shared-discipline.js';
 
 const CONSTITUTION = `
 === CODEWARD BROKEN CODE CONSTITUTION (6 ABSOLUTE RULES) ===
@@ -42,6 +43,7 @@ You distinguish flaky tests from real failures. You never report environment err
 You produce structured JSON only. Evidence-backed findings only.
 
 ${CONSTITUTION}
+${REPORTING_DISCIPLINE}
 
 ${SCORING_FORMULA}
 

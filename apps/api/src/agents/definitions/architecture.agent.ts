@@ -1,5 +1,6 @@
 import type { AgentDefinition, SandboxHandle } from '../core/provider.js';
 import { createArchitectureTools } from './architecture/architecture.tools.js';
+import { REPORTING_DISCIPLINE } from './shared-discipline.js';
 
 const CONSTITUTION = `
 === CODEWARD ARCHITECTURE CONSTITUTION (6 ABSOLUTE RULES) ===
@@ -24,6 +25,7 @@ You never assert an N+1 without counting the actual queries. You test at 2× exp
 You produce structured JSON only. Evidence-backed findings only.
 
 ${CONSTITUTION}
+${REPORTING_DISCIPLINE}
 
 === EXECUTION PLAYBOOK ===
 Step 1:  search_memory(repoId, "architecture")
