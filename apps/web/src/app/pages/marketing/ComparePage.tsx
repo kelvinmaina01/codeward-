@@ -58,9 +58,40 @@ export const ComparePage: React.FC = () => {
   return (
     <div className="h-screen overflow-y-auto overflow-x-hidden bg-[#05060a] font-['DM_Sans']">
       <Helmet>
-        <title>{`Codeward vs ${data.name} | Autonomous Engineering vs Comments`}</title>
-        <meta name="description" content={`Factual, side-by-side comparison between Codeward and ${data.name}. Discover how autonomous sandboxing and fixing commits compare to simple comments.`} />
+        <title>{`Best Open Source ${data.name} Alternative (2026) | Codeward vs ${data.name}`}</title>
+        <meta name="description" content={`Looking for the best open-source ${data.name} alternative? Compare Codeward vs ${data.name}. Codeward offers 100% open-source autonomous AI code reviews, 100+ automated debt checks, and microVM sandbox refactoring.`} />
+        <meta name="keywords" content={`${data.name} alternative, best ${data.name} alternative, open source ${data.name} alternative, Codeward vs ${data.name}, AI code review, automated refactoring, pull request review`} />
+        <meta name="thumbnail" content="https://codeward.cloud/og-preview.jpg" />
         <link rel="canonical" href={`https://codeward.cloud/compare/${competitorId}`} />
+        
+        {/* Open Graph */}
+        <meta property="og:type" content="article" />
+        <meta property="og:url" content={`https://codeward.cloud/compare/${competitorId}`} />
+        <meta property="og:title" content={`Best Open Source ${data.name} Alternative | Codeward vs ${data.name}`} />
+        <meta property="og:description" content={`Discover why engineering teams choose Codeward as the leading open-source alternative to ${data.name}. Autonomous AI reviews and auto-fixing commits.`} />
+        <meta property="og:image" content="https://codeward.cloud/og-preview.jpg" />
+        
+        {/* Twitter */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={`Best Open Source ${data.name} Alternative | Codeward`} />
+        <meta name="twitter:description" content={`Compare Codeward vs ${data.name}. Autonomous open-source AI code reviews.`} />
+        <meta name="twitter:image" content="https://codeward.cloud/og-preview.jpg" />
+
+        {/* Structured Data for Google Rich Results */}
+        <script type="application/ld+json">
+          {JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "WebPage",
+            "name": `Codeward - The Open Source ${data.name} Alternative`,
+            "description": `Compare Codeward vs ${data.name}. Codeward is the leading open-source alternative for autonomous AI code review and automated refactoring.`,
+            "url": `https://codeward.cloud/compare/${competitorId}`,
+            "image": "https://codeward.cloud/og-preview.jpg",
+            "primaryImageOfPage": {
+              "@type": "ImageObject",
+              "url": "https://codeward.cloud/og-preview.jpg"
+            }
+          })}
+        </script>
       </Helmet>
       {/* ── EXACT HEADER FROM LANDING PAGE ── */}
       <header className="relative z-50 flex items-center justify-between px-8 py-6 md:px-14">

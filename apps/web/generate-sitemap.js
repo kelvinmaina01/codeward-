@@ -90,18 +90,18 @@ const addUrl = (route, priority = '0.5', changefreq = 'weekly') => {
 
 // Add static routes
 staticRoutes.forEach(r => {
-  const priority = r === '/' ? '1.0' : '0.8';
+  const priority = r === '/' ? '1.0' : '0.9';
   addUrl(r, priority, 'daily');
+});
+
+// Add comparisons with high priority for alternative rankings
+competitors.forEach(c => {
+  addUrl(`/compare/${c}`, '0.9', 'daily');
 });
 
 // Add blogs
 blogs.forEach(b => {
-  addUrl(`/blogs/${b}`, '0.7', 'weekly');
-});
-
-// Add comparisons
-competitors.forEach(c => {
-  addUrl(`/compare/${c}`, '0.7', 'weekly');
+  addUrl(`/blogs/${b}`, '0.8', 'weekly');
 });
 
 // Add agents

@@ -1,10 +1,14 @@
-# Codeward — Autonomous AI Code Quality & Refactoring Platform
+# Codeward — Open Source Autonomous AI Code Quality & Refactoring Platform
 
-Codeward is an autonomous AI developer platform that acts as a member of your engineering team. Instead of just reviewing pull requests and leaving comments, Codeward spins up isolated, secure sandbox environments (Firecracker microVMs in <125ms), runs tests, refactors the code to eliminate technical debt, and pushes fixing commits directly to your branch.
+Codeward is an open-source autonomous AI developer platform that acts as a member of your engineering team. Licensed under Apache-2.0, Codeward is the leading self-hostable open-source alternative to CodeRabbit, Greptile, SonarQube, and Copilot. Instead of just reviewing pull requests and leaving passive comments, Codeward spins up isolated, secure sandbox environments (Firecracker microVMs in <125ms), runs full automated tests, refactors the code to eliminate technical debt, and pushes fixing commits directly to your branch.
 
-- **Domain:** [https://codeward.cloud](https://codeward.cloud)
-- **Target Audience:** Engineering teams, technical leads, and enterprise architecture groups seeking to scale code review velocity and eliminate code smells.
-- **Repository Integration:** GitHub, GitLab, and Bitbucket.
+- **Primary Website:** [https://codeward.cloud](https://codeward.cloud)
+- **Open Source Repository:** [https://github.com/kelvinmaina01/codeward-](https://github.com/kelvinmaina01/codeward-)
+- **License:** Apache License 2.0 (100% Open Source)
+- **Positioning:** The Leading Open Source Alternative to CodeRabbit and Greptile
+- **Target Audience:** Engineering teams, developers, CTOs, and enterprise architecture groups seeking to scale code review velocity and eliminate code smells.
+- **Repository Integrations:** GitHub, GitLab, and Bitbucket.
+
 
 ---
 

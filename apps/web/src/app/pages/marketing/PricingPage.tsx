@@ -327,9 +327,20 @@ export default function PricingPage() {
   return (
     <div className="min-h-screen bg-[#05060a] font-sans text-white">
       <Helmet>
-        <title>Pricing | Codeward</title>
-        <meta name="description" content="Simple, agentic pricing for Codeward. Start for free — no credit card required." />
+        <title>Pricing | Codeward — Open Source AI Code Review Plans &amp; Free Tier</title>
+        <meta name="description" content="Transparent, developer-first pricing. Start free with 10 pull request scans every month. Pro tier at $29/mo with unlimited AI reviews and self-healing commits. 100% open-core." />
+        <meta name="keywords" content="Codeward pricing, AI code review cost, CodeRabbit pricing alternative, free PR review, open source code quality pricing" />
+        <meta name="thumbnail" content="https://codeward.cloud/og-preview.jpg" />
         <link rel="canonical" href="https://codeward.cloud/pricing" />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://codeward.cloud/pricing" />
+        <meta property="og:title" content="Codeward Pricing — Transparent Plans &amp; Free Tier" />
+        <meta property="og:description" content="Start free with 10 PR scans every month. Unlimited reviews and microVM sandboxes for engineering teams." />
+        <meta property="og:image" content="https://codeward.cloud/og-preview.jpg" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Codeward Pricing — Transparent Plans &amp; Free Tier" />
+        <meta name="twitter:description" content="Start free with 10 PR scans every month. Unlimited reviews and microVM sandboxes." />
+        <meta name="twitter:image" content="https://codeward.cloud/og-preview.jpg" />
       </Helmet>
 
       <LandingHeader />
