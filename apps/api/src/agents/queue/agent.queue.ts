@@ -25,6 +25,7 @@ import { agentTasks, runs, repositories, runLogs, user } from '../../db/schema.j
 import { eq, and, notLike } from 'drizzle-orm';
 import { getProvider } from '../core/registry.js';
 import type { AgentDefinition, SandboxHandle, AgentRunConfig } from '../core/provider.js';
+import { ResilientSandbox } from '../../sandbox/resilient-sandbox.js';
 import { LocalExecSandbox } from '../../sandbox/local-exec.js';
 import { FlySandbox } from '../../sandbox/fly-machine.js';
 import { NotificationService } from '../../notifications/NotificationService.js';
@@ -167,15 +168,8 @@ registerAgent(chatAgent);
  * whatever machine ran this Node process. Defaults to 'local' — Fly is opt-in until a real
  * deployment sets the env var.
  */
-function createSandbox(): LocalExecSandbox | FlySandbox {
-  if (process.env.NODE_ENV === 'production' && process.env.SANDBOX_PROVIDER !== 'fly') {
-    throw new Error("FATAL: Local execution forbidden in production");
-  }
-  if (process.env.SANDBOX_PROVIDER === 'fly') {
-    const image = process.env.FLY_SANDBOX_IMAGE || 'registry.fly.io/codeward-sandboxes-v2:deployment-01KV13ANZ9AJNNPAXN4A75G44Y';
-    return new FlySandbox({ image });
-  }
-  return new LocalExecSandbox();
+function createSandbox(): ResilientSandbox {
+  return new ResilientSandbox();
 }
 
 /**
@@ -228,7 +222,7 @@ export function startAgentWorker(customOpts?: any): Worker<AgentJobData> {
   console.log(`[AgentWorker] Starting ${agentId} for ${repoFullName}@${commitSHA} (run #${runId})`);
 
   const { taskId, checkpointState } = await claimTaskRow(runId, agentId, providerName);
-  let sandbox: LocalExecSandbox | FlySandbox | null = null;
+  let sandbox: ResilientSandbox | null = null;
 
   try {
     // -----------------------------------------------------------------------
@@ -266,7 +260,7 @@ export function startAgentWorker(customOpts?: any): Worker<AgentJobData> {
     // -----------------------------------------------------------------------
     // 3. Build the tools
     // -----------------------------------------------------------------------
-    const tools = definition.createTools(sandbox);
+    const tools = definition.createTools(sandbox!);
 
     // -----------------------------------------------------------------------
     // 4. Build the run config
@@ -637,14 +631,20 @@ Use these EXACT values for any tool parameter named runId/repoId — never inven
     console.error(`[AgentWorker] ${agentId} failed (Attempt ${job.attemptsMade + 1}):`, err.message);
 
     const msg = err.message.toLowerCase();
-    const isDeterministic = msg.includes('429') || msg.includes('insufficient_quota') || msg.includes('401') || msg.includes('syntaxerror');
-    const maxAttempts = job.opts.attempts || 1;
+    const isDeterministic = msg.includes('insufficient_quota') ||
+      msg.includes('credits remaining') ||
+      msg.includes('401') ||
+      msg.includes('repository not found') ||
+      msg.includes('could not read username') ||
+      msg.includes('syntaxerror');
+
+    const maxAttempts = job.opts.attempts || 3;
     const willRetry = !isDeterministic && (job.attemptsMade + 1 < maxAttempts);
     
     const checkpointState = (error as any).checkpointState || null;
 
     if (willRetry) {
-      const retryMsg = `Retrying automatically (Attempt ${job.attemptsMade + 2} of ${maxAttempts}) - ${err.message}`;
+      const retryMsg = `Transient issue encountered. Pausing and retrying with backoff (Attempt ${job.attemptsMade + 2} of ${maxAttempts}) - ${err.message}`;
       console.log(`[AgentWorker] ${agentId} - ${retryMsg}`);
       logAndBroadcast('agent_active', { repo: repoFullName, sha: commitSHA, agent: agentId, status: retryMsg, step: 'retrying', runId, logType: 'system', level: 'warn' });
       
@@ -665,9 +665,10 @@ Use these EXACT values for any tool parameter named runId/repoId — never inven
         })
         .where(eq(agentTasks.id, taskId));
       
-      // Since it's a final failure, trigger the email notification here
+      // Since it's a final failure, trigger the email notification here with precision deep link
       try {
-        const repoUrl = `https://app.codeward.cloud/runs/${runId}`;
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+        const retryUrl = `${frontendUrl}/dashboard/repositories?retryRepo=${encodeURIComponent(repoFullName)}&runId=${runId}`;
         const logTail = err.message + '\n' + (err.stack || '');
         
         // We look up the organization owner's email. For now, since we have repoFullName,
@@ -689,7 +690,7 @@ Use these EXACT values for any tool parameter named runId/repoId — never inven
               runId,
               commitSHA,
               err.message,
-              `${repoUrl}/retry`,
+              retryUrl,
               logTail.substring(0, 2000)
             );
           }
@@ -886,6 +887,14 @@ Use these EXACT values for any tool parameter named runId/repoId — never inven
     console.error(`[AgentQueue] Job ${job?.id} failed (${job?.data?.agentId}):`, err.message);
     if (job?.data && !job.data.agentId.startsWith('orchestrator')) {
       await checkAndTriggerPhase3(job.data.runId, job.data.repoFullName, job.data.commitSHA);
+    } else if (job?.data && job.data.agentId.startsWith('orchestrator')) {
+      // Orchestrator phase itself failed terminally — unlock sequential queue so next repo is not deadlocked
+      try {
+        const { advanceSequentialQueue } = await import('./sweeper.service.js');
+        await advanceSequentialQueue();
+      } catch (seqErr: any) {
+        console.warn(`[AgentQueue] Could not auto-advance sequential queue after orchestrator failure:`, seqErr?.message);
+      }
     }
     broadcast('agent_failed', {
       repo: job?.data?.repoFullName || 'unknown',

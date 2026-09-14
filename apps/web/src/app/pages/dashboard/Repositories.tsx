@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Search, Loader, AlertCircle, Play, Pause, Settings as SettingsIcon, BarChart2, GitFork, GitPullRequest, Lock, Globe, Wrench } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Search, Loader, AlertCircle, Play, Pause, Settings as SettingsIcon, BarChart2, GitFork, GitPullRequest, Lock, Globe, Wrench, RotateCcw, Clock, ShieldAlert, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { API_URL } from '../../../lib/api';
 
@@ -166,11 +166,18 @@ function RepoOwnerAvatar({ owner }: { owner: string }) {
 
 export function Repositories({ activeOrg }: { activeOrg?: string }) {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const retryRepoParam = searchParams.get('retryRepo');
+  const runIdParam = searchParams.get('runId');
+
   const [repos, setRepos] = useState<ConnectedRepo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [pausingId, setPausingId] = useState<number | null>(null);
   const [autoFixingId, setAutoFixingId] = useState<number | null>(null);
+  const [retryingId, setRetryingId] = useState<number | null>(null);
+  const [confirmModalRepo, setConfirmModalRepo] = useState<ConnectedRepo | null>(null);
+  const handledDeepLinkRef = useRef(false);
 
   // Filters
   const [search, setSearch] = useState('');
@@ -193,6 +200,51 @@ export function Repositories({ activeOrg }: { activeOrg?: string }) {
   };
 
   useEffect(() => { fetchConnectedRepos(); }, []);
+
+  // Handle precision deep links from failure email alerts
+  useEffect(() => {
+    if (!loading && repos.length > 0 && retryRepoParam && !handledDeepLinkRef.current) {
+      handledDeepLinkRef.current = true;
+      const target = repos.find(
+        (r) =>
+          r.fullName.toLowerCase() === retryRepoParam.toLowerCase() ||
+          r.name.toLowerCase() === retryRepoParam.toLowerCase()
+      );
+      if (target) {
+        setConfirmModalRepo(target);
+        setTimeout(() => {
+          const el = document.getElementById(`repo-card-${target.id}`);
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }, 200);
+      }
+    }
+  }, [loading, repos, retryRepoParam]);
+
+  const handleRetryAudit = async (repo: ConnectedRepo) => {
+    setRetryingId(repo.id);
+    try {
+      const res = await fetch(`${API_URL}/api/repos/${repo.id}/retry-audit`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || 'Failed to trigger audit retry');
+      toast.success(`Audit re-queued for ${repo.fullName}! Isolated clean sandbox container initializing...`);
+      setRepos((prev) => prev.map((r) => (r.id === repo.id ? { ...r, status: 'pending_audit' } : r)));
+      setConfirmModalRepo(null);
+      if (retryRepoParam) {
+        searchParams.delete('retryRepo');
+        searchParams.delete('runId');
+        setSearchParams(searchParams, { replace: true });
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Retry failed');
+    } finally {
+      setRetryingId(null);
+    }
+  };
 
   const togglePause = async (repo: ConnectedRepo) => {
     setPausingId(repo.id);
@@ -297,15 +349,27 @@ export function Repositories({ activeOrg }: { activeOrg?: string }) {
             {filteredRepos.map((repo) => {
               const isPaused = repo.paused;
               const isAuditing = !isPaused && repo.status === 'pending_audit';
+              const isQueued = !isPaused && repo.status === 'queued';
               const hasScore = repo.healthScore != null;
               const score = repo.healthScore ?? 0;
               const langName = repo.language || 'Unknown';
               const numAgents = Object.values(repo.config?.agents || {}).filter(Boolean).length;
+              const isTargeted =
+                Boolean(retryRepoParam) &&
+                (repo.fullName.toLowerCase() === retryRepoParam?.toLowerCase() ||
+                  repo.name.toLowerCase() === retryRepoParam?.toLowerCase());
 
               return (
                 <div
                   key={repo.id}
-                  className={`flex flex-col md:flex-row md:items-center justify-between p-5 border-b border-cw-bdr last:border-0 hover:bg-cw-bg3 transition-colors ${isPaused ? 'opacity-60' : ''}`}
+                  id={`repo-card-${repo.id}`}
+                  className={`flex flex-col md:flex-row md:items-center justify-between p-5 border-b border-cw-bdr last:border-0 hover:bg-cw-bg3 transition-all ${
+                    isPaused ? 'opacity-60' : ''
+                  } ${
+                    isTargeted
+                      ? 'ring-2 ring-cw-purple bg-cw-purple/5 shadow-[0_0_24px_rgba(168,85,247,0.2)]'
+                      : ''
+                  }`}
                 >
                   {/* Left: Info */}
                   <div className="flex-1 flex flex-col gap-1.5 min-w-0 pr-4 mb-4 md:mb-0">
@@ -328,6 +392,12 @@ export function Repositories({ activeOrg }: { activeOrg?: string }) {
                       {isAuditing && (
                         <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-cw-amber/10 text-cw-amber tracking-wide flex items-center gap-1">
                           <Loader size={10} className="animate-spin" /> AUDITING
+                        </span>
+                      )}
+
+                      {isQueued && (
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-cw-blue/10 text-cw-blue tracking-wide flex items-center gap-1 border border-cw-blue/20">
+                          <Clock size={10} /> QUEUED
                         </span>
                       )}
 
@@ -356,6 +426,26 @@ export function Repositories({ activeOrg }: { activeOrg?: string }) {
 
                   {/* Right: Actions */}
                   <div className="flex items-center gap-2 shrink-0">
+                    {!isAuditing && (
+                      <button
+                        onClick={() => setConfirmModalRepo(repo)}
+                        disabled={retryingId === repo.id}
+                        title={isQueued ? `Start scan now for ${repo.fullName}` : `Run clean comprehensive audit on ${repo.fullName}`}
+                        className={`px-3 py-1.5 border text-[12px] font-medium rounded-lg transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 ${
+                          isQueued
+                            ? 'bg-cw-blue/10 border-cw-blue/30 text-cw-blue hover:bg-cw-blue/20'
+                            : 'bg-cw-purple/10 border-cw-purple/30 text-cw-purple hover:bg-cw-purple/20 shadow-sm'
+                        }`}
+                      >
+                        {retryingId === repo.id ? (
+                          <Loader size={14} className="animate-spin" />
+                        ) : (
+                          <RotateCcw size={14} />
+                        )}
+                        {isQueued ? 'Scan Now' : 'Scan / Retry'}
+                      </button>
+                    )}
+
                     <button
                       onClick={() => toggleAutoFix(repo)}
                       disabled={autoFixingId === repo.id}
@@ -398,6 +488,86 @@ export function Repositories({ activeOrg }: { activeOrg?: string }) {
                 </div>
               );
             })}
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation & Deep-Link Retry Modal */}
+      {confirmModalRepo && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fade-in">
+          <div className="bg-cw-bg border border-cw-bdr rounded-2xl w-full max-w-md overflow-hidden shadow-2xl animate-scale-up">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-cw-bdr bg-cw-bg2">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-cw-purple/10 border border-cw-purple/30 flex items-center justify-center text-cw-purple">
+                  <RotateCcw size={16} />
+                </div>
+                <h3 className="text-[15px] font-semibold text-cw-txt">Retry Audit</h3>
+              </div>
+              <button
+                onClick={() => setConfirmModalRepo(null)}
+                className="w-7 h-7 rounded-lg hover:bg-cw-bg3 flex items-center justify-center text-cw-txt3 hover:text-cw-txt transition-colors border-none bg-transparent cursor-pointer"
+              >
+                <X size={15} />
+              </button>
+            </div>
+
+            <div className="p-6 flex flex-col gap-4">
+              {runIdParam && (
+                <div className="flex items-start gap-2.5 p-3 rounded-lg bg-cw-red/10 border border-cw-red/20 text-[12px] text-cw-red">
+                  <ShieldAlert size={16} className="shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-semibold">Directed from Failure Alert</span>
+                    <p className="text-cw-txt2 mt-0.5 text-[11px]">
+                      Run #{runIdParam} encountered an error. Retrying will supersede prior jobs and spin up a fresh isolated microVM.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              <div className="text-[13px] text-cw-txt leading-relaxed">
+                Trigger a fresh comprehensive security, bloat, and architecture audit for{' '}
+                <strong className="text-cw-purple font-mono">{confirmModalRepo.fullName}</strong>?
+              </div>
+
+              <div className="text-[12px] text-cw-txt3 bg-cw-bg2 p-3.5 rounded-xl border border-cw-bdr flex flex-col gap-1.5">
+                <div className="flex items-center gap-2 text-cw-txt font-medium">
+                  <span className="w-2 h-2 rounded-full bg-cw-green"></span>
+                  Zero Compute Waste Guarantee
+                </div>
+                <p className="text-[11px] text-cw-txt2 leading-relaxed">
+                  Ephemeral execution container starts on-demand and auto-destroys immediately upon completion.
+                </p>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setConfirmModalRepo(null)}
+                  disabled={retryingId === confirmModalRepo.id}
+                  className="px-4 py-2 rounded-lg text-[13px] font-medium text-cw-txt2 hover:text-cw-txt hover:bg-cw-bg2 transition-colors border-none bg-transparent cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleRetryAudit(confirmModalRepo)}
+                  disabled={retryingId === confirmModalRepo.id}
+                  className="px-4 py-2 rounded-lg text-[13px] font-semibold bg-cw-purple hover:bg-cw-purple/90 text-white transition-all flex items-center gap-2 shadow-md shadow-cw-purple/20 disabled:opacity-50 cursor-pointer border-none"
+                >
+                  {retryingId === confirmModalRepo.id ? (
+                    <>
+                      <Loader size={14} className="animate-spin" />
+                      Dispatching Audit...
+                    </>
+                  ) : (
+                    <>
+                      <RotateCcw size={14} />
+                      Confirm & Start Scan
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

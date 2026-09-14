@@ -623,3 +623,76 @@ reposRouter.post('/connect', async (c) => {
 
   return c.json({ connected });
 });
+
+/**
+ * POST /api/repos/:id/retry-audit
+ * Resets any stale or stalled audit for this repository, updates status to pending_audit,
+ * and immediately dispatches a fresh comprehensive audit through the provider cascade.
+ */
+reposRouter.post('/:id/retry-audit', async (c) => {
+  const session = await auth.api.getSession({ headers: c.req.raw.headers });
+  if (!session) return c.json({ error: 'Unauthorized' }, 401);
+
+  const repoId = parseInt(c.req.param('id'), 10);
+  if (isNaN(repoId)) return c.json({ error: 'Invalid repository ID' }, 400);
+
+  const [repo] = await db.select().from(schema.repositories).where(eq(schema.repositories.id, repoId));
+  if (!repo) return c.json({ error: 'Repository not found' }, 404);
+
+  // Access check
+  if (repo.userId !== session.user.id) {
+    if (repo.orgId) {
+      const [member] = await db.select().from(schema.organizationMember).where(
+        and(eq(schema.organizationMember.orgId, repo.orgId), eq(schema.organizationMember.userId, session.user.id))
+      );
+      if (!member) return c.json({ error: 'Forbidden' }, 403);
+    } else {
+      return c.json({ error: 'Forbidden' }, 403);
+    }
+  }
+
+  // 1. Mark any prior running or queued runs for this repo as superseded
+  await db.update(schema.runs)
+    .set({ status: 'superseded' })
+    .where(and(eq(schema.runs.repoId, repoId), or(eq(schema.runs.status, 'running'), eq(schema.runs.status, 'queued'))));
+
+  // 2. Set repository status to pending_audit
+  await db.update(schema.repositories)
+    .set({
+      status: 'pending_audit',
+      auditTriggeredAt: new Date(),
+      auditCompletedAt: null,
+      paused: false,
+    })
+    .where(eq(schema.repositories.id, repoId));
+
+  // 3. Trigger a fresh comprehensive audit
+  const { runId } = await triggerComprehensiveAudit(repo.id, repo.fullName);
+
+  console.log(`[ReposRoute] Manual retry triggered for repo #${repo.id} (${repo.fullName}), dispatched run #${runId}`);
+
+  return c.json({
+    success: true,
+    message: `Audit successfully started for ${repo.fullName}`,
+    repoId: repo.id,
+    repoFullName: repo.fullName,
+    runId,
+  });
+});
+
+/**
+ * POST /api/repos/sweeper/run
+ * On-demand background recovery sweep for stalled runs or sequential queues.
+ */
+reposRouter.post('/sweeper/run', async (c) => {
+  const session = await auth.api.getSession({ headers: c.req.raw.headers });
+  if (!session) return c.json({ error: 'Unauthorized' }, 401);
+
+  const { runAuditRecoverySweeper } = await import('../agents/queue/sweeper.service.js');
+  const result = await runAuditRecoverySweeper();
+
+  return c.json({
+    success: true,
+    result,
+  });
+});

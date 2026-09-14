@@ -1,8 +1,8 @@
 import { Queue, Worker, Job } from 'bullmq';
 import { createRedisConnection } from '../../lib/redis.js';
 import { escalateUnresolvedFindings, type EscalationResult } from './escalation.service.js';
-import { LocalExecSandbox } from '../../sandbox/local-exec.js';
-import { FlySandbox } from '../../sandbox/fly-machine.js';
+import { ResilientSandbox } from '../../sandbox/resilient-sandbox.js';
+import type { SandboxHandle } from '../../sandbox/local-exec.js';
 
 const connection = createRedisConnection();
 
@@ -12,15 +12,8 @@ export interface EscalationJobData {
   repoFullName: string;
 }
 
-function createSandbox(): LocalExecSandbox | FlySandbox {
-  if (process.env.NODE_ENV === 'production' && process.env.SANDBOX_PROVIDER !== 'fly') {
-    throw new Error('FATAL: Local execution forbidden in production');
-  }
-  if (process.env.SANDBOX_PROVIDER === 'fly') {
-    const image = process.env.FLY_SANDBOX_IMAGE || 'registry.fly.io/codeward-sandboxes-v2:deployment-01KV13ANZ9AJNNPAXN4A75G44Y';
-    return new FlySandbox({ image });
-  }
-  return new LocalExecSandbox();
+function createSandbox(): SandboxHandle {
+  return new ResilientSandbox();
 }
 
 /**
