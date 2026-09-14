@@ -288,13 +288,6 @@ export const createArchitectureTools = (sandbox: SandboxHandle) => {
           rawEvidence: z.string(),
           suggestedFix: z.string(),
           dismissed: z.boolean().default(false)
-        })),
-
-        toolsExecuted: z.array(z.object({
-          toolName: z.string(),
-          calledAt: z.string().datetime(),
-          durationMs: z.number(),
-          resultSummary: z.string()
         }))
       }),
       execute: async (args: any) => {

@@ -204,8 +204,7 @@ export const createComplianceTools = (sandbox: SandboxHandle) => {
           legalFramework: z.string().nullable(), title: z.string(), description: z.string(),
           file: z.string().nullable(), line: z.number().nullable(), toolName: z.string(), rawEvidence: z.string(),
           estimatedFinePotential: z.string().nullable(), remediationSteps: z.array(z.string()), dismissed: z.boolean().default(false), isNewThisRun: z.boolean()
-        })),
-        toolsExecuted: z.array(z.object({ toolName: z.string(), calledAt: z.string().datetime(), durationMs: z.number(), resultSummary: z.string() }))
+        }))
       }),
       execute: async (args: any) => ({ success: true, message: "Compliance report submitted." })
     },

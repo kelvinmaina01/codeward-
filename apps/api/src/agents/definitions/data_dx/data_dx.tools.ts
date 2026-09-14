@@ -228,8 +228,7 @@ export const createDataDXTools = (sandbox: SandboxHandle) => {
           title: z.string(), description: z.string(), file: z.string().nullable(), line: z.number().nullable(), toolName: z.string(), rawEvidence: z.string(),
           isNewThisWeek: z.boolean(), weekOverWeekChange: z.enum(["new", "worsened", "unchanged", "improved"]), recommendation: z.string()
         })),
-        teamMetrics: z.object({ ciPassRatePercent: z.number(), meanTimeToGreenMinutes: z.number(), estimatedOnboardingHours: z.number(), buildTimeSeconds: z.number(), testTimeSeconds: z.number(), alertNoisePercent: z.number().nullable() }),
-        toolsExecuted: z.array(z.object({ toolName: z.string(), calledAt: z.string().datetime(), durationMs: z.number(), resultSummary: z.string() }))
+        teamMetrics: z.object({ ciPassRatePercent: z.number(), meanTimeToGreenMinutes: z.number(), estimatedOnboardingHours: z.number(), buildTimeSeconds: z.number(), testTimeSeconds: z.number(), alertNoisePercent: z.number().nullable() })
       }),
       execute: async (args: any) => ({ success: true, message: "Data & DX report submitted." })
     },

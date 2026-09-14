@@ -32,27 +32,27 @@ export function LandingFooter() {
   };
 
   return (
-    <div className="px-4 sm:px-6 md:px-8 pb-4 md:pb-8 bg-[#05060a]">
-      <footer className="relative bg-[#C3DBFF] rounded-[16px] pt-16 sm:pt-20 md:pt-24 pb-8 px-4 sm:px-8 md:px-14 overflow-hidden shadow-2xl">
+    <div className="px-3 sm:px-5 md:px-6 pb-2 md:pb-4 bg-[#05060a]">
+      <footer className="relative bg-[#C3DBFF] rounded-[16px] pt-8 sm:pt-10 md:pt-12 pb-5 sm:pb-6 px-4 sm:px-6 md:px-10 overflow-hidden shadow-2xl">
         {/* Fabric Gradient Overlay */}
         <div className="absolute inset-0 bg-gradient-to-tr from-white/40 via-transparent to-black/5 mix-blend-overlay pointer-events-none" />
         
         <div className="mx-auto max-w-[1500px] relative z-10">
 
           {/* Mission, Trust Badges & Contact */}
-          <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-8 mb-16 pb-10 border-b border-black/10">
+          <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6 mb-8 pb-6 border-b border-black/10">
             <p className="text-black/80 text-base md:text-lg font-medium max-w-xs leading-relaxed shrink-0">
               Codeward builds, tests, and optimizes your codebase.<br />
               Automatically.
             </p>
             
             {/* Trust & Security Badges (ISO 27001, GDPR, CCPA, HIPAA) */}
-            <div className="my-2 xl:my-0">
+            <div className="my-1 xl:my-0">
               <FooterTrustBadges dark={false} />
             </div>
 
             {/* Email Contact with Slanted Gmail & Outlook Logos + say hi badge */}
-            <div className="flex flex-col items-start gap-2 shrink-0">
+            <div className="flex flex-col items-start gap-1.5 shrink-0">
               <div className="flex items-center gap-2 text-black/80">
                 {/* Gmail Vector SVG */}
                 <svg className="h-5 w-5 shrink-0 rotate-[-12deg] transition-transform hover:rotate-0 drop-shadow-sm" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -85,9 +85,9 @@ export function LandingFooter() {
           </div>
 
         {/* Links Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8 md:gap-12 mb-16 md:mb-20">
-          <div className="flex flex-col gap-4">
-            <h4 className="text-black font-bold mb-2">Product</h4>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 md:gap-8 mb-8 md:mb-10">
+          <div className="flex flex-col gap-2.5">
+            <h4 className="text-black font-bold mb-1">Product</h4>
             <a href="#" className="text-black/70 hover:text-black transition-colors text-sm font-semibold">AI Code Builder</a>
             <a href="#" className="text-black/70 hover:text-black transition-colors text-sm font-semibold">Automated Code Reviews</a>
             <a href="#" className="text-black/70 hover:text-black transition-colors text-sm font-semibold">Technical Debt Management</a>
@@ -96,14 +96,14 @@ export function LandingFooter() {
             <a href="#" className="text-black/70 hover:text-black transition-colors text-sm font-semibold">Tech Debt Calculator</a>
             <a href="#" className="text-black/70 hover:text-black transition-colors text-sm font-semibold">Playbooks</a>
           </div>
-          <div className="flex flex-col gap-4">
-            <h4 className="text-black font-bold mb-2">Solutions</h4>
+          <div className="flex flex-col gap-2.5">
+            <h4 className="text-black font-bold mb-1">Solutions</h4>
             <a href="#" className="text-black/70 hover:text-black transition-colors text-sm font-semibold">For Startups</a>
             <a href="#" className="text-black/70 hover:text-black transition-colors text-sm font-semibold">For Enterprise</a>
             <a href="#" className="text-black/70 hover:text-black transition-colors text-sm font-semibold">For Open Source</a>
           </div>
-          <div className="flex flex-col gap-4">
-            <h4 className="text-black font-bold mb-2">Compare</h4>
+          <div className="flex flex-col gap-2.5">
+            <h4 className="text-black font-bold mb-1">Compare</h4>
             <button onClick={() => navigate('/compare/coderabbit')} className="text-black/70 hover:text-black transition-colors text-sm font-semibold text-left cursor-pointer">Codeward vs CodeRabbit</button>
             <button onClick={() => navigate('/compare/greptile')} className="text-black/70 hover:text-black transition-colors text-sm font-semibold text-left cursor-pointer">Codeward vs Greptile</button>
             <button onClick={() => navigate('/compare/copilot')} className="text-black/70 hover:text-black transition-colors text-sm font-semibold text-left cursor-pointer">Codeward vs Copilot</button>
@@ -115,8 +115,8 @@ export function LandingFooter() {
             <button onClick={() => navigate('/compare/codacy')} className="text-black/70 hover:text-black transition-colors text-sm font-semibold text-left cursor-pointer">Codeward vs Codacy</button>
             <button onClick={() => navigate('/compare/fallow')} className="text-black/70 hover:text-black transition-colors text-sm font-semibold text-left cursor-pointer">Codeward vs Fallow</button>
           </div>
-          <div className="flex flex-col gap-4">
-            <h4 className="text-black font-bold mb-2">Company</h4>
+          <div className="flex flex-col gap-2.5">
+            <h4 className="text-black font-bold mb-1">Company</h4>
             <a href="/book-demo" className="text-black/70 hover:text-black transition-colors text-sm font-semibold">Get a demo</a>
             <a href="#" className="text-black/70 hover:text-black transition-colors text-sm font-semibold">Blog</a>
             <a href="#" className="text-black/70 hover:text-black transition-colors text-sm font-semibold">Documentation</a>
@@ -128,9 +128,9 @@ export function LandingFooter() {
         </div>
 
         {/* Integrations Block */}
-        <div className="mb-16">
-          <h4 className="text-black font-bold mb-6">Integrations</h4>
-          <div className="text-black/70 text-sm font-semibold leading-loose flex flex-wrap gap-x-3">
+        <div className="mb-8">
+          <h4 className="text-black font-bold mb-3">Integrations</h4>
+          <div className="text-black/70 text-sm font-semibold leading-relaxed flex flex-wrap gap-x-3 gap-y-1">
             {["GitHub", "GitLab", "Bitbucket", "Jira", "Linear", "Slack", "Discord", "VS Code", "JetBrains", "Vercel", "AWS", "Google Cloud", "Azure", "Supabase", "Stripe", "Docker", "Kubernetes", "Datadog", "Sentry"].map((integration, i, arr) => (
               <span key={integration} className="whitespace-nowrap">
                 <a href="#" className="hover:text-black transition-colors">{integration}</a>
@@ -144,7 +144,7 @@ export function LandingFooter() {
         <NewsletterForm />
 
         {/* Bottom Bar */}
-        <div className="flex flex-col lg:flex-row justify-between items-center gap-6 pt-8 border-t border-black/10 text-black/50 text-sm font-semibold">
+        <div className="flex flex-col lg:flex-row justify-between items-center gap-4 pt-5 border-t border-black/10 text-black/50 text-sm font-semibold">
           <div className="flex flex-wrap items-center gap-6">
             <span>©2026, Codeward</span>
             <button onClick={() => handleLegalClick('privacy')} className="hover:text-black transition-colors cursor-pointer">Privacy</button>

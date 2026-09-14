@@ -50,10 +50,10 @@ export function NewsletterForm() {
   };
 
   return (
-    <div className="mb-16 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8 bg-white/50 backdrop-blur-sm p-8 md:p-10 rounded-3xl border border-black/10 shadow-sm">
+    <div className="mb-8 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 bg-white/50 backdrop-blur-sm p-5 sm:p-6 md:p-7 rounded-2xl border border-black/10 shadow-sm">
       <div className="max-w-lg">
-        <h4 className="text-black text-2xl font-black mb-3 tracking-tight">Subscribe to our newsletter</h4>
-        <p className="text-black/60 text-base font-medium">
+        <h4 className="text-black text-xl sm:text-2xl font-black mb-1.5 tracking-tight">Subscribe to our newsletter</h4>
+        <p className="text-black/60 text-sm sm:text-base font-medium">
           Get the latest updates on autonomous engineering, product releases, and technical debt management delivered to your inbox.
         </p>
       </div>

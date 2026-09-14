@@ -334,13 +334,6 @@ export const createBrokenCodeTools = (sandbox: SandboxHandle) => {
           karpathyLoopCount: z.number().default(0),
           rootCause: z.string().nullable(),
           dismissed: z.boolean().default(false)
-        })),
-
-        toolsExecuted: z.array(z.object({
-          toolName: z.string(),
-          calledAt: z.string().datetime(),
-          durationMs: z.number(),
-          resultSummary: z.string()
         }))
       }),
       execute: async (args: any) => {

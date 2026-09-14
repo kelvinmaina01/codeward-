@@ -118,7 +118,9 @@ export class OpenAIProvider implements AgentProvider {
         tokenUsage: loopResult.tokenUsage,
         servedBy: loopResult.servedBy,
         gateDecision,
-        toolsExecuted: reportArgs?.toolsExecuted,
+        toolsExecuted: (loopResult.toolsExecuted && loopResult.toolsExecuted.length > 0)
+          ? loopResult.toolsExecuted
+          : (reportArgs?.toolsExecuted ?? []),
         summary: reportArgs?.summary,
         policy: {
           surfacedCount: policyResult.surfaced.length,

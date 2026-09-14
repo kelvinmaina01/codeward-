@@ -14,12 +14,15 @@ export interface AgentLoopResult {
   };
   /** Which cascade candidate actually served the last call — OpenAI direct or a fallback. */
   servedBy?: { provider: string; model: string; isFallback: boolean };
+  /** Chain of custody: real-time, tamper-proof backend record of every tool invoked. */
+  toolsExecuted: Array<{ toolName: string; calledAt: string; durationMs: number; resultSummary: string }>;
 }
 
 export async function runAgentLoop(config: AgentRunConfig, provider: AgentProvider): Promise<AgentLoopResult> {
   let currentMessages = [...(config.messages || [])];
   const maxSteps = config.maxSteps || 15;
   const tokenUsage = { input: 0, output: 0, total: 0, cachedInput: 0, reportedSteps: 0, unreportedSteps: 0 };
+  const toolsExecuted: Array<{ toolName: string; calledAt: string; durationMs: number; resultSummary: string }> = [];
   let servedBy: AgentLoopResult['servedBy'];
 
   const addUsage = (usage?: { input: number; output: number; total: number; cachedInput?: number; reported?: boolean }) => {
@@ -79,7 +82,7 @@ export async function runAgentLoop(config: AgentRunConfig, provider: AgentProvid
 
     if (result.toolCalls.length === 0) {
       warnIfUsageMissing();
-      return { text: result.text, tokenUsage, servedBy };
+      return { text: result.text, tokenUsage, servedBy, toolsExecuted };
     }
     
     // Dynamic terminal detection: any tool starting with "submit_" is terminal
@@ -93,10 +96,24 @@ export async function runAgentLoop(config: AgentRunConfig, provider: AgentProvid
           console.warn(`[AgentLoop] Unknown tool called: ${call.name}`);
           return { id: call.id, name: call.name, content: `Unknown tool: ${call.name}` };
         }
+        const toolStartTime = Date.now();
+        const calledAt = new Date(toolStartTime).toISOString();
         try {
           const res = await tool.execute(call.input);
+          const durationMs = Date.now() - toolStartTime;
+          let resultSummary = 'OK';
+          if (res) {
+            if (typeof res === 'object') {
+              resultSummary = res.summary || res.message || res.status || (res.success !== undefined ? `success: ${res.success}` : `${Object.keys(res).length} keys returned`);
+            } else {
+              resultSummary = String(res).slice(0, 100);
+            }
+          }
+          toolsExecuted.push({ toolName: call.name, calledAt, durationMs, resultSummary: String(resultSummary).slice(0, 200) });
           return { id: call.id, name: call.name, content: JSON.stringify(res) };
         } catch (e: any) {
+          const durationMs = Date.now() - toolStartTime;
+          toolsExecuted.push({ toolName: call.name, calledAt, durationMs, resultSummary: `Error: ${e.message}`.slice(0, 200) });
           console.error(`[AgentLoop] Tool "${call.name}" error:`, e.message);
           return { id: call.id, name: call.name, content: `Error: ${e.message}` };
         }
@@ -106,7 +123,7 @@ export async function runAgentLoop(config: AgentRunConfig, provider: AgentProvid
     if (isTerminal) {
       console.log(`[AgentLoop] Terminal tool called at step ${step + 1}/${maxSteps}. Exiting.`);
       warnIfUsageMissing();
-      return { text: result.text, tokenUsage, servedBy };
+      return { text: result.text, tokenUsage, servedBy, toolsExecuted };
     }
 
     // Format tool results as proper role: 'tool' messages
@@ -122,5 +139,5 @@ export async function runAgentLoop(config: AgentRunConfig, provider: AgentProvid
 
   console.warn(`[AgentLoop] Max steps (${maxSteps}) exhausted without terminal tool call.`);
   warnIfUsageMissing();
-  return { text: "Max steps reached without submission", tokenUsage, servedBy };
+  return { text: "Max steps reached without submission", tokenUsage, servedBy, toolsExecuted };
 }

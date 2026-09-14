@@ -177,8 +177,7 @@ export const createAIEraTools = (sandbox: SandboxHandle) => {
           category: z.enum(["PROMPT_INJECTION", "TOKEN_SPEND", "UNVALIDATED_OUTPUT", "MODEL_VERSION", "PII_IN_PIPELINE", "NO_AI_RATE_LIMIT", "HALLUCINATION_TRUST", "TRAINING_EXPOSURE", "SYSTEM_PROMPT_LEAK", "UI_DRIFT", "STALE_VECTOR_INDEX", "AI_LOGIC_SHIFT", "AI_ATTRIBUTION", "PROMPT_VERSION", "RAG_CONTEXT_BLOAT", "MISSING_HITL", "MODEL_BIAS", "EVASIVE_AI_TEST"]),
           title: z.string(), description: z.string(), file: z.string().nullable(), line: z.number().nullable(), toolName: z.string(), rawEvidence: z.string(),
           adversarialPayload: z.string().nullable(), dismissed: z.boolean().default(false)
-        })),
-        toolsExecuted: z.array(z.object({ toolName: z.string(), calledAt: z.string().datetime(), durationMs: z.number(), resultSummary: z.string() }))
+        }))
       }),
       execute: async (args: any) => ({ success: true, message: "AI-Era report submitted." })
     },

@@ -327,12 +327,6 @@ export const createBloatTools = (sandbox: SandboxHandle) => ({
         dismissed: z.boolean().default(false),
         dismissalReason: z.string().nullable().optional()
       })),
-      toolsExecuted: z.array(z.object({
-        toolName: z.string(),
-        calledAt: z.string().datetime(),
-        durationMs: z.number(),
-        resultSummary: z.string()
-      })),
       summary: z.object({
         totalDeadExports: z.number(),
         totalDuplicateClones: z.number(),

@@ -627,29 +627,6 @@ export const createOrchestratorTools = (sandbox: SandboxHandle) => ({
         hasMigrations: z.boolean()
       }),
       
-      agentSummaries: z.array(z.object({
-        agentType: z.string(),
-        score: z.number(),
-        weight: z.number(),
-        gateDecision: z.string(),
-        criticalCount: z.number(),
-        highCount: z.number(),
-        mediumCount: z.number(),
-        durationMs: z.number(),
-        status: z.enum(["completed", "failed", "skipped", "timeout"])
-      })),
-      
-      criticalFindings: z.array(z.object({
-        agentType: z.string(),
-        title: z.string(),
-        file: z.string(),
-        line: z.number().nullable(),
-        severity: z.literal("CRITICAL"),
-        toolName: z.string(),
-        rawEvidence: z.string(),
-        suggestedFix: z.string()
-      })),
-      
       conflictResolutions: z.array(z.object({
         conflict: z.string(),
         resolution: z.string(),
@@ -669,14 +646,7 @@ export const createOrchestratorTools = (sandbox: SandboxHandle) => ({
       })),
       
       rollbackTriggered: z.boolean(),
-      rollbackPrUrl: z.string().nullable(),
-      
-      toolsExecuted: z.array(z.object({
-        toolName: z.string(),
-        calledAt: z.string().datetime(),
-        durationMs: z.number(),
-        resultSummary: z.string()
-      }))
+      rollbackPrUrl: z.string().nullable()
     }),
     execute: async (args: any) => {
       console.log(`[Orchestrator] Final Decision for Run ${args.runId}: ${args.gateDecision}`);

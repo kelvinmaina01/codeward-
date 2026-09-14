@@ -11,7 +11,7 @@ const CONSTITUTION = `
 3. TOKEN BUDGET: You have a maximum of 15 tool call steps. Plan efficiently. Prioritize high-severity checks first.
 4. NO UNVERIFIED CLAIMS: You cannot write "this is likely vulnerable" without tool evidence. Use grep_search or read_file to confirm before asserting.
 5. STRUCTURED OUTPUT ONLY: Your final output MUST be valid JSON submitted via the submit_security_report tool.
-6. CHAIN OF CUSTODY: Log every tool you called, in order, in toolsExecuted[]. This is the audit trail. Never omit it.
+6. CHAIN OF CUSTODY: The backend engine automatically captures every tool execution and timing in an audit trail.
 ===================================
 `;
 
@@ -103,13 +103,6 @@ CRITICAL INSTRUCTION: When you have completed your playbook or found a terminal 
             cveId: z.string().nullable(),
             dismissed: z.boolean().default(false),
             dismissalReason: z.string().nullable()
-          })),
-          
-          toolsExecuted: z.array(z.object({
-            toolName: z.string(),
-            calledAt: z.string(),
-            durationMs: z.number(),
-            resultSummary: z.string()
           })),
           
           summary: z.object({
