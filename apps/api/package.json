@@ -23,6 +23,7 @@
     "test:bullmq:fairness": "tsx test/test-bullmq-fairness.ts",
     "test:model:dynamic": "tsx test/test-dynamic-model-routing.ts",
     "test:polar": "tsx test/test-polar-billing.ts",
+    "test:email:fallback": "tsx test/test-email-fallback.ts",
     "benchmark:fly": "tsx test/benchmark-fly-concurrent-boot.ts",
     "build": "tsc",
     "start": "node dist/index.js"

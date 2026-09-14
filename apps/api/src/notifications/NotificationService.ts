@@ -38,8 +38,28 @@ export class NotificationService {
     const from = options?.fromAddress || process.env.EMAIL_FROM_ADDRESS || 'Codeward <notifications@codeward.cloud>';
     const replyTo = options?.replyTo || process.env.SUPPORT_EMAIL || 'support@codeward.cloud';
 
-    // Mock Mode if no valid API key is present
+    // If Resend is not configured, check if Eusend is configured before falling back to Mock
     if (!resend) {
+      if (process.env.EUSEND_API_KEY) {
+        console.log(`[NotificationService] Resend not configured. Using Eusend as active email provider for ${to}`);
+        const { sendEmailViaEusend } = await import('../services/email-fallback.service.js');
+        const fallbackRes = await sendEmailViaEusend({
+          to,
+          subject,
+          html,
+          replyTo,
+          headers: options?.unsubscribeUrl
+            ? {
+                'List-Unsubscribe': `<${options.unsubscribeUrl}>`,
+                'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+              }
+            : undefined,
+        });
+        if (fallbackRes.success) {
+          return { id: fallbackRes.id };
+        }
+      }
+
       console.log(`\n======================================================`);
       console.log(`[MOCK EMAIL DISPATCHED]`);
       console.log(`To:       ${to}`);
@@ -47,7 +67,7 @@ export class NotificationService {
       console.log(`Reply-To: ${replyTo}`);
       console.log(`Subject:  ${subject}`);
       console.log(`HTML Size: ${html.length} bytes`);
-      console.log(`Status:   Delivered to sandbox logger (set RESEND_API_KEY for live delivery)`);
+      console.log(`Status:   Delivered to sandbox logger (set RESEND_API_KEY or EUSEND_API_KEY for live delivery)`);
       console.log(`======================================================\n`);
       return { id: `mock-${Date.now()}` };
     }
@@ -76,6 +96,34 @@ export class NotificationService {
     } catch (primaryErr: any) {
       console.warn(`[NotificationService] Primary provider (Resend) notice for ${to}:`, primaryErr.message);
 
+      // 2. Secondary Provider Fallback: Eusend (activates on rate limits, 300/day quota, monthly limits or errors)
+      if (process.env.EUSEND_API_KEY) {
+        try {
+          console.log(`[NotificationService] 🔄 Engaging Eusend Fallback Provider for ${to}...`);
+          const { sendEmailViaEusend } = await import('../services/email-fallback.service.js');
+          const fallbackRes = await sendEmailViaEusend({
+            to,
+            subject,
+            html,
+            replyTo,
+            headers: options?.unsubscribeUrl
+              ? {
+                  'List-Unsubscribe': `<${options.unsubscribeUrl}>`,
+                  'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+                }
+              : undefined,
+          });
+
+          if (fallbackRes.success) {
+            console.log(`[NotificationService] ✅ Eusend fallback delivery successful for ${to} (ID: ${fallbackRes.id})`);
+            return { id: fallbackRes.id };
+          }
+          console.warn(`[NotificationService] Eusend fallback notice: ${fallbackRes.error}`);
+        } catch (eusendErr: any) {
+          console.error(`[NotificationService] Eusend fallback error:`, eusendErr.message);
+        }
+      }
+
       // Resend Free Tier restriction: can only send to account owner before domain is verified
       if (
         primaryErr.message?.includes('can only send testing emails to your own email address') ||
@@ -86,15 +134,15 @@ export class NotificationService {
         return { id: `resend-dev-safe-${Date.now()}` };
       }
 
-      // 2. Secondary Provider Fallback: AWS SES (if configured via env)
+      // 3. Tertiary Provider Fallback: AWS SES (if configured via env)
       if (process.env.AWS_SES_REGION && process.env.AWS_ACCESS_KEY_ID) {
         try {
-          console.log(`[NotificationService] Engaging Secondary Failover Provider (AWS SES) for ${to}...`);
+          console.log(`[NotificationService] Engaging Tertiary Failover Provider (AWS SES) for ${to}...`);
           // AWS SES SDK invocation can be attached here once AWS credentials unlock
-          console.log(`[NotificationService] Secondary failover dispatched successfully.`);
+          console.log(`[NotificationService] Tertiary failover dispatched successfully.`);
           return { id: `ses-fallback-${Date.now()}` };
         } catch (secondaryErr: any) {
-          console.error(`[NotificationService] Secondary provider (AWS SES) failure:`, secondaryErr.message);
+          console.error(`[NotificationService] Tertiary provider (AWS SES) failure:`, secondaryErr.message);
         }
       }
 

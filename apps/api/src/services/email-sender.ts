@@ -60,8 +60,7 @@ export async function sendWorkspaceInviteMagicLink({
     </div>
   ` : '';
 
-  try {
-    const htmlContent = `
+  const htmlContent = `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 560px; margin: 0 auto; padding: 32px 24px; background-color: #0c0d0e; color: #f3f4f6; border-radius: 12px; border: 1px solid #1f2937;">
         <div style="margin-bottom: 24px; text-align: center;">
           <img src="https://i.ibb.co/0jxSNrnp/codewrdlogo-png-removebg-preview.png" alt="Codeward" height="32" style="display: block; margin: 0 auto;" />
@@ -127,6 +126,24 @@ export async function sendWorkspaceInviteMagicLink({
       </div>
     `;
 
+  if (!apiKey) {
+    if (process.env.EUSEND_API_KEY) {
+      console.log(`[EmailSender] Resend not configured. Sending Workspace Invite Magic Link via Eusend to ${toEmail}...`);
+      const { sendEmailViaEusend } = await import('./email-fallback.service.js');
+      const fallbackResult = await sendEmailViaEusend({
+        to: toEmail,
+        subject: `[Codeward] You're invited to join ${workspaceName}`,
+        html: htmlContent,
+      });
+      if (fallbackResult.success) {
+        return { success: true, id: fallbackResult.id };
+      }
+    }
+    console.warn('[Resend] No RESEND_API_KEY found. Logging Magic Link locally:', { toEmail, magicLink });
+    return { success: true, id: 'mock-id-no-key' };
+  }
+
+  try {
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
@@ -144,12 +161,40 @@ export async function sendWorkspaceInviteMagicLink({
     const data = await res.json();
     if (!res.ok) {
       console.error('[Resend] Error sending email:', data);
+      if (process.env.EUSEND_API_KEY) {
+        console.log(`[EmailSender] 🔄 Failover: Sending Workspace Invite via Eusend to ${toEmail}...`);
+        const { sendEmailViaEusend } = await import('./email-fallback.service.js');
+        const fallbackResult = await sendEmailViaEusend({
+          to: toEmail,
+          subject: `[Codeward] You're invited to join ${workspaceName}`,
+          html: htmlContent,
+        });
+        if (fallbackResult.success) {
+          return { success: true, id: fallbackResult.id };
+        }
+      }
       return { success: false, error: data.message || 'Failed to send invite email' };
     }
 
     return { success: true, id: data.id };
   } catch (err: any) {
     console.error('[Resend] Exception:', err);
+    if (process.env.EUSEND_API_KEY) {
+      try {
+        console.log(`[EmailSender] 🔄 Failover on exception: Sending Workspace Invite via Eusend to ${toEmail}...`);
+        const { sendEmailViaEusend } = await import('./email-fallback.service.js');
+        const fallbackResult = await sendEmailViaEusend({
+          to: toEmail,
+          subject: `[Codeward] You're invited to join ${workspaceName}`,
+          html: htmlContent,
+        });
+        if (fallbackResult.success) {
+          return { success: true, id: fallbackResult.id };
+        }
+      } catch (fbErr: any) {
+        console.error('[EmailSender] Eusend fallback exception:', fbErr.message);
+      }
+    }
     return { success: false, error: err.message || 'Resend service failure' };
   }
 }
@@ -167,11 +212,6 @@ export async function sendWorkspaceRemovalNotification({
 }): Promise<{ success: boolean; id?: string; error?: string }> {
   const apiKey = process.env.RESEND_API_KEY;
   const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-
-  if (!apiKey) {
-    console.warn('[Resend] No RESEND_API_KEY found. Logging removal notification locally:', { toEmail, workspaceName, actorName });
-    return { success: true, id: 'mock-id-no-key' };
-  }
 
   const htmlContent = `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 560px; margin: 0 auto; padding: 32px 24px; background-color: #0c0d0e; color: #f3f4f6; border-radius: 12px; border: 1px solid #1f2937;">
@@ -217,6 +257,23 @@ export async function sendWorkspaceRemovalNotification({
     </div>
   `;
 
+  if (!apiKey) {
+    if (process.env.EUSEND_API_KEY) {
+      console.log(`[EmailSender] Resend not configured. Sending Workspace Removal via Eusend to ${toEmail}...`);
+      const { sendEmailViaEusend } = await import('./email-fallback.service.js');
+      const fallbackResult = await sendEmailViaEusend({
+        to: toEmail,
+        subject: `[Codeward] You have been removed from ${workspaceName}`,
+        html: htmlContent,
+      });
+      if (fallbackResult.success) {
+        return { success: true, id: fallbackResult.id };
+      }
+    }
+    console.warn('[Resend] No RESEND_API_KEY found. Logging removal notification locally:', { toEmail, workspaceName, actorName });
+    return { success: true, id: 'mock-id-no-key' };
+  }
+
   try {
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
@@ -235,12 +292,40 @@ export async function sendWorkspaceRemovalNotification({
     const data = await res.json();
     if (!res.ok) {
       console.error('[Resend] Error sending removal email:', data);
+      if (process.env.EUSEND_API_KEY) {
+        console.log(`[EmailSender] 🔄 Failover: Sending Workspace Removal via Eusend to ${toEmail}...`);
+        const { sendEmailViaEusend } = await import('./email-fallback.service.js');
+        const fallbackResult = await sendEmailViaEusend({
+          to: toEmail,
+          subject: `[Codeward] You have been removed from ${workspaceName}`,
+          html: htmlContent,
+        });
+        if (fallbackResult.success) {
+          return { success: true, id: fallbackResult.id };
+        }
+      }
       return { success: false, error: data.message || 'Failed to send removal email' };
     }
 
     return { success: true, id: data.id };
   } catch (err: any) {
     console.error('[Resend] Exception sending removal email:', err);
+    if (process.env.EUSEND_API_KEY) {
+      try {
+        console.log(`[EmailSender] 🔄 Failover on exception: Sending Workspace Removal via Eusend to ${toEmail}...`);
+        const { sendEmailViaEusend } = await import('./email-fallback.service.js');
+        const fallbackResult = await sendEmailViaEusend({
+          to: toEmail,
+          subject: `[Codeward] You have been removed from ${workspaceName}`,
+          html: htmlContent,
+        });
+        if (fallbackResult.success) {
+          return { success: true, id: fallbackResult.id };
+        }
+      } catch (fbErr: any) {
+        console.error('[EmailSender] Eusend fallback exception:', fbErr.message);
+      }
+    }
     return { success: false, error: err.message || 'Resend service failure' };
   }
 }
