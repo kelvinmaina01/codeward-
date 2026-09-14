@@ -24,8 +24,13 @@ export interface DiffAnalysis {
  * function doesn't need to know about.
  */
 export function classifyDiff(rawDiff: string, changedFiles: string[]): DiffAnalysis {
-  const linesAddedMatch = rawDiff.match(/^\+ /gm);
-  const linesRemovedMatch = rawDiff.match(/^\- /gm);
+  // A unified diff writes added lines as "+code" with no space, so the previous /^\+ /gm only
+  // counted lines whose content happened to begin with a space — i.e. indented code. Everything
+  // at top level was invisible, which held linesAdded/linesRemoved far below the thresholds that
+  // gate the architecture and bloat agents and made isVibeRewrite unreachable. The lookahead
+  // keeps the file headers ("+++ b/file.ts", "--- a/file.ts") out of the counts.
+  const linesAddedMatch = rawDiff.match(/^\+(?!\+)/gm);
+  const linesRemovedMatch = rawDiff.match(/^-(?!-)/gm);
   const linesAdded = linesAddedMatch ? linesAddedMatch.length : 0;
   const linesRemoved = linesRemovedMatch ? linesRemovedMatch.length : 0;
 

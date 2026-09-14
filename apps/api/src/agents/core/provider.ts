@@ -76,7 +76,18 @@ export interface AgentResult {
   tokenUsage: {
     input: number;
     output: number;
+    total?: number;
+    /** Portion of `input` billed at the provider's cached-input rate. */
+    cachedInput?: number;
+    /**
+     * Steps that reported usage vs. steps that did not. When unreportedSteps > 0 the recorded
+     * counts are a floor, not the real cost — the served provider omitted its usage block.
+     */
+    reportedSteps?: number;
+    unreportedSteps?: number;
   };
+  /** Which cascade candidate actually served the run, for per-provider cost attribution. */
+  servedBy?: { provider: string; model: string; isFallback: boolean };
   // The rest of the agent's submit_*_report call beyond findings/score — the LLM already
   // generates this every run, it just wasn't being persisted anywhere until now.
   gateDecision?: string;     // 'PASS' | 'WARN' | 'BLOCK' | 'HIGH' etc. — varies per agent's schema

@@ -6,19 +6,42 @@ export interface AgentLoopResult {
     input: number;
     output: number;
     total: number;
+    /** Portion of `input` served from the provider's prompt cache. */
+    cachedInput: number;
+    /** Steps whose response carried a usage block, and steps that did not. */
+    reportedSteps: number;
+    unreportedSteps: number;
   };
+  /** Which cascade candidate actually served the last call — OpenAI direct or a fallback. */
+  servedBy?: { provider: string; model: string; isFallback: boolean };
 }
 
 export async function runAgentLoop(config: AgentRunConfig, provider: AgentProvider): Promise<AgentLoopResult> {
   let currentMessages = [...(config.messages || [])];
   const maxSteps = config.maxSteps || 15;
-  const tokenUsage = { input: 0, output: 0, total: 0 };
+  const tokenUsage = { input: 0, output: 0, total: 0, cachedInput: 0, reportedSteps: 0, unreportedSteps: 0 };
+  let servedBy: AgentLoopResult['servedBy'];
 
-  const addUsage = (usage?: { input: number; output: number; total: number }) => {
-    if (!usage) return;
+  const addUsage = (usage?: { input: number; output: number; total: number; cachedInput?: number; reported?: boolean }) => {
+    if (!usage) { tokenUsage.unreportedSteps++; return; }
     tokenUsage.input += usage.input ?? 0;
     tokenUsage.output += usage.output ?? 0;
     tokenUsage.total += usage.total ?? ((usage.input ?? 0) + (usage.output ?? 0));
+    tokenUsage.cachedInput += usage.cachedInput ?? 0;
+    if (usage.reported === false) tokenUsage.unreportedSteps++;
+    else tokenUsage.reportedSteps++;
+  };
+
+  // Surfaces the exact condition that left every persisted token_usage row at zero: the call
+  // succeeded, but whatever served it reported no usage, so the cost of the run is unknown
+  // rather than free.
+  const warnIfUsageMissing = () => {
+    if (tokenUsage.unreportedSteps === 0) return;
+    console.warn(
+      `[AgentLoop] ${tokenUsage.unreportedSteps}/${tokenUsage.unreportedSteps + tokenUsage.reportedSteps} step(s) returned no usage block` +
+      `${servedBy ? ` (served by "${servedBy.provider}"${servedBy.isFallback ? ', a cascade fallback' : ''})` : ''}` +
+      ` — recorded token counts understate the real cost of this run.`
+    );
   };
 
   for (let step = 0; step < maxSteps; step++) {
@@ -39,6 +62,9 @@ export async function runAgentLoop(config: AgentRunConfig, provider: AgentProvid
     try {
       result = await provider.execute(stepConfig);
       addUsage(result.usage);
+      if (result.servedBy) {
+        servedBy = { provider: result.servedBy.provider, model: result.servedBy.model, isFallback: result.servedBy.isFallback };
+      }
     } catch (error: any) {
       error.checkpointState = currentMessages;
       throw error;
@@ -52,7 +78,8 @@ export async function runAgentLoop(config: AgentRunConfig, provider: AgentProvid
     }
 
     if (result.toolCalls.length === 0) {
-      return { text: result.text, tokenUsage };
+      warnIfUsageMissing();
+      return { text: result.text, tokenUsage, servedBy };
     }
     
     // Dynamic terminal detection: any tool starting with "submit_" is terminal
@@ -78,7 +105,8 @@ export async function runAgentLoop(config: AgentRunConfig, provider: AgentProvid
 
     if (isTerminal) {
       console.log(`[AgentLoop] Terminal tool called at step ${step + 1}/${maxSteps}. Exiting.`);
-      return { text: result.text, tokenUsage };
+      warnIfUsageMissing();
+      return { text: result.text, tokenUsage, servedBy };
     }
 
     // Format tool results as proper role: 'tool' messages
@@ -93,5 +121,6 @@ export async function runAgentLoop(config: AgentRunConfig, provider: AgentProvid
   }
 
   console.warn(`[AgentLoop] Max steps (${maxSteps}) exhausted without terminal tool call.`);
-  return { text: "Max steps reached without submission", tokenUsage };
+  warnIfUsageMissing();
+  return { text: "Max steps reached without submission", tokenUsage, servedBy };
 }

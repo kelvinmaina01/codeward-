@@ -31,6 +31,14 @@ export interface AgentResult {
     input: number;
     output: number;
     total: number;
+    /** Portion of `input` served from the provider's prompt cache, when reported. */
+    cachedInput: number;
+    /**
+     * False when the response carried no usage block at all. Without this a proxy that omits
+     * usage is indistinguishable from a genuine zero, which is how every token_usage row in
+     * the database came to read {"input":0,"output":0}.
+     */
+    reported: boolean;
   };
   servedBy?: ServingMetadata;
 }
@@ -575,11 +583,45 @@ export class NativeOpenAIProvider implements AgentProvider {
       text: textContent,
       toolCalls,
       rawContent: message,
-      usage: {
-        input: data.usage?.prompt_tokens ?? data.usage?.input_tokens ?? 0,
-        output: data.usage?.completion_tokens ?? data.usage?.output_tokens ?? 0,
-        total: data.usage?.total_tokens ?? ((data.usage?.prompt_tokens ?? 0) + (data.usage?.completion_tokens ?? 0)),
-      },
+      usage: parseUsage(data),
     };
   }
+}
+
+/**
+ * Normalizes the usage block across OpenAI and the OpenAI-compatible proxies in the cascade.
+ *
+ * OpenAI returns prompt_tokens/completion_tokens; some proxies mirror Anthropic's
+ * input_tokens/output_tokens, some nest the block under `meta`, and some omit it entirely.
+ * The previous version coerced all of those to 0, so a proxy that reports nothing looked
+ * exactly like a request that cost nothing — which is why token accounting has been silently
+ * dead. `reported` records which of those actually happened.
+ */
+export function parseUsage(data: any): NonNullable<AgentResult['usage']> {
+  const u = data?.usage ?? data?.meta?.usage ?? data?.response?.usage ?? null;
+
+  const num = (...vals: unknown[]): number | null => {
+    for (const v of vals) {
+      const n = typeof v === 'string' ? Number(v) : v;
+      if (typeof n === 'number' && Number.isFinite(n)) return n;
+    }
+    return null;
+  };
+
+  const input = num(u?.prompt_tokens, u?.input_tokens, u?.promptTokens, u?.inputTokens);
+  const output = num(u?.completion_tokens, u?.output_tokens, u?.completionTokens, u?.outputTokens);
+  const total = num(u?.total_tokens, u?.totalTokens);
+  const cachedInput = num(
+    u?.prompt_tokens_details?.cached_tokens,
+    u?.promptTokensDetails?.cachedTokens,
+    u?.cache_read_input_tokens,
+  ) ?? 0;
+
+  return {
+    input: input ?? 0,
+    output: output ?? 0,
+    total: total ?? ((input ?? 0) + (output ?? 0)),
+    cachedInput,
+    reported: input !== null || output !== null || total !== null,
+  };
 }

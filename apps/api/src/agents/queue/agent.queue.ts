@@ -581,9 +581,21 @@ Use these EXACT values for any tool parameter named runId/repoId — never inven
           policy: result.policy ?? null,
           runPolicy: runPolicy ? { decision: runPolicy.decision, suppressedCount: runPolicy.suppressedCount, surfacedCount: runPolicy.surfacedFindings.length } : null,
           toolsExecuted: result.toolsExecuted ?? [], summary: result.summary ?? null, autoFixPR, escalation, humanPrReview,
+          // Which cascade candidate actually served the run. Without it the token counts cannot
+          // be priced, since the fallbacks bill at very different rates than OpenAI direct.
+          servedBy: result.servedBy ?? null,
         },
         model: result.modelUsed,
-        tokenUsage: result.tokenUsage,
+        tokenUsage: {
+          input: result.tokenUsage?.input ?? 0,
+          output: result.tokenUsage?.output ?? 0,
+          total: result.tokenUsage?.total ?? ((result.tokenUsage?.input ?? 0) + (result.tokenUsage?.output ?? 0)),
+          cachedInput: result.tokenUsage?.cachedInput ?? 0,
+          reportedSteps: result.tokenUsage?.reportedSteps ?? 0,
+          unreportedSteps: result.tokenUsage?.unreportedSteps ?? 0,
+          // Distinguishes "this run was free" from "nobody told us what it cost".
+          complete: (result.tokenUsage?.unreportedSteps ?? 0) === 0,
+        },
         duration: result.duration,
         completedAt: new Date(),
       })

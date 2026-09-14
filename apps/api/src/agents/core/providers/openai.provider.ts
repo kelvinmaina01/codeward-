@@ -116,6 +116,7 @@ export class OpenAIProvider implements AgentProvider {
         duration: Date.now() - startTime,
         modelUsed: model,
         tokenUsage: loopResult.tokenUsage,
+        servedBy: loopResult.servedBy,
         gateDecision,
         toolsExecuted: reportArgs?.toolsExecuted,
         summary: reportArgs?.summary,
