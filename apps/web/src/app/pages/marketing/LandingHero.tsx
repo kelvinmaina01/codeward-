@@ -1102,8 +1102,8 @@ function TypingText() {
 }
 
 function MissionTypingText() {
-  const normalText = "Codeward is your autonomous\ncode quality platform, without\n";
-  const highlightedText = "the technical debt";
+  const normalText = "Watch Codeward turn your\npull request into a\n";
+  const highlightedText = "zero-debt reality";
   const fullText = normalText + highlightedText;
   const totalLength = fullText.length;
   const textRef = useRef<HTMLSpanElement>(null);
@@ -1130,7 +1130,7 @@ function MissionTypingText() {
       const isDone = i === totalLength;
       
       if (isDone) {
-        html += `<span class="inline-block text-purple-500 font-black italic -rotate-12 origin-bottom scale-110  ml-2">!</span>`;
+        html += `<span class="inline-block text-purple-400 font-bold ml-1">.</span>`;
       } else {
         html += `<span class="inline-block h-[0.85em] w-[3px] translate-y-[0.1em] bg-purple-400 animate-[pulse_1s_infinite] align-middle ml-1"></span>`;
       }
@@ -1141,7 +1141,7 @@ function MissionTypingText() {
         i++;
         if (i > totalLength) {
           isDeleting = true;
-          timeout = setTimeout(tick, 4000);
+          timeout = setTimeout(tick, 4500);
           return;
         }
         timeout = setTimeout(tick, 55);
@@ -1170,7 +1170,7 @@ function MissionTypingText() {
       <span className="whitespace-pre-wrap invisible pointer-events-none select-none block w-full">
         {normalText}
         <span className="text-purple-400">{highlightedText}</span>
-        <span className="inline-block text-purple-500 font-black italic -rotate-12 origin-bottom scale-110 ml-2">!</span>
+        <span className="inline-block text-purple-400 font-bold ml-1">.</span>
       </span>
       
       {/* Absolute Container (Livello visibile, animato chirurgicamente senza impattare il DOM sottostante) */}
