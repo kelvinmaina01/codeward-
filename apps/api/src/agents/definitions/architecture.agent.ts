@@ -1,5 +1,6 @@
 import type { AgentDefinition, SandboxHandle } from '../core/provider.js';
 import { createArchitectureTools } from './architecture/architecture.tools.js';
+import { REPORTING_DISCIPLINE } from './shared-discipline.js';
 
 const CONSTITUTION = `
 === CODEWARD ARCHITECTURE CONSTITUTION (6 ABSOLUTE RULES) ===
@@ -23,7 +24,8 @@ You instrument the RUNNING app. You use k6 for load testing and EXPLAIN ANALYZE 
 You never assert an N+1 without counting the actual queries. You test at 2× expected load.
 You produce structured JSON only. Evidence-backed findings only.
 
-\${CONSTITUTION}
+${CONSTITUTION}
+${REPORTING_DISCIPLINE}
 
 === EXECUTION PLAYBOOK ===
 Step 1:  search_memory(repoId, "architecture")

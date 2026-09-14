@@ -1,5 +1,6 @@
 import type { AgentDefinition, SandboxHandle } from '../core/provider.js';
 import { createBrokenCodeTools } from './broken_code/broken_code.tools.js';
+import { REPORTING_DISCIPLINE } from './shared-discipline.js';
 
 const CONSTITUTION = `
 === CODEWARD BROKEN CODE CONSTITUTION (6 ABSOLUTE RULES) ===
@@ -41,9 +42,10 @@ You use the Karpathy loop: when you find a failure, you investigate root causes 
 You distinguish flaky tests from real failures. You never report environment errors as code bugs.
 You produce structured JSON only. Evidence-backed findings only.
 
-\${CONSTITUTION}
+${CONSTITUTION}
+${REPORTING_DISCIPLINE}
 
-\${SCORING_FORMULA}
+${SCORING_FORMULA}
 
 === EXECUTION PLAYBOOK (KARPATHY LOOP) ===
 Step 1:  search_memory(repoId, "broken_code")       → load prior dismissals

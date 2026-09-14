@@ -333,8 +333,10 @@ export class NativeOpenAIProvider implements AgentProvider {
           );
         }
 
-        // Each individual HTTP request gets the smaller of remaining budget or 60s
-        const perRequestTimeout = Math.min(60000, remainingBudget);
+        // Each individual HTTP request gets the smaller of remaining budget or 15s.
+        // Dead/unreachable fallback providers must fail fast so the cascade can keep
+        // searching for a working model within the total budget.
+        const perRequestTimeout = Math.min(15000, remainingBudget);
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), perRequestTimeout);
 
@@ -369,7 +371,22 @@ export class NativeOpenAIProvider implements AgentProvider {
               throw new FatalPayloadError(`Fatal AI request error (${status}): ${sanitizedError}`, status);
             }
 
-            // 2. RETRYABLE ON SAME PROVIDER (429 with Jitter, transient 502/503/504)
+            // 2. QUOTA/BILLING EXHAUSTION (429 but NOT a transient rate limit):
+            // Retrying the same provider wastes seconds when the account is simply out of
+            // credits — cascade to the next provider immediately instead.
+            const lowerError = sanitizedError.toLowerCase();
+            const isQuotaExhausted =
+              status === 429 &&
+              (lowerError.includes('insufficient_quota') ||
+               lowerError.includes('billing_not_active') ||
+               lowerError.includes('credit_balance_exhausted'));
+
+            if (isQuotaExhausted) {
+              console.error(`[NativeOpenAIProvider] 💳 Quota/billing exhausted (429) on ${candidate.name}: ${sanitizedError}. Cascading immediately, no retry.`);
+              throw new Error(`API error ${status} (quota exhausted): ${sanitizedError}`);
+            }
+
+            // 3. RETRYABLE ON SAME PROVIDER (429 with Jitter, transient 502/503/504)
             if (status === 429 && attempt < maxAttempts) {
               // Check Retry-After header
               const retryAfterHeader = response.headers.get('retry-after');
@@ -405,7 +422,7 @@ export class NativeOpenAIProvider implements AgentProvider {
               continue;
             }
 
-            // 3. CASCADE-WORTHY (401, 402, 403, exhausted 429/5xx, or model not found)
+            // 4. CASCADE-WORTHY (401, 402, 403, exhausted 429/5xx, or model not found)
             throw new Error(`API error ${status}: ${sanitizedError}`);
           }
 
