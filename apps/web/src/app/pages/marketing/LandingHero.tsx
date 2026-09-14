@@ -1179,6 +1179,93 @@ function MissionTypingText() {
   );
 }
 
+function SupportedTechStacksShowcase() {
+  const row1 = [
+    { name: "Python", icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/python/python-original.svg" },
+    { name: "Go", icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/go/go-original.svg" },
+    { name: "Rust", icon: "https://cdn.simpleicons.org/rust/%23F74C00" },
+    { name: "Docker", icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/docker/docker-original.svg" },
+    { name: "Kubernetes", icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/kubernetes/kubernetes-plain.svg" },
+    { name: "PostgreSQL", icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/postgresql/postgresql-original.svg" },
+  ];
+
+  // Middle line has the most icons (widest line horizontally)
+  const middleRow = [
+    { name: "TypeScript", icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/typescript/typescript-original.svg" },
+    { name: "React", icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/react/react-original.svg" },
+    { name: "Next.js", icon: "https://cdn.simpleicons.org/nextdotjs/white" },
+    { name: "Node.js", icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/nodejs/nodejs-original.svg" },
+    { name: "JavaScript", icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/javascript/javascript-original.svg" },
+    { name: "C++", icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/cplusplus/cplusplus-original.svg" },
+    { name: "Java", icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/java/java-original.svg" },
+    { name: "Kotlin", icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/kotlin/kotlin-original.svg" },
+  ];
+
+  const row3 = [
+    { name: "C#", icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/csharp/csharp-original.svg" },
+    { name: "Ruby", icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/ruby/ruby-original.svg" },
+    { name: "PHP", icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/php/php-original.svg" },
+    { name: "Swift", icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/swift/swift-original.svg" },
+    { name: "Redis", icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/redis/redis-original.svg" },
+    { name: "GraphQL", icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/graphql/graphql-plain.svg" },
+  ];
+
+  return (
+    <div className="flex flex-col gap-3 sm:gap-3.5 items-center lg:items-end justify-center w-full select-none">
+      {/* Line 1: Top Row */}
+      <div className="flex items-center justify-center gap-2.5 sm:gap-3 flex-wrap">
+        {row1.map((item) => (
+          <div
+            key={item.name}
+            className="w-12 h-12 sm:w-13 sm:h-13 rounded-full border border-white/20 bg-white/[0.04] hover:border-white/40 hover:bg-white/[0.08] transition-all duration-200 flex items-center justify-center p-2.5"
+          >
+            <img
+              src={item.icon}
+              alt={item.name}
+              loading="lazy"
+              className="w-6 h-6 sm:w-7 sm:h-7 object-contain"
+            />
+          </div>
+        ))}
+      </div>
+
+      {/* Line 2: Middle Row - Longest Horizontal Line (Same Icon Size) */}
+      <div className="flex items-center justify-center gap-2.5 sm:gap-3 flex-wrap">
+        {middleRow.map((item) => (
+          <div
+            key={item.name}
+            className="w-12 h-12 sm:w-13 sm:h-13 rounded-full border border-white/20 bg-white/[0.04] hover:border-white/40 hover:bg-white/[0.08] transition-all duration-200 flex items-center justify-center p-2.5"
+          >
+            <img
+              src={item.icon}
+              alt={item.name}
+              loading="lazy"
+              className="w-6 h-6 sm:w-7 sm:h-7 object-contain"
+            />
+          </div>
+        ))}
+      </div>
+
+      {/* Line 3: Bottom Row */}
+      <div className="flex items-center justify-center gap-2.5 sm:gap-3 flex-wrap">
+        {row3.map((item) => (
+          <div
+            key={item.name}
+            className="w-12 h-12 sm:w-13 sm:h-13 rounded-full border border-white/20 bg-white/[0.04] hover:border-white/40 hover:bg-white/[0.08] transition-all duration-200 flex items-center justify-center p-2.5"
+          >
+            <img
+              src={item.icon}
+              alt={item.name}
+              loading="lazy"
+              className="w-6 h-6 sm:w-7 sm:h-7 object-contain"
+            />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function TestimonialsSection() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
@@ -1895,23 +1982,33 @@ export default function CodewardHero() {
 
       {/* ── Mission Statement Section ── */}
       <section 
-        className="relative py-20 md:py-24 px-8 md:px-20 bg-cover bg-center bg-no-repeat"
+        className="relative py-20 md:py-28 px-6 sm:px-8 md:px-16 lg:px-20 bg-cover bg-center bg-no-repeat overflow-hidden"
         style={{ backgroundImage: "url('https://i.ibb.co/WvSNQbHd/enterprise-bg.avif')" }}
       >
-        <div className="absolute inset-0 bg-black/10 mix-blend-overlay" />
-        <div className="mx-auto max-w-6xl relative z-10 flex flex-col items-start">
-          <p className="text-3xl md:text-5xl font-semibold leading-[1.25] tracking-tight text-white mb-10">
-            <MissionTypingText />
-          </p>
-          <FadeInSection delay={800} direction="up">
-            <button 
-              onClick={() => navigate('/signup')} 
-              className="group inline-flex items-center gap-2.5 rounded-full bg-white hover:bg-white/90 px-8 py-3.5 text-sm font-bold text-black shadow-lg hover:shadow-xl transition-all duration-200 active:scale-95 cursor-pointer"
-            >
-              <span>See it in action</span>
-              <ArrowUpRight className="w-[18px] h-[18px] transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" strokeWidth={2.5} />
-            </button>
-          </FadeInSection>
+        <div className="absolute inset-0 bg-black/40 mix-blend-overlay pointer-events-none" />
+        <div className="mx-auto max-w-7xl relative z-10 grid grid-cols-1 lg:grid-cols-12 items-center gap-12 lg:gap-14">
+          {/* Left Column: Mission Statement & Action CTA */}
+          <div className="lg:col-span-6 xl:col-span-7 flex flex-col items-start">
+            <p className="text-3xl sm:text-4xl md:text-5xl font-semibold leading-[1.25] tracking-tight text-white mb-8 sm:mb-10">
+              <MissionTypingText />
+            </p>
+            <FadeInSection delay={600} direction="up">
+              <button 
+                onClick={() => navigate('/signup')} 
+                className="group inline-flex items-center gap-2.5 rounded-full bg-white hover:bg-white/90 px-8 py-3.5 text-sm font-bold text-black shadow-lg hover:shadow-xl transition-all duration-200 active:scale-95 cursor-pointer"
+              >
+                <span>See it in action</span>
+                <ArrowUpRight className="w-[18px] h-[18px] transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" strokeWidth={2.5} />
+              </button>
+            </FadeInSection>
+          </div>
+
+          {/* Right Column: Supported Languages & Stacks */}
+          <div className="lg:col-span-6 xl:col-span-5 w-full flex justify-center lg:justify-end">
+            <FadeInSection delay={300} direction="up" className="w-full max-w-lg">
+              <SupportedTechStacksShowcase />
+            </FadeInSection>
+          </div>
         </div>
       </section>
 
