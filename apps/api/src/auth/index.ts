@@ -14,6 +14,8 @@ const rawApiUrl = process.env.API_URL || "";
 const safeApiUrl = rawApiUrl.includes("your-railway-api") || !rawApiUrl
   ? "https://codewardapi-production.up.railway.app"
   : rawApiUrl;
+const isHttps = safeApiUrl.startsWith("https://");
+const isProduction = process.env.NODE_ENV === "production" || isHttps;
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
@@ -29,8 +31,8 @@ export const auth = betterAuth({
   secret: process.env.BETTER_AUTH_SECRET || "development-secret-key-change-in-prod",
   advanced: {
     defaultCookieAttributes: {
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-      secure: process.env.NODE_ENV === "production",
+      sameSite: isProduction ? "none" : "lax",
+      secure: isProduction,
     }
   },
   trustedOrigins: (request?: Request) => {

@@ -68,7 +68,14 @@ app.get('/health', (c) => {
   return c.json({ status: 'ok', service: 'codeward-api' });
 });
 
-app.get('/', (c) => c.text('Codeward API Running!'));
+app.get('/', (c) => {
+  const error = c.req.query('error');
+  if (error) {
+    const frontend = process.env.FRONTEND_URL || 'https://codeward.cloud';
+    return c.redirect(`${frontend.replace(/\/+$/, '')}/auth?error=${encodeURIComponent(error)}`);
+  }
+  return c.text('Codeward API Running!');
+});
 
 app.get('/api/sentinel/status', async (c) => {
   const { BudgetService } = await import('./services/budget.service.js');

@@ -55,6 +55,21 @@ export function AuthPage({ onBack, theme: _theme, onCycleTheme, onNavigate: _onN
     return () => clearInterval(blink);
   }, []);
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const err = params.get('error');
+    if (err) {
+      if (err === 'state_mismatch') {
+        toast.error('Sign-in cookie blocked or session expired.', {
+          description: 'If using Brave or a strict privacy extension, please allow cross-site cookies or toggle shields off for sign-in.',
+          duration: 8000,
+        });
+      } else {
+        toast.error(`Authentication error: ${err}`, { duration: 6000 });
+      }
+    }
+  }, []);
+
   const handleOAuth = async (provider: 'github' | 'gitlab' | 'google') => {
     if (provider === 'gitlab') return;
     setLoading(provider);
