@@ -1189,7 +1189,7 @@ function SupportedTechStacksShowcase() {
     { name: "PostgreSQL", icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/postgresql/postgresql-original.svg" },
   ];
 
-  // Middle line has the most icons (widest line horizontally)
+  // Middle line - widest horizontal line
   const middleRow = [
     { name: "TypeScript", icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/typescript/typescript-original.svg" },
     { name: "React", icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/react/react-original.svg" },
@@ -1197,8 +1197,6 @@ function SupportedTechStacksShowcase() {
     { name: "Node.js", icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/nodejs/nodejs-original.svg" },
     { name: "JavaScript", icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/javascript/javascript-original.svg" },
     { name: "C++", icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/cplusplus/cplusplus-original.svg" },
-    { name: "Java", icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/java/java-original.svg" },
-    { name: "Kotlin", icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/kotlin/kotlin-original.svg" },
   ];
 
   const row3 = [
@@ -1208,6 +1206,11 @@ function SupportedTechStacksShowcase() {
     { name: "Swift", icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/swift/swift-original.svg" },
     { name: "Redis", icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/redis/redis-original.svg" },
     { name: "GraphQL", icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/graphql/graphql-plain.svg" },
+  ];
+
+  const featuredIcons = [
+    { name: "Java", icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/java/java-original.svg" },
+    { name: "Kotlin", icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/kotlin/kotlin-original.svg" },
   ];
 
   return (
@@ -1229,7 +1232,7 @@ function SupportedTechStacksShowcase() {
         ))}
       </div>
 
-      {/* Line 2: Middle Row - Longest Horizontal Line (Same Icon Size) */}
+      {/* Line 2: Middle Row - Longest Horizontal Line */}
       <div className="flex items-center justify-center gap-2.5 sm:gap-3 flex-wrap">
         {middleRow.map((item) => (
           <div
@@ -1261,6 +1264,29 @@ function SupportedTechStacksShowcase() {
             />
           </div>
         ))}
+      </div>
+
+      {/* Line 4: Featured Row with Java & Kotlin and small white text */}
+      <div className="flex items-center justify-center gap-3 sm:gap-4 flex-wrap pt-1">
+        <span className="text-xs sm:text-sm text-white font-medium tracking-wide whitespace-nowrap">
+          supports all
+        </span>
+        {featuredIcons.map((item) => (
+          <div
+            key={item.name}
+            className="w-12 h-12 sm:w-13 sm:h-13 rounded-full border border-white/20 bg-white/[0.04] hover:border-white/40 hover:bg-white/[0.08] transition-all duration-200 flex items-center justify-center p-2.5"
+          >
+            <img
+              src={item.icon}
+              alt={item.name}
+              loading="lazy"
+              className="w-6 h-6 sm:w-7 sm:h-7 object-contain"
+            />
+          </div>
+        ))}
+        <span className="text-xs sm:text-sm text-white font-medium tracking-wide whitespace-nowrap">
+          languages and stacks
+        </span>
       </div>
     </div>
   );
