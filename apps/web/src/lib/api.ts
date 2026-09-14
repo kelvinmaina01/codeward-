@@ -2,9 +2,12 @@ import { hc } from 'hono/client';
 import type { AppType } from '../../../../api/src/index';
 
 const rawApiUrl = (import.meta.env.VITE_API_URL || '').trim();
+const isLocalhost = typeof window !== 'undefined' && 
+  (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+
 export const API_URL = (rawApiUrl && !rawApiUrl.includes('your-railway-api'))
   ? rawApiUrl.replace(/\/+$/, '')
-  : 'https://codewardapi-production.up.railway.app';
+  : (isLocalhost ? 'http://localhost:3000' : 'https://codewardapi-production.up.railway.app');
 
 const rawWsUrl = (import.meta.env.VITE_WS_URL || '').trim();
 export const WS_URL = (rawWsUrl && !rawWsUrl.includes('your-railway-api'))
