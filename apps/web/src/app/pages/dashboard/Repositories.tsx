@@ -58,7 +58,7 @@ function ghAvatar(owner: string): string {
 
 /** Fallback DiceBear Disco avatar keyed to the owner handle */
 function discoAvatar(seed: string): string {
-  return `https://api.dicebear.com/9.x/disco/svg?seed=${encodeURIComponent(seed)}`;
+  return `https://api.dicebear.com/10.x/disco/svg?seed=${encodeURIComponent(seed)}`;
 }
 
 /**

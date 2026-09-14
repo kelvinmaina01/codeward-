@@ -9,6 +9,7 @@ import { TrialLimitEmail } from '../src/notifications/templates/TrialLimitEmail.
 import { PlanUpgradedEmail } from '../src/notifications/templates/PlanUpgradedEmail.js';
 import { RunFailureEmail } from '../src/notifications/templates/RunFailureEmail.js';
 import { EscalationEmail } from '../src/notifications/templates/EscalationEmail.js';
+import { AccountDeletionEmail } from '../src/notifications/templates/AccountDeletionEmail.js';
 
 dotenv.config();
 
@@ -168,6 +169,22 @@ async function main() {
       errorMessage: 'Docker sandbox daemon out of memory (OOM)',
       retryUrl: 'https://codeward.cloud/dashboard/runs/999/retry',
       logTail: 'FATAL: Process killed by OOM killer at 0x4f82\nSandbox terminated unexpectedly.',
+    })
+  );
+
+  // 7. Account Deletion Queued Email (Brand Redesigned)
+  console.log('7. Dispatching Account Deletion Queued Alert...');
+  await sendEmailWithFallback(
+    'Your Codeward account deletion is queued — 30-day compliance window active',
+    React.createElement(AccountDeletionEmail, {
+      userName: 'Kelvin Gichinga',
+      dataSummary: {
+        'Connected Repositories': 2,
+        'Scanned Pull Requests': 14,
+        'Active Workspaces': 1,
+        'API Keys & Webhooks': 3,
+        'Sandbox Audit Logs': 58,
+      },
     })
   );
 

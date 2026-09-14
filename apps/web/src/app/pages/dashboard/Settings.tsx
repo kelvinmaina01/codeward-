@@ -959,11 +959,11 @@ export function Settings() {
                   <div className="flex items-center justify-between gap-4 py-3 border-b border-cw-bdr">
                     <div className="flex items-center gap-3 min-w-0">
                       <img
-                        src={session?.user?.image || `https://api.dicebear.com/9.x/disco/svg?seed=${encodeURIComponent(session?.user?.name || 'you')}`}
+                        src={session?.user?.image || `https://api.dicebear.com/10.x/disco/svg?seed=${encodeURIComponent(session?.user?.name || 'you')}`}
                         alt="DiceBear Disco Avatar"
                         className="w-9 h-9 rounded-full border border-cw-bdr bg-cw-bg3 object-cover shrink-0"
                         onError={(e) => {
-                          const fallback = `https://api.dicebear.com/9.x/disco/svg?seed=${encodeURIComponent(session?.user?.name || 'you')}`;
+                          const fallback = `https://api.dicebear.com/10.x/disco/svg?seed=${encodeURIComponent(session?.user?.name || 'you')}`;
                           const img = e.target as HTMLImageElement;
                           if (img.src !== fallback) img.src = fallback;
                         }}

@@ -1190,7 +1190,7 @@ function TestimonialsSection() {
       category: "health tech · medpace",
       author: "Durgesh Sharma",
       role: "Technology Leader, Medpace",
-      avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&h=120&auto=format&fit=crop&q=70&fm=webp",
+      avatar: "https://api.dicebear.com/10.x/disco/svg?seed=Durgesh%20Sharma",
       bgImage: "/bg.png",
       metric: "11.4x",
       metricLabel: "refactor velocity in 10 weeks",
@@ -1207,7 +1207,7 @@ function TestimonialsSection() {
       category: "full-stack · baywoods",
       author: "Brian Nyakundi",
       role: "Founder @ Baywoods | Full-Stack Developer",
-      avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120&h=120&auto=format&fit=crop&q=70&fm=webp",
+      avatar: "https://api.dicebear.com/10.x/disco/svg?seed=Brian%20Nyakundi",
       bgImage: "/bg.png",
       metric: "5.7x",
       metricLabel: "legacy code upgrade speed",
@@ -1224,7 +1224,7 @@ function TestimonialsSection() {
       category: "cybersecurity · riara",
       author: "Renee (Wanjiru) Njuwa",
       role: "Web Security & Blue Team Specialist, Riara University",
-      avatar: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=120&h=120&auto=format&fit=crop&q=70&fm=webp",
+      avatar: "https://api.dicebear.com/10.x/disco/svg?seed=Renee%20Njuwa",
       bgImage: "/bg.png",
       metric: "2.63M",
       metricLabel: "lines scanned & patched",
@@ -1241,7 +1241,7 @@ function TestimonialsSection() {
       category: "infrastructure · mistral ai",
       author: "Cynthia Saraiva",
       role: "Senior Infrastructure Engineer @ Mistral AI",
-      avatar: "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=120&h=120&auto=format&fit=crop&q=70&fm=webp",
+      avatar: "https://api.dicebear.com/10.x/disco/svg?seed=Cynthia%20Saraiva",
       bgImage: "/bg.png",
       metric: "5.2x",
       metricLabel: "inbound test coverage",
@@ -1258,7 +1258,7 @@ function TestimonialsSection() {
       category: "systems architecture · zavu",
       author: "Anna Wellerdiek",
       role: "Staff Systems Architect @ Zavu.dev",
-      avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=120&h=120&auto=format&fit=crop&q=70&fm=webp",
+      avatar: "https://api.dicebear.com/10.x/disco/svg?seed=Anna%20Wellerdiek",
       bgImage: "/bg.png",
       metric: "31.7x",
       metricLabel: "architecture rule compliance",
@@ -1275,7 +1275,7 @@ function TestimonialsSection() {
       category: "ai platform · flyrank",
       author: "Vikram Patel",
       role: "Principal Architect @ Flyrank",
-      avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=120&h=120&auto=format&fit=crop&q=70&fm=webp",
+      avatar: "https://api.dicebear.com/10.x/disco/svg?seed=Vikram%20Patel",
       bgImage: "/bg.png",
       metric: "2x",
       metricLabel: "deployment frequency growth",
@@ -1292,7 +1292,7 @@ function TestimonialsSection() {
       category: "reliability · instatus",
       author: "Ali Farhadi",
       role: "Founder @ Instatus",
-      avatar: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=120&h=120&auto=format&fit=crop&q=70&fm=webp",
+      avatar: "https://api.dicebear.com/10.x/disco/svg?seed=Ali%20Farhadi",
       bgImage: "/bg.png",
       metric: "2,300",
       metricLabel: "automated patches merged",
@@ -1309,7 +1309,7 @@ function TestimonialsSection() {
       category: "fintech · razorpay",
       author: "Aarav Mehta",
       role: "Engineering Director @ Razorpay",
-      avatar: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=120&h=120&auto=format&fit=crop&q=70&fm=webp",
+      avatar: "https://api.dicebear.com/10.x/disco/svg?seed=Aarav%20Mehta",
       bgImage: "/bg.png",
       metric: "21.9x",
       metricLabel: "debt backlog clearance",
@@ -1440,7 +1440,10 @@ function TestimonialsSection() {
                         src={item.avatar} 
                         alt={item.author} 
                         loading="eager"
-                        className="h-11 w-11 sm:h-12 sm:w-12 rounded-full border border-slate-300/80 object-cover shrink-0 shadow-sm" 
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = `https://api.dicebear.com/10.x/disco/svg?seed=${encodeURIComponent(item.author)}`;
+                        }}
+                        className="h-11 w-11 sm:h-12 sm:w-12 rounded-full border border-purple-500/30 object-cover shrink-0 shadow-sm bg-[#0d1117]" 
                       />
                       <div>
                         <div className="text-slate-900 font-bold text-base leading-snug">
@@ -1601,6 +1604,7 @@ function VideoPlayer() {
     </div>
   );
 }
+
 
 export default function CodewardHero() {
   const navigate = useNavigate();
@@ -1889,7 +1893,7 @@ export default function CodewardHero() {
         </div>
       </section>
 
-      {/* Ã¢â€â‚¬Ã¢â€â‚¬ Mission Statement Section Ã¢â€â‚¬Ã¢â€â‚¬ */}
+      {/* ── Mission Statement Section ── */}
       <section 
         className="relative py-20 md:py-24 px-8 md:px-20 bg-cover bg-center bg-no-repeat"
         style={{ backgroundImage: "url('https://i.ibb.co/WvSNQbHd/enterprise-bg.avif')" }}
@@ -2004,8 +2008,6 @@ export default function CodewardHero() {
       </InteractiveParticleGrid>
 
       {/* ── Flow / Architecture Section ── */}
-
-
 
       {/* ── Testimonials Section ── */}
       <TestimonialsSection />

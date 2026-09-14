@@ -721,7 +721,7 @@ function DashboardLayout() {
                             alt={u.user}
                             className="w-9 h-9 rounded-full border border-cw-bdr/60 object-cover bg-cw-bg3 shrink-0 shadow-xs"
                             onError={(e) => {
-                              (e.target as HTMLImageElement).src = `https://api.dicebear.com/9.x/disco/svg?seed=${encodeURIComponent(u.user)}`;
+                              (e.target as HTMLImageElement).src = `https://api.dicebear.com/10.x/disco/svg?seed=${encodeURIComponent(u.user)}`;
                             }}
                           />
 

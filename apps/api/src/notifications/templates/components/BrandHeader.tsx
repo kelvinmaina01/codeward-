@@ -2,7 +2,7 @@ import * as React from 'react';
 import { brandColors } from '../BrandEmailLayout.js';
 
 export const LINKEDIN_FALLBACK_LOGO = 'https://media.licdn.com/dms/image/v2/D4D0BAQH7XEDqB8WKRA/company-logo_100_100/B4DaA1ZClrHcAI-/0/1787602152009/get_codeward_logo?e=1790812800&v=beta&t=iIJXcjGUeuGO5PQd39N8khid7gYZJm5FBrQKnP9HgD0';
-export const PRIMARY_LOGO_URL = 'https://raw.githubusercontent.com/kelvinmaina01/codeward-/main/apps/web/public/codeward-logo.png';
+export const PRIMARY_LOGO_URL = 'https://www.codeward.cloud/codeward-logo.png';
 
 interface BrandHeaderProps {
   headline: string;
