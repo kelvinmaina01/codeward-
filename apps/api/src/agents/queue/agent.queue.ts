@@ -20,7 +20,7 @@
 import { Queue, Worker, Job, UnrecoverableError } from 'bullmq';
 import dotenv from 'dotenv';
 import { createRedisConnection } from '../../lib/redis.js';
-import { db } from '../../db/index.js';
+import { workerDb as db } from '../../db/index.js';
 import { agentTasks, runs, repositories, runLogs, user } from '../../db/schema.js';
 import { eq, and, notLike } from 'drizzle-orm';
 import { getProvider } from '../core/registry.js';
@@ -205,6 +205,51 @@ async function claimTaskRow(runId: number, agentId: string, providerName?: strin
 }
 
 // ---------------------------------------------------------------------------
+// Run Policy Gate (Phase 3)
+// ---------------------------------------------------------------------------
+
+export function evaluateRunPolicyGate(
+  subAgentTasks: Array<{ agentId: string; status: string; findings?: any }>,
+  isDocOrConfigOnly: boolean = false
+) {
+  const rawFindings = subAgentTasks.flatMap((t) =>
+    ((t.findings as any[]) ?? []).map((f) => ({ ...f, agentId: t.agentId }))
+  );
+  const policy = applyFindingPolicy(rawFindings);
+  const gate = decideGate(policy.assessed);
+  const runPolicy = {
+    decision: gate.decision as 'PASS' | 'WARN' | 'BLOCK',
+    reasons: [...gate.reasons],
+    surfacedFindings: policy.surfaced.map((f: any) => ({
+      agentId: String(f.agentId ?? 'unknown'),
+      severity: String(f.severity ?? 'INFO'),
+      title: String(f.title ?? 'Untitled finding'),
+      file: f.file ?? null,
+      line: f.line ?? null,
+    })),
+    suppressedCount: policy.suppressed.length,
+  };
+
+  // B-3: Security Fail-Open Hardening
+  // The security agent is mandatory for all code runs. If it crashed, failed, was incomplete,
+  // or was not run, we MUST fail closed (force decision = 'BLOCK') to prevent unverified code from being approved.
+  if (!isDocOrConfigOnly) {
+    const securityTask = subAgentTasks.find((t) => t.agentId === 'security');
+    const isSecurityHealthy = securityTask && securityTask.status === 'completed';
+    if (!isSecurityHealthy) {
+      const statusDesc = securityTask ? securityTask.status : 'missing';
+      console.warn(`[AgentWorker] [B-3 Fail-Closed] Mandatory security agent ended with status '${statusDesc}'. Forcing BLOCK.`);
+      runPolicy.decision = 'BLOCK';
+      runPolicy.reasons.unshift(
+        `[Security Fail-Closed] Mandatory security agent ended with status '${statusDesc}'. PR cannot be approved without verified security analysis.`
+      );
+    }
+  }
+
+  return runPolicy;
+}
+
+// ---------------------------------------------------------------------------
 // Worker
 // ---------------------------------------------------------------------------
 
@@ -223,11 +268,20 @@ export function startAgentWorker(customOpts?: any): Worker<AgentJobData> {
 
   const { taskId, checkpointState } = await claimTaskRow(runId, agentId, providerName);
   let sandbox: ResilientSandbox | null = null;
+  let timeoutTimer: NodeJS.Timeout | null = null;
 
   try {
-    // -----------------------------------------------------------------------
-    // 1. Look up the agent definition
-    // -----------------------------------------------------------------------
+    const jobTimeoutMs = Number(process.env.AGENT_JOB_TIMEOUT_MS) || 15 * 60 * 1000;
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      timeoutTimer = setTimeout(() => {
+        reject(new Error(`[AgentWorker] Job execution timed out after ${jobTimeoutMs}ms for agent ${agentId} on run #${runId}`));
+      }, jobTimeoutMs);
+    });
+
+    const executeCore = async () => {
+      // -----------------------------------------------------------------------
+      // 1. Look up the agent definition
+      // -----------------------------------------------------------------------
     const definition = agentDefinitions[agentId];
     if (!definition) {
       throw new Error(`Unknown agent: "${agentId}". Did you forget to register it?`);
@@ -433,25 +487,13 @@ Use these EXACT values for any tool parameter named runId/repoId — never inven
         const subAgentTasks = await db.select().from(agentTasks).where(
           and(eq(agentTasks.runId, runId), notLike(agentTasks.agentId, 'orchestrator%'))
         );
-        const rawFindings = subAgentTasks.flatMap((t) =>
-          ((t.findings as any[]) ?? []).map((f) => ({ ...f, agentId: t.agentId }))
-        );
-        const policy = applyFindingPolicy(rawFindings);
-        const gate = decideGate(policy.assessed);
-        runPolicy = {
-          decision: gate.decision,
-          reasons: gate.reasons,
-          surfacedFindings: policy.surfaced.map((f: any) => ({
-            agentId: String(f.agentId ?? 'unknown'),
-            severity: String(f.severity ?? 'INFO'),
-            title: String(f.title ?? 'Untitled finding'),
-            file: f.file ?? null,
-            line: f.line ?? null,
-          })),
-          suppressedCount: policy.suppressed.length,
-        };
+        const [run] = await db.select({ scope: runs.scope }).from(runs).where(eq(runs.id, runId));
+        const scope = run?.scope as any;
+        const isDocOrConfigOnly = scope?.isDocOrConfigOnly === true;
+
+        runPolicy = evaluateRunPolicyGate(subAgentTasks as any, isDocOrConfigOnly);
         console.log(
-          `[AgentWorker] Run #${runId} policy gate: ${gate.decision} — ${policy.surfaced.length} surfaced, ${policy.suppressed.length} suppressed of ${rawFindings.length} total (model said: ${result.gateDecision ?? 'none'}).`
+          `[AgentWorker] Run #${runId} policy gate: ${runPolicy.decision} — ${runPolicy.surfacedFindings.length} surfaced, ${runPolicy.suppressedCount} suppressed of ${subAgentTasks.length} subagents (model said: ${result.gateDecision ?? 'none'}).`
         );
       } catch (policyError) {
         console.error(`[AgentWorker] Finding policy evaluation failed for run #${runId}:`, (policyError as Error).message);
@@ -554,7 +596,8 @@ Use these EXACT values for any tool parameter named runId/repoId — never inven
     // -----------------------------------------------------------------------
     if (agentId === 'orchestrator_phase3' && result.status !== 'error') {
       try {
-        await db.update(runs).set({ score: result.score ?? null }).where(eq(runs.id, runId));
+        const finalScore = result.status === 'incomplete' ? null : (result.score ?? null);
+        await db.update(runs).set({ score: finalScore }).where(eq(runs.id, runId));
       } catch (scoreError) {
         console.error(`[AgentWorker] Could not reconcile runs.score for run #${runId} (non-fatal):`, (scoreError as Error).message);
       }
@@ -565,8 +608,8 @@ Use these EXACT values for any tool parameter named runId/repoId — never inven
     // -----------------------------------------------------------------------
     await db.update(agentTasks)
       .set({
-        status: result.status === 'error' ? 'failed' : 'completed',
-        score: result.score,
+        status: result.status === 'error' ? 'failed' : result.status === 'incomplete' ? 'incomplete' : 'completed',
+        score: result.status === 'incomplete' ? null : result.score,
         findingsCount: result.findings.length,
         findings: result.findings,
         reportMeta: {
@@ -578,6 +621,7 @@ Use these EXACT values for any tool parameter named runId/repoId — never inven
           // Which cascade candidate actually served the run. Without it the token counts cannot
           // be priced, since the fallbacks bill at very different rates than OpenAI direct.
           servedBy: result.servedBy ?? null,
+          truncated: (result as any).truncated ?? false,
         },
         model: result.modelUsed,
         tokenUsage: {
@@ -624,7 +668,10 @@ Use these EXACT values for any tool parameter named runId/repoId — never inven
       message: `✅ [${repoFullName}] [${(commitSHA || '').slice(0, 7)}] ${agentId} finished (Score: ${result.score ?? 100}/100, Findings: ${result.findings.length})`,
     });
 
-    return result;
+      return result;
+    };
+
+    return await Promise.race([executeCore(), timeoutPromise]);
 
   } catch (error) {
     const err = error as Error;
@@ -636,7 +683,8 @@ Use these EXACT values for any tool parameter named runId/repoId — never inven
       msg.includes('401') ||
       msg.includes('repository not found') ||
       msg.includes('could not read username') ||
-      msg.includes('syntaxerror');
+      msg.includes('syntaxerror') ||
+      msg.includes('timed out');
 
     const maxAttempts = job.opts.attempts || 3;
     const willRetry = !isDeterministic && (job.attemptsMade + 1 < maxAttempts);
@@ -706,8 +754,11 @@ Use these EXACT values for any tool parameter named runId/repoId — never inven
     
     throw error; // Re-throw so BullMQ can handle retries (or move to failed if exhausted)
   } finally {
+    if (timeoutTimer) {
+      clearTimeout(timeoutTimer);
+    }
     if (sandbox) {
-      await sandbox.destroy();
+      await (sandbox as any).destroy();
       logAndBroadcast('agent_active', {
         repo: repoFullName,
         sha: commitSHA,
@@ -725,6 +776,7 @@ Use these EXACT values for any tool parameter named runId/repoId — never inven
   }, {
     connection: connection as any,
     concurrency,
+    lockDuration: 300000,
     settings: {
       backoffStrategies: {
         custom(attemptsMade: number) {

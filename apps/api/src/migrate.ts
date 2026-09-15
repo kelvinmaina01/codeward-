@@ -1,6 +1,17 @@
 import 'dotenv/config';
 import postgres from 'postgres';
 
+// Refuse to run in production to prevent catastrophic data loss
+if (process.env.NODE_ENV === 'production') {
+  console.error('FATAL: Refusing to run destructive migrate.ts in production environment!');
+  process.exit(1);
+}
+
+if (process.env.CONFIRM_DESTRUCTIVE_MIGRATION !== 'true') {
+  console.error('BLOCKED: migrate.ts drops customer data tables. Set CONFIRM_DESTRUCTIVE_MIGRATION=true to proceed in local development.');
+  process.exit(1);
+}
+
 const sql = postgres(process.env.DATABASE_URL!, { prepare: false });
 
 async function migrate() {

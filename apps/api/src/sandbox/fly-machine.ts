@@ -3,7 +3,7 @@ import dns from 'node:dns';
 dns.setDefaultResultOrder('ipv4first');
 
 export interface FlySandboxConfig {
-  image: string; // The full registry path e.g. registry.fly.io/codeward-sandboxes-v2:node
+  image?: string; // The full registry path e.g. registry.fly.io/codeward-sandboxes-v2:node
   appName?: string;
 }
 
@@ -19,19 +19,36 @@ export class FlySandbox {
   // option — so exec() below prepends `cd <workDir> &&` once init() has cloned the repo.
   public workDir = '/app/repo';
 
-  constructor(config: FlySandboxConfig) {
-    this.config = config;
-    this.config.appName = config.appName || 'codeward-sandboxes-v2';
+  constructor(config: FlySandboxConfig = {}) {
+    this.config = config || {};
+    this.config.image = this.config.image || 'registry.fly.io/codeward-sandboxes-v2:node';
+    this.config.appName = this.config.appName || 'codeward-sandboxes-v2';
     this.apiBase = `https://api.machines.dev/v1/apps/${this.config.appName}`;
 
-    let rawToken = process.env.FLY_API_TOKEN || '';
-    if (!rawToken) {
-      throw new Error("FLY_API_TOKEN is not set in environment.");
-    }
-
-    // FlyV1 Macaroons use commas to append third-party discharge tokens.
-    // We MUST use the entire string exactly as provided.
+    let rawToken = process.env.FLY_API_TOKEN || (config as any)?.token || '';
     this.token = rawToken.trim();
+  }
+
+  /**
+   * Performs fetch requests with an AbortController deadline to prevent worker deadlocks.
+   */
+  public async fetchWithTimeout(url: string, init: RequestInit = {}, timeoutMs = 15000): Promise<Response> {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const res = await fetch(url, {
+        ...init,
+        signal: controller.signal,
+      });
+      return res;
+    } catch (err: any) {
+      if (err.name === 'AbortError' || err.code === 20) {
+        throw new Error(`Fly.io API request timed out after ${timeoutMs}ms (${url})`);
+      }
+      throw err;
+    } finally {
+      clearTimeout(timer);
+    }
   }
 
   /**
@@ -76,7 +93,7 @@ export class FlySandbox {
     console.log(`[FlySandbox] Creating machine from image: ${this.config.image}`);
     
     // Auto-destroy the machine when the process exits or stops
-    const res = await fetch(`${this.apiBase}/machines`, {
+    const res = await this.fetchWithTimeout(`${this.apiBase}/machines`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${this.token}`,
@@ -97,7 +114,7 @@ export class FlySandbox {
           }
         }
       })
-    });
+    }, 15000);
     
     if (!res.ok) {
       const err = await res.text();
@@ -127,28 +144,9 @@ export class FlySandbox {
 
     // Never log a real installation token embedded in an authenticated clone URL.
     console.log(`[FlySandbox Exec] ${command.replace(/x-access-token:[^@]+@/g, 'x-access-token:[REDACTED]@')}`);
-    // Three real, empirically-tested findings here, in order — the first two verified only by
-    // exit code/line count, which was itself the mistake the third one caught:
-    // 1. cmd as an array fails outright — Fly's Go handler rejects it: "cannot unmarshal
-    //    array into Go struct field machineExecRequestRaw.cmd of type string". cmd MUST be a
-    //    plain string.
-    // 2. As a hand-escaped string (`/bin/sh -c "${command.replace(/"/g,'\\"')}"`), real grep
-    //    commands with nested quotes/backticks broke with "body is missing command: EOF found
-    //    when expecting closing quote" — Fly tokenizes the cmd string itself (quote-aware,
-    //    shlex-style) before executing, so nested-quote escaping doesn't survive that pass.
-    // 3. A bare `echo <b64> | base64 -d | /bin/sh` as cmd does NOT get real pipe behavior —
-    //    Fly's tokenizer splits it into argv (`echo`, the b64 string, `|`, `base64`, `-d`,
-    //    `|`, `/bin/sh`) and execve's `echo` directly with all of that as literal arguments,
-    //    no shell in between to interpret the pipes. echo dutifully echoed everything back —
-    //    caught only by actually reading stdout content instead of trusting a non-empty,
-    //    non-erroring response as success.
-    // Real fix: force a genuine shell invocation via explicit argv (`/bin/sh -c <script>`),
-    // with the whole pipeline as ONE single-quoted token so Fly's tokenizer treats it as one
-    // opaque string (single quotes are safe here — the base64 alphabet never contains one) —
-    // the real /bin/sh THAT single-quoted `-c` argument invokes is what interprets the pipes.
     const encoded = Buffer.from(command, 'utf8').toString('base64');
     const wrapped = `/bin/sh -c 'echo ${encoded} | base64 -d | /bin/sh'`;
-    const res = await fetch(`${this.apiBase}/machines/${this.machineId}/exec`, {
+    const res = await this.fetchWithTimeout(`${this.apiBase}/machines/${this.machineId}/exec`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${this.token}`,
@@ -158,7 +156,7 @@ export class FlySandbox {
         cmd: wrapped,
         timeout: 600
       })
-    });
+    }, 610000);
 
     if (!res.ok) {
       const err = await res.text();
@@ -181,12 +179,12 @@ export class FlySandbox {
     
     console.log(`[FlySandbox] Tearing down machine ${this.machineId}...`);
     try {
-      const res = await fetch(`${this.apiBase}/machines/${this.machineId}?force=true`, {
+      const res = await this.fetchWithTimeout(`${this.apiBase}/machines/${this.machineId}?force=true`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${this.token}`,
         }
-      });
+      }, 15000);
       if (!res.ok) {
         console.error(`[FlySandbox] Failed to destroy machine ${this.machineId}: ${await res.text()}`);
       } else {
@@ -201,9 +199,9 @@ export class FlySandbox {
 
   private async waitForMachine(id: string, desiredState: string) {
     for (let i = 0; i < 30; i++) {
-      const res = await fetch(`${this.apiBase}/machines/${id}`, {
+      const res = await this.fetchWithTimeout(`${this.apiBase}/machines/${id}`, {
         headers: { 'Authorization': `Bearer ${this.token}` }
-      });
+      }, 15000);
       if (res.ok) {
         const data = await res.json() as any;
         if (data.state === desiredState) return;

@@ -43,7 +43,7 @@ export const organizationMember = pgTable('organization_member', {
 
 export const repositories = pgTable('repositories', {
   id: serial('id').primaryKey(),
-  userId: text('user_id').notNull().references(() => user.id),
+  userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
   orgId: integer('org_id').references(() => organization.id, { onDelete: 'cascade' }),
   githubRepoId: integer('github_repo_id'),
   installationId: integer('installation_id'),
@@ -75,7 +75,7 @@ export const repositories = pgTable('repositories', {
 
 export const runs = pgTable('runs', {
   id: serial('id').primaryKey(),
-  repoId: integer('repo_id').references(() => repositories.id),
+  repoId: integer('repo_id').references(() => repositories.id, { onDelete: 'cascade' }),
   commitSha: varchar('commit_sha', { length: 40 }).notNull(),
   status: varchar('status', { length: 50 }).notNull(),
   visibility: varchar('visibility', { length: 20 }).default('private').notNull(),

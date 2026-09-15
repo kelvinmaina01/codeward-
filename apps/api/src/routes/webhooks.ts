@@ -20,7 +20,12 @@ webhookRouter.use('/github', async (c, next) => {
   }
 
   const payload = await c.req.text();
-  const secret = process.env.GITHUB_WEBHOOK_SECRET || 'dev-secret';
+  const isProd = process.env.NODE_ENV === 'production';
+  const secret = process.env.GITHUB_WEBHOOK_SECRET || (isProd ? '' : 'dev-secret');
+
+  if (!secret) {
+    return c.json({ error: 'GitHub webhook secret unconfigured in production' }, 500);
+  }
 
   const hmac = crypto.createHmac('sha256', secret);
   const digest = 'sha256=' + hmac.update(payload).digest('hex');
@@ -262,6 +267,10 @@ function verifyPolarSignature(
     // Polar (Standard Webhooks) uses a base64-encoded secret.
     // In test mode we skip verification if secret is the placeholder.
     if (secret === 'test_secret') {
+      if (process.env.NODE_ENV === 'production') {
+        console.error('[Polar Webhook] FATAL: test_secret signature bypass rejected in production mode.');
+        return false;
+      }
       console.warn('[Polar Webhook] Using test_secret — signature verification SKIPPED. Set POLAR_WEBHOOK_SECRET in prod.');
       return true;
     }

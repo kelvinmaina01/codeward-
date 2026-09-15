@@ -1,26 +1,24 @@
 import { Hono } from 'hono';
+import { z } from 'zod';
+import { validateBody, getValidatedBody } from '../middleware/zod-validator.js';
 
 export const newsletterRouter = new Hono();
 
-newsletterRouter.post('/subscribe', async (c) => {
+const subscribeSchema = z.object({
+  email: z.string().email('Please enter a valid email address.'),
+  acceptedTerms: z.literal(true, {
+    errorMap: () => ({ message: 'You must accept the Terms of Service and Privacy Policy before joining.' })
+  }),
+});
+
+newsletterRouter.post('/subscribe', validateBody(subscribeSchema), async (c) => {
   try {
-    const body = await c.req.json();
-    const { email, acceptedTerms } = body;
-
-    // 1. Check required fields & terms acceptance
-    if (!email || typeof email !== 'string' || !email.includes('@')) {
-      return c.json({ success: false, error: 'Please enter a valid email address.' }, 400);
-    }
-
-    if (!acceptedTerms) {
-      return c.json({ success: false, error: 'You must accept the Terms of Service and Privacy Policy before joining.' }, 400);
-    }
-
+    const { email } = getValidatedBody<z.infer<typeof subscribeSchema>>(c);
     const apiKey = process.env.BREVO_API_KEY;
 
     if (apiKey) {
       try {
-        // 2. Call Brevo Contacts API to register subscriber
+        // Call Brevo Contacts API to register subscriber
         const brevoRes = await fetch('https://api.brevo.com/v3/contacts', {
           method: 'POST',
           headers: {
@@ -41,7 +39,6 @@ newsletterRouter.post('/subscribe', async (c) => {
         if (!brevoRes.ok) {
           const errText = await brevoRes.text();
           console.log('[Brevo Newsletter] API response:', errText);
-          // If contact already exists or Brevo returns non-200, still handle gracefully
         }
       } catch (err) {
         console.error('[Brevo Newsletter] Failed to contact Brevo API:', err);

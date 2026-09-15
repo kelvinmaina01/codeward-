@@ -68,9 +68,10 @@ export interface AgentFinding {
 
 export interface AgentResult {
   agentId: string;           // 'security' | 'bloat' | 'architecture' | etc.
-  status: 'passed' | 'failed' | 'error';
+  status: 'passed' | 'failed' | 'error' | 'incomplete';
   findings: AgentFinding[];
-  score: number;             // 0–100 (100 = perfect, 0 = critical failures)
+  score: number | null;      // 0–100 (100 = perfect, 0 = critical failures, null if incomplete)
+  truncated?: boolean;
   duration: number;          // Wall-clock ms
   modelUsed: string;         // e.g. 'claude-3-5-haiku-latest' — for audit trail
   tokenUsage: {

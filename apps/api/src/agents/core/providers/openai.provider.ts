@@ -85,15 +85,26 @@ export class OpenAIProvider implements AgentProvider {
         messages: config.checkpointState || [{ role: 'user', content: config.taskPrompt }],
       }, provider);
 
-      // Orchestrator's submit_orchestrator_decision schema uses overallWeightedScore/
-      // criticalFindings, not score/findings like every other agent — this generic extraction
-      // silently fell back to a hardcoded 100 for every orchestrator run regardless of its
-      // real computed score or even a BLOCK decision (found via a real discrepancy: the same
-      // run showed runs.score=0 via store_orchestrator_result but repositories.baselineScore=
-      // 100 via this exact fallback). Check the orchestrator-specific field name first.
-      const findings = reportArgs?.findings ?? reportArgs?.criticalFindings ?? [];
-      const score = reportArgs?.score ?? reportArgs?.overallWeightedScore ?? (findings.length === 0 ? 100 : null) ?? 0;
+      // B-1 Fix: If loop was truncated (exhausted maxSteps without report submission)
+      const isTruncated = loopResult.truncated === true || (!reportArgs && loopResult.text?.includes("Max steps reached"));
+
+      let findings: any[] = [];
+      let score: number | null = null;
+      let status: 'passed' | 'failed' | 'incomplete' = 'passed';
       const gateDecision = reportArgs?.gateDecision ?? reportArgs?.riskLevel;
+
+      if (isTruncated) {
+        status = 'incomplete';
+        score = null;
+        findings = [];
+        console.warn(`[OpenAIProvider] ${config.agentId}: Agent run truncated / incomplete (maxSteps reached). Status: incomplete, score: null.`);
+      } else {
+        // Orchestrator's submit_orchestrator_decision schema uses overallWeightedScore/
+        // criticalFindings, not score/findings like every other agent. Check the orchestrator-specific field name first.
+        findings = reportArgs?.findings ?? reportArgs?.criticalFindings ?? [];
+        score = reportArgs?.score ?? reportArgs?.overallWeightedScore ?? (findings.length === 0 ? 100 : null) ?? 0;
+        status = gateDecision === 'BLOCK' || findings.some((f: any) => (f.severity ?? '').toUpperCase() === 'CRITICAL') ? 'failed' : 'passed';
+      }
 
       // Assess every finding against the backend policy. Nothing is dropped here — the full
       // set is still persisted and still drives the dashboard — but the assessment travels
@@ -110,9 +121,10 @@ export class OpenAIProvider implements AgentProvider {
 
       return {
         agentId: config.agentId,
-        status: gateDecision === 'BLOCK' || findings.some((f: any) => (f.severity ?? '').toUpperCase() === 'CRITICAL') ? 'failed' : 'passed',
+        status,
         findings,
         score,
+        truncated: isTruncated,
         duration: Date.now() - startTime,
         modelUsed: model,
         tokenUsage: loopResult.tokenUsage,

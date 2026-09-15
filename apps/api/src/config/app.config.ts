@@ -1,3 +1,5 @@
+import 'dotenv/config';
+
 /**
  * ============================================================================
  * app.config.ts — Centralised Application Configuration
@@ -145,6 +147,49 @@ const budget = {
   cacheTtlSeconds: Number(optionalEnv('BUDGET_CACHE_TTL_SECONDS', '300')),
 } as const;
 
+/**
+ * Enforces that in production, no test secrets or insecure fallbacks are used.
+ * Throws immediately at server startup.
+ */
+export function validateProductionSecrets(): void {
+  if (process.env.NODE_ENV !== 'production') return;
+
+  const insecureKeys: string[] = [];
+
+  const polarSecret = process.env.POLAR_WEBHOOK_SECRET;
+  if (!polarSecret || polarSecret === 'test_secret') {
+    insecureKeys.push('POLAR_WEBHOOK_SECRET (cannot be empty or test_secret in production)');
+  }
+
+  const proId = process.env.POLAR_PRO_PRODUCT_ID;
+  if (!proId || proId === 'test_pro_id') {
+    insecureKeys.push('POLAR_PRO_PRODUCT_ID (cannot be empty or test_pro_id in production)');
+  }
+
+  const teamId = process.env.POLAR_TEAM_PRODUCT_ID;
+  if (!teamId || teamId === 'test_team_id') {
+    insecureKeys.push('POLAR_TEAM_PRODUCT_ID (cannot be empty or test_team_id in production)');
+  }
+
+  const ghSecret = process.env.GITHUB_WEBHOOK_SECRET;
+  if (!ghSecret || ghSecret === 'dev-secret') {
+    insecureKeys.push('GITHUB_WEBHOOK_SECRET (cannot be empty or dev-secret in production)');
+  }
+
+  const authSecret = process.env.BETTER_AUTH_SECRET;
+  if (!authSecret || authSecret === 'development-secret-key-change-in-prod') {
+    insecureKeys.push('BETTER_AUTH_SECRET (cannot be empty or development-secret-key-change-in-prod in production)');
+  }
+
+  if (insecureKeys.length > 0) {
+    throw new Error(
+      `[SECURITY FATAL] Server boot blocked. Insecure fallback secrets detected in PRODUCTION:\n  - ` +
+      insecureKeys.join('\n  - ') +
+      `\nPlease provide real production values in your environment variables.`
+    );
+  }
+}
+
 // ─── Exports ─────────────────────────────────────────────────────────────────
 
 export const appConfig = {
@@ -153,6 +198,8 @@ export const appConfig = {
   polar,
   billing,
   budget,
+  validateProductionSecrets,
 } as const;
 
 export type AppConfig = typeof appConfig;
+

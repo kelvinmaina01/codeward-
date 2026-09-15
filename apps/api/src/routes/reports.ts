@@ -298,20 +298,17 @@ reportsRouter.get('/feed', async (c) => {
 /** GET /api/reports/canvas — dynamic agent canvas state: logs (HH:mm:ss.SSS), findings, sandbox ops, config, summary. */
 reportsRouter.get('/canvas', async (c) => {
   const session = await auth.api.getSession({ headers: c.req.raw.headers });
+  if (!session) return c.json({ error: 'Unauthorized' }, 401);
 
-  let accessibleRepos: any[] = [];
-  let repoIds: number[] = [];
-  if (session) {
-    const userOrgs = await db.select({ orgId: schema.organizationMember.orgId })
-      .from(schema.organizationMember)
-      .where(eq(schema.organizationMember.userId, session.user.id));
-    const orgIds = userOrgs.map((o) => o.orgId);
+  const userOrgs = await db.select({ orgId: schema.organizationMember.orgId })
+    .from(schema.organizationMember)
+    .where(eq(schema.organizationMember.userId, session.user.id));
+  const orgIds = userOrgs.map((o) => o.orgId);
 
-    const accessConditions = [eq(schema.repositories.userId, session.user.id)];
-    if (orgIds.length > 0) accessConditions.push(inArray(schema.repositories.orgId, orgIds));
-    accessibleRepos = await db.select().from(schema.repositories).where(or(...accessConditions));
-    repoIds = accessibleRepos.map((r) => r.id);
-  }
+  const accessConditions = [eq(schema.repositories.userId, session.user.id)];
+  if (orgIds.length > 0) accessConditions.push(inArray(schema.repositories.orgId, orgIds));
+  const accessibleRepos = await db.select().from(schema.repositories).where(or(...accessConditions));
+  const repoIds = accessibleRepos.map((r) => r.id);
 
   const repoIdParam = c.req.query('repoId');
   const runIdParam = c.req.query('runId');
@@ -322,10 +319,18 @@ reportsRouter.get('/canvas', async (c) => {
   let targetRun: typeof schema.runs.$inferSelect | undefined;
   if (targetRunId) {
     const [r] = await db.select().from(schema.runs).where(eq(schema.runs.id, targetRunId));
-    targetRun = r;
+    if (r) {
+      if (r.repoId && !(await userCanAccessRepo(session.user.id, r.repoId))) {
+        return c.json({ error: 'Forbidden' }, 403);
+      }
+      targetRun = r;
+    }
   } else {
     let recentRuns: typeof schema.runs.$inferSelect[] = [];
     if (targetRepoId) {
+      if (!(await userCanAccessRepo(session.user.id, targetRepoId))) {
+        return c.json({ error: 'Forbidden' }, 403);
+      }
       recentRuns = await db.select().from(schema.runs)
         .where(eq(schema.runs.repoId, targetRepoId))
         .orderBy(desc(schema.runs.createdAt))
@@ -336,9 +341,8 @@ reportsRouter.get('/canvas', async (c) => {
         .orderBy(desc(schema.runs.createdAt))
         .limit(10);
     } else {
-      recentRuns = await db.select().from(schema.runs)
-        .orderBy(desc(schema.runs.createdAt))
-        .limit(10);
+      // User has no accessible repos — DO NOT fall back to other tenants' runs!
+      recentRuns = [];
     }
 
     if (recentRuns.length > 0) {
@@ -760,11 +764,8 @@ reportsRouter.get('/livefeed-logs', async (c) => {
   const orgIds = userOrgs.map((o) => o.orgId);
 
   const accessConditions = [eq(schema.repositories.userId, session.user.id)];
-  let repos = await db.select().from(schema.repositories).where(or(...accessConditions));
-  if (repos.length === 0) {
-    // If user has no personal repositories yet, allow viewing platform / demo repositories
-    repos = await db.select().from(schema.repositories).limit(20);
-  }
+  if (orgIds.length > 0) accessConditions.push(inArray(schema.repositories.orgId, orgIds));
+  const repos = await db.select().from(schema.repositories).where(or(...accessConditions));
   if (repos.length === 0) return c.json({ logs: [] });
 
   const repoById = new Map(repos.map((r) => [r.id, r]));
@@ -773,6 +774,17 @@ reportsRouter.get('/livefeed-logs', async (c) => {
 
   const targetRunId = runIdParam ? Number(runIdParam) : null;
   const targetRepoId = repoFilterParam && repoFilterParam !== 'All' ? Number(repoFilterParam) : null;
+
+  if (targetRepoId && !(await userCanAccessRepo(session.user.id, targetRepoId))) {
+    return c.json({ error: 'Forbidden' }, 403);
+  }
+
+  if (targetRunId) {
+    const [targetRun] = await db.select({ repoId: schema.runs.repoId }).from(schema.runs).where(eq(schema.runs.id, targetRunId));
+    if (targetRun?.repoId && !(await userCanAccessRepo(session.user.id, targetRun.repoId))) {
+      return c.json({ error: 'Forbidden' }, 403);
+    }
+  }
 
   const repoIds = targetRepoId ? [targetRepoId] : repos.map((r) => r.id);
   if (repoIds.length === 0) return c.json({ logs: [] });

@@ -1,11 +1,23 @@
 import { Hono } from 'hono';
+import { z } from 'zod';
 import { db } from '../db/index.js';
 import { connectorRequests } from '../db/schema.js';
 import { eq, ilike, sql } from 'drizzle-orm';
 import { auth } from '../auth/index.js';
 import { verifyEmailRealTime } from '../services/email-verifier.js';
+import { validateBody, getValidatedBody } from '../middleware/zod-validator.js';
 
 export const connectorRequestsRouter = new Hono();
+
+const voteSchema = z.object({
+  id: z.union([z.string(), z.number().transform(String)]),
+});
+
+const createRequestSchema = z.object({
+  toolName: z.string().min(1, 'Tool name is required').max(100),
+  useCase: z.string().min(1, 'Use case is required').max(1000),
+  notifyEmail: z.string().email('Invalid email address'),
+});
 
 async function getSessionUser(c: any) {
   const session = await auth.api.getSession({ headers: c.req.raw.headers });
@@ -26,32 +38,27 @@ connectorRequestsRouter.get('/search', async (c) => {
 });
 
 // ─── VOTE FOR CONNECTOR REQUEST ──────────────────────────────────────────
-connectorRequestsRouter.post('/vote', async (c) => {
+connectorRequestsRouter.post('/vote', validateBody(voteSchema), async (c) => {
   const user = await getSessionUser(c);
   if (!user) return c.json({ error: 'Unauthorized' }, 401);
-  
-  const { id } = await c.req.json();
-  if (!id) return c.json({ error: 'Missing request ID' }, 400);
+
+  const { id } = getValidatedBody<z.infer<typeof voteSchema>>(c);
 
   // Increment vote_count
   const [updated] = await db.update(connectorRequests)
     .set({ voteCount: sql`${connectorRequests.voteCount} + 1`, updatedAt: new Date() })
-    .where(eq(connectorRequests.id, id))
+    .where(eq(connectorRequests.id, String(id)))
     .returning();
 
   return c.json({ success: true, request: updated });
 });
 
 // ─── CREATE NEW CONNECTOR REQUEST ────────────────────────────────────────
-connectorRequestsRouter.post('/', async (c) => {
+connectorRequestsRouter.post('/', validateBody(createRequestSchema), async (c) => {
   const user = await getSessionUser(c);
   if (!user) return c.json({ error: 'Unauthorized' }, 401);
 
-  const { toolName, useCase, notifyEmail } = await c.req.json();
-  
-  if (!toolName || !useCase || !notifyEmail) {
-    return c.json({ error: 'Missing required fields' }, 400);
-  }
+  const { toolName, useCase, notifyEmail } = getValidatedBody<z.infer<typeof createRequestSchema>>(c);
 
   // 1. Verify email using the real-time API
   const verification = await verifyEmailRealTime(notifyEmail);
@@ -60,7 +67,6 @@ connectorRequestsRouter.post('/', async (c) => {
   }
 
   // 2. Insert request
-  // (We could fetch the orgId from the user, but for now we can leave it null or map it if known)
   const [newRequest] = await db.insert(connectorRequests).values({
     requestedBy: user.id,
     toolName,

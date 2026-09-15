@@ -1,6 +1,6 @@
 import { Queue, Worker, Job } from 'bullmq';
 import dotenv from 'dotenv';
-import { db } from '../db/index.js';
+import { workerDb as db } from '../db/index.js';
 import { repositories, runs } from '../db/schema.js';
 import { eq } from 'drizzle-orm';
 import { createRedisConnection } from '../lib/redis.js';

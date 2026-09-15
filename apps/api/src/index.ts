@@ -11,37 +11,31 @@ import { auth } from './auth/index.js';
 import { leadsRouter } from './routes/leads.js';
 import { NativeOpenAIProvider } from './providers/openai.provider.js';
 
+import { appConfig } from './config/app.config.js';
+import { rateLimiter } from './middleware/rate-limiter.js';
+
 // Validate AI provider configuration at startup so missing keys fail loudly and early
 NativeOpenAIProvider.validateConfiguration();
+
+// Validate that production mode is not running with insecure test secrets
+appConfig.validateProductionSecrets();
 
 // NOTE: agentWorker is started dynamically AFTER the HTTP server is up.
 // This ensures a Redis/BullMQ failure at startup cannot crash the server.
 
 const app = new Hono();
 
-const allowedOrigins = [
-  'http://localhost:5173',
-  'http://localhost:5174',
-  process.env.FRONTEND_URL
-].filter(Boolean) as string[];
-
-const corsConfig = {
-  origin: (origin: string | undefined) => {
-    // Unconditionally reflect the incoming origin back to satisfy credentials: true dynamically
-    // If undefined (e.g., server-side fetch), fallback to process.env.FRONTEND_URL
-    return origin || process.env.FRONTEND_URL || 'http://localhost:5173';
-  },
-  allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowHeaders: ['Content-Type', 'Authorization'],
-  // Gordon's chat stream returns the (possibly lazily-created) session id in this header so
-  // the client can adopt it after the first send.
-  exposeHeaders: ['X-Chat-Session-Id'],
-  credentials: true,
-  maxAge: 600,
-};
+import { allowedOrigins, isAllowedOrigin, corsConfig } from './lib/cors.js';
+export { allowedOrigins, isAllowedOrigin, corsConfig };
 
 // Apply CORS globally. It will intercept OPTIONS requests with 204.
 app.use('*', cors(corsConfig));
+
+// Apply global rate limiting (100 req/min per IP)
+app.use('*', rateLimiter({ limit: 100, windowMs: 60 * 1000 }));
+// Extra throttle on auth and unauthenticated checkout endpoints
+app.use('/api/auth/*', rateLimiter({ limit: 30, windowMs: 60 * 1000, keyPrefix: 'rl-auth' }));
+app.use('/api/billing/checkout', rateLimiter({ limit: 20, windowMs: 60 * 1000, keyPrefix: 'rl-checkout' }));
 
 // ─── Global error handler ─────────────────────────────────────────────────────
 // Catches any unhandled error thrown inside a route handler and returns a
@@ -89,30 +83,34 @@ app.route('/api/leads', leadsRouter);
 // constructing a new Response() discards what Hono's cors middleware wrote.
 app.on(['POST', 'GET', 'OPTIONS'], '/api/auth/*', async (c) => {
   const origin = c.req.header('Origin') || '';
-  const defaultFrontend = process.env.FRONTEND_URL || 'http://localhost:5173';
+  const isAllowed = isAllowedOrigin(origin);
 
-  // Respond to OPTIONS preflight immediately with CORS headers — don't even
-  // bother calling better-auth for a preflight; it doesn't need to.
+  // Respond to OPTIONS preflight immediately with CORS headers
   if (c.req.method === 'OPTIONS') {
+    const preflightHeaders: Record<string, string> = {
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Access-Control-Max-Age': '600',
+    };
+    if (isAllowed) {
+      preflightHeaders['Access-Control-Allow-Origin'] = origin;
+      preflightHeaders['Access-Control-Allow-Credentials'] = 'true';
+    }
     return new Response(null, {
       status: 204,
-      headers: {
-        'Access-Control-Allow-Origin': origin || defaultFrontend,
-        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-        'Access-Control-Allow-Credentials': 'true',
-        'Access-Control-Max-Age': '600',
-      }
+      headers: preflightHeaders,
     });
   }
 
   try {
     const res = await auth.handler(c.req.raw);
 
-    // Rebuild the response with mutable headers and always inject CORS headers.
+    // Rebuild the response with mutable headers and inject CORS headers only if origin is allowed
     const headers = new Headers(res.headers);
-    headers.set('Access-Control-Allow-Origin', origin || defaultFrontend);
-    headers.set('Access-Control-Allow-Credentials', 'true');
+    if (isAllowed) {
+      headers.set('Access-Control-Allow-Origin', origin);
+      headers.set('Access-Control-Allow-Credentials', 'true');
+    }
     headers.set('Vary', 'Origin');
 
     return new Response(res.body, {
@@ -122,17 +120,20 @@ app.on(['POST', 'GET', 'OPTIONS'], '/api/auth/*', async (c) => {
     });
   } catch (authErr: any) {
     console.error(`[Auth] Handler error on ${c.req.method} ${c.req.path}:`, authErr);
+    const errHeaders: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'Vary': 'Origin',
+    };
+    if (isAllowed) {
+      errHeaders['Access-Control-Allow-Origin'] = origin;
+      errHeaders['Access-Control-Allow-Credentials'] = 'true';
+    }
     return new Response(JSON.stringify({
       error: 'Authentication Error',
       message: authErr?.message || 'Failed to process authentication request.'
     }), {
       status: 500,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': origin || defaultFrontend,
-        'Access-Control-Allow-Credentials': 'true',
-        'Vary': 'Origin',
-      }
+      headers: errHeaders,
     });
   }
 });
@@ -181,44 +182,49 @@ const routes = app
 
 export type AppType = typeof routes;
 
-const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
-console.log(`Server is running on port ${port}`);
+const port = Number(process.env.PORT) || 3000;
+const isDirectExecution = process.env.NODE_ENV !== 'test' && process.env.NO_SERVER_START !== 'true';
+let server: any = null;
 
-const server = serve({
-  fetch: app.fetch,
-  port
-});
+if (isDirectExecution) {
+  console.log(`Server is running on port ${port}`);
 
-injectWebSocket(server);
+  server = serve({
+    fetch: app.fetch,
+    port
+  });
 
-// ─── Worker process initialization ───────────────────────────────────────────
-// In production, workers run as a dedicated, horizontally scalable service ('src/worker.ts').
-// For local development convenience, RUN_WORKER_INLINE defaults to true in non-production.
-const shouldRunWorkerInline = process.env.RUN_WORKER_INLINE === 'true' || 
-  (process.env.NODE_ENV !== 'production' && process.env.RUN_WORKER_INLINE !== 'false');
+  injectWebSocket(server);
 
-if (shouldRunWorkerInline) {
-  (async () => {
-    try {
-      const { startAgentWorker } = await import('./agents/queue/agent.queue.js');
-      startAgentWorker();
-      console.log(`[AgentSystem] ✅ Agent worker started inline — listening for agent-jobs`);
+  // ─── Worker process initialization ───────────────────────────────────────────
+  // In production, workers run as a dedicated, horizontally scalable service ('src/worker.ts').
+  // For local development convenience, RUN_WORKER_INLINE defaults to true in non-production.
+  const shouldRunWorkerInline = process.env.RUN_WORKER_INLINE === 'true' || 
+    (process.env.NODE_ENV !== 'production' && process.env.RUN_WORKER_INLINE !== 'false');
 
-      const { startEscalationWorker } = await import('./agents/escalation/escalation.queue.js');
-      startEscalationWorker();
-      console.log(`[AgentSystem] ✅ Escalation worker started inline — listening for escalation-jobs`);
+  if (shouldRunWorkerInline) {
+    (async () => {
+      try {
+        const { startAgentWorker } = await import('./agents/queue/agent.queue.js');
+        startAgentWorker();
+        console.log(`[AgentSystem] ✅ Agent worker started inline — listening for agent-jobs`);
 
-      const { startMergeWorker } = await import('./agents/merge/merge.queue.js');
-      startMergeWorker();
-      console.log(`[AgentSystem] ✅ Merge worker started inline — listening for merge-jobs`);
-    } catch (err) {
-      console.error(`[AgentSystem] ⚠️ Worker failed to start inline (Redis may be unavailable):`);
-      console.error(err instanceof Error ? err.stack : String(err));
-      console.log(`[AgentSystem] HTTP server remains running — queue features disabled.`);
-    }
-  })();
-} else {
-  console.log(`[AgentSystem] Standalone worker mode active. Workers decoupled from HTTP server (RUN_WORKER_INLINE=false).`);
+        const { startEscalationWorker } = await import('./agents/escalation/escalation.queue.js');
+        startEscalationWorker();
+        console.log(`[AgentSystem] ✅ Escalation worker started inline — listening for escalation-jobs`);
+
+        const { startMergeWorker } = await import('./agents/merge/merge.queue.js');
+        startMergeWorker();
+        console.log(`[AgentSystem] ✅ Merge worker started inline — listening for merge-jobs`);
+      } catch (err) {
+        console.error(`[AgentSystem] ⚠️ Worker failed to start inline (Redis may be unavailable):`);
+        console.error(err instanceof Error ? err.stack : String(err));
+        console.log(`[AgentSystem] HTTP server remains running — queue features disabled.`);
+      }
+    })();
+  } else {
+    console.log(`[AgentSystem] Standalone worker mode active. Workers decoupled from HTTP server (RUN_WORKER_INLINE=false).`);
+  }
 }
 
 
@@ -241,8 +247,12 @@ process.on('unhandledRejection', (reason: unknown, promise: Promise<unknown>) =>
 
 process.on('SIGTERM', () => {
   console.log(`\n[${new Date().toISOString()}] 🛑 SIGTERM received — graceful shutdown initiated`);
-  server.close(() => {
-    console.log(`[${new Date().toISOString()}] ✅ HTTP server closed. Exiting.`);
+  if (server) {
+    server.close(() => {
+      console.log(`[${new Date().toISOString()}] ✅ HTTP server closed. Exiting.`);
+      process.exit(0);
+    });
+  } else {
     process.exit(0);
-  });
+  }
 });

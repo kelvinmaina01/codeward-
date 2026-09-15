@@ -16,6 +16,8 @@ export interface AgentLoopResult {
   servedBy?: { provider: string; model: string; isFallback: boolean };
   /** Chain of custody: real-time, tamper-proof backend record of every tool invoked. */
   toolsExecuted: Array<{ toolName: string; calledAt: string; durationMs: number; resultSummary: string }>;
+  /** True when the agent reached maxSteps before generating a final report / terminal tool call. */
+  truncated?: boolean;
 }
 
 export async function runAgentLoop(config: AgentRunConfig, provider: AgentProvider): Promise<AgentLoopResult> {
@@ -123,7 +125,7 @@ export async function runAgentLoop(config: AgentRunConfig, provider: AgentProvid
     if (isTerminal) {
       console.log(`[AgentLoop] Terminal tool called at step ${step + 1}/${maxSteps}. Exiting.`);
       warnIfUsageMissing();
-      return { text: result.text, tokenUsage, servedBy, toolsExecuted };
+      return { text: result.text, tokenUsage, servedBy, toolsExecuted, truncated: false };
     }
 
     // Format tool results as proper role: 'tool' messages
@@ -139,5 +141,5 @@ export async function runAgentLoop(config: AgentRunConfig, provider: AgentProvid
 
   console.warn(`[AgentLoop] Max steps (${maxSteps}) exhausted without terminal tool call.`);
   warnIfUsageMissing();
-  return { text: "Max steps reached without submission", tokenUsage, servedBy, toolsExecuted };
+  return { text: "Max steps reached without submission", tokenUsage, servedBy, toolsExecuted, truncated: true };
 }

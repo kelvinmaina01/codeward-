@@ -7,12 +7,13 @@
  * POST /api/mcp/redis/test       — Test a Redis connection (no save)
  * POST /api/mcp/redis/save       — Validate, then encrypt & persist credentials
  * GET  /api/mcp/redis/:id        — Fetch a saved Redis server (no plaintext creds)
- * GET  /api/mcp                  — List all MCP servers for the org
+ * GET  /api/mcp                  — List all MCP servers for the authenticated user
  * DELETE /api/mcp/:id            — Remove an MCP server
  * PATCH /api/mcp/:id/agents      — Update agent access map
  */
 
 import { Hono } from 'hono';
+import { z } from 'zod';
 import { db } from '../db/index.js';
 import { mcpServers } from '../db/schema.js';
 import { eq, and } from 'drizzle-orm';
@@ -20,8 +21,40 @@ import { auth } from '../auth/index.js';
 import { encryptCredentials, decryptCredentials } from '../lib/credential-crypto.js';
 import { pg_test_connection, type PostgresCredentials } from '../mcp-servers/postgres.js';
 import { redis_test_connection, type RedisCredentials } from '../mcp-servers/redis.js';
+import { validateBody, getValidatedBody } from '../middleware/zod-validator.js';
 
 export const mcpRouter = new Hono();
+
+// ─── Zod Schemas ─────────────────────────────────────────────────────────────
+
+const postgresTestSchema = z.object({
+  host: z.string().min(1, 'Host is required'),
+  port: z.union([z.number(), z.string().regex(/^\d+$/).transform(Number)]).default(5432),
+  database: z.string().min(1, 'Database is required'),
+  user: z.string().min(1, 'User is required'),
+  password: z.string().min(1, 'Password is required'),
+  sslMode: z.enum(['disable', 'prefer', 'require']).default('require'),
+});
+
+const postgresSaveSchema = postgresTestSchema.extend({
+  displayName: z.string().min(1, 'Display name is required').max(100),
+});
+
+const redisTestSchema = z.object({
+  host: z.string().min(1, 'Host is required'),
+  port: z.union([z.number(), z.string().regex(/^\d+$/).transform(Number)]).default(6379),
+  password: z.string().optional(),
+  db: z.union([z.number(), z.string().regex(/^\d+$/).transform(Number)]).default(0),
+  tls: z.boolean().default(false),
+});
+
+const redisSaveSchema = redisTestSchema.extend({
+  displayName: z.string().min(1, 'Display name is required').max(100),
+});
+
+const agentAccessSchema = z.object({
+  agentAccess: z.record(z.string(), z.boolean()),
+});
 
 // ─── Auth helper ──────────────────────────────────────────────────────────────
 
@@ -30,12 +63,13 @@ async function getSessionUser(c: any) {
   return session?.user ?? null;
 }
 
-// ─── Shared: list all MCP servers for the calling user's org ──────────────────
+// ─── Shared: list all MCP servers for the calling user ────────────────────────
 
 mcpRouter.get('/', async (c) => {
   const user = await getSessionUser(c);
   if (!user) return c.json({ error: 'Unauthorized' }, 401);
 
+  // BOLA Fix: Strictly filter by createdBy = user.id
   const rows = await db.select({
     id: mcpServers.id,
     provider: mcpServers.provider,
@@ -46,7 +80,9 @@ mcpRouter.get('/', async (c) => {
     createdAt: mcpServers.createdAt,
     updatedAt: mcpServers.updatedAt,
     // Never return encryptedCredentials to the client
-  }).from(mcpServers);
+  })
+    .from(mcpServers)
+    .where(eq(mcpServers.createdBy, user.id));
 
   return c.json({ servers: rows });
 });
@@ -58,26 +94,44 @@ mcpRouter.delete('/:id', async (c) => {
   if (!user) return c.json({ error: 'Unauthorized' }, 401);
 
   const { id } = c.req.param();
-  await db.delete(mcpServers).where(eq(mcpServers.id, id));
+
+  // BOLA Fix: Verify resource belongs to calling user
+  const [existing] = await db.select().from(mcpServers).where(
+    and(eq(mcpServers.id, id), eq(mcpServers.createdBy, user.id))
+  );
+
+  if (!existing) {
+    return c.json({ error: 'Server not found or forbidden' }, 404);
+  }
+
+  await db.delete(mcpServers).where(
+    and(eq(mcpServers.id, id), eq(mcpServers.createdBy, user.id))
+  );
+
   return c.json({ success: true });
 });
 
 // ─── Update agent access map ──────────────────────────────────────────────────
 
-mcpRouter.patch('/:id/agents', async (c) => {
+mcpRouter.patch('/:id/agents', validateBody(agentAccessSchema), async (c) => {
   const user = await getSessionUser(c);
   if (!user) return c.json({ error: 'Unauthorized' }, 401);
 
   const { id } = c.req.param();
-  const { agentAccess } = await c.req.json();
+  const body = getValidatedBody<z.infer<typeof agentAccessSchema>>(c);
 
-  if (typeof agentAccess !== 'object' || agentAccess === null) {
-    return c.json({ error: 'agentAccess must be an object mapping agentId -> boolean' }, 400);
+  // BOLA Fix: Verify resource belongs to calling user
+  const [existing] = await db.select().from(mcpServers).where(
+    and(eq(mcpServers.id, id), eq(mcpServers.createdBy, user.id))
+  );
+
+  if (!existing) {
+    return c.json({ error: 'Server not found or forbidden' }, 404);
   }
 
   const [updated] = await db.update(mcpServers)
-    .set({ agentAccess, updatedAt: new Date() })
-    .where(eq(mcpServers.id, id))
+    .set({ agentAccess: body.agentAccess, updatedAt: new Date() })
+    .where(and(eq(mcpServers.id, id), eq(mcpServers.createdBy, user.id)))
     .returning();
 
   return c.json({ success: true, server: updated });
@@ -85,23 +139,19 @@ mcpRouter.patch('/:id/agents', async (c) => {
 
 // ─── PostgreSQL ───────────────────────────────────────────────────────────────
 
-mcpRouter.post('/postgres/test', async (c) => {
+mcpRouter.post('/postgres/test', validateBody(postgresTestSchema), async (c) => {
   const user = await getSessionUser(c);
   if (!user) return c.json({ error: 'Unauthorized' }, 401);
 
-  const body = await c.req.json();
+  const body = getValidatedBody<z.infer<typeof postgresTestSchema>>(c);
   const creds: PostgresCredentials = {
     host: body.host,
-    port: Number(body.port) || 5432,
+    port: body.port,
     database: body.database,
     user: body.user,
     password: body.password,
-    sslMode: body.sslMode || 'require',
+    sslMode: body.sslMode,
   };
-
-  if (!creds.host || !creds.database || !creds.user || !creds.password) {
-    return c.json({ error: 'Missing required fields: host, database, user, password' }, 400);
-  }
 
   try {
     const result = await pg_test_connection(creds);
@@ -111,24 +161,19 @@ mcpRouter.post('/postgres/test', async (c) => {
   }
 });
 
-mcpRouter.post('/postgres/save', async (c) => {
+mcpRouter.post('/postgres/save', validateBody(postgresSaveSchema), async (c) => {
   const user = await getSessionUser(c);
   if (!user) return c.json({ error: 'Unauthorized' }, 401);
 
-  const body = await c.req.json();
-  const { displayName, host, port, database, sslMode } = body;
+  const body = getValidatedBody<z.infer<typeof postgresSaveSchema>>(c);
   const creds: PostgresCredentials = {
-    host,
-    port: Number(port) || 5432,
-    database,
+    host: body.host,
+    port: body.port,
+    database: body.database,
     user: body.user,
     password: body.password,
-    sslMode: sslMode || 'require',
+    sslMode: body.sslMode,
   };
-
-  if (!displayName || !creds.host || !creds.database || !creds.user || !creds.password) {
-    return c.json({ error: 'Missing required fields: displayName, host, database, user, password' }, 400);
-  }
 
   // 1. Validate the connection before persisting
   try {
@@ -145,14 +190,14 @@ mcpRouter.post('/postgres/save', async (c) => {
     return c.json({ error: `Encryption error: ${err.message}. Check DB_ENCRYPTION_KEY.` }, 500);
   }
 
-  // 3. Persist
+  // 3. Persist scoped to user.id
   const [row] = await db.insert(mcpServers).values({
     provider: 'postgres',
-    displayName,
+    displayName: body.displayName,
     encryptedCredentials,
     status: 'connected',
     agentAccess: {},
-    config: { sslMode },
+    config: { sslMode: body.sslMode },
     createdBy: user.id,
   }).returning();
 
@@ -164,35 +209,36 @@ mcpRouter.get('/postgres/:id', async (c) => {
   if (!user) return c.json({ error: 'Unauthorized' }, 401);
 
   const { id } = c.req.param();
+
+  // BOLA Fix: Strictly scope to createdBy = user.id
   const [row] = await db.select().from(mcpServers).where(
-    and(eq(mcpServers.id, id), eq(mcpServers.provider, 'postgres'))
+    and(
+      eq(mcpServers.id, id),
+      eq(mcpServers.provider, 'postgres'),
+      eq(mcpServers.createdBy, user.id)
+    )
   );
 
   if (!row) return c.json({ error: 'Not found' }, 404);
 
-  // Return all fields except the encrypted credentials blob
   const { encryptedCredentials: _, ...safe } = row;
   return c.json({ server: safe });
 });
 
 // ─── Redis ────────────────────────────────────────────────────────────────────
 
-mcpRouter.post('/redis/test', async (c) => {
+mcpRouter.post('/redis/test', validateBody(redisTestSchema), async (c) => {
   const user = await getSessionUser(c);
   if (!user) return c.json({ error: 'Unauthorized' }, 401);
 
-  const body = await c.req.json();
+  const body = getValidatedBody<z.infer<typeof redisTestSchema>>(c);
   const creds: RedisCredentials = {
     host: body.host,
-    port: Number(body.port) || 6379,
-    password: body.password || undefined,
-    db: Number(body.db) || 0,
-    tls: body.tls === true,
+    port: body.port,
+    password: body.password,
+    db: body.db,
+    tls: body.tls,
   };
-
-  if (!creds.host) {
-    return c.json({ error: 'Missing required field: host' }, 400);
-  }
 
   try {
     const result = await redis_test_connection(creds);
@@ -202,23 +248,18 @@ mcpRouter.post('/redis/test', async (c) => {
   }
 });
 
-mcpRouter.post('/redis/save', async (c) => {
+mcpRouter.post('/redis/save', validateBody(redisSaveSchema), async (c) => {
   const user = await getSessionUser(c);
   if (!user) return c.json({ error: 'Unauthorized' }, 401);
 
-  const body = await c.req.json();
-  const { displayName } = body;
+  const body = getValidatedBody<z.infer<typeof redisSaveSchema>>(c);
   const creds: RedisCredentials = {
     host: body.host,
-    port: Number(body.port) || 6379,
-    password: body.password || undefined,
-    db: Number(body.db) || 0,
-    tls: body.tls === true,
+    port: body.port,
+    password: body.password,
+    db: body.db,
+    tls: body.tls,
   };
-
-  if (!displayName || !creds.host) {
-    return c.json({ error: 'Missing required fields: displayName, host' }, 400);
-  }
 
   // 1. Validate
   try {
@@ -235,10 +276,10 @@ mcpRouter.post('/redis/save', async (c) => {
     return c.json({ error: `Encryption error: ${err.message}. Check DB_ENCRYPTION_KEY.` }, 500);
   }
 
-  // 3. Persist
+  // 3. Persist scoped to user.id
   const [row] = await db.insert(mcpServers).values({
     provider: 'redis',
-    displayName,
+    displayName: body.displayName,
     encryptedCredentials,
     status: 'connected',
     agentAccess: {},
@@ -254,8 +295,14 @@ mcpRouter.get('/redis/:id', async (c) => {
   if (!user) return c.json({ error: 'Unauthorized' }, 401);
 
   const { id } = c.req.param();
+
+  // BOLA Fix: Strictly scope to createdBy = user.id
   const [row] = await db.select().from(mcpServers).where(
-    and(eq(mcpServers.id, id), eq(mcpServers.provider, 'redis'))
+    and(
+      eq(mcpServers.id, id),
+      eq(mcpServers.provider, 'redis'),
+      eq(mcpServers.createdBy, user.id)
+    )
   );
 
   if (!row) return c.json({ error: 'Not found' }, 404);
