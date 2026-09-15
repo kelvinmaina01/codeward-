@@ -6,8 +6,31 @@ import { auth } from '../auth/index.js';
 import { db } from '../db/index.js';
 import { chatSessions, chatMessages, repositories, runs, mergeApprovals, gordonEvents } from '../db/schema.js';
 import { createGordonTools, accessibleRepoIds, assertRepoAccess } from '../agents/definitions/chat/gordon.tools.js';
+import { z } from 'zod';
+import { validateBody, getValidatedBody } from '../middleware/zod-validator.js';
 
 export const chatRouter = new Hono();
+
+const patchSessionSchema = z.object({
+  title: z.string().optional(),
+  archived: z.boolean().optional(),
+});
+
+// Mirrors the inline type the handler already destructured. `messages` stays permissive
+// because it carries the AI SDK's UIMessage shape, which the handler passes through verbatim.
+const chatRequestSchema = z.object({
+  messages: z.array(z.any()),
+  sessionId: z.string().optional(),
+  repoId: z.number().optional(),
+  ref: z.string().optional(),
+  permissionMode: z.enum(['default', 'auto_review', 'full_access']).optional(),
+  attachments: z.array(z.object({
+    name: z.string().optional(),
+    content: z.string().optional(),
+    size: z.number().optional(),
+  })).optional().default([]),
+  planMode: z.boolean().optional().default(false),
+});
 
 const GORDON_SYSTEM = `You are Gordon — Codeward's principal-engineer chat agent. You are NOT a generic chatbot: you answer from real data by calling tools, never from guesses.
 
@@ -289,12 +312,13 @@ chatRouter.get('/sessions/:id/messages', async (c) => {
   return c.json({ session, messages: rows.map((m) => ({ id: m.id, role: m.role, parts: m.parts })) });
 });
 
-chatRouter.patch('/sessions/:id', async (c) => {
+chatRouter.patch('/sessions/:id', validateBody(patchSessionSchema), async (c) => {
   const user = await getSessionUser(c);
   if (!user) return c.json({ error: 'Unauthorized' }, 401);
-  const session = await ownedSession(user.id, c.req.param('id'));
+  const { id } = c.req.param();
+  const session = await ownedSession(user.id, id);
   if (!session) return c.json({ error: 'Not found' }, 404);
-  const body = await c.req.json();
+  const body = getValidatedBody<z.infer<typeof patchSessionSchema>>(c);
   const patch: Partial<{ title: string; archived: boolean }> = {};
   if (typeof body.title === 'string' && body.title.trim()) patch.title = body.title.trim().slice(0, 80);
   if (typeof body.archived === 'boolean') patch.archived = body.archived;
@@ -314,16 +338,14 @@ chatRouter.delete('/sessions/:id', async (c) => {
 
 /* ------------------------------------ the chat ------------------------------------ */
 
-chatRouter.post('/', async (c) => {
+chatRouter.post('/', validateBody(chatRequestSchema), async (c) => {
   try {
     const user = await getSessionUser(c);
     if (!user) return c.json({ error: 'Unauthorized' }, 401);
 
-    const { messages, sessionId, repoId, ref, permissionMode, attachments = [], planMode = false }: {
-      messages: UIMessage[]; sessionId?: string; repoId?: number; ref?: string;
-      permissionMode?: 'default' | 'auto_review' | 'full_access';
-      attachments?: Array<{ name?: string; content?: string; size?: number }>; planMode?: boolean;
-    } = await c.req.json();
+    const { messages: rawMessages, sessionId, repoId, ref, permissionMode, attachments = [], planMode = false } =
+      getValidatedBody<z.infer<typeof chatRequestSchema>>(c);
+    const messages = rawMessages as UIMessage[];
     if (!Array.isArray(messages) || messages.length === 0) return c.json({ error: 'messages required' }, 400);
 
     // Resolve or lazily create the session. A bad/foreign sessionId falls through to a fresh

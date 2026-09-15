@@ -39,7 +39,10 @@ export const organizationMember = pgTable('organization_member', {
   userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
   role: varchar('role', { length: 50 }).notNull().default('member'),
   createdAt: timestamp('created_at').defaultNow(),
-});
+}, (table) => ({
+  userIdIdx: index('organization_member_user_id_idx').on(table.userId),
+  orgIdIdx: index('organization_member_org_id_idx').on(table.orgId),
+}));
 
 export const repositories = pgTable('repositories', {
   id: serial('id').primaryKey(),
@@ -71,7 +74,10 @@ export const repositories = pgTable('repositories', {
     }
   }),
   createdAt: timestamp('created_at').defaultNow(),
-});
+}, (table) => ({
+  userIdIdx: index('repositories_user_id_idx').on(table.userId),
+  orgIdIdx: index('repositories_org_id_idx').on(table.orgId),
+}));
 
 export const runs = pgTable('runs', {
   id: serial('id').primaryKey(),
@@ -183,14 +189,14 @@ export const session = pgTable("session", {
   updatedAt: timestamp('updatedAt').notNull(),
   ipAddress: text('ipAddress'),
   userAgent: text('userAgent'),
-  userId: text('userId').notNull().references(() => user.id)
+  userId: text('userId').notNull().references(() => user.id, { onDelete: 'cascade' })
 });
 
 export const account = pgTable("account", {
   id: text("id").primaryKey(),
   accountId: text('accountId').notNull(),
   providerId: text('providerId').notNull(),
-  userId: text('userId').notNull().references(() => user.id),
+  userId: text('userId').notNull().references(() => user.id, { onDelete: 'cascade' }),
   accessToken: text('accessToken'),
   refreshToken: text('refreshToken'),
   idToken: text('idToken'),

@@ -134,6 +134,20 @@
       "when": 1789065000000,
       "tag": "0018_pr_review_lifecycle",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1789461037677,
+      "tag": "0019_stiff_gamora",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1789462058172,
+      "tag": "0020_new_chamber",
+      "breakpoints": true
     }
   ]
 }

@@ -6,8 +6,25 @@ import { verifyEmailRealTime } from '../services/email-verifier.js';
 import { sendWorkspaceInviteMagicLink, sendWorkspaceRemovalNotification } from '../services/email-sender.js';
 import { auth } from '../auth/index.js';
 import crypto from 'crypto';
+import { z } from 'zod';
+import { validateBody, getValidatedBody } from '../middleware/zod-validator.js';
 
 export const workspacesRouter = new Hono();
+
+const createWorkspaceSchema = z.object({
+  name: z.string(),
+  type: z.string().optional(),
+});
+
+const inviteSchema = z.object({
+  invites: z.array(z.object({ email: z.string(), role: z.string().default('member') })).optional(),
+  email: z.string().optional(),
+  role: z.string().optional(),
+});
+
+const acceptInviteSchema = z.object({
+  token: z.string().min(1),
+});
 
 // Helper to get authenticated user ID
 async function getUserId(c: any): Promise<string> {
@@ -161,11 +178,10 @@ workspacesRouter.get('/', async (c) => {
 });
 
 // ── 2. Create a new workspace
-workspacesRouter.post('/', async (c) => {
+workspacesRouter.post('/', validateBody(createWorkspaceSchema), async (c) => {
   try {
     const userId = await getUserId(c);
-    const body = await c.req.json();
-    const { name, type = 'private' } = body;
+    const { name, type = 'private' } = getValidatedBody<z.infer<typeof createWorkspaceSchema>>(c);
 
     const trimmedName = typeof name === 'string' ? name.trim() : '';
 
@@ -382,11 +398,11 @@ workspacesRouter.get('/:id/members', async (c) => {
 });
 
 // ── 4. Invite user(s) to Workspace (7-Day Expiration Policy)
-workspacesRouter.post('/:id/invites', async (c) => {
+workspacesRouter.post('/:id/invites', validateBody(inviteSchema), async (c) => {
   try {
     const userId = await getUserId(c);
-    const workspaceId = c.req.param('id');
-    const body = await c.req.json();
+    const { id: workspaceId } = c.req.param();
+    const body = getValidatedBody<z.infer<typeof inviteSchema>>(c);
 
     let inviteItems: { email: string; role: string }[] = [];
     if (Array.isArray(body.invites)) {
@@ -661,14 +677,9 @@ workspacesRouter.delete('/:id/invites/:inviteId', async (c) => {
 });
 
 // ── 7. Accept Workspace Invite (Magic Link - 7-Day Expiry Verification & Passwordless Auth)
-workspacesRouter.post('/accept-invite', async (c) => {
+workspacesRouter.post('/accept-invite', validateBody(acceptInviteSchema), async (c) => {
   try {
-    const body = await c.req.json();
-    const { token } = body;
-
-    if (!token) {
-      return c.json({ error: 'Invite token is required' }, 400);
-    }
+    const { token } = getValidatedBody<z.infer<typeof acceptInviteSchema>>(c);
 
     // Find pending invite
     const [invite] = await db

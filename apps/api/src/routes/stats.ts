@@ -1,11 +1,17 @@
 import { Hono } from 'hono';
+import { z } from 'zod';
 import { auth } from '../auth/index.js';
 import { db } from '../db/index.js';
 import * as schema from '../db/schema.js';
 import { eq, count, gte, gt, inArray, or, and, isNotNull, desc, sql } from 'drizzle-orm';
 import { withCache } from '../services/metrics-cache.js';
+import { validateBody, getValidatedBody } from '../middleware/zod-validator.js';
 
 export const statsRouter = new Hono();
+
+const leaderboardOptInSchema = z.object({
+  optIn: z.boolean(),
+});
 
 const APPROVED_STATUSES = ['approved', 'auto_merged'];
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -484,12 +490,11 @@ statsRouter.get('/leaderboard/:entityId/trajectory', async (c) => {
 });
 
 /** PATCH /api/stats/leaderboard/opt-in — toggle current user's leaderboard visibility */
-statsRouter.patch('/leaderboard/opt-in', async (c) => {
+statsRouter.patch('/leaderboard/opt-in', validateBody(leaderboardOptInSchema), async (c) => {
   const session = await auth.api.getSession({ headers: c.req.raw.headers });
   if (!session) return c.json({ error: 'Unauthorized' }, 401);
 
-  const body = await c.req.json();
-  const optIn = typeof body.optIn === 'boolean' ? body.optIn : true;
+  const { optIn } = getValidatedBody<z.infer<typeof leaderboardOptInSchema>>(c);
 
   await db.update(schema.user)
     .set({ leaderboardOptIn: optIn })

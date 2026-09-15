@@ -1,12 +1,39 @@
 import { Hono } from 'hono';
+import { z } from 'zod';
 import { auth } from '../auth/index.js';
 import { db } from '../db/index.js';
 import * as schema from '../db/schema.js';
 import { eq, and, or, inArray, desc, isNotNull } from 'drizzle-orm';
 import { triggerComprehensiveAudit } from '../agents/audit-trigger.js';
 import { NotificationService } from '../notifications/NotificationService.js';
+import { validateBody, getValidatedBody } from '../middleware/zod-validator.js';
 
 export const reposRouter = new Hono();
+
+const pauseSchema = z.object({
+  paused: z.boolean(),
+});
+
+const autofixSchema = z.object({
+  autoFixEnabled: z.boolean(),
+});
+
+// Mirrors the payload the connect wizard sends. `desc` and `lang` come straight from the
+// GitHub API, which returns null for repos without a description or a detected language.
+const connectSchema = z.object({
+  repos: z.array(
+    z.object({
+      full: z.string().min(1),
+      name: z.string().min(1),
+      owner: z.string().min(1),
+      desc: z.string().nullable().optional(),
+      lang: z.string().nullable().optional(),
+      isPrivate: z.boolean(),
+      defaultBranch: z.string().optional(),
+      config: z.any().optional(),
+    })
+  ),
+});
 
 /**
  * Follows GitHub's real Link header across pages — a full user-journey audit found both
@@ -137,7 +164,7 @@ reposRouter.get('/connected', async (c) => {
  * Real pause/resume — persists to repositories.paused, which the push webhook and pushWorker
  * both honor (real analysis is actually skipped while paused, not just a UI label).
  */
-reposRouter.patch('/:id/pause', async (c) => {
+reposRouter.patch('/:id/pause', validateBody(pauseSchema), async (c) => {
   const session = await auth.api.getSession({ headers: c.req.raw.headers });
   if (!session) return c.json({ error: 'Unauthorized' }, 401);
 
@@ -153,9 +180,7 @@ reposRouter.patch('/:id/pause', async (c) => {
     if (!membership) return c.json({ error: 'Forbidden' }, 403);
   }
 
-  let body: any;
-  try { body = await c.req.json(); } catch { return c.json({ error: 'Invalid JSON body' }, 400); }
-  const paused = !!body?.paused;
+  const { paused } = getValidatedBody<z.infer<typeof pauseSchema>>(c);
 
   await db.update(schema.repositories).set({ paused }).where(eq(schema.repositories.id, repoId));
   return c.json({ paused });
@@ -166,7 +191,7 @@ reposRouter.patch('/:id/pause', async (c) => {
  * Per-repo opt-out of automated fixing. Analysis still runs; when disabled, the fixer never
  * opens an auto-fix PR for this repo (enforced in agent.queue.ts).
  */
-reposRouter.patch('/:id/autofix', async (c) => {
+reposRouter.patch('/:id/autofix', validateBody(autofixSchema), async (c) => {
   const session = await auth.api.getSession({ headers: c.req.raw.headers });
   if (!session) return c.json({ error: 'Unauthorized' }, 401);
 
@@ -182,9 +207,7 @@ reposRouter.patch('/:id/autofix', async (c) => {
     if (!membership) return c.json({ error: 'Forbidden' }, 403);
   }
 
-  let body: any;
-  try { body = await c.req.json(); } catch { return c.json({ error: 'Invalid JSON body' }, 400); }
-  const autoFixEnabled = !!body?.autoFixEnabled;
+  const { autoFixEnabled } = getValidatedBody<z.infer<typeof autofixSchema>>(c);
 
   await db.update(schema.repositories).set({ autoFixEnabled }).where(eq(schema.repositories.id, repoId));
   return c.json({ autoFixEnabled });
@@ -416,25 +439,14 @@ reposRouter.get('/', async (c) => {
  * POST /api/repos/connect
  * Saves the user's selected repos to the repositories table, enforcing admin checks.
  */
-reposRouter.post('/connect', async (c) => {
+reposRouter.post('/connect', validateBody(connectSchema), async (c) => {
   const session = await auth.api.getSession({ headers: c.req.raw.headers });
   if (!session) {
     return c.json({ error: 'Unauthorized' }, 401);
   }
 
-  const body = await c.req.json() as { 
-    repos: Array<{ 
-      full: string; 
-      name: string; 
-      owner: string; 
-      desc: string; 
-      lang: string; 
-      isPrivate: boolean;
-      defaultBranch?: string;
-      config?: any;
-    }> 
-  };
-  
+  const body = getValidatedBody<z.infer<typeof connectSchema>>(c);
+
   if (!body.repos || !Array.isArray(body.repos) || body.repos.length === 0) {
     return c.json({ error: 'No repos provided' }, 400);
   }

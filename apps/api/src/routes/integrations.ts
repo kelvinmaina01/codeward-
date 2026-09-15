@@ -3,8 +3,25 @@ import { db } from '../db/index.js';
 import { integrations, agentIntegrationAccess } from '../db/schema.js';
 import { eq, and, desc } from 'drizzle-orm';
 import { auth } from '../auth/index.js';
+import { z } from 'zod';
+import { validateBody, getValidatedBody } from '../middleware/zod-validator.js';
 
 export const integrationsRouter = new Hono();
+
+// Provider credentials are stored verbatim in credentialsJson and differ per provider, so the
+// schema enforces that the payload is an object without inventing provider-specific fields.
+const connectKeySchema = z.record(z.unknown());
+
+const integrationSettingsSchema = z.object({
+  settings: z.record(z.unknown()),
+});
+
+const integrationAccessSchema = z.object({
+  access: z.array(z.object({
+    agentId: z.string(),
+    isEnabled: z.boolean(),
+  })),
+});
 
 // Helper to get session
 async function getSessionUser(c: any) {
@@ -413,11 +430,11 @@ integrationsRouter.get('/:provider/connect', async (c) => {
 
 // ─── API KEY CONNECTION FOR DATADOG & WHATSAPP / SMS ───────────────────────────
 
-integrationsRouter.post('/:provider/connect-key', async (c) => {
+integrationsRouter.post('/:provider/connect-key', validateBody(connectKeySchema), async (c) => {
   const user = await getSessionUser(c);
   if (!user) return c.json({ error: 'Unauthorized' }, 401);
-  const provider = c.req.param('provider');
-  const body = await c.req.json();
+  const { provider } = c.req.param();
+  const body = getValidatedBody<z.infer<typeof connectKeySchema>>(c);
 
   const [existing] = await db.select().from(integrations)
     .where(and(eq(integrations.userId, user.id), eq(integrations.provider, provider)));
@@ -476,11 +493,11 @@ integrationsRouter.get('/:provider/settings', async (c) => {
   });
 });
 
-integrationsRouter.put('/:provider/settings', async (c) => {
+integrationsRouter.put('/:provider/settings', validateBody(integrationSettingsSchema), async (c) => {
   const user = await getSessionUser(c);
   if (!user) return c.json({ error: 'Unauthorized' }, 401);
-  const provider = c.req.param('provider');
-  const body = await c.req.json();
+  const { provider } = c.req.param();
+  const body = getValidatedBody<z.infer<typeof integrationSettingsSchema>>(c);
 
   const [integration] = await db.select().from(integrations)
     .where(and(eq(integrations.userId, user.id), eq(integrations.provider, provider)));
@@ -496,11 +513,11 @@ integrationsRouter.put('/:provider/settings', async (c) => {
   return c.json({ success: true, metadata: newMetadata });
 });
 
-integrationsRouter.put('/:provider/access', async (c) => {
+integrationsRouter.put('/:provider/access', validateBody(integrationAccessSchema), async (c) => {
   const user = await getSessionUser(c);
   if (!user) return c.json({ error: 'Unauthorized' }, 401);
-  const provider = c.req.param('provider');
-  const body = await c.req.json();
+  const { provider } = c.req.param();
+  const body = getValidatedBody<z.infer<typeof integrationAccessSchema>>(c);
 
   const [integration] = await db.select().from(integrations)
     .where(and(eq(integrations.userId, user.id), eq(integrations.provider, provider)));

@@ -148,6 +148,13 @@ export const setupWs = (upgradeWebSocket: any) => {
  * Helper to broadcast a message to connected clients, filtered by tenant isolation rules.
  */
 export const broadcast = (type: string, payload: any) => {
+  // Deny by default: without a scoping field there is no way to tell which tenants may see
+  // this payload, so it is dropped rather than fanned out to every connected client.
+  if (!payload?.userId && !payload?.repo && !payload?.repoId ) {
+    console.warn(`[WebSocket] Dropped unscoped broadcast of type "${type}" — no userId, repo or repoId on the payload to scope it by.`);
+    return;
+  }
+
   const message = JSON.stringify({ type, payload });
   for (const client of activeClients) {
     // Check tenant isolation: If payload target is specific to a repo or user, only broadcast to authorized clients

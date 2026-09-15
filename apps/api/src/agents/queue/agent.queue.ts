@@ -496,13 +496,22 @@ Use these EXACT values for any tool parameter named runId/repoId — never inven
           `[AgentWorker] Run #${runId} policy gate: ${runPolicy.decision} — ${runPolicy.surfacedFindings.length} surfaced, ${runPolicy.suppressedCount} suppressed of ${subAgentTasks.length} subagents (model said: ${result.gateDecision ?? 'none'}).`
         );
       } catch (policyError) {
-        console.error(`[AgentWorker] Finding policy evaluation failed for run #${runId}:`, (policyError as Error).message);
+        const message = (policyError as Error).message;
+        console.error(`[AgentWorker] Finding policy evaluation failed for run #${runId}:`, message);
+        // B-3 Fail-Closed: a gate we could not evaluate is not a gate that passed. Force BLOCK
+        // rather than deferring to the model's own decision, so an error in the policy layer
+        // can never approve a run whose findings were never validated.
+        runPolicy = {
+          decision: 'BLOCK',
+          reasons: [`[Policy Fail-Closed] Run policy evaluation failed (${message}). Blocking because the run could not be verified.`],
+          surfacedFindings: [],
+          suppressedCount: 0,
+        };
       }
     }
 
-    // The gate that drives every developer-facing action below. Falls back to the model's own
-    // decision only if the policy evaluation itself threw, so a bug here degrades to previous
-    // behaviour rather than silently passing every run.
+    // The gate that drives every developer-facing action below. Always the policy's decision
+    // for phase 3 — including when the policy evaluation itself threw, which forces BLOCK above.
     const effectiveGateDecision = runPolicy ? runPolicy.decision : result.gateDecision;
 
     let escalation: any = null;

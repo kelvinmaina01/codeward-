@@ -1,12 +1,19 @@
 import { Hono } from 'hono';
+import { z } from 'zod';
 import { auth } from '../auth/index.js';
 import { db } from '../db/index.js';
 import * as schema from '../db/schema.js';
 import { eq, and, or, inArray, desc } from 'drizzle-orm';
 import { executeMerge, rejectApproval, readMergeSettings, DEFAULT_MERGE_SETTINGS } from '../agents/merge/merge.service.js';
 import { mergeQueue } from '../agents/merge/merge.queue.js';
+import { validateBody, getValidatedBody } from '../middleware/zod-validator.js';
 
 export const approvalsRouter = new Hono();
+
+const mergeSettingsSchema = z.object({
+  mode: z.enum(['manual', 'auto']),
+  timeoutMinutes: z.number().optional(),
+});
 
 /** Same real ownership rule as the reports routes: direct owner or org member. */
 async function userCanAccessRepo(userId: string, repoId: number): Promise<boolean> {
@@ -216,7 +223,7 @@ approvalsRouter.get('/settings/:repoId', async (c) => {
 });
 
 /** PUT /api/approvals/settings/:repoId — persist merge mode + timeout into repositories.config. */
-approvalsRouter.put('/settings/:repoId', async (c) => {
+approvalsRouter.put('/settings/:repoId', validateBody(mergeSettingsSchema), async (c) => {
   const session = await auth.api.getSession({ headers: c.req.raw.headers });
   if (!session) return c.json({ error: 'Unauthorized' }, 401);
 
@@ -224,11 +231,8 @@ approvalsRouter.put('/settings/:repoId', async (c) => {
   if (!Number.isFinite(repoId)) return c.json({ error: 'Invalid repoId' }, 400);
   if (!(await userCanAccessRepo(session.user.id, repoId))) return c.json({ error: 'Forbidden' }, 403);
 
-  let body: any;
-  try { body = await c.req.json(); } catch { return c.json({ error: 'Invalid JSON body' }, 400); }
-  const mode = body?.mode === 'auto' ? 'auto' : body?.mode === 'manual' ? 'manual' : null;
-  if (!mode) return c.json({ error: "mode must be 'manual' or 'auto'" }, 400);
-  const timeoutMinutes = Number(body?.timeoutMinutes);
+  const { mode, timeoutMinutes: rawTimeoutMinutes } = getValidatedBody<z.infer<typeof mergeSettingsSchema>>(c);
+  const timeoutMinutes = Number(rawTimeoutMinutes);
   const settings = {
     mode,
     timeoutMinutes: Number.isFinite(timeoutMinutes) && timeoutMinutes >= 1 ? Math.min(timeoutMinutes, 7 * 24 * 60) : DEFAULT_MERGE_SETTINGS.timeoutMinutes,
