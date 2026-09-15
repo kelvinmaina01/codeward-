@@ -116,7 +116,7 @@ export function UserProfilePopover({ onClose, onOpenThemeModal }: UserProfilePop
         }}
       >
         <div className="w-9 h-9 rounded-full bg-cw-purple/20 border border-cw-purple/40 flex items-center justify-center text-cw-purple font-bold text-[13px] shrink-0 overflow-hidden relative">
-          {userImage ? <img src={userImage} alt={userName} className="w-full h-full object-cover" /> : userInitial}
+          {userImage ? <img src={userImage} alt={userName} referrerPolicy="no-referrer" className="w-full h-full object-cover" /> : userInitial}
           <span className="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-cw-green border border-cw-bg2" />
         </div>
         <div className="min-w-0 flex-1">
@@ -131,7 +131,7 @@ export function UserProfilePopover({ onClose, onOpenThemeModal }: UserProfilePop
       <div className="my-2 p-3 bg-cw-bg3 border border-cw-bdr/60 rounded-xl flex flex-col gap-1.5">
         {/* Top Row: Plan Title + Quota + Action */}
         <div className="flex items-center justify-between">
-          <div className="font-bold text-cw-txt text-[13px] capitalize flex items-center gap-1.5 font-serif">
+          <div className="font-semibold text-cw-txt text-[14px] capitalize tracking-tight flex items-center gap-1.5">
             <span>{billingPlan} Plan</span>
             {billingPlan !== 'free' && (
               <span className="text-[9px] uppercase tracking-wider px-1.5 py-0.2 rounded-full bg-cw-purple/20 text-cw-purple font-mono font-semibold">
@@ -228,7 +228,7 @@ export function UserProfilePopover({ onClose, onOpenThemeModal }: UserProfilePop
                 title={`${m.userName || m.userEmail || 'Member'} (${m.role || 'member'})`}
               >
                 {m.userImage ? (
-                  <img src={m.userImage} alt={m.userName || 'Avatar'} className="w-full h-full object-cover" />
+                  <img src={m.userImage} alt={m.userName || 'Avatar'} referrerPolicy="no-referrer" className="w-full h-full object-cover" />
                 ) : (
                   (m.userName || m.userEmail || 'M').charAt(0).toUpperCase()
                 )}

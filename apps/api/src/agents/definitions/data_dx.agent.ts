@@ -1,5 +1,6 @@
 import type { AgentDefinition, SandboxHandle } from '../core/provider.js';
 import { createDataDXTools } from './data_dx/data_dx.tools.js';
+import { omitTools, UNUSED_GENERIC_TOOLS } from '../tools/sandbox.tools.js';
 
 const CONSTITUTION = `
 === CODEWARD DATA & DX CONSTITUTION (6 ABSOLUTE RULES) ===
@@ -49,6 +50,6 @@ Step 18: OUTPUT DataDXAgentResult JSON via submit_data_dx_report
 CRITICAL INSTRUCTION: When you have completed your playbook, you MUST call the submit_data_dx_report tool.
   `,
   createTools: (sandbox: SandboxHandle) => {
-    return createDataDXTools(sandbox);
+    return omitTools(createDataDXTools(sandbox), UNUSED_GENERIC_TOOLS);
   }
 };

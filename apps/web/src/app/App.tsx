@@ -553,7 +553,7 @@ function DashboardLayout() {
             className="flex items-center gap-3 whitespace-nowrap overflow-hidden transition-all duration-300 cursor-pointer p-1.5 rounded-xl hover:bg-cw-bg3 flex-1 min-w-0"
           >
             <div className="w-8 h-8 rounded-full bg-cw-purple/20 border border-cw-purple/40 flex items-center justify-center text-[12px] text-cw-purple font-bold shrink-0 overflow-hidden shadow-sm">
-              {session?.user?.image ? <img src={session.user.image} alt="Avatar" className="w-full h-full object-cover" /> : displayUser.avatar}
+              {session?.user?.image ? <img src={session.user.image} alt="Avatar" referrerPolicy="no-referrer" className="w-full h-full object-cover" /> : displayUser.avatar}
             </div>
             <div className={`flex-1 min-w-0 transition-opacity duration-300 ${isSidebarPinned ? 'opacity-100' : 'opacity-0'}`}>
               <div className="text-[13px] text-cw-txt font-bold flex items-center justify-between">
@@ -719,6 +719,7 @@ function DashboardLayout() {
                           <img
                             src={u.avatar}
                             alt={u.user}
+                            referrerPolicy="no-referrer"
                             className="w-9 h-9 rounded-full border border-cw-bdr/60 object-cover bg-cw-bg3 shrink-0 shadow-xs"
                             onError={(e) => {
                               (e.target as HTMLImageElement).src = `https://api.dicebear.com/10.x/disco/svg?seed=${encodeURIComponent(u.user)}`;

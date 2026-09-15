@@ -231,7 +231,7 @@ function Avatar({ src, fallback, size = 32, className = '' }: { src?: string | n
       style={{ width: size, height: size }}
       className={`rounded-full bg-cw-purple/10 border border-cw-purple/30 flex items-center justify-center text-cw-purple font-semibold overflow-hidden shrink-0 ${className}`}
     >
-      {src ? <img src={src} alt="" className="w-full h-full object-cover" /> : <span style={{ fontSize: Math.round(size * 0.4) }}>{fallback}</span>}
+      {src ? <img src={src} alt="" referrerPolicy="no-referrer" className="w-full h-full object-cover" /> : <span style={{ fontSize: Math.round(size * 0.4) }}>{fallback}</span>}
     </div>
   );
 }
@@ -961,6 +961,7 @@ export function Settings() {
                       <img
                         src={session?.user?.image || `https://api.dicebear.com/10.x/disco/svg?seed=${encodeURIComponent(session?.user?.name || 'you')}`}
                         alt="DiceBear Disco Avatar"
+                        referrerPolicy="no-referrer"
                         className="w-9 h-9 rounded-full border border-cw-bdr bg-cw-bg3 object-cover shrink-0"
                         onError={(e) => {
                           const fallback = `https://api.dicebear.com/10.x/disco/svg?seed=${encodeURIComponent(session?.user?.name || 'you')}`;

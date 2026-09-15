@@ -16,6 +16,27 @@ interface MemoryBucket {
 }
 const memoryStore = new Map<string, MemoryBucket>();
 
+/**
+ * The shared ioredis client is created with `maxRetriesPerRequest: null` because BullMQ
+ * requires it. That setting also means a command is retried forever and never rejects, so a
+ * socket that is still `ready` but whose peer has stopped replying leaves `await redis.incr()`
+ * pending indefinitely — the catch block never runs, the memory fallback never engages, and
+ * the request hangs before ever reaching `next()`. This bounds every command so a stalled
+ * Redis degrades into the in-memory limiter instead of taking the whole API down with it.
+ */
+const REDIS_COMMAND_TIMEOUT_MS = 500;
+
+function withRedisDeadline<T>(command: Promise<T>): Promise<T> {
+  let timer: NodeJS.Timeout;
+  const deadline = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error('redis command timed out')), REDIS_COMMAND_TIMEOUT_MS);
+  });
+  // The losing promise is left to settle on its own; clearing the timer stops it holding the
+  // event loop open, and an unhandled rejection is avoided by attaching a no-op catch.
+  command.catch(() => {});
+  return Promise.race([command, deadline]).finally(() => clearTimeout(timer)) as Promise<T>;
+}
+
 // Periodic cleanup of expired memory keys
 setInterval(() => {
   const now = Date.now();
@@ -61,14 +82,14 @@ export function rateLimiter(options: RateLimiterOptions = {}) {
 
     if (redis && redis.status === 'ready') {
       try {
-        currentCount = await redis.incr(key);
+        currentCount = await withRedisDeadline<number>(redis.incr(key));
         if (currentCount === 1) {
-          await redis.expire(key, windowSec);
+          await withRedisDeadline<number>(redis.expire(key, windowSec));
         }
-        const ttl = await redis.ttl(key);
+        const ttl = await withRedisDeadline<number>(redis.ttl(key));
         resetTime = now + (ttl > 0 ? ttl * 1000 : windowMs);
       } catch {
-        // Fall back to memory store on redis failure
+        // Fall back to memory store on redis failure OR on a command that never settled.
         currentCount = incrementMemory(key, now, windowMs);
       }
     } else {

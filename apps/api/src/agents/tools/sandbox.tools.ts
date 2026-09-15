@@ -15,6 +15,28 @@ import { z } from 'zod';
 import type { SandboxHandle } from '../core/provider.js';
 
 /**
+ * Generic sandbox tools that no sub-agent playbook actually calls. Their JSON schemas were
+ * still being serialized into every request and re-sent on every step of the loop, costing
+ * ~1,199 characters (~315 tokens) per agent per request for capability none of them used —
+ * confirmed against the toolsExecuted chain-of-custody log across real runs.
+ *
+ * read_file and grep_search are deliberately NOT in this list: the agent constitutions require
+ * them ("Use grep_search or read_file to confirm before asserting"), and removing them would
+ * reduce the evidence-gathering that keeps precision high.
+ */
+export const UNUSED_GENERIC_TOOLS = ['exec_command', 'list_files', 'get_project_summary'] as const;
+
+/**
+ * Returns the tool map without the named tools. Used to trim an agent's *active* tool list
+ * without touching any tool implementation — the tools remain fully available to any agent
+ * or service that composes them explicitly.
+ */
+export function omitTools<T extends Record<string, unknown>>(tools: T, names: readonly string[]): T {
+  const drop = new Set(names);
+  return Object.fromEntries(Object.entries(tools).filter(([name]) => !drop.has(name))) as T;
+}
+
+/**
  * Create the generic sandbox tools for a given sandbox instance.
  */
 export function createSandboxTools(sandbox: SandboxHandle) {

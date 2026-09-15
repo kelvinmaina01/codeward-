@@ -1,5 +1,6 @@
 import type { AgentDefinition, SandboxHandle } from '../core/provider.js';
 import { createArchitectureTools } from './architecture/architecture.tools.js';
+import { omitTools, UNUSED_GENERIC_TOOLS } from '../tools/sandbox.tools.js';
 import { REPORTING_DISCIPLINE } from './shared-discipline.js';
 
 const CONSTITUTION = `
@@ -50,6 +51,6 @@ Step 18: OUTPUT ArchitectureAgentResult JSON via submit_architecture_report
 CRITICAL INSTRUCTION: When you have completed your playbook, you MUST call the submit_architecture_report tool.
   `,
   createTools: (sandbox: SandboxHandle) => {
-    return createArchitectureTools(sandbox);
+    return omitTools(createArchitectureTools(sandbox), UNUSED_GENERIC_TOOLS);
   }
 };

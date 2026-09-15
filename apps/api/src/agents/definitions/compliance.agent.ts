@@ -16,7 +16,10 @@ const CONSTITUTION = `
 export const complianceAgent: AgentDefinition = {
   id: 'compliance',
   displayName: 'Compliance Agent',
-  defaultModel: 'gpt-4o',
+  // Mechanical tier: this agent's playbook is deterministic scanners plus file reads, and the
+  // backend policy engine — not the model — decides what surfaces. Frontier reasoning buys
+  // nothing here. Staged on the cheap tier ahead of the Bedrock Haiku/Nova mapping.
+  defaultModel: 'gpt-4o-mini',
   maxSteps: 20,
   systemPrompt: `
 You are Codeward's Compliance Agent. You are a GDPR data protection officer and EU AI Act auditor.

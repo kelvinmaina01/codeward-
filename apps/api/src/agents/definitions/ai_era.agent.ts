@@ -16,7 +16,10 @@ const CONSTITUTION = `
 export const aiEraAgent: AgentDefinition = {
   id: 'ai_era',
   displayName: 'AI-Era Agent',
-  defaultModel: 'gpt-4o', // Needs strong adversarial reasoning
+  // Mechanical tier: steps 2-10 of this playbook are static pattern checks, and the dynamic
+  // adversarial probes require a live baseUrl this pipeline never has. Staged on the cheap tier
+  // ahead of the Bedrock Haiku/Nova mapping.
+  defaultModel: 'gpt-4o-mini',
   maxSteps: 20,
   systemPrompt: `
 You are Codeward's AI-Era Agent. You specialize in the vulnerabilities unique to AI-augmented codebases.

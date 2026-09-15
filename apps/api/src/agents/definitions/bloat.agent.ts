@@ -1,7 +1,7 @@
 import type { AgentDefinition, SandboxHandle } from '../core/provider.js';
 import { z } from 'zod';
 import { createBloatTools } from './bloat/bloat.tools.js';
-import { createSandboxTools } from '../tools/sandbox.tools.js';
+import { createSandboxTools, omitTools, UNUSED_GENERIC_TOOLS } from '../tools/sandbox.tools.js';
 
 const CONSTITUTION = `
 === CODEWARD BLOAT AGENT CONSTITUTION ===
@@ -51,7 +51,7 @@ Step 20: OUTPUT BloatAgentResult JSON via submit_bloat_report tool
 CRITICAL INSTRUCTION: When you have completed your playbook, you MUST call the submit_bloat_report tool.
   `,
   createTools: (sandbox: SandboxHandle) => {
-    const sandboxTools = createSandboxTools(sandbox);
+    const sandboxTools = omitTools(createSandboxTools(sandbox), UNUSED_GENERIC_TOOLS);
     const bloatTools = createBloatTools(sandbox);
     return {
       ...sandboxTools,

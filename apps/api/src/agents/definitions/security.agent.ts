@@ -1,7 +1,7 @@
 import type { AgentDefinition, SandboxHandle } from '../core/provider.js';
 import { z } from 'zod';
 import { createSecurityTools } from '../tools/security.tools.js';
-import { createSandboxTools } from '../tools/sandbox.tools.js';
+import { createSandboxTools, omitTools, UNUSED_GENERIC_TOOLS } from '../tools/sandbox.tools.js';
 import { REPORTING_DISCIPLINE } from './shared-discipline.js';
 
 const CONSTITUTION = `
@@ -61,7 +61,7 @@ Never add a finding to show the steps were worthwhile.
 CRITICAL INSTRUCTION: When you have completed your playbook or found a terminal condition, you MUST call the submit_security_report tool to provide your final SecurityAgentResult object.
   `,
   createTools: (sandbox: SandboxHandle) => {
-    const baseTools = createSandboxTools(sandbox);
+    const baseTools = omitTools(createSandboxTools(sandbox), UNUSED_GENERIC_TOOLS);
     const secTools = createSecurityTools(sandbox);
     return {
       ...baseTools,

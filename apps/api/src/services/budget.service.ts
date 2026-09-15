@@ -38,37 +38,47 @@ function getRedis() {
 const BUDGET_CACHE_KEY = 'budget:monthly_spend_usd';
 
 // ─── Model Cost Table (per 1M tokens) ───────────────────────────────────────
-function getModelRates(model: string): { input: number; output: number } {
+// Branch order matters: every test is a substring match, so the MOST SPECIFIC model id must
+// be checked first. A generic `m.includes('mini')` ahead of `gpt-4o-mini` previously swallowed
+// the most-used model in the fleet and billed it at Haiku rates ($0.25/$1.25 instead of
+// $0.15/$0.60), making the gpt-4o-mini branch unreachable and over-stating real spend.
+//
+// `cachedInput` is the portion of input served from the provider's prompt cache. Providers
+// discount it heavily (OpenAI bills cached input at ~50% for the 4o family), and measured runs
+// on this system cache 78-85% of their input, so ignoring it materially over-states spend and
+// trips the kill switch early.
+function getModelRates(model: string): { input: number; output: number; cachedInput: number } {
   const m = (model || '').toLowerCase();
   if (m.includes('free') || m.includes('glm') || m.includes('deepseek-r1:free')) {
-    return { input: 0, output: 0 };
+    return { input: 0, output: 0, cachedInput: 0 };
   }
   if (m.includes('gemini-flash') || m.includes('gemini-1.5-flash')) {
-    return { input: 0.075, output: 0.3 };
+    return { input: 0.075, output: 0.3, cachedInput: 0.01875 };
   }
-  if (m.includes('mini') || m.includes('haiku')) {
-    return { input: 0.25, output: 1.25 };
-  }
+  // Most specific first.
   if (m.includes('gpt-4o-mini')) {
-    return { input: 0.15, output: 0.6 };
+    return { input: 0.15, output: 0.6, cachedInput: 0.075 };
   }
   if (m.includes('gpt-4o')) {
-    return { input: 2.5, output: 10.0 };
-  }
-  if (m.includes('claude-3-7') || m.includes('claude-3.7')) {
-    return { input: 3.0, output: 15.0 };
-  }
-  if (m.includes('claude-3-5') || m.includes('claude-3.5') || m.includes('sonnet')) {
-    return { input: 3.0, output: 15.0 };
+    return { input: 2.5, output: 10.0, cachedInput: 1.25 };
   }
   if (m.includes('claude-3-haiku')) {
-    return { input: 0.25, output: 1.25 };
+    return { input: 0.25, output: 1.25, cachedInput: 0.03 };
+  }
+  if (m.includes('mini') || m.includes('haiku')) {
+    return { input: 0.25, output: 1.25, cachedInput: 0.03 };
+  }
+  if (m.includes('claude-3-7') || m.includes('claude-3.7')) {
+    return { input: 3.0, output: 15.0, cachedInput: 0.3 };
+  }
+  if (m.includes('claude-3-5') || m.includes('claude-3.5') || m.includes('sonnet')) {
+    return { input: 3.0, output: 15.0, cachedInput: 0.3 };
   }
   if (m.includes('gemini-pro') || m.includes('gemini-1.5-pro')) {
-    return { input: 1.25, output: 5.0 };
+    return { input: 1.25, output: 5.0, cachedInput: 0.3125 };
   }
   // Default: Claude Sonnet rate (safe over-estimate)
-  return { input: 3.0, output: 15.0 };
+  return { input: 3.0, output: 15.0, cachedInput: 0.3 };
 }
 
 // ─── Compute current month's LLM spend from Postgres ────────────────────────
@@ -90,9 +100,15 @@ async function computeMonthlySpend(): Promise<number> {
     const usage = (t.tokenUsage as any) || {};
     const inputTokens  = Number(usage.input  ?? usage.promptTokens     ?? 0) || 0;
     const outputTokens = Number(usage.output ?? usage.completionTokens ?? 0) || 0;
+    // cachedInput is a SUBSET of input, not an addition to it — bill the cached portion at the
+    // discounted rate and only the remainder at full rate. Clamped so a malformed row can never
+    // produce negative spend and mask real usage from the kill switch.
+    const cachedTokens = Math.min(Number(usage.cachedInput ?? 0) || 0, inputTokens);
+    const uncachedTokens = inputTokens - cachedTokens;
     const rates = getModelRates(t.model ?? '');
-    totalCost += (inputTokens / 1_000_000) * rates.input
-               + (outputTokens / 1_000_000) * rates.output;
+    totalCost += (uncachedTokens / 1_000_000) * rates.input
+               + (cachedTokens   / 1_000_000) * rates.cachedInput
+               + (outputTokens   / 1_000_000) * rates.output;
   }
 
   return totalCost;

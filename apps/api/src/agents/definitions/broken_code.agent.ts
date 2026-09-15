@@ -1,5 +1,6 @@
 import type { AgentDefinition, SandboxHandle } from '../core/provider.js';
 import { createBrokenCodeTools } from './broken_code/broken_code.tools.js';
+import { omitTools, UNUSED_GENERIC_TOOLS } from '../tools/sandbox.tools.js';
 import { REPORTING_DISCIPLINE } from './shared-discipline.js';
 
 const CONSTITUTION = `
@@ -71,6 +72,6 @@ Step 19: OUTPUT BrokenCodeAgentResult JSON via submit_broken_code_report
 CRITICAL INSTRUCTION: When you have completed your playbook, you MUST call the submit_broken_code_report tool.
   `,
   createTools: (sandbox: SandboxHandle) => {
-    return createBrokenCodeTools(sandbox);
+    return omitTools(createBrokenCodeTools(sandbox), UNUSED_GENERIC_TOOLS);
   }
 };
