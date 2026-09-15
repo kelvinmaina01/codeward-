@@ -67,12 +67,41 @@ function textOfMessage(msg: UIMessage): string {
 }
 
 /** Keep conversational questions snappy without sending work requests to the cheap lane. */
-function isFastConversation(message: UIMessage, hasAttachments: boolean, planMode: boolean) {
+export function isFastConversation(message: UIMessage, hasAttachments: boolean, planMode: boolean) {
   const text = textOfMessage(message).trim().toLowerCase();
   if (hasAttachments || planMode || text.length > 420) return false;
   // These words almost always need real repository state, a tool loop, or a durable plan.
   if (/\b(scan|run|analy[sz]e|fix|merge|issue|repo|repository|branch|commit|diff|log|finding|security|health|trend|approval)\b/.test(text)) return false;
-  return /^(hi|hello|hey|thanks|what can you do|help|who are you|how does this work|explain)/.test(text);
+  return /^(hi|hello|hey|thanks|what can you do|help|who are you|how does this work|explain)[\s\p{P}]*$/u.test(text);
+}
+
+/**
+ * Resolve action authorization only from user-authored text. Attachment contents never reach
+ * this function, so they cannot enable a state-changing tool even if they contain instructions.
+ */
+export function directAttachmentActionTools(message: UIMessage): ReadonlySet<string> {
+  const text = textOfMessage(message).trim().toLowerCase();
+  const allowed = new Set<string>();
+
+  if (/\b(run|start|launch|spawn|scan|analy[sz]e|audit|review|check)\b/.test(text)) {
+    allowed.add('spawn_agent');
+    allowed.add('run_all_agents');
+  }
+  if (/(?:\b(create|open|file|raise)\b[\s\S]{0,80}\b(?:github\s+)?issues?\b)|(?:\bissues?\b[\s\S]{0,80}\b(create|open|file|raise)\b)/.test(text)) {
+    allowed.add('create_github_issue');
+    allowed.add('create_issue_from_finding');
+  }
+  if (/\b(approve|merge)\b/.test(text)) allowed.add('approve_and_merge');
+  if (/(?:\b(reject|close)\b[\s\S]{0,80}\b(pr|pull request|fix)\b)|(?:\b(pr|pull request|fix)\b[\s\S]{0,80}\b(reject|close)\b)/.test(text)) {
+    allowed.add('reject_fix');
+  }
+
+  return allowed;
+}
+
+export function hasLatestToolApprovalResponse(messages: UIMessage[]): boolean {
+  const latestMessage = messages[messages.length - 1];
+  return (latestMessage?.parts ?? []).some((part: any) => part.state === 'approval-responded');
 }
 
 /* ------------------------------- session management ------------------------------- */
@@ -347,6 +376,7 @@ chatRouter.post('/', async (c) => {
   // Persist the incoming user message now (not in onFinish) so even an aborted/errored
   // generation keeps a record of what the user asked — "persist every prompt and trial".
   const lastMessage = messages[messages.length - 1];
+  const latestUserMessage = messages.slice().reverse().find((message) => message.role === 'user') ?? lastMessage;
   if (lastMessage.role === 'user') {
     await db.insert(chatMessages).values({ sessionId: session.id, role: 'user', parts: lastMessage.parts as unknown[] });
   }
@@ -360,11 +390,19 @@ chatRouter.post('/', async (c) => {
     : '';
   const planLine = planMode ? '\n\nPLANNING MODE: return an executable, evidence-backed plan before proposing actions. Use tools when facts are required.' : '';
   const fastLane = isFastConversation(lastMessage, safeAttachments.length > 0, planMode);
+  const hasUntrustedAttachments = safeAttachments.length > 0;
+  // Approval continuations no longer carry the cleared client attachment list. Preserve the
+  // same server-side gate so the SDK can validate and execute the explicitly approved call,
+  // and so any later action in that continuation requires its own confirmation.
+  const enforceExplicitActionApproval = hasUntrustedAttachments || hasLatestToolApprovalResponse(messages);
   const result = streamText({
     model: getModel(fastLane ? 'analyzer' : 'orchestrator'),
     system: GORDON_SYSTEM + GORDON_HARNESS_SYSTEM + activeRepoLine + permissionLine + attachmentLine + planLine,
     messages: await convertToModelMessages(messages),
-    tools: createGordonTools(user.id, session.id, selectedPermissionMode),
+    tools: createGordonTools(user.id, session.id, selectedPermissionMode, enforceExplicitActionApproval ? {
+      forceActionApproval: true,
+      allowedActionTools: directAttachmentActionTools(latestUserMessage),
+    } : undefined),
     stopWhen: stepCountIs(12), // real agentic loop: plan -> call tools -> observe -> answer
   });
 
@@ -377,7 +415,7 @@ chatRouter.post('/', async (c) => {
       await db.insert(chatMessages).values({ sessionId: sessionRef.id, role: 'assistant', parts: responseMessage.parts as unknown[] });
       await db.update(chatSessions).set({ updatedAt: new Date() }).where(eq(chatSessions.id, sessionRef.id));
       if (isNewSession || !sessionRef.title) {
-        const firstUserText = textOfMessage(lastMessage) || 'New chat';
+        const firstUserText = textOfMessage(latestUserMessage) || 'New chat';
         autoTitle(sessionRef.id, firstUserText);
       }
     },

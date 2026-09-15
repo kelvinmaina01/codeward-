@@ -89,12 +89,17 @@ export async function assertRepoAccess(userId: string, repoId: number): Promise<
 const SEVERITY_RANK: Record<string, number> = { CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 3, INFO: 4 };
 const ANALYSIS_AGENTS = ['security', 'bloat', 'broken_code', 'architecture', 'ai_era', 'compliance', 'data_dx'] as const;
 type GordonPermissionMode = 'default' | 'auto_review' | 'full_access';
+type GordonToolSecurityContext = {
+  forceActionApproval?: boolean;
+  allowedActionTools?: ReadonlySet<string>;
+};
 
 const SANDBOX_ACTION_TOOLS = new Set(['spawn_agent', 'run_all_agents']);
 const ALL_ACTION_TOOLS = new Set(['spawn_agent', 'run_all_agents', 'create_github_issue', 'create_issue_from_finding', 'approve_and_merge', 'reject_fix']);
 
-function toolNeedsApproval(toolName: string, permissionMode: GordonPermissionMode): boolean {
+function toolNeedsApproval(toolName: string, permissionMode: GordonPermissionMode, forceActionApproval = false): boolean {
   if (!ALL_ACTION_TOOLS.has(toolName)) return false;
+  if (forceActionApproval) return true;
   if (permissionMode === 'full_access') return false;
   if (permissionMode === 'auto_review' && SANDBOX_ACTION_TOOLS.has(toolName)) return false;
   return true;
@@ -130,7 +135,13 @@ async function resolveRepoRef(repoId: number, ref?: string) {
   }
 }
 
-export function createGordonTools(userId: string, sessionId?: string, permissionMode: GordonPermissionMode = 'default') {
+export function createGordonTools(
+  userId: string,
+  sessionId?: string,
+  permissionMode: GordonPermissionMode = 'default',
+  securityContext: GordonToolSecurityContext = {},
+) {
+  const needsApproval = (toolName: string) => toolNeedsApproval(toolName, permissionMode, securityContext.forceActionApproval);
   const tools = {
     list_repositories: tool({
       description: "List the repositories this user can see, each with its latest run's score, status and date. Call this first when the user hasn't named a specific repo, so you can resolve which repo they mean and use the numeric repoId in later tools.",
@@ -434,7 +445,7 @@ export function createGordonTools(userId: string, sessionId?: string, permission
         repoId: z.number(),
         ref: z.string().optional().describe('Branch name or commit SHA. Defaults to the repository default branch.'),
       }),
-      needsApproval: toolNeedsApproval('spawn_agent', permissionMode),
+      needsApproval: needsApproval('spawn_agent'),
       execute: async ({ agentType, repoId, ref }) => {
         if (!(await assertRepoAccess(userId, repoId))) return { error: 'You do not have access to that repository.' };
         const resolved = await resolveRepoRef(repoId, ref);
@@ -455,7 +466,7 @@ export function createGordonTools(userId: string, sessionId?: string, permission
         repoId: z.number(),
         ref: z.string().optional().describe('Branch name or commit SHA. Defaults to the repository default branch.'),
       }),
-      needsApproval: toolNeedsApproval('run_all_agents', permissionMode),
+      needsApproval: needsApproval('run_all_agents'),
       execute: async ({ repoId, ref }) => {
         if (!(await assertRepoAccess(userId, repoId))) return { error: 'You do not have access to that repository.' };
         const resolved = await resolveRepoRef(repoId, ref);
@@ -492,7 +503,7 @@ export function createGordonTools(userId: string, sessionId?: string, permission
         body: z.string(),
         labels: z.array(z.string()).optional().default(['codeward', 'gordon']),
       }),
-      needsApproval: toolNeedsApproval('create_github_issue', permissionMode),
+      needsApproval: needsApproval('create_github_issue'),
       execute: async ({ repoId, title, body, labels }) => {
         if (!(await assertRepoAccess(userId, repoId))) return { error: 'You do not have access to that repository.' };
         const { createGuardianTools } = await import('../guardian/guardian.tools.js');
@@ -510,7 +521,7 @@ export function createGordonTools(userId: string, sessionId?: string, permission
         findingId: z.string(),
         extraContext: z.string().optional(),
       }),
-      needsApproval: toolNeedsApproval('create_issue_from_finding', permissionMode),
+      needsApproval: needsApproval('create_issue_from_finding'),
       execute: async ({ runId, agentId, findingId, extraContext }) => {
         const [run] = await db.select().from(runs).where(eq(runs.id, runId));
         if (!run?.repoId || !(await assertRepoAccess(userId, run.repoId))) return { error: 'You do not have access to that run.' };
@@ -543,7 +554,7 @@ export function createGordonTools(userId: string, sessionId?: string, permission
     approve_and_merge: tool({
       description: 'Approve a pending Codeward auto-fix PR and merge it for real. Requires user approval. Get the approvalId from list_pending_approvals first.',
       inputSchema: z.object({ approvalId: z.number() }),
-      needsApproval: toolNeedsApproval('approve_and_merge', permissionMode),
+      needsApproval: needsApproval('approve_and_merge'),
       execute: async ({ approvalId }) => {
         const [row] = await db.select().from(mergeApprovals).where(eq(mergeApprovals.id, approvalId));
         if (!row) return { error: `No approval #${approvalId}.` };
@@ -557,7 +568,7 @@ export function createGordonTools(userId: string, sessionId?: string, permission
     reject_fix: tool({
       description: 'Reject a pending Codeward auto-fix PR — closes the PR with an explanatory comment. Requires user approval. Get the approvalId from list_pending_approvals.',
       inputSchema: z.object({ approvalId: z.number(), note: z.string().optional() }),
-      needsApproval: toolNeedsApproval('reject_fix', permissionMode),
+      needsApproval: needsApproval('reject_fix'),
       execute: async ({ approvalId, note }) => {
         const [row] = await db.select().from(mergeApprovals).where(eq(mergeApprovals.id, approvalId));
         if (!row) return { error: `No approval #${approvalId}.` };
@@ -568,5 +579,8 @@ export function createGordonTools(userId: string, sessionId?: string, permission
       },
     }),
   };
-  return withTelemetry(tools, userId, sessionId);
+  const availableTools = securityContext.allowedActionTools
+    ? Object.fromEntries(Object.entries(tools).filter(([name]) => !ALL_ACTION_TOOLS.has(name) || securityContext.allowedActionTools!.has(name)))
+    : tools;
+  return withTelemetry(availableTools, userId, sessionId);
 }

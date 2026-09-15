@@ -40,6 +40,15 @@ export function getModel(phase?: "orchestrator" | "analyzer", requestedModel?: s
     return openai(requestedModel);
   }
 
+  const phaseModel = phase === "orchestrator"
+    ? process.env.ORCHESTRATOR_MODEL
+    : phase === "analyzer"
+      ? process.env.ANALYZER_MODEL
+      : undefined;
+  if (phaseModel) {
+    return openai(phaseModel);
+  }
+
   if (isTokenRouter) {
     return openai(process.env.TOKENROUTER_MODEL || process.env.OPENAI_MODEL || "z-ai/glm-5.3-free");
   }
@@ -63,4 +72,3 @@ export function getModel(phase?: "orchestrator" | "analyzer", requestedModel?: s
   // Analyzers: fast + cheap, each only needs 1 tool call
   return openai("gpt-4o-mini");
 }
-
