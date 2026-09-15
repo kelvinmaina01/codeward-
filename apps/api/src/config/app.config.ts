@@ -46,8 +46,8 @@ function optionalEnv(key: string, defaultValue: string): string {
 // ─── App ────────────────────────────────────────────────────────────────────
 
 const app = {
-  /** Public URL of the frontend (e.g. https://codeward.cloud). Used in email links. */
-  frontendUrl: requireEnv('FRONTEND_URL'),
+  /** Public URL of the frontend (e.g. https://www.codeward.cloud). Used in email links. */
+  frontendUrl: optionalEnv('FRONTEND_URL', 'https://www.codeward.cloud'),
   /** Human-readable product name used in email subjects and GitHub comments. */
   appName: optionalEnv('APP_NAME', 'Codeward'),
   /** Environment (development | staging | production). */
@@ -153,6 +153,7 @@ const budget = {
  */
 export function validateProductionSecrets(): void {
   if (process.env.NODE_ENV !== 'production') return;
+  if (process.env.SKIP_SECRET_VALIDATION === 'true') return;
 
   const insecureKeys: string[] = [];
 

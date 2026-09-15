@@ -19,6 +19,9 @@ export function isAllowedOrigin(origin?: string): boolean {
   if (/^https:\/\/([a-zA-Z0-9-]+\.)?codeward\.cloud$/.test(trimmed)) {
     return true;
   }
+  if (/^https:\/\/([a-zA-Z0-9-]+\.)?pages\.dev$/.test(trimmed)) {
+    return true;
+  }
   return false;
 }
 
@@ -31,8 +34,18 @@ export const corsConfig = {
     return '';
   },
   allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowHeaders: ['Content-Type', 'Authorization'],
-  exposeHeaders: ['X-Chat-Session-Id'],
+  allowHeaders: [
+    'Content-Type',
+    'Authorization',
+    'Accept',
+    'Origin',
+    'X-Requested-With',
+    'Cookie',
+    'X-Chat-Session-Id',
+    'baggage',
+    'sentry-trace'
+  ],
+  exposeHeaders: ['X-Chat-Session-Id', 'Set-Cookie'],
   credentials: true,
   maxAge: 600,
 };

@@ -191,7 +191,8 @@ if (isDirectExecution) {
 
   server = serve({
     fetch: app.fetch,
-    port
+    port,
+    hostname: '0.0.0.0',
   });
 
   injectWebSocket(server);
