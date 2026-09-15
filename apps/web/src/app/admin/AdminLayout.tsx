@@ -7,7 +7,7 @@ import {
   Settings, Download, Calendar, MoreHorizontal, Moon, Sun, Circle, Menu
 } from 'lucide-react';
 import { Theme } from '../components/types';
-import { Toaster } from 'sonner';
+import { GooeyToaster } from '../lib/toast-bridge';
 import { FloatingStreamWidget } from '../components/shared/FloatingStreamWidget';
 
 const themeOrder: Theme[] = ['dark', 'cream', 'white'];
@@ -204,7 +204,12 @@ export function AdminLayout() {
         </div>
       </div>
       <FloatingStreamWidget onNavigate={(path) => navigate(path)} />
-      <Toaster position="top-right" theme={theme as any} richColors />
+      <GooeyToaster
+        position="top-left"
+        theme={theme === 'dark' ? 'light' : 'dark'}
+        showProgress
+        closeButton="top-right"
+      />
     </div>
   );
 }

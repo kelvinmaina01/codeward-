@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@ai-sdk/react": "^3.0.209",
+    "@better-auth/core": "^1.6.19",
     "@emotion/react": "11.14.0",
     "@emotion/styled": "11.14.1",
     "@mui/icons-material": "7.3.5",
@@ -55,6 +56,8 @@
     "cmdk": "1.1.1",
     "date-fns": "3.6.0",
     "embla-carousel-react": "8.6.0",
+    "framer-motion": "^11.18.2",
+    "goey-toast": "^0.5.0",
     "hono": "^4.12.25",
     "hugeicons-react": "^0.4.0",
     "input-otp": "1.4.2",

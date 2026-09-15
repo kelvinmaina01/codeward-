@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Search, Loader, AlertCircle, Play, Pause, Settings as SettingsIcon, BarChart2, GitFork, GitPullRequest, Lock, Globe, Wrench, RotateCcw, Clock, ShieldAlert, X } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '../../lib/toast-bridge';
 import { API_URL } from '../../../lib/api';
 
 interface RepoConfig {

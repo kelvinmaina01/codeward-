@@ -78,7 +78,7 @@ const AdminAlerts      = lazy(() => import('./admin/AdminAlerts').then(m => ({ d
 const AdminSettings    = lazy(() => import('./admin/AdminSettings').then(m => ({ default: m.AdminSettings })));
 
 import { useSession, signOut } from '../lib/auth';
-import { Toaster } from 'sonner';
+import { GooeyToaster, toast } from './lib/toast-bridge';
 import { API_URL } from '../lib/api';
 import { WorkspaceProvider } from './contexts/WorkspaceContext';
 import { blogs } from './data/blogs';
@@ -841,7 +841,12 @@ function DashboardLayout() {
           </div>
         )}
       </div>
-      <Toaster position="top-right" theme="dark" richColors />
+      <GooeyToaster
+        position="top-left"
+        theme={theme === 'dark' ? 'light' : 'dark'}
+        showProgress
+        closeButton="top-right"
+      />
     </div>
   );
 }

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { BotIcon, TaskDone01Icon, GitPullRequestIcon, CircleArrowReload01Icon, StarsIcon, Sun01Icon, Moon01Icon, CircleIcon, ArrowLeft01Icon } from 'hugeicons-react';
 import { CheckCircle } from 'lucide-react';
 import { signIn } from '../../../lib/auth';
-import { toast } from 'sonner';
+import { toast } from '@/app/lib/toast-bridge';
 import { Theme } from '../../components/types';
 import { ParticleBackground } from '../marketing/ParticleBackground';
 

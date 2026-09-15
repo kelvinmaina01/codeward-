@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Search, Loader, ShieldAlert, ArrowRight, ChevronDown, Check, Sun, Moon, Circle, Shield, FileWarning, Zap, Server, Cpu, BarChart2, Lock, GitBranch, RotateCw, Settings } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '@/app/lib/toast-bridge';
 import { api } from '../../../lib/api';
 import { authClient } from '../../../lib/auth';
 

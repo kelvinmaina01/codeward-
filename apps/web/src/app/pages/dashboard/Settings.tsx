@@ -8,7 +8,7 @@ import {
   LoaderCircle, X as XIcon, Send, Activity,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '@/app/lib/toast-bridge';
 import { useSession, signOut } from '../../../lib/auth';
 import { useWorkspace } from '../../contexts/WorkspaceContext';
 import { API_URL } from '../../../lib/api';

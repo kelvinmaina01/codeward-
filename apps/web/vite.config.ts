@@ -25,10 +25,15 @@ export default defineConfig({
     tailwindcss(),
   ],
   resolve: {
-    alias: {
-      // Alias @ to the src directory
-      '@': path.resolve(__dirname, './src'),
-    }
+    alias: [
+      { find: /^@better-auth\/core\/utils\/(.*)/, replacement: path.resolve(__dirname, './node_modules/@better-auth/core/dist/utils/$1.mjs') },
+      { find: '@better-auth/core/env', replacement: path.resolve(__dirname, './node_modules/@better-auth/core/dist/env/index.mjs') },
+      { find: '@better-auth/core/error', replacement: path.resolve(__dirname, './node_modules/@better-auth/core/dist/error/index.mjs') },
+      { find: '@better-auth/core/context', replacement: path.resolve(__dirname, './node_modules/@better-auth/core/dist/context/index.mjs') },
+      { find: '@better-auth/core/api', replacement: path.resolve(__dirname, './node_modules/@better-auth/core/dist/api/index.mjs') },
+      { find: '@better-auth/core', replacement: path.resolve(__dirname, './node_modules/@better-auth/core/dist/index.mjs') },
+      { find: '@', replacement: path.resolve(__dirname, './src') },
+    ]
   },
   // File types to support raw imports. Never add .css, .tsx, or .ts files to this.
   assetsInclude: ['**/*.svg', '**/*.csv'],
