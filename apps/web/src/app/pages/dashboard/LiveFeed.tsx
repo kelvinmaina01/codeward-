@@ -5,7 +5,7 @@ import { mockLiveFeedLogs } from '../../../lib/mockAgentData';
 import { AgentCanvas } from '../../components/shared/AgentCanvas';
 import { RepoSelector } from '../../components/shared/RepoSelector';
 import { 
-  Bot, Radio, Download, Copy, Check, Terminal as TerminalIcon, Sparkles, Filter, RefreshCw 
+  Bot, Radio, Download, Copy, Check, Terminal as TerminalIcon, Sparkles, Filter, RefreshCw, ExternalLink 
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -36,6 +36,30 @@ const clsColor: Record<string, string> = {
   warn: 'text-cw-amber font-medium',
   plain: 'text-cw-txt2',
 };
+
+function renderLogMessage(message: string) {
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  const parts = message.split(urlRegex);
+  if (parts.length === 1) return message;
+  return parts.map((part, idx) => {
+    if (part.match(urlRegex)) {
+      return (
+        <a
+          key={idx}
+          href={part}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-cw-purple underline underline-offset-2 inline-flex items-center gap-1 font-semibold hover:text-white transition-colors bg-cw-purple/10 px-1.5 py-0.5 rounded ml-1"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {part}
+          <ExternalLink size={12} className="inline opacity-80" />
+        </a>
+      );
+    }
+    return part;
+  });
+}
 
 export type LogItem = {
   id?: string;
@@ -402,7 +426,7 @@ export function LiveFeed({ viewMode = 'canvas', onViewModeChange }: LiveFeedProp
 
                       {/* Log text content in JetBrains Mono */}
                       <span className={`break-words flex-1 font-jetbrains text-[13px] md:text-[14px] ${clsColor[l.level] || 'text-cw-txt2'}`}>
-                        {l.message}
+                        {renderLogMessage(l.message)}
                       </span>
                     </div>
                   );

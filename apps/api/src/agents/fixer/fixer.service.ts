@@ -215,6 +215,7 @@ export interface OpenFixPRParams {
   runId: number;
   agentId: string;
   findings: FixableFinding[];
+  onProgress?: (message: string, level?: 'ok' | 'err' | 'inf' | 'warn' | 'plain') => Promise<void> | void;
 }
 
 export type OpenFixPRResult =
@@ -232,15 +233,21 @@ export async function openFixPR(params: OpenFixPRParams): Promise<OpenFixPRResul
   const policy = AGENT_FIX_POLICIES[params.agentId];
   if (!policy) return { opened: false, reason: `Agent '${params.agentId}' has no auto-fix policy — only ${[...AUTO_FIX_ELIGIBLE_AGENTS].join('/')} may auto-fix.` };
 
+  await params.onProgress?.(`  ├─ 🔍 Evaluating ${params.findings.length} finding(s) for ${params.agentId} auto-fix eligibility...`, 'inf');
+
   const eligible = params.findings.filter((f) => isEligibleForAutoFix(f, params.agentId)).slice(0, MAX_FIXES_PER_PR);
   if (eligible.length === 0) {
+    await params.onProgress?.(`  ├─ ℹ️ 0 of ${params.findings.length} findings meet ${params.agentId} auto-fix policy criteria.`, 'plain');
     return { opened: false, reason: `No findings in this run are eligible for auto-fix (${params.agentId} policy: categories ${[...policy.categories].join('/')}${policy.requireRefactorSafe ? ', refactorSafe:true required' : ''}, not dismissed, real single-file path).` };
   }
+
+  await params.onProgress?.(`  ├─ 🛠️ Selected ${eligible.length} candidate(s) for automated refactoring & testing...`, 'inf');
 
   const guardianTools = createGuardianTools(params.sandbox);
 
   const generated: FixResult[] = [];
   for (const finding of eligible) {
+    await params.onProgress?.(`  ├─ ✍️ Generating refactored code for ${finding.file} (${finding.category})...`, 'plain');
     generated.push(await generateFix(params.sandbox, finding as FixableFinding & { file: string }, params.agentId));
   }
   const generatedOk = generated.filter((r): r is { ok: true; fix: GeneratedFix } => r.ok);
@@ -254,18 +261,22 @@ export async function openFixPR(params: OpenFixPRParams): Promise<OpenFixPRResul
   // The baseline (npm install + typecheck + tests on the untouched repo) is computed once and
   // shared across the batch. A fix that adds compile errors, or that needs tests it can't get,
   // is dropped here — never committed, never PR'd.
+  await params.onProgress?.(`  ├─ ⚙️ Establishing sandbox baseline verification (dependencies, typecheck, test suites)...`, 'plain');
   const { computeVerificationBaseline, verifyFixDoesNotRegress } = await import('./fix-verification.js');
   const baseline = await computeVerificationBaseline(params.sandbox);
   const applied: Array<{ ok: true; fix: GeneratedFix }> = [];
   for (const g of generatedOk) {
     const level = verificationLevelFor(params.agentId, g.fix.category);
+    await params.onProgress?.(`  ├─ 🧪 Running sandbox regression verification for ${g.fix.filePath} (Level: ${level})...`, 'plain');
     const verdict = await verifyFixDoesNotRegress(params.sandbox, g.fix.filePath, g.fix.originalContent, g.fix.newContent, baseline, level);
     if (verdict.verified) {
       applied.push({ ok: true, fix: { ...g.fix, verificationMethod: verdict.method } });
       console.log(`[Fixer] ${g.fix.filePath} (${g.fix.category}) VERIFIED via ${verdict.method}`);
+      await params.onProgress?.(`  ├─ 🧪 Verified candidate fix for ${g.fix.filePath} via ${verdict.method}`, 'ok');
     } else {
       skipped.push({ ok: false, file: g.fix.filePath, error: `Verification failed: ${verdict.reason}` });
       console.log(`[Fixer] ${g.fix.filePath} (${g.fix.category}) REJECTED by verification: ${verdict.reason}`);
+      await params.onProgress?.(`  ├─ ⚠️ Verification rejected fix for ${g.fix.filePath}: ${verdict.reason}`, 'warn');
     }
   }
 
@@ -279,6 +290,7 @@ export async function openFixPR(params: OpenFixPRParams): Promise<OpenFixPRResul
   const branchName = `codeward/auto-fix-${params.agentId}-run${params.runId}-${Date.now()}`;
   const branchRes: any = await guardianTools.create_branch.execute({ repoId: params.repoId, branchName, fromSha: head.headSha });
   if (!branchRes.success) return { opened: false, reason: `Could not create branch: ${branchRes.error ?? 'unknown error'}`, skipped };
+  await params.onProgress?.(`  ├─ 🌿 Switched to new branch '${branchName}' from head ${(head.headSha || '').slice(0, 7)}`, 'inf');
 
   const committed: GeneratedFix[] = [];
   for (const { fix } of applied) {
@@ -296,6 +308,7 @@ export async function openFixPR(params: OpenFixPRParams): Promise<OpenFixPRResul
       continue;
     }
     committed.push(fix);
+    await params.onProgress?.(`  ├─ 💾 Committed: ${fix.filePath} (${fix.originalLineCount} -> ${fix.newLineCount} lines) — "${fix.rationale}"`, 'plain');
   }
 
   if (committed.length === 0) {
@@ -312,6 +325,7 @@ export async function openFixPR(params: OpenFixPRParams): Promise<OpenFixPRResul
     '_This PR was opened automatically. It still requires review before merging — nothing here auto-merges._',
   ].join('\n');
 
+  await params.onProgress?.(`  ├─ 📤 Creating pull request on GitHub (${committed.length} verified fixes)...`, 'inf');
   const prRes: any = await guardianTools.create_pull_request.execute({
     repoId: params.repoId,
     title: `[Codeward] Auto-fix: ${committed.length} ${params.agentId} finding${committed.length === 1 ? '' : 's'} on run #${params.runId}`,
@@ -320,6 +334,8 @@ export async function openFixPR(params: OpenFixPRParams): Promise<OpenFixPRResul
     base: head.defaultBranch,
   });
   if (!prRes.success) return { opened: false, reason: `Branch and commits succeeded but PR creation failed: ${prRes.error ?? 'unknown error'}`, skipped };
+
+  await params.onProgress?.(`  ├─ 🚀 Opened Auto-Fix Pull Request #${prRes.pullRequestNumber}: ${prRes.htmlUrl}`, 'ok');
 
   return { opened: true, pullRequestNumber: prRes.pullRequestNumber, htmlUrl: prRes.htmlUrl, branchName, appliedFixes: committed, skipped };
 }

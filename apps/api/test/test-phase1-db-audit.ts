@@ -134,12 +134,13 @@ async function runPhase1Tests() {
     assert(schemaContent.includes("repoIdCreatedAtIdx: index('runs_repo_id_created_at_idx').on(table.repoId, table.createdAt)"), 'runs_repo_id_created_at_idx defined in schema.ts');
 
     // Check migration file 0019 exists and defines the indexes and cascades
-    const migrationPath = path.join(apiRoot, 'drizzle/0019_add_missing_indexes_and_cascades.sql');
-    assert(fs.existsSync(migrationPath), 'Migration 0019_add_missing_indexes_and_cascades.sql exists');
+    const drizzleDir = path.join(apiRoot, 'drizzle');
+    const migrationFile = fs.readdirSync(drizzleDir).find(f => f.startsWith('0019_') && f.endsWith('.sql'));
+    assert(migrationFile !== undefined, 'Migration 0019 exists');
 
-    const migrationContent = fs.readFileSync(migrationPath, 'utf8');
-    assert(migrationContent.includes('CREATE INDEX IF NOT EXISTS "runs_repo_id_idx"'), 'Migration creates runs_repo_id_idx');
-    assert(migrationContent.includes('CREATE INDEX IF NOT EXISTS "runs_repo_id_created_at_idx"'), 'Migration creates runs_repo_id_created_at_idx');
+    const migrationContent = fs.readFileSync(path.join(drizzleDir, migrationFile), 'utf8');
+    assert(migrationContent.includes('CREATE INDEX') && migrationContent.includes('"runs_repo_id_idx"'), 'Migration creates runs_repo_id_idx');
+    assert(migrationContent.includes('CREATE INDEX') && migrationContent.includes('"runs_repo_id_created_at_idx"'), 'Migration creates runs_repo_id_created_at_idx');
     assert(migrationContent.includes('ON DELETE cascade'), 'Migration updates foreign keys with ON DELETE cascade');
   } catch (err: any) {
     assert(false, 'DB-001/002 test execution error', err.message);

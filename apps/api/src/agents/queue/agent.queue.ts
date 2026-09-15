@@ -392,16 +392,51 @@ Use these EXACT values for any tool parameter named runId/repoId — never inven
           runId,
           agentId,
           findings: result.findings as any[],
+          onProgress: async (message, level) => {
+            await logAndBroadcast('agent_active', {
+              repo: repoFullName,
+              sha: commitSHA,
+              agent: agentId,
+              status: message,
+              step: 'autofix',
+              runId,
+              logType: 'run',
+              level: level || 'inf',
+              message: `[${repoFullName}] [${commitSHA.slice(0, 7)}] ${agentId} ${message}`,
+            });
+          },
         });
         autoFixPR = outcome;
         if (outcome.opened) {
           console.log(`[AgentWorker] ${agentId} opened a real auto-fix PR: ${outcome.htmlUrl} (${outcome.appliedFixes.length} fixes)`);
+          await logAndBroadcast('agent_active', {
+            repo: repoFullName,
+            sha: commitSHA,
+            agent: agentId,
+            status: `Opened auto-fix PR #${outcome.pullRequestNumber}: ${outcome.htmlUrl}`,
+            step: 'autofix',
+            runId,
+            logType: 'run',
+            level: 'ok',
+            message: `🚀 [${repoFullName}] [${commitSHA.slice(0, 7)}] ${agentId} opened auto-fix PR #${outcome.pullRequestNumber} (${outcome.appliedFixes.length} fix${outcome.appliedFixes.length === 1 ? '' : 'es'}): ${outcome.htmlUrl}`,
+          });
 
           // Phase 2: guardian reviews the PR it was just told about — same real agentic review
           // it would give a human's PR. A failure here must not undo the already-real PR; it
           // just means the PR sits unreviewed by the bot, same as it would if this step didn't
           // exist yet.
           try {
+            await logAndBroadcast('agent_active', {
+              repo: repoFullName,
+              sha: commitSHA,
+              agent: 'guardian',
+              status: `Reviewing auto-fix PR #${outcome.pullRequestNumber}...`,
+              step: 'guardian_review',
+              runId,
+              logType: 'run',
+              level: 'inf',
+              message: `🛡️ [${repoFullName}] [${commitSHA.slice(0, 7)}] Guardian starting automated verification on PR #${outcome.pullRequestNumber}...`,
+            });
             const { reviewFixPR } = await import('../guardian/review.service.js');
             const review = await reviewFixPR({
               sandbox: sandbox!,
@@ -414,8 +449,30 @@ Use these EXACT values for any tool parameter named runId/repoId — never inven
             autoFixPR = { ...outcome, guardianReview: review };
             if (review.reviewed) {
               console.log(`[AgentWorker] guardian reviewed PR #${outcome.pullRequestNumber}: ${review.event}`);
+              await logAndBroadcast('agent_active', {
+                repo: repoFullName,
+                sha: commitSHA,
+                agent: 'guardian',
+                status: `PR #${outcome.pullRequestNumber} verdict: ${review.event}`,
+                step: 'guardian_review',
+                runId,
+                logType: 'run',
+                level: review.event === 'APPROVE' ? 'ok' : 'warn',
+                message: `🛡️ [${repoFullName}] Guardian posted review on PR #${outcome.pullRequestNumber}: Verdict=${review.event} (${review.body || 'Verified clean and regression-free'})`,
+              });
             } else {
               console.log(`[AgentWorker] guardian did not complete a review of PR #${outcome.pullRequestNumber}: ${review.reason}`);
+              await logAndBroadcast('agent_active', {
+                repo: repoFullName,
+                sha: commitSHA,
+                agent: 'guardian',
+                status: `Review skipped on PR #${outcome.pullRequestNumber}: ${review.reason}`,
+                step: 'guardian_review',
+                runId,
+                logType: 'run',
+                level: 'warn',
+                message: `🛡️ [${repoFullName}] Guardian review skipped on PR #${outcome.pullRequestNumber}: ${review.reason}`,
+              });
             }
 
             // Phase 4: create the real merge-approval row for the dashboard, and schedule the
@@ -442,6 +499,17 @@ Use these EXACT values for any tool parameter named runId/repoId — never inven
                 maxSeverity,
               });
               autoFixPR = { ...autoFixPR, approvalId: approval.id, approvalMode: approval.mode, approvalDeadline: approval.deadlineAt };
+              await logAndBroadcast('agent_active', {
+                repo: repoFullName,
+                sha: commitSHA,
+                agent: agentId,
+                status: `Registered merge approval for PR #${outcome.pullRequestNumber} (${approval.mode})`,
+                step: 'merge_approval',
+                runId,
+                logType: 'run',
+                level: 'ok',
+                message: `⚖️ [${repoFullName}] Registered merge approval for PR #${outcome.pullRequestNumber} (Mode: ${approval.mode}, Severity: ${maxSeverity || 'NONE'})`,
+              });
             } catch (approvalError) {
               console.error(`[AgentWorker] merge-approval creation threw (non-fatal, PR and review are unaffected):`, (approvalError as Error).message);
             }
@@ -451,10 +519,32 @@ Use these EXACT values for any tool parameter named runId/repoId — never inven
           }
         } else {
           console.log(`[AgentWorker] ${agentId} did not open an auto-fix PR: ${outcome.reason}`);
+          await logAndBroadcast('agent_active', {
+            repo: repoFullName,
+            sha: commitSHA,
+            agent: agentId,
+            status: `Auto-fix skipped: ${outcome.reason}`,
+            step: 'autofix',
+            runId,
+            logType: 'run',
+            level: 'plain',
+            message: `ℹ️ [${repoFullName}] [${commitSHA.slice(0, 7)}] ${agentId} auto-fix skipped: ${outcome.reason}`,
+          });
         }
       } catch (fixError) {
         console.error(`[AgentWorker] ${agentId} auto-fix step threw (non-fatal, analysis result is unaffected):`, (fixError as Error).message);
         autoFixPR = { opened: false, reason: `Auto-fix step crashed: ${(fixError as Error).message}` };
+        await logAndBroadcast('agent_active', {
+          repo: repoFullName,
+          sha: commitSHA,
+          agent: agentId,
+          status: `Auto-fix error: ${(fixError as Error).message}`,
+          step: 'autofix',
+          runId,
+          logType: 'run',
+          level: 'err',
+          message: `❌ [${repoFullName}] [${commitSHA.slice(0, 7)}] ${agentId} auto-fix error: ${(fixError as Error).message}`,
+        });
       }
     }
 
