@@ -112,7 +112,10 @@ export class OpenAIProvider implements AgentProvider {
         // Orchestrator's submit_orchestrator_decision schema uses overallWeightedScore/
         // criticalFindings, not score/findings like every other agent. Check the orchestrator-specific field name first.
         findings = reportArgs?.findings ?? reportArgs?.criticalFindings ?? [];
-        score = reportArgs?.score ?? reportArgs?.overallWeightedScore ?? (findings.length === 0 ? 100 : null) ?? 0;
+        // A-3: the old `?? 0` turned "the agent reported findings but no score" into a hard 0,
+        // which dragged the run average down on a technicality. An unreported score is unknown,
+        // and null is how the rest of the pipeline already spells unknown.
+        score = reportArgs?.score ?? reportArgs?.overallWeightedScore ?? (findings.length === 0 ? 100 : null);
         status = gateDecision === 'BLOCK' || findings.some((f: any) => (f.severity ?? '').toUpperCase() === 'CRITICAL') ? 'failed' : 'passed';
       }
 
@@ -122,10 +125,20 @@ export class OpenAIProvider implements AgentProvider {
       // escalation's GitHub issues, the run's gate) can act on validated data rather than
       // re-deriving trust from the model's self-reported severity.
       const { applyFindingPolicy } = await import('../../policy/finding-policy.js');
-      const policyResult = applyFindingPolicy(findings);
+      // Chain of custody: this is the one place that holds both the findings and the definitive
+      // record of what this agent actually ran, so the declared toolName can be checked against
+      // reality here rather than taken on trust.
+      const executedTools = (loopResult.toolsExecuted ?? []).map((t) => t.toolName);
+      const policyResult = applyFindingPolicy(findings, { executedTools });
       if (policyResult.suppressed.length > 0) {
         console.log(
           `[OpenAIProvider] ${config.agentId}: policy surfaced ${policyResult.surfaced.length}/${findings.length} finding(s); suppressed ${policyResult.suppressed.length} (${Object.entries(policyResult.suppressionBreakdown).map(([k, v]) => `${k}=${v}`).join(', ')}).`
+        );
+      }
+      if (policyResult.unverifiedEvidenceCount > 0) {
+        console.warn(
+          `[OpenAIProvider] ${config.agentId}: ${policyResult.unverifiedEvidenceCount} finding(s) cite a tool that never ran this run ` +
+          `(executed: ${executedTools.join(', ') || 'none'}) — evidence capped at WEAK, so they cannot block a merge.`
         );
       }
 
@@ -140,6 +153,14 @@ export class OpenAIProvider implements AgentProvider {
         tokenUsage: loopResult.tokenUsage,
         servedBy: loopResult.servedBy,
         gateDecision,
+        // Carry the structured remainder of the agent's report. Findings are stripped because
+        // they travel in their own column; everything else is the per-agent factual payload the
+        // schemas have always asked for and nothing downstream could previously read.
+        report: reportArgs
+          ? Object.fromEntries(
+              Object.entries(reportArgs).filter(([k]) => k !== 'findings' && k !== 'criticalFindings')
+            )
+          : undefined,
         toolsExecuted: (loopResult.toolsExecuted && loopResult.toolsExecuted.length > 0)
           ? loopResult.toolsExecuted
           : (reportArgs?.toolsExecuted ?? []),

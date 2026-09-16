@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { CONFIDENCE_FIELD, EXPOSURE_FIELD } from '../shared-finding-fields.js';
 import type { SandboxHandle } from '../../core/provider.js';
 import { createSandboxTools } from '../../tools/sandbox.tools.js';
 import { createMemoryTools } from '../../tools/memory.tools.js';
@@ -226,6 +227,7 @@ export const createDataDXTools = (sandbox: SandboxHandle) => {
           id: z.string(), severity: z.enum(["HIGH", "MEDIUM", "LOW", "INFO"]),
           category: z.enum(["PIPELINE_ENTANGLEMENT", "MISSING_DATA_CONTRACT", "EMBEDDING_DRIFT", "DARK_DATA", "DATA_LINEAGE", "SCHEMA_REGISTRY", "DATA_QUALITY", "FLAKY_CI", "ENV_PARITY", "ONBOARDING_LATENCY", "BUILD_LATENCY", "TOOLING_FRAGMENTATION", "ALERT_FATIGUE", "MISSING_GOLDEN_PATH", "ANALYTICS_DEBT", "DATA_ACCESS_CONTROL", "RETENTION_VIOLATION"]),
           title: z.string(), description: z.string(), file: z.string().nullable(), line: z.number().nullable(), toolName: z.string(), rawEvidence: z.string(),
+          confidence: CONFIDENCE_FIELD, exposure: EXPOSURE_FIELD,
           isNewThisWeek: z.boolean(), weekOverWeekChange: z.enum(["new", "worsened", "unchanged", "improved"]), recommendation: z.string()
         })),
         teamMetrics: z.object({ ciPassRatePercent: z.number(), meanTimeToGreenMinutes: z.number(), estimatedOnboardingHours: z.number(), buildTimeSeconds: z.number(), testTimeSeconds: z.number(), alertNoisePercent: z.number().nullable() })

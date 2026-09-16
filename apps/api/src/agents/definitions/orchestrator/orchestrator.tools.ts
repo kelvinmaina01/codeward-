@@ -212,15 +212,37 @@ export const createOrchestratorTools = (sandbox: SandboxHandle) => ({
   },
 
   analyse_commit_diff: {
-    description: 'Parse the git diff and produce a structured risk assessment of what changed.',
+    description: 'Parse the git diff and produce a structured risk assessment of what changed. Pass the runId from your task prompt so the result is handed to Phase 2 and Phase 3 instead of being recomputed.',
     parameters: z.object({
       diff: z.string().optional(),
       changedFiles: z.array(z.string()).optional(),
-      repoConfig: z.object({}).passthrough().optional()
+      repoConfig: z.object({}).passthrough().optional(),
+      runId: z.string().optional().describe('The EXACT runId from your task prompt. Supplying it persists this analysis onto the run so later phases inherit it.')
     }),
     execute: async (args: any) => {
       const { rawDiff, changedFiles } = await getGitDiffAndFiles(sandbox);
-      return classifyDiff(rawDiff, changedFiles);
+      const analysis = classifyDiff(rawDiff, changedFiles);
+
+      // Phase 1's whole job is ingestion, but its output was returned to the model and then
+      // dropped on the floor — Phase 2 received an identical task prompt with none of it, so it
+      // paid to derive the same classification again. Persisting it here is what turns Phase 1
+      // from a cost centre into the ingestion step it was designed to be.
+      const runId = Number(args?.runId);
+      if (Number.isFinite(runId) && runId > 0) {
+        try {
+          const { db } = await import('../../../db/index.js');
+          const { runs } = await import('../../../db/schema.js');
+          const { eq } = await import('drizzle-orm');
+          const [existing] = await db.select({ scope: runs.scope }).from(runs).where(eq(runs.id, runId));
+          await db.update(runs).set({
+            scope: { ...((existing?.scope as any) ?? {}), ingestion: analysis },
+          }).where(eq(runs.id, runId));
+        } catch (err: any) {
+          console.warn(`[Orchestrator] Could not persist ingestion analysis for run ${args.runId}:`, err.message);
+        }
+      }
+
+      return analysis;
     }
   },
 
@@ -355,7 +377,7 @@ export const createOrchestratorTools = (sandbox: SandboxHandle) => ({
     description: 'Real Postgres polling for sub-agent results. Waits until all dispatched agents for this run reach a terminal state or timeout. Not required for the pipeline to progress — Phase 3 is triggered automatically by the queue worker when the last sub-agent finishes — but callable if the LLM wants to check status directly.',
     parameters: z.object({
       runId: z.string(),
-      timeoutSeconds: z.number().optional().default(300),
+      timeoutSeconds: z.number().optional().default(20).describe('Clamped to 60s maximum. This call occupies a worker slot and a live sandbox while it waits.'),
       pollIntervalMs: z.number().optional().default(2000)
     }),
     execute: async (args: { runId: string; timeoutSeconds?: number; pollIntervalMs?: number }) => {
@@ -363,7 +385,14 @@ export const createOrchestratorTools = (sandbox: SandboxHandle) => ({
       const { agentTasks } = await import('../../../db/schema.js');
       const { eq, and, notLike } = await import('drizzle-orm');
 
-      const deadline = Date.now() + (args.timeoutSeconds ?? 300) * 1000;
+      // A-4: this blocks a BullMQ worker slot and holds a live sandbox for its whole duration.
+      // At the old 300s default, with concurrency 10, a handful of Phase 2s electing to poll
+      // could starve the pool of the very sub-agents they were waiting for. Phase 3 is triggered
+      // automatically when the last sub-agent finishes, so this is a status check, not the
+      // mechanism — clamped accordingly.
+      const requested = args.timeoutSeconds ?? 20;
+      const timeoutSeconds = Math.max(1, Math.min(60, requested));
+      const deadline = Date.now() + timeoutSeconds * 1000;
       while (Date.now() < deadline) {
         const tasks = await db.select().from(agentTasks).where(
           and(eq(agentTasks.runId, Number(args.runId)), notLike(agentTasks.agentId, 'orchestrator%'))
@@ -406,9 +435,26 @@ export const createOrchestratorTools = (sandbox: SandboxHandle) => ({
       let count = 0;
       const criticalFindings: any[] = [];
       const agentScoreSummary: any[] = [];
-      
+      // The orchestrator's Hard Rules branch on a red test suite and a failed migration
+      // rollback. broken_code has always DECLARED both in its submit schema — they were simply
+      // never carried out of its report, so the rule could not fire. Transport them here, with
+      // null meaning "the check did not run" so the orchestrator can tell that apart from a pass.
+      let testSuiteResult: any = null;
+      let migrationRollbackPassed: boolean | null = null;
+
       for (const task of tasks) {
         if (task.agentId.startsWith('orchestrator')) continue;
+
+        if (task.agentId === 'broken_code') {
+          const meta = (task.reportMeta as any) ?? {};
+          const report = meta.report ?? meta.reportArgs ?? meta;
+          if (report?.testSuiteResult && typeof report.testSuiteResult === 'object') {
+            testSuiteResult = report.testSuiteResult;
+          }
+          if (typeof report?.migrationRollbackPassed === 'boolean') {
+            migrationRollbackPassed = report.migrationRollbackPassed;
+          }
+        }
         
         if (task.score !== null && task.score !== undefined) {
           totalScore += task.score;
@@ -427,8 +473,15 @@ export const createOrchestratorTools = (sandbox: SandboxHandle) => ({
           // filter matched on the model's severity string alone, so a CRITICAL asserted
           // with no file, no tool output and hedged wording carried exactly as much weight
           // as one confirmed by a scanner.
+          // The task's own chain-of-custody log is applied here too, so this summary agrees
+          // with the authoritative gate in agent.queue.ts instead of drifting from it.
+          const executed = ((task.reportMeta as any)?.toolsExecuted ?? []) as Array<{ toolName?: string }>;
+          const executedTools = Array.isArray(executed)
+            ? executed.map((e: any) => String(e?.toolName ?? '')).filter(Boolean)
+            : [];
+          const policyOpts = executedTools.length > 0 ? { executedTools } : {};
           const criticals = task.findings.filter((f: any) => {
-            const a = assessFinding(f);
+            const a = assessFinding(f, policyOpts);
             return a.blocking;
           });
           criticalFindings.push(...criticals.map(c => ({ ...c, agentType: task.agentId })));
@@ -439,21 +492,32 @@ export const createOrchestratorTools = (sandbox: SandboxHandle) => ({
       // averaging lets a pile of mediums drag a run under a threshold while diluting the one
       // agent that found something real. The gate is decided by decideGate() over validated
       // findings in agent.queue.ts, which is max-based rather than additive.
-      const weightedScore = count > 0 ? Math.round(totalScore / count) : 100;
+      //
+      // A-3: when NO agent reported a score this used to return 100 — a run in which every
+      // agent crashed or truncated presented as a perfect score. Absence of measurement is not
+      // evidence of health, so it now reports null and says why.
+      const weightedScore = count > 0 ? Math.round(totalScore / count) : null;
 
       return {
         weightedScore,
         scoreIsAdvisoryOnly: true,
+        scoredAgentCount: count,
+        scoreUnavailableReason: count === 0
+          ? 'No sub-agent produced a score (all failed, truncated, or were never dispatched). This is NOT a 100 — report the run as unverified.'
+          : null,
         criticalFindings,
         allBlockReasons: criticalFindings.map(c => `[${c.agentType}] ${c.title}`),
         agentScoreSummary,
+        // null on either of these means the check never ran — "not verified", not "passed".
+        testSuiteResult,
+        migrationRollbackPassed,
         conflictingSignals: []
       };
     }
   },
 
   post_github_check_run: {
-    description: 'Create or update the GitHub Check Run on the PR.',
+    description: 'Report the intended GitHub Check Run state. NOTE: the backend posts and completes the real Check Run deterministically from the policy gate (github-pr-lifecycle.service) — it does not depend on this call, so the check is never missed if you skip it. Calling this records your intent for the audit trail; it does not itself post to GitHub.',
     parameters: z.object({
       repoId: z.string(),
       commitSha: z.string(),
@@ -471,7 +535,16 @@ export const createOrchestratorTools = (sandbox: SandboxHandle) => ({
       }))
     }),
     execute: async (args: any) => {
-      return { checkRunId: 1001, htmlUrl: "https://github.com/check", status: "completed" };
+      // Previously returned a fabricated checkRunId and htmlUrl, which taught the model it had
+      // published something it had not — and it then reported that success in notificationsSent.
+      // The real Check Run is completed by the queue after the policy gate resolves.
+      console.log(`[Orchestrator] Check-run intent recorded: ${args.status}${args.conclusion ? `/${args.conclusion}` : ''} — real posting is handled by the backend lifecycle service.`);
+      return {
+        recorded: true,
+        postedToGitHub: false,
+        handledBy: 'backend:github-pr-lifecycle.service',
+        note: 'Intent recorded for the audit trail. The backend posts the real Check Run from the policy gate — do not report this as a notification you delivered.',
+      };
     }
   },
 
@@ -529,7 +602,20 @@ export const createOrchestratorTools = (sandbox: SandboxHandle) => ({
       notifyChannels: z.array(z.string())
     }),
     execute: async (args: any) => {
-      return { rollbackPrNumber: 99, rollbackPrUrl: "https://github.com/pull/99", notificationsSent: [] };
+      // Constitution Rule 4 instructs a rollback on a critical landing on main, and this returned
+      // a fabricated PR number — so the model reported a rollback that never happened, on exactly
+      // the runs where one mattered most. Automated reverts are not implemented; failing honestly
+      // and loudly is the only safe behaviour until they are.
+      console.error(
+        `[Orchestrator] ROLLBACK REQUESTED BUT NOT PERFORMED — run on ${args.commitSha}: ${args.reason}. ` +
+        `Automated revert is not implemented; a human must act on this.`
+      );
+      return {
+        rollbackTriggered: false,
+        implemented: false,
+        rollbackPrUrl: null,
+        reason: 'Automated rollback is not implemented in this pipeline. Report rollbackTriggered: false and state in your rationale that a human must revert this manually.',
+      };
     }
   },
 
@@ -542,7 +628,14 @@ export const createOrchestratorTools = (sandbox: SandboxHandle) => ({
       priority: z.enum(["critical", "normal", "info"])
     }),
     execute: async (args: any) => {
-      return { messageTs: "12345.678", channelId: "C12345" };
+      // No Slack transport exists in this codebase (NotificationService is email-only). Returning
+      // a fabricated message timestamp made the model report a delivered notification every run.
+      console.warn(`[Orchestrator] Slack notification requested for channel "${args.channel}" but no Slack transport is configured — not sent.`);
+      return {
+        sent: false,
+        implemented: false,
+        reason: 'No Slack transport is configured for this deployment. Do not list this in notificationsSent as successful.',
+      };
     }
   },
 
@@ -555,22 +648,65 @@ export const createOrchestratorTools = (sandbox: SandboxHandle) => ({
       attachments: z.array(z.object({ filename: z.string(), content: z.string() })).optional()
     }),
     execute: async (args: any) => {
-      return { messageId: "email_123", accepted: args.to };
+      // The run-completed report email is enqueued deterministically by submit_orchestrator_decision
+      // (emailQueue, idempotent per run), so this tool firing a second ad-hoc email would double-send.
+      // It previously returned a fabricated messageId, which the model then reported as delivered.
+      console.log(`[Orchestrator] Ad-hoc email requested for ${(args.to ?? []).length} recipient(s) — suppressed; the run-completed report is enqueued automatically.`);
+      return {
+        sent: false,
+        implemented: false,
+        reason: 'The run-completed report email is enqueued automatically when you submit your decision. Do not list an ad-hoc email in notificationsSent.',
+      };
     }
   },
 
   query_run_history: {
-    description: 'Load the last N runs for this repo from Postgres.',
+    description: 'Load the last N completed runs for this repo from Postgres, with the real score trend. Use this to populate scoreVsPriorRun and historicalTrend instead of estimating them.',
     parameters: z.object({
       repoId: z.string(),
       limit: z.number().default(10),
       agentType: z.string().optional()
     }),
     execute: async (args: any) => {
+      // This returned a hardcoded empty history with averageScore 90 and trend "stable", which is
+      // precisely the data Phase 3's schema needs for scoreVsPriorRun and historicalTrend — so the
+      // one tool meant to ground those fields was itself inventing them. The runs table has held
+      // the real answer all along.
+      const { db } = await import('../../../db/index.js');
+      const { runs } = await import('../../../db/schema.js');
+      const { eq, and, desc, isNotNull } = await import('drizzle-orm');
+
+      const repoId = Number(args.repoId);
+      if (!Number.isFinite(repoId)) {
+        return { applicable: false, reason: 'A numeric repoId is required.', runs: [], scoreTrend: null, averageScore: null };
+      }
+
+      const limit = Math.max(1, Math.min(50, Number(args.limit) || 10));
+      const rows = await db.select({ id: runs.id, score: runs.score, status: runs.status, commitSha: runs.commitSha, createdAt: runs.createdAt })
+        .from(runs)
+        .where(and(eq(runs.repoId, repoId), eq(runs.status, 'completed'), isNotNull(runs.score)))
+        .orderBy(desc(runs.createdAt))
+        .limit(limit);
+
+      if (rows.length === 0) {
+        return {
+          runs: [], scoreTrend: null, averageScore: null, priorScore: null,
+          note: 'No prior completed, scored run for this repository. scoreVsPriorRun is 0 and historicalTrend is "stable" — say so rather than implying a history that does not exist.',
+        };
+      }
+
+      const scores = rows.map((r) => r.score as number);
+      const averageScore = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
+      // Newest-first, so comparing the head against the tail gives the direction over the window.
+      const delta = scores.length > 1 ? scores[0] - scores[scores.length - 1] : 0;
+      const scoreTrend = delta > 3 ? 'improving' : delta < -3 ? 'declining' : 'stable';
+
       return {
-        runs: [],
-        scoretrend: "stable",
-        averageScore: 90
+        runs: rows.map((r) => ({ runId: r.id, score: r.score, commitSha: r.commitSha, completedAt: r.createdAt })),
+        priorScore: scores[0],
+        averageScore,
+        scoreTrend,
+        windowSize: rows.length,
       };
     }
   },

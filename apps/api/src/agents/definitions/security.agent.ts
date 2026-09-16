@@ -3,12 +3,13 @@ import { z } from 'zod';
 import { createSecurityTools } from '../tools/security.tools.js';
 import { createSandboxTools, omitTools, UNUSED_GENERIC_TOOLS } from '../tools/sandbox.tools.js';
 import { REPORTING_DISCIPLINE } from './shared-discipline.js';
+import { CONFIDENCE_FIELD, EXPOSURE_FIELD } from './shared-finding-fields.js';
 
 const CONSTITUTION = `
 === CODEWARD AGENT CONSTITUTION ===
 1. EVIDENCE OR SILENCE: Every finding MUST include file, line, toolName, and rawEvidence. If any of these are missing, the finding is DROPPED by the pipeline. Do not guess.
 2. CRITICAL = HARD BLOCK: Any finding with severity: "CRITICAL" causes an immediate PR merge block. Do not mark something CRITICAL unless the tool output explicitly confirms it.
-3. TOKEN BUDGET: You have a maximum of 15 tool call steps. Plan efficiently. Prioritize high-severity checks first.
+3. TOKEN BUDGET: You have 20 tool call steps for a 15-step playbook. The slack exists for the read_file investigations in Step 12 and for retrying a tool that errored — use it to confirm findings, not to widen the scan. Prioritize high-severity checks first, and always leave a step for submit_security_report: exhausting the budget without it discards every finding you made.
 4. NO UNVERIFIED CLAIMS: You cannot write "this is likely vulnerable" without tool evidence. Use grep_search or read_file to confirm before asserting.
 5. STRUCTURED OUTPUT ONLY: Your final output MUST be valid JSON submitted via the submit_security_report tool.
 6. CHAIN OF CUSTODY: The backend engine automatically captures every tool execution and timing in an audit trail.
@@ -19,7 +20,10 @@ export const securityAgent: AgentDefinition = {
   id: 'security',
   displayName: 'Security Agent',
   defaultModel: 'gpt-4o-mini',
-  maxSteps: 15,
+  // The playbook is exactly 15 steps and step 14 IS the submit, so at maxSteps 15 a single tool
+  // error or one extra read_file — which step 12 explicitly asks for, plural — forced the
+  // last-step tool lockout and truncated the mandatory security scan.
+  maxSteps: 20,
   systemPrompt: `
 You are Codeward's Security Agent. You are a forensic security engineer.
 You run deterministic security tools and interpret their output.
@@ -63,6 +67,13 @@ Mark a finding DIRECT when the vulnerable code path is one a developer here owns
   - A CVE in a package listed under "dependencies" in package.json that is imported by
     first-party code AND reachable in a production code path — and you can name the importing
     file. If you cannot name it, it is not DIRECT.
+
+PROVE THE IMPORT BEFORE YOU CALL A CVE DIRECT. Naming a file is not the same as verifying one.
+Run grep_search for the package name across first-party source (excluding node_modules) and
+read the file the match lands in. If the only importers are tests, build scripts, or config,
+it is TRANSITIVE. If grep returns nothing in first-party code, it is TRANSITIVE. Put the grep
+output in rawEvidence so the claim can be checked — a DIRECT classification is what turns a
+finding into a blocked merge, so it carries the same burden of proof as the finding itself.
 
 Mark a finding TRANSITIVE when it is real but not reachable from this application:
   - A CVE in anything under "devDependencies" — test runners, linters, build tooling, CLIs.
@@ -118,14 +129,11 @@ CRITICAL INSTRUCTION: When you have completed your playbook or found a terminal 
             ]),
             title: z.string(),
             description: z.string(),
-            // How certain you are the issue is REAL, independent of how severe it would be.
-            // Optional so existing callers stay valid; when omitted the policy engine derives
-            // it conservatively from the evidence actually supplied.
-            confidence: z.enum(["HIGH", "MEDIUM", "LOW"]).optional(),
-            // How reachable the issue is. DIRECT blocks the merge; TRANSITIVE is reported but
-            // never blocks. Optional so older callers stay valid; when omitted the policy engine
-            // infers it conservatively and defaults to DIRECT.
-            exposure: z.enum(["DIRECT", "TRANSITIVE"]).optional(),
+            // Both axes now come from definitions/shared-finding-fields.ts so every agent
+            // declares an identical contract — same reason REPORTING_DISCIPLINE is shared.
+            // Still optional; the policy engine derives both conservatively when omitted.
+            confidence: CONFIDENCE_FIELD,
+            exposure: EXPOSURE_FIELD,
             file: z.string(),
             line: z.number().nullable(),
             toolName: z.string(),

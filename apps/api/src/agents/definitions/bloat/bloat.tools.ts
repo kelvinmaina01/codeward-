@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { CONFIDENCE_FIELD, EXPOSURE_FIELD } from '../shared-finding-fields.js';
 import type { SandboxHandle } from '../../core/provider.js';
 import { createMemoryTools } from '../../tools/memory.tools.js';
 
@@ -321,6 +322,8 @@ export const createBloatTools = (sandbox: SandboxHandle) => ({
         line: z.number().nullable().optional(),
         toolName: z.string(),
         rawEvidence: z.string(),
+        confidence: CONFIDENCE_FIELD,
+        exposure: EXPOSURE_FIELD,
         refactorSafe: z.boolean(),
         suggestedRefactor: z.string().nullable().optional(),
         estimatedLinesRemovable: z.number().nullable().optional(),

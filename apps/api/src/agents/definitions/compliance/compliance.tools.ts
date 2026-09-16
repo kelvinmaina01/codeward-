@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { CONFIDENCE_FIELD, EXPOSURE_FIELD } from '../shared-finding-fields.js';
 import type { SandboxHandle } from '../../core/provider.js';
 import { createSandboxTools } from '../../tools/sandbox.tools.js';
 import { createMemoryTools } from '../../tools/memory.tools.js';
@@ -203,6 +204,7 @@ export const createComplianceTools = (sandbox: SandboxHandle) => {
           category: z.enum(["DATA_RETENTION", "RTBF", "CONSENT_VERSIONING", "ACCESSIBILITY", "EU_AI_ACT", "AUDIT_TRAIL", "NHI", "SHADOW_AI", "DATA_MINIMIZATION", "CROSS_BORDER", "ALGORITHMIC_IMPACT"]),
           legalFramework: z.string().nullable(), title: z.string(), description: z.string(),
           file: z.string().nullable(), line: z.number().nullable(), toolName: z.string(), rawEvidence: z.string(),
+          confidence: CONFIDENCE_FIELD, exposure: EXPOSURE_FIELD,
           estimatedFinePotential: z.string().nullable(), remediationSteps: z.array(z.string()), dismissed: z.boolean().default(false), isNewThisRun: z.boolean()
         }))
       }),
