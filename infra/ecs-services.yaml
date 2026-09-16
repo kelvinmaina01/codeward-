@@ -1,0 +1,252 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Codeward ECS Fargate Services - Decoupled API (behind ALB) and Standalone Background Worker'
+
+Parameters:
+  EnvironmentName:
+    Type: String
+    Default: codeward-prod
+
+  ClusterName:
+    Type: String
+    Default: codeward-cluster
+
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Default: vpc-0f8bf8aee99ecc01b
+
+  PrivateSubnet1:
+    Type: AWS::EC2::Subnet::Id
+    Description: Private Subnet 1 for Fargate tasks
+
+  PrivateSubnet2:
+    Type: AWS::EC2::Subnet::Id
+    Description: Private Subnet 2 for Fargate tasks
+
+  TargetGroupArn:
+    Type: String
+    Default: arn:aws:elasticloadbalancing:eu-north-1:796468524859:targetgroup/codeward-api-tg/e58ede887bd4132c
+
+  ImageUri:
+    Type: String
+    Default: 796468524859.dkr.ecr.eu-north-1.amazonaws.com/codeward-api:latest
+
+  DatabaseUrl:
+    Type: String
+    NoEcho: true
+    Description: Full PostgreSQL connection URL (e.g. postgresql://postgres:PASSWORD@codeward-postgres.cdg8qa4mglvg.eu-north-1.rds.amazonaws.com:5432/codeward)
+
+  RedisUrl:
+    Type: String
+    Default: rediss://codeward-valkey-grelfc.serverless.eun1.cache.amazonaws.com:6379
+
+  ApiUrl:
+    Type: String
+    Default: http://codeward-alb-1287634675.eu-north-1.elb.amazonaws.com
+
+  FrontendUrl:
+    Type: String
+    Default: https://www.codeward.cloud
+
+Resources:
+  # ─── CloudWatch Log Groups (7 days retention to avoid storage cost) ───────────
+  ApiLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /ecs/codeward-api
+      RetentionInDays: 7
+
+  WorkerLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /ecs/codeward-worker
+      RetentionInDays: 7
+
+  # ─── ECS Task Execution Role (Pull from ECR & send logs) ─────────────────────
+  EcsTaskExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub '${EnvironmentName}-ecs-task-execution-role'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+
+  # ─── ECS Task Role (Allows container to call Bedrock Claude models!) ──────────
+  EcsTaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub '${EnvironmentName}-ecs-task-role'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: BedrockAccessPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - bedrock:InvokeModel
+                  - bedrock:InvokeModelWithResponseStream
+                  - bedrock:GetInferenceProfile
+                  - bedrock:ListInferenceProfiles
+                Resource: '*'
+
+  # ─── Security Group for ECS Tasks ─────────────────────────────────────────────
+  EcsTasksSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for Codeward ECS Fargate tasks
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 3000
+          ToPort: 3000
+          CidrIp: 10.0.0.0/16
+          Description: Allow incoming HTTP on port 3000 from ALB inside the VPC
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+          Description: Allow all outbound to RDS, Valkey, and NAT instance
+      Tags:
+        - Key: Name
+          Value: !Sub '${EnvironmentName}-ecs-tasks-sg'
+
+  # ─── Task Definition 1: API (HTTP Server behind ALB) ─────────────────────────
+  ApiTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: codeward-api
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      Cpu: '256'
+      Memory: '512'
+      RuntimePlatform:
+        CpuArchitecture: ARM64
+        OperatingSystemFamily: LINUX
+      ExecutionRoleArn: !GetAtt EcsTaskExecutionRole.Arn
+      TaskRoleArn: !GetAtt EcsTaskRole.Arn
+      ContainerDefinitions:
+        - Name: codeward-api
+          Image: !Ref ImageUri
+          Essential: true
+          PortMappings:
+            - ContainerPort: 3000
+              Protocol: tcp
+          Environment:
+            - Name: PORT
+              Value: '3000'
+            - Name: NODE_ENV
+              Value: production
+            - Name: RUN_WORKER_INLINE
+              Value: 'false'
+            - Name: DATABASE_URL
+              Value: !Ref DatabaseUrl
+            - Name: REDIS_URL
+              Value: !Ref RedisUrl
+            - Name: UPSTASH_REDIS_URL
+              Value: !Ref RedisUrl
+            - Name: API_URL
+              Value: !Ref ApiUrl
+            - Name: FRONTEND_URL
+              Value: !Ref FrontendUrl
+            - Name: AWS_REGION
+              Value: !Ref 'AWS::Region'
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref ApiLogGroup
+              awslogs-region: !Ref 'AWS::Region'
+              awslogs-stream-prefix: api
+
+  # ─── Task Definition 2: Standalone Worker (BullMQ consumer) ──────────────────
+  WorkerTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: codeward-worker
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      Cpu: '256'
+      Memory: '512'
+      RuntimePlatform:
+        CpuArchitecture: ARM64
+        OperatingSystemFamily: LINUX
+      ExecutionRoleArn: !GetAtt EcsTaskExecutionRole.Arn
+      TaskRoleArn: !GetAtt EcsTaskRole.Arn
+      ContainerDefinitions:
+        - Name: codeward-worker
+          Image: !Ref ImageUri
+          Essential: true
+          Command:
+            - node
+            - dist/worker.js
+          Environment:
+            - Name: NODE_ENV
+              Value: production
+            - Name: DATABASE_URL
+              Value: !Ref DatabaseUrl
+            - Name: REDIS_URL
+              Value: !Ref RedisUrl
+            - Name: UPSTASH_REDIS_URL
+              Value: !Ref RedisUrl
+            - Name: AWS_REGION
+              Value: !Ref 'AWS::Region'
+            - Name: WORKER_CONCURRENCY
+              Value: '5'
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref WorkerLogGroup
+              awslogs-region: !Ref 'AWS::Region'
+              awslogs-stream-prefix: worker
+
+  # ─── ECS Service 1: API (Attached to ALB Target Group) ───────────────────────
+  ApiService:
+    Type: AWS::ECS::Service
+    Properties:
+      ServiceName: codeward-api
+      Cluster: !Ref ClusterName
+      TaskDefinition: !Ref ApiTaskDefinition
+      DesiredCount: 1
+      LaunchType: FARGATE
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED
+          Subnets:
+            - !Ref PrivateSubnet1
+            - !Ref PrivateSubnet2
+          SecurityGroups:
+            - !Ref EcsTasksSecurityGroup
+      LoadBalancers:
+        - ContainerName: codeward-api
+          ContainerPort: 3000
+          TargetGroupArn: !Ref TargetGroupArn
+
+  # ─── ECS Service 2: Worker (Decoupled from ALB, scales independently) ────────
+  WorkerService:
+    Type: AWS::ECS::Service
+    Properties:
+      ServiceName: codeward-worker
+      Cluster: !Ref ClusterName
+      TaskDefinition: !Ref WorkerTaskDefinition
+      DesiredCount: 1
+      LaunchType: FARGATE
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED
+          Subnets:
+            - !Ref PrivateSubnet1
+            - !Ref PrivateSubnet2
+          SecurityGroups:
+            - !Ref EcsTasksSecurityGroup

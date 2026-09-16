@@ -8,3 +8,7 @@ dist
 .fallow
 apps/web
 apps/docs
+.env
+.env.*
+*.log
+

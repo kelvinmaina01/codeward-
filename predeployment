@@ -1,0 +1,64 @@
+# ENGINEERING RUNBOOK: AWS MIGRATION & FINOPS OPTIMIZATION
+**Project:** Codeward - Operation Cutover
+**Status:** STRICT IMPLEMENTATION REQUIRED
+**Budget Constraints:** $1,000 AWS Activate Credit Runway
+**Target Idle Burn:** ~$74/month
+
+---
+
+## EXECUTIVE SUMMARY
+This document outlines the strict deployment protocol for migrating Codeward to AWS. A naive migration using AWS default configurations will burn **$218/month in idle infrastructure alone**, exhausting the $1,000 credit in 4.6 months without processing a single Pull Request. By adhering strictly to the FinOps configurations detailed below, the idle burn is reduced to **$74/month**, extending the runway to 13 months and preserving the credit for actual AI inference.
+
+---
+
+## PART 1: INFRASTRUCTURE PROVISIONING (ASSIGNED TO: CTO)
+*The following infrastructure must be provisioned before any code is deployed. Do not use AWS default wizard settings.*
+
+### 1.1 VPC & Networking (The Egress Trap)
+* **CRITICAL BLOCKER:** Do NOT provision a standard AWS NAT Gateway. A single NAT Gateway costs ~$32/month in base hourly fees regardless of traffic.
+* **ACTION:** Provision a **NAT Instance (t4g.nano)** or rely strictly on VPC Endpoints for outbound traffic. This reduces egress idle costs to ~$3/month.
+
+### 1.2 Caching & Queues (The Redis Trap)
+* **CRITICAL BLOCKER:** Do NOT provision ElastiCache with the Redis OSS engine. Redis OSS enforces a 1GB minimum metered usage (~$91/month idle).
+* **ACTION:** Provision **Amazon ElastiCache Serverless** and select the **Valkey** engine. Valkey is 100% Redis-protocol compatible (ioredis and BullMQ will work unchanged) but has a 100MB minimum metering, dropping the idle cost to ~$6/month.
+
+### 1.3 Database
+* **ACTION:** Provision **Amazon RDS for PostgreSQL**. Use a `t4g.micro` instance to keep fixed costs at ~$13/month. Do not use Aurora Serverless v2 for the initial phase as its minimum ACU scaling can unpredictably drain the credits. Place the database in the private subnet.
+
+### 1.4 Container Orchestration (ECS Fargate)
+* **CRITICAL BLOCKER:** Do NOT deploy the API and the Background Worker in the same ECS Service. Currently, `index.ts` starts both. Scaling the API for web traffic will silently multiply agent workers and Bedrock concurrency, causing massive sandbox spawns and API throttling.
+* **ACTION:** Create an ECS Cluster and provision **TWO separate ECS Services**:
+  1. **API Service:** Runs the HTTP web server behind an Application Load Balancer (ALB).
+  2. **Worker Service:** Uses the standalone `worker.ts` entry point. Scale this service based on BullMQ queue depth, independently of web traffic.
+* **OPTIMIZATION:** Enable **SOCI (Seekable OCI)** lazy image loading on the Fargate task definitions. This drastically reduces task cold start times, mitigating the latency introduced by moving the sandbox layer to AWS.
+
+### 1.5 AWS Bedrock Quotas & Budget Guardrails
+* **ACTION 1:** Immediately request a **TPM (Tokens Per Minute) quota increase** for Bedrock (Claude 3.5 Sonnet and Haiku). Throttling drives expensive checkpoint retries.
+* **ACTION 2:** Enable **Cross-Region Inference Profiles** in Bedrock to improve throughput and reduce throttling risk at no extra cost.
+* **ACTION 3:** Configure an **AWS Budgets Alarm** scoped specifically to the Bedrock service at 50% ($500) and 80% ($800) of the Activate Credit balance. This is the ultimate fail-safe against telemetry bugs.
+
+---
+
+## PART 2: ARCHITECTURE REFACTORING (ASSIGNED TO: ENGINEERING)
+*The codebase requires the following surgical modifications to be fully Cloud-Native and Bedrock-compatible. These must be executed before pointing production traffic to AWS.*
+
+### 2.1 State Distribution (Horizontal Scaling Blocker)
+* **CRITICAL BLOCKER:** Live feeds and Presence (`ws.ts`) currently use in-memory `Set` and `Map`. If Fargate scales past 1 task, the `broadcast()` function will only reach users connected to that specific container.
+* **ACTION:** Migrate the WebSocket fan-out to **Valkey (Redis) Pub/Sub**. Every task must publish events to Valkey, and every task must subscribe to deliver events to its own connected sockets.
+
+### 2.2 The Bedrock Shim (API Compatibility)
+* **CRITICAL BLOCKER:** The core `agent-loop.ts` hardcodes OpenAI's wire format (e.g., `role: "tool"`). A direct provider drop-in will fail.
+* **ACTION 1:** Write a `BedrockProvider` implementing the `AgentProvider` interface that translates OpenAI-shaped messages into the Converse API format (e.g., `toolResult` blocks).
+* **ACTION 2 (FINOPS):** The Bedrock provider MUST inject explicit `cachePoint` blocks ( `{"type":"default"}` ). Without these, Codeward loses the 80% prompt-caching discount, and token costs will increase by 3-5x.
+* **ACTION 3:** Ensure the provider reads `cacheReadInputTokens` from the Converse API response and populates the `cachedInput` telemetry field so the `BudgetService` kill-switch remains accurate.
+
+### 2.3 Forced Tool Choice (Model Limitations)
+* **CRITICAL BLOCKER:** The architecture relies on `tool_choice: 'required'` (the "Final Tool Trick"). Amazon Nova models do not honor this reliably, which could cause agents to return prose, bypass the `submit_*` tool, and trigger a fail-closed product outage.
+* **ACTION:** Use **Claude 3.5 Haiku** for mechanical agents and **Claude 3.5 Sonnet** for the Guardian agent. Validate any new model against the `test:policy:eval` suite before tiering.
+
+### 2.4 Deep Optimization Sweep (Final Token Reduction)
+* **Batch Inference:** Route the `data_dx` and `compliance` agents through the Bedrock Batch API (50% cheaper) since they run on scheduled cadences and are not latency-sensitive.
+* **Further Pruning:** Apply `omitTools` to the `ai_era` and `compliance` agents to remove `exec_command`, `list_files`, and `get_project_summary`. Do not remove `grep_search`.
+* **Budget Threading:** Pass a single `totalCascadeBudgetMs` through `AgentRunConfig` so a single run has a hard ceiling, preventing infinite step-retries.
+* **Deterministic Orchestration:** Convert Phase 1 and Phase 2 of the Orchestrator into pure TypeScript functions. `classifyDiff()` is already a pure function; removing the LLM wrapper saves 2 invocations and ~4,300 tokens per PR.
+

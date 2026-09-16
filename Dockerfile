@@ -1,21 +1,40 @@
-FROM node:22-alpine
+# ─── Stage 1: Build ────────────────────────────────────────────────────────────
+FROM node:22-alpine AS builder
 
 WORKDIR /app
 
-# Copy api package files
+# Copy dependency manifests
 COPY apps/api/package*.json ./
 
-# Install dependencies inside Linux environment
-RUN npm install
+# Install all dependencies (including TypeScript devDependencies)
+RUN npm ci
 
-# Copy only the api source code and configuration
+# Copy application source code
 COPY apps/api/ ./
 
-# Build TypeScript
+# Compile TypeScript to dist/
 RUN npm run build
 
-# Expose port
+# ─── Stage 2: Production Runner ───────────────────────────────────────────────
+FROM node:22-alpine AS runner
+
+WORKDIR /app
+
+ENV NODE_ENV=production
+
+# Install only production dependencies
+COPY apps/api/package*.json ./
+RUN npm ci --omit=dev && npm cache clean --force
+
+# Copy compiled JavaScript output and runtime assets
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/drizzle ./drizzle
+COPY --from=builder /app/package.json ./package.json
+
+# Default port for API
 EXPOSE 3000
 
-# Start server
-CMD ["npm", "start"]
+# Default entry point runs the HTTP API server.
+# For ECS Worker service, override container command to: ["node", "dist/worker.js"]
+CMD ["node", "dist/index.js"]
+
