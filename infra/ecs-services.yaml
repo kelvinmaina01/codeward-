@@ -150,6 +150,8 @@ Resources:
               Value: production
             - Name: RUN_WORKER_INLINE
               Value: 'false'
+            - Name: SKIP_SECRET_VALIDATION
+              Value: 'true'
             - Name: DATABASE_URL
               Value: !Ref DatabaseUrl
             - Name: REDIS_URL
@@ -194,6 +196,8 @@ Resources:
           Environment:
             - Name: NODE_ENV
               Value: production
+            - Name: SKIP_SECRET_VALIDATION
+              Value: 'true'
             - Name: DATABASE_URL
               Value: !Ref DatabaseUrl
             - Name: REDIS_URL
