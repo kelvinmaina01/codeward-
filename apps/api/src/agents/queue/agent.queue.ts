@@ -19,7 +19,7 @@
 
 import { Queue, Worker, Job, UnrecoverableError } from 'bullmq';
 import dotenv from 'dotenv';
-import { createRedisConnection } from '../../lib/redis.js';
+import { createRedisConnection, BULLMQ_PREFIX } from '../../lib/redis.js';
 import { workerDb as db } from '../../db/index.js';
 import { agentTasks, runs, repositories, runLogs, user } from '../../db/schema.js';
 import { eq, and, notLike } from 'drizzle-orm';
@@ -100,6 +100,7 @@ const connection = createRedisConnection();
 
 export const agentQueue = new Queue('agent-jobs', {
   connection: connection as any,
+  prefix: BULLMQ_PREFIX,
   defaultJobOptions: {
     attempts: 3,
     backoff: {
@@ -874,6 +875,7 @@ Use these EXACT values for any tool parameter named runId/repoId — never inven
 
   }, {
     connection: connection as any,
+    prefix: BULLMQ_PREFIX,
     concurrency,
     lockDuration: 300000,
     settings: {

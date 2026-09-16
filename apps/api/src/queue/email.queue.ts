@@ -5,7 +5,7 @@
  */
 
 import { Queue, Worker, Job } from 'bullmq';
-import { createRedisConnection } from '../lib/redis.js';
+import { createRedisConnection, BULLMQ_PREFIX } from '../lib/redis.js';
 import { db } from '../db/index.js';
 import { organization, repositories, user } from '../db/schema.js';
 import { eq } from 'drizzle-orm';
@@ -45,6 +45,7 @@ const connection = createRedisConnection();
 
 export const emailQueue = new Queue<EmailJobData>('email-jobs', {
   connection: connection as any,
+  prefix: BULLMQ_PREFIX,
   defaultJobOptions: {
     attempts: 4,
     backoff: { type: 'exponential', delay: 5_000 },
@@ -165,6 +166,7 @@ export const emailWorker = new Worker<EmailJobData>(
   },
   {
     connection: connection as any,
+    prefix: BULLMQ_PREFIX,
     concurrency: 5,
   }
 );

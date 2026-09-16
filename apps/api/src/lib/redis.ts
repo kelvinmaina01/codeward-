@@ -12,6 +12,8 @@ import { Redis } from 'ioredis';
 let loggedQuotaWarning = false;
 let isQuotaExceeded = false;
 
+export const BULLMQ_PREFIX = '{bull}';
+
 export function isRedisQuotaExceeded(): boolean {
   return isQuotaExceeded;
 }

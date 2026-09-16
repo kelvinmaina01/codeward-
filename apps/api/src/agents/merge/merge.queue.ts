@@ -1,5 +1,5 @@
 import { Queue, Worker, Job } from 'bullmq';
-import { createRedisConnection } from '../../lib/redis.js';
+import { createRedisConnection, BULLMQ_PREFIX } from '../../lib/redis.js';
 import { db } from '../../db/index.js';
 import { mergeApprovals, repositories } from '../../db/schema.js';
 import { eq } from 'drizzle-orm';
@@ -19,6 +19,7 @@ interface MergeJobData {
  */
 export const mergeQueue = new Queue<MergeJobData>('merge-jobs', {
   connection: connection as any,
+  prefix: BULLMQ_PREFIX,
   defaultJobOptions: {
     attempts: 1,
     removeOnComplete: { count: 500, age: 24 * 3600 },
@@ -43,6 +44,7 @@ export function startMergeWorker(customOpts?: any): Worker<MergeJobData> {
     return outcome;
   }, {
     connection: connection as any,
+    prefix: BULLMQ_PREFIX,
     concurrency: 2,
     ...customOpts,
   });

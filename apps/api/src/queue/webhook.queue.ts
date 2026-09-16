@@ -3,13 +3,16 @@ import dotenv from 'dotenv';
 import { workerDb as db } from '../db/index.js';
 import { repositories, runs } from '../db/schema.js';
 import { eq } from 'drizzle-orm';
-import { createRedisConnection } from '../lib/redis.js';
+import { createRedisConnection, BULLMQ_PREFIX } from '../lib/redis.js';
 
 dotenv.config();
 
 const connection = createRedisConnection();
 
-export const pushQueue = new Queue('webhook-jobs', { connection: connection as any });
+export const pushQueue = new Queue('webhook-jobs', { 
+  connection: connection as any,
+  prefix: BULLMQ_PREFIX,
+});
 
 interface PushJobData {
   runId: number;
@@ -83,5 +86,6 @@ export const pushWorker = new Worker<PushJobData>('webhook-jobs', async (job: Jo
   return { dispatched: true, incremental: !!scope };
 }, {
   connection: connection as any,
+  prefix: BULLMQ_PREFIX,
   concurrency: 10
 });

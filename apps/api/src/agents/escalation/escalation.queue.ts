@@ -1,5 +1,5 @@
 import { Queue, Worker, Job } from 'bullmq';
-import { createRedisConnection } from '../../lib/redis.js';
+import { createRedisConnection, BULLMQ_PREFIX } from '../../lib/redis.js';
 import { escalateUnresolvedFindings, type EscalationResult } from './escalation.service.js';
 import { ResilientSandbox } from '../../sandbox/resilient-sandbox.js';
 import type { SandboxHandle } from '../../sandbox/local-exec.js';
@@ -23,6 +23,7 @@ function createSandbox(): SandboxHandle {
  */
 export const escalationQueue = new Queue<EscalationJobData, any, string>('escalation-jobs', {
   connection: connection as any,
+  prefix: BULLMQ_PREFIX,
   defaultJobOptions: {
     attempts: 5,
     backoff: {
@@ -92,6 +93,7 @@ export function startEscalationWorker(customOpts?: any): Worker<EscalationJobDat
     },
     {
       connection: connection as any,
+      prefix: BULLMQ_PREFIX,
       concurrency,
       limiter: {
         max: maxIssuesPerMin,
