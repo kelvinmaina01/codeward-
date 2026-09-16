@@ -200,8 +200,14 @@ if (isDirectExecution) {
   // ─── Worker process initialization ───────────────────────────────────────────
   // In production, workers run as a dedicated, horizontally scalable service ('src/worker.ts').
   // For local development convenience, RUN_WORKER_INLINE defaults to true in non-production.
-  const shouldRunWorkerInline = process.env.RUN_WORKER_INLINE === 'true' || 
-    (process.env.NODE_ENV !== 'production' && process.env.RUN_WORKER_INLINE !== 'false');
+  //
+  // Production is a hard exclusion with no opt-in. On ECS the API service scales on web traffic,
+  // so an inline worker would multiply BullMQ consumers — and therefore sandbox spawns and model
+  // spend — by the API task count, with no relationship to actual review demand. Previously
+  // RUN_WORKER_INLINE=true could re-enable that in production; that escape hatch is removed so
+  // the coupling cannot be reintroduced by configuration alone.
+  const shouldRunWorkerInline =
+    process.env.NODE_ENV !== 'production' && process.env.RUN_WORKER_INLINE !== 'false';
 
   if (shouldRunWorkerInline) {
     (async () => {

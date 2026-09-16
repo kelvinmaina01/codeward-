@@ -13,7 +13,8 @@
  * ============================================================================
  */
 import type { AgentProvider, AgentRunConfig, AgentResult, ToolMap } from '../provider.js';
-import { NativeOpenAIProvider, AgentTool } from '../../../providers/openai.provider.js';
+import type { AgentProvider as InferenceEngine, AgentTool } from '../../../providers/openai.provider.js';
+import { resolveInferenceEngine, type EngineName } from '../../../providers/engine.provider.js';
 import { runAgentLoop } from '../../agent-loop.js';
 import { logAndBroadcast } from '../../queue/agent.queue.js';
 
@@ -29,10 +30,19 @@ function toolMapToArray(tools: ToolMap): AgentTool[] {
 export class OpenAIProvider implements AgentProvider {
   readonly name = 'openai';
 
+  /**
+   * Which low-level engine drives the tool loop. Left undefined, the cascade resolves from the
+   * environment (Bedrock first when enabled, OpenAI otherwise). The registry passes an explicit
+   * value to expose force-Bedrock and force-OpenAI entries by name. Everything above this line —
+   * agent definitions, prompts, findings extraction, the policy engine — is engine-agnostic and
+   * unchanged.
+   */
+  constructor(private readonly forcedEngine?: EngineName) {}
+
   async execute(config: AgentRunConfig): Promise<AgentResult> {
     const model = config.model || 'gpt-4o-mini';
     const startTime = Date.now();
-    const provider = new NativeOpenAIProvider();
+    const provider: InferenceEngine = resolveInferenceEngine(this.forcedEngine);
 
     let reportArgs: any = null;
     const toolArray = toolMapToArray(config.tools).map(t => ({
