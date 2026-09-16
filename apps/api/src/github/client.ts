@@ -3,15 +3,27 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const appId = process.env.GITHUB_APP_ID || '';
-const privateKey = process.env.GITHUB_PRIVATE_KEY || '';
+function getApp(): App {
+  const appId = process.env.GITHUB_APP_ID || '';
+  const privateKey = process.env.GITHUB_PRIVATE_KEY || '';
+  if (!appId || !privateKey) {
+    throw new Error('GITHUB_APP_ID and GITHUB_PRIVATE_KEY must be configured in environment variables');
+  }
+  const formattedPrivateKey = privateKey.replace(/\\n/g, '\n');
+  return new App({
+    appId,
+    privateKey: formattedPrivateKey,
+  });
+}
 
-// Replace escaped \n characters with actual newlines for the PEM format to work
-const formattedPrivateKey = privateKey.replace(/\\n/g, '\n');
-
-export const githubApp = new App({
-  appId,
-  privateKey: formattedPrivateKey,
+let _app: App | null = null;
+export const githubApp = new Proxy({} as App, {
+  get(_target, prop) {
+    if (!_app) {
+      _app = getApp();
+    }
+    return (_app as any)[prop];
+  },
 });
 
 /**
