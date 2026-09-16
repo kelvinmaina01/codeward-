@@ -21,6 +21,21 @@ export type CanonicalSeverity = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' | 'INFO';
 export type Confidence = 'HIGH' | 'MEDIUM' | 'LOW';
 export type EvidenceStrength = 'STRONG' | 'WEAK' | 'NONE';
 
+/**
+ * How reachable the issue is from an attacker's position — the axis that decides whether a
+ * finding is worth *stopping a merge* over, as distinct from severity, which describes impact.
+ *
+ *   DIRECT      the developer's own code, or a direct production dependency. Blocks.
+ *   TRANSITIVE  a CVE in a devDependency, build tool, or nested dependency with no traced path
+ *               from a production entry point. Reported, never blocks.
+ *
+ * Without this axis severity was the only dial and it governed surfacing and blocking together,
+ * so the only way to stop blocking on a transitive CVE was to downgrade it below the surface
+ * floor — which deleted it from the report entirely. Exposure decouples "worth telling you"
+ * from "worth stopping you".
+ */
+export type Exposure = 'DIRECT' | 'TRANSITIVE';
+
 export const SEVERITY_RANK: Record<CanonicalSeverity, number> = {
   CRITICAL: 4, HIGH: 3, MEDIUM: 2, LOW: 1, INFO: 0,
 };
@@ -70,6 +85,9 @@ export interface RawFinding {
   dismissalReason?: unknown;
   /** Optional, additive: agents that assess their own certainty supply it; absent is fine. */
   confidence?: unknown;
+  /** Optional, additive: DIRECT | TRANSITIVE. Absent falls back to inference — see deriveExposure. */
+  exposure?: unknown;
+  cveId?: unknown;
   [key: string]: unknown;
 }
 
@@ -85,9 +103,12 @@ export interface AssessedFinding {
   severity: CanonicalSeverity;
   confidence: Confidence;
   evidence: EvidenceStrength;
+  exposure: Exposure;
   surfaced: boolean;
   blocking: boolean;
   suppressionReason: SuppressionReason | null;
+  /** Set when the finding is reported but deliberately not allowed to block. */
+  advisory: boolean;
 }
 
 export function normalizeSeverity(raw: unknown): CanonicalSeverity {
@@ -169,6 +190,47 @@ export interface PolicyOptions {
   surfaceFloor?: CanonicalSeverity;
   /** Lowest severity allowed to block a merge. Default HIGH. */
   blockFloor?: CanonicalSeverity;
+  /**
+   * Lowest severity allowed to reach a developer for dependency-advisory findings. Default
+   * MEDIUM — deliberately one notch below `surfaceFloor`, because a transitive CVE is worth
+   * reporting even when it is not worth blocking, and the old single floor deleted it instead.
+   */
+  advisorySurfaceFloor?: CanonicalSeverity;
+}
+
+/** Categories whose findings describe a dependency advisory rather than the developer's code. */
+const DEPENDENCY_CATEGORIES = new Set(['CVE', 'SUPPLY_CHAIN', 'DEPENDENCY']);
+
+/** Paths that only ever appear for code the developer did not write. */
+const VENDOR_PATH = /(^|\/)(node_modules|vendor|\.venv|site-packages)(\/|$)/i;
+
+/** Manifests: a CVE reported against one of these is an advisory, not a reachable call site. */
+const MANIFEST_PATH = /(^|\/)(package(-lock)?\.json|pnpm-lock\.yaml|yarn\.lock|requirements\.txt|go\.sum|Cargo\.lock|Gemfile\.lock)$/i;
+
+/**
+ * Establishes how reachable a finding is.
+ *
+ * The agent's own `exposure` field wins when supplied — it has the package manifest in front of
+ * it and can tell a direct dependency from a nested one. When absent (older agents, other
+ * providers) it is inferred conservatively: a dependency-category finding that points at a
+ * vendored path or a lockfile, or that carries a CVE id with no first-party file, is an
+ * advisory. Everything else defaults to DIRECT, so an unclassified finding keeps today's
+ * blocking behaviour rather than silently becoming un-blockable.
+ */
+export function deriveExposure(f: RawFinding): Exposure {
+  const declared = str(f.exposure).trim().toUpperCase();
+  if (declared === 'TRANSITIVE' || declared === 'INDIRECT') return 'TRANSITIVE';
+  if (declared === 'DIRECT') return 'DIRECT';
+
+  const category = str(f.category).trim().toUpperCase().replace(/[\s-]+/g, '_');
+  const file = str(f.file).trim();
+  const isDependencyFinding = DEPENDENCY_CATEGORIES.has(category) || !!str(f.cveId).trim();
+
+  if (!isDependencyFinding) return 'DIRECT';
+  if (VENDOR_PATH.test(file) || MANIFEST_PATH.test(file) || !file) return 'TRANSITIVE';
+
+  // A CVE pinned to a real first-party source file means someone traced it to a call site.
+  return 'DIRECT';
 }
 
 /**
@@ -179,14 +241,16 @@ export interface PolicyOptions {
 export function assessFinding(f: RawFinding, opts: PolicyOptions = {}): AssessedFinding {
   const surfaceFloor = opts.surfaceFloor ?? 'HIGH';
   const blockFloor = opts.blockFloor ?? 'HIGH';
+  const advisorySurfaceFloor = opts.advisorySurfaceFloor ?? 'MEDIUM';
 
   const severity = normalizeSeverity(f.severity);
   const evidence = assessEvidence(f);
   const confidence = assessConfidence(f, evidence);
+  const exposure = deriveExposure(f);
 
-  const base = { finding: f, severity, confidence, evidence };
+  const base = { finding: f, severity, confidence, evidence, exposure };
   const suppress = (reason: SuppressionReason): AssessedFinding => ({
-    ...base, surfaced: false, blocking: false, suppressionReason: reason,
+    ...base, surfaced: false, blocking: false, advisory: false, suppressionReason: reason,
   });
 
   if (f.dismissed === true) return suppress('DISMISSED_BY_MEMORY');
@@ -194,16 +258,25 @@ export function assessFinding(f: RawFinding, opts: PolicyOptions = {}): Assessed
   const category = str(f.category).trim().toUpperCase().replace(/[\s-]+/g, '_');
   if (NON_SURFACING_CATEGORIES.has(category)) return suppress('NON_SURFACING_CATEGORY');
 
-  if (SEVERITY_RANK[severity] < SEVERITY_RANK[surfaceFloor]) return suppress('BELOW_SEVERITY_FLOOR');
+  // A transitive dependency advisory is reported one severity notch lower than first-party code,
+  // because the whole point is that it stays visible without stopping the merge.
+  const effectiveSurfaceFloor = exposure === 'TRANSITIVE' ? advisorySurfaceFloor : surfaceFloor;
+  if (SEVERITY_RANK[severity] < SEVERITY_RANK[effectiveSurfaceFloor]) return suppress('BELOW_SEVERITY_FLOOR');
   if (evidence === 'NONE') return suppress('INSUFFICIENT_EVIDENCE');
   if (confidence === 'LOW') return suppress('LOW_CONFIDENCE');
 
   const blocking =
+    exposure === 'DIRECT' &&
     SEVERITY_RANK[severity] >= SEVERITY_RANK[blockFloor] &&
     confidence === 'HIGH' &&
     evidence === 'STRONG';
 
-  return { ...base, surfaced: true, blocking, suppressionReason: null };
+  // Surfaced, severe and well-evidenced, but held back from the gate purely because it is not
+  // reachable from first-party code. This is the flag the PR comment uses to say "FYI" rather
+  // than "fix this before merging".
+  const advisory = !blocking && exposure === 'TRANSITIVE';
+
+  return { ...base, surfaced: true, blocking, advisory, suppressionReason: null };
 }
 
 export interface PolicyResult {
@@ -212,6 +285,8 @@ export interface PolicyResult {
   suppressed: Array<{ finding: RawFinding; reason: SuppressionReason }>;
   blocking: RawFinding[];
   /** Counts by suppression reason — the signal that tells us if a prompt change went too far. */
+  /** Surfaced, but deliberately non-blocking — transitive dependency advisories. */
+  advisory: RawFinding[];
   suppressionBreakdown: Record<string, number>;
 }
 
@@ -233,6 +308,7 @@ export function applyFindingPolicy(findings: RawFinding[] | null | undefined, op
       .filter((a) => a.suppressionReason !== null)
       .map((a) => ({ finding: a.finding, reason: a.suppressionReason as SuppressionReason })),
     blocking: assessed.filter((a) => a.blocking).map((a) => a.finding),
+    advisory: assessed.filter((a) => a.advisory).map((a) => a.finding),
     suppressionBreakdown,
   };
 }
@@ -262,9 +338,14 @@ export function decideGate(assessed: AssessedFinding[]): { decision: GateDecisio
   if (surfacedNonBlocking.length > 0) {
     return {
       decision: 'WARN',
-      reasons: surfacedNonBlocking.map(
-        (a) => `[${a.severity}/${a.confidence} confidence] ${str(a.finding.title) || 'Untitled finding'}`
-      ),
+      reasons: surfacedNonBlocking.map((a) => {
+        // Advisories are labelled so the developer can see at a glance that the merge is not
+        // gated on them — the difference between "fix before merging" and "worth knowing".
+        const prefix = a.advisory
+          ? `[${a.severity}/advisory · not blocking]`
+          : `[${a.severity}/${a.confidence} confidence]`;
+        return `${prefix} ${str(a.finding.title) || 'Untitled finding'}`;
+      }),
     };
   }
 

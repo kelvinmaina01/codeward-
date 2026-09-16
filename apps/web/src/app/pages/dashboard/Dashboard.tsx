@@ -5,12 +5,24 @@ import {
   ShieldCheck, GitCommitHorizontal, GitPullRequest, Activity, CircleDot, Inbox,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api, API_URL, WS_URL } from '../../../lib/api';
 import { RepoSelector } from '../../components/shared/RepoSelector';
+import { FindingRow } from '../../components/shared/findings/FindingRow';
 import { Search01Icon, Add01Icon, File01Icon, Award01Icon } from 'hugeicons-react';
+
+/** Display-only: pipeline phases are an implementation detail, not something a reader should parse. */
+function humanizeFeedText(text: string): string {
+  return text.replace(/Orchestrator Phase\s*\d+\s*Agent/gi, 'Orchestrator').replace(/\s+Agent finished scanning\s+/i, ' finished scanning ');
+}
+
+/** Display-only: the API may already prefix the grade ("Grade B"); never print "Grade Grade B". */
+function gradeLabel(grade: string | null | undefined): string {
+  if (!grade) return '';
+  return /^grade\b/i.test(grade) ? grade : `Grade ${grade}`;
+}
 
 function getAgentIdFromText(text: string): string {
   const lower = text.toLowerCase();
@@ -54,14 +66,14 @@ const TONE_DOT: Record<Tone, string> = {
 
 const FOCUS_RING =
   'focus:outline-none focus-visible:ring-2 focus-visible:ring-cw-purple/60 focus-visible:ring-offset-1 focus-visible:ring-offset-cw-bg';
-const MICRO_LABEL = 'text-[10px] font-semibold uppercase tracking-[0.08em] text-cw-txt3';
+const MICRO_LABEL = 'text-[11px] font-medium uppercase tracking-wider text-cw-txt3';
 const BTN_BASE = `inline-flex items-center gap-1.5 rounded-md text-[12px] font-medium whitespace-nowrap transition-colors duration-150 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${FOCUS_RING}`;
 const BTN_PRIMARY = `${BTN_BASE} px-3 py-1.5 bg-cw-purple text-white border border-cw-purple hover:brightness-110 active:brightness-95`;
 const BTN_SECONDARY = `${BTN_BASE} px-3 py-1.5 bg-cw-bg2 text-cw-txt border border-cw-bdr hover:bg-cw-bg3 hover:border-cw-txt3/50`;
 const BTN_SUCCESS = `${BTN_BASE} px-3 py-1.5 bg-cw-green text-white border border-cw-green hover:brightness-110 active:brightness-95`;
-const BTN_GHOST_SM = `${BTN_BASE} px-2 py-1 text-[11px] bg-transparent text-cw-txt2 border border-cw-bdr hover:bg-cw-bg3 hover:text-cw-txt`;
-const BTN_LINK = `inline-flex items-center gap-1 rounded-sm text-[11px] font-medium text-cw-purple hover:text-cw-txt bg-transparent border-none p-0 cursor-pointer transition-colors ${FOCUS_RING}`;
-const INPUT = `bg-cw-bg2 border border-cw-bdr text-cw-txt rounded-md px-2 py-1 text-[11px] ${FOCUS_RING}`;
+const BTN_GHOST_SM = `${BTN_BASE} px-2 py-1 text-[12px] bg-transparent text-cw-txt2 border border-cw-bdr hover:bg-cw-bg3 hover:text-cw-txt`;
+const BTN_LINK = `inline-flex items-center gap-1 rounded-sm text-[12px] font-medium text-cw-purple hover:text-cw-txt bg-transparent border-none p-0 cursor-pointer transition-colors ${FOCUS_RING}`;
+const INPUT = `bg-cw-bg2 border border-cw-bdr text-cw-txt rounded-md px-2 py-1 text-[12px] ${FOCUS_RING}`;
 
 interface Props {
   onRunClick?: (repoId: number, runId: number) => void;
@@ -381,7 +393,7 @@ function Pill({
   tone = 'neutral', dot = false, pulse = false, mono = false, className = '', children,
 }: { tone?: Tone; dot?: boolean; pulse?: boolean; mono?: boolean; className?: string; children: ReactNode }) {
   return (
-    <span className={`inline-flex items-center gap-1.5 px-1.5 py-[3px] rounded border text-[10px] font-semibold leading-none whitespace-nowrap ${mono ? 'font-mono' : ''} ${TONE_PILL[tone]} ${className}`}>
+    <span className={`inline-flex items-center gap-1.5 px-1.5 py-[3px] rounded border text-[11px] font-semibold leading-none whitespace-nowrap ${mono ? 'font-mono' : ''} ${TONE_PILL[tone]} ${className}`}>
       {dot && (
         <span className={`relative inline-flex w-1.5 h-1.5 rounded-full shrink-0 ${TONE_DOT[tone]}`}>
           {pulse && <span className={`absolute inset-0 rounded-full animate-ping opacity-60 ${TONE_DOT[tone]}`} />}
@@ -410,15 +422,15 @@ function PanelHeader({
   return (
     <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-3 px-4 sm:px-5 py-3 border-b border-cw-bdr">
       <div className="min-w-0">
-        <h2 className="text-[13px] font-semibold text-cw-txt leading-5 flex items-center gap-2 min-w-0">
+        <h2 className="text-[14px] font-semibold text-cw-txt leading-5 flex items-center gap-2 min-w-0">
           <span className="truncate">{title}</span>
           {count != null && (
-            <span className="font-mono text-[10px] font-semibold text-cw-txt2 bg-cw-bg3 border border-cw-bdr rounded px-1.5 py-px leading-4 tabular-nums shrink-0">
+            <span className="font-mono text-[11px] font-semibold text-cw-txt2 bg-cw-bg3 border border-cw-bdr rounded px-1.5 py-px leading-4 tabular-nums shrink-0">
               {count}
             </span>
           )}
         </h2>
-        {description && <p className="text-[11px] text-cw-txt3 leading-4 mt-0.5">{description}</p>}
+        {description && <p className="text-[12px] text-cw-txt3 leading-4 mt-0.5">{description}</p>}
       </div>
       {actions && <div className="flex items-center gap-2 shrink-0 flex-wrap sm:justify-end">{actions}</div>}
     </div>
@@ -433,8 +445,8 @@ function EmptyState({
       <div className="w-8 h-8 rounded-md border border-dashed border-cw-bdr bg-cw-bg/60 flex items-center justify-center text-cw-txt3">
         <Icon size={14} />
       </div>
-      <div className="text-[12px] font-medium text-cw-txt2">{title}</div>
-      {hint && <div className="text-[11px] text-cw-txt3 max-w-[340px] leading-4">{hint}</div>}
+      <div className="text-[13px] font-medium text-cw-txt2">{title}</div>
+      {hint && <div className="text-[12px] text-cw-txt3 max-w-[360px] leading-5">{hint}</div>}
       {action && <div className="mt-1.5">{action}</div>}
     </div>
   );
@@ -454,13 +466,13 @@ function Metric({
       ) : (
         <div className="flex items-baseline gap-1.5 min-w-0">
           <span className={`text-[26px] leading-none font-semibold tracking-tight tabular-nums truncate ${valueClass}`}>{value}</span>
-          {unit && <span className="text-[11px] text-cw-txt3 font-medium shrink-0">{unit}</span>}
+          {unit && <span className="text-[12px] text-cw-txt3 font-medium shrink-0">{unit}</span>}
         </div>
       )}
       {(hint || action) && (
         <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 min-w-0">
           {hint && (
-            <div className="flex items-center gap-1.5 text-[11px] text-cw-txt3 leading-4 min-w-0">
+            <div className="flex items-center gap-1.5 text-[12px] text-cw-txt3 leading-4 min-w-0">
               {hintTone && <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${TONE_DOT[hintTone]}`} />}
               <span className="truncate">{hint}</span>
             </div>
@@ -563,12 +575,7 @@ export function Dashboard({ onRunClick }: Props) {
     }
   };
 
-  useEffect(() => {
-    fetch(`${API_URL}/api/chat/repos`, { credentials: 'include' })
-      .then((r) => r.ok ? r.json() : { repos: [] })
-      .then((d) => setRepoList(d.repos ?? []))
-      .catch(() => {});
-
+  const loadRecentRuns = () =>
     api.api.reports.recent.$get()
       .then((res) => res.json())
       .then((data) => {
@@ -576,6 +583,28 @@ export function Dashboard({ onRunClick }: Props) {
       })
       .catch(console.error)
       .finally(() => setLoadingRuns(false));
+
+  // Terminal WS events (`agent_completed` / `agent_failed`) carry no runId, and one agent
+  // finishing is not the run finishing. So the socket only paints the optimistic "running"
+  // state; the run row's real status/score is re-read from the API shortly after any terminal
+  // event, debounced so a burst of agents completing costs one request.
+  const runsReconcileTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const scheduleRunsReconcile = () => {
+    if (runsReconcileTimer.current) clearTimeout(runsReconcileTimer.current);
+    runsReconcileTimer.current = setTimeout(() => {
+      runsReconcileTimer.current = null;
+      loadRecentRuns();
+    }, 1500);
+  };
+  useEffect(() => () => { if (runsReconcileTimer.current) clearTimeout(runsReconcileTimer.current); }, []);
+
+  useEffect(() => {
+    fetch(`${API_URL}/api/chat/repos`, { credentials: 'include' })
+      .then((r) => r.ok ? r.json() : { repos: [] })
+      .then((d) => setRepoList(d.repos ?? []))
+      .catch(() => {});
+
+    loadRecentRuns();
 
     loadApprovals();
     const approvalsPoll = setInterval(loadApprovals, 30_000);
@@ -665,14 +694,20 @@ export function Dashboard({ onRunClick }: Props) {
 
         if (data.type === 'agent_active' || data.type === 'agent_completed' || data.type === 'agent_failed') {
           const { repo, sha, score, runId } = data.payload;
+          const isTerminal = data.type !== 'agent_active';
 
-          // Real-time update to Active Runs state
-          if (runId && repo) {
+          // Real-time update to Active Runs state. Sub-step events carry a runId; the
+          // worker-level terminal events do not, so fall back to matching on (repo, sha).
+          if (repo && (runId || sha)) {
             setRecentRuns((prev) => {
               const status = data.type === 'agent_active' ? 'running' : (data.type === 'agent_completed' ? 'completed' : 'failed');
-              const idx = prev.findIndex((r) => r.runId === runId);
+              const idx = prev.findIndex((r) =>
+                (runId != null && r.runId === runId) ||
+                (runId == null && sha && r.repoFullName === repo && r.commitSha === sha)
+              );
+              if (idx < 0 && runId == null) return prev; // terminal event for a run we don't list — nothing to paint
               const updatedRun: RecentRun = {
-                runId,
+                runId: runId ?? prev[idx].runId,
                 repoId: prev[idx]?.repoId ?? 0,
                 repoFullName: repo,
                 commitSha: sha || 'baseline',
@@ -689,6 +724,8 @@ export function Dashboard({ onRunClick }: Props) {
               return [updatedRun, ...prev].slice(0, 20);
             });
           }
+
+          if (isTerminal) scheduleRunsReconcile();
         }
       } catch (e) {
         console.error('Error parsing WS message', e);
@@ -801,7 +838,7 @@ export function Dashboard({ onRunClick }: Props) {
                       title={r.title}
                       aria-pressed={active}
                       onClick={() => setDashboardTimeFilter(r.value)}
-                      className={`px-2.5 py-1 rounded-[5px] text-[11px] font-medium transition-colors cursor-pointer ${FOCUS_RING} ${active ? 'bg-cw-bg3 text-cw-txt shadow-sm' : 'text-cw-txt3 hover:text-cw-txt'}`}
+                      className={`px-2.5 py-1 rounded-[5px] text-[12px] font-medium transition-colors cursor-pointer ${FOCUS_RING} ${active ? 'bg-cw-bg3 text-cw-txt' : 'text-cw-txt3 hover:text-cw-txt'}`}
                     >
                       {r.label}
                     </button>
@@ -857,7 +894,7 @@ export function Dashboard({ onRunClick }: Props) {
               value={viewHealth?.codebaseHealth != null ? viewHealth.codebaseHealth : '—'}
               unit={viewHealth?.codebaseHealth != null ? '/ 100' : undefined}
               valueClass="text-cw-green"
-              hint={viewHealth?.grade ? `Grade ${viewHealth.grade} · latest completed scans` : 'No completed scans yet'}
+              hint={viewHealth?.grade ? `${gradeLabel(viewHealth.grade)} · latest completed scans` : 'No completed scans yet'}
               hintTone={viewHealth?.grade ? 'green' : undefined}
             />
             <Metric
@@ -867,7 +904,7 @@ export function Dashboard({ onRunClick }: Props) {
               hint="Active tracking"
               hintTone="green"
               action={
-                <button type="button" onClick={() => navigate('/connect')} className={`${BTN_LINK} text-[10px] whitespace-nowrap`}>
+                <button type="button" onClick={() => navigate('/connect')} className={`${BTN_LINK} text-[11px] whitespace-nowrap`}>
                   <Plus size={11} /> Add repository
                 </button>
               }
@@ -924,7 +961,7 @@ export function Dashboard({ onRunClick }: Props) {
               ) : (
                 <>
                   {viewHealthData.length === 0 && (
-                    <div className="absolute inset-0 flex items-center justify-center text-[11px] text-cw-txt3">
+                    <div className="absolute inset-0 flex items-center justify-center text-[12px] text-cw-txt3">
                       No trend data for this range
                     </div>
                   )}
@@ -944,7 +981,7 @@ export function Dashboard({ onRunClick }: Props) {
                 </>
               )}
             </div>
-            <div className="flex justify-between px-4 sm:px-5 pb-3 pt-1.5 text-[10px] font-mono text-cw-txt3">
+            <div className="flex justify-between px-4 sm:px-5 pb-3 pt-1.5 text-[11px] font-mono text-cw-txt3">
               <span>{getTimeLabel()}</span>
               <span>Today</span>
             </div>
@@ -964,12 +1001,12 @@ export function Dashboard({ onRunClick }: Props) {
                     <span className="text-[24px] leading-none font-semibold tracking-tight tabular-nums text-cw-green">
                       {viewStats ? viewStats.debtRemoved.toLocaleString() : '—'}
                     </span>
-                    <span className="text-[11px] text-cw-txt3">files</span>
+                    <span className="text-[12px] text-cw-txt3">files</span>
                   </div>
                 )}
               </div>
               <div className="flex flex-col items-end gap-1.5 shrink-0">
-                <span className="text-[11px] text-cw-txt3 tabular-nums">{viewStats?.refactorsApplied ?? 0} refactors applied</span>
+                <span className="text-[12px] text-cw-txt3 tabular-nums">{viewStats?.refactorsApplied ?? 0} refactors applied</span>
                 <button type="button" onClick={() => navigate('/dashboard/diff')} className={BTN_GHOST_SM}>
                   View diff <ArrowUpRight size={11} />
                 </button>
@@ -981,7 +1018,7 @@ export function Dashboard({ onRunClick }: Props) {
               ) : (
                 <>
                   {viewDebtData.length === 0 && (
-                    <div className="absolute inset-0 flex items-center justify-center text-[11px] text-cw-txt3">
+                    <div className="absolute inset-0 flex items-center justify-center text-[12px] text-cw-txt3">
                       No refactors merged in this range
                     </div>
                   )}
@@ -1001,7 +1038,7 @@ export function Dashboard({ onRunClick }: Props) {
                 </>
               )}
             </div>
-            <div className="flex justify-between px-4 sm:px-5 pb-3 pt-1.5 text-[10px] font-mono text-cw-txt3">
+            <div className="flex justify-between px-4 sm:px-5 pb-3 pt-1.5 text-[11px] font-mono text-cw-txt3">
               <span>0</span>
               <span>{viewStats?.debtRemoved ?? 0} files refactored</span>
             </div>
@@ -1046,7 +1083,7 @@ export function Dashboard({ onRunClick }: Props) {
                           href={a.prUrl ?? '#'}
                           target="_blank"
                           rel="noreferrer"
-                          className={`flex items-center gap-1.5 min-w-0 text-[12.5px] font-semibold text-cw-txt no-underline hover:text-cw-purple transition-colors ${FOCUS_RING} rounded-sm`}
+                          className={`flex items-center gap-1.5 min-w-0 text-[14px] font-semibold text-cw-txt no-underline hover:text-cw-purple transition-colors ${FOCUS_RING} rounded-sm`}
                         >
                           <span className="font-mono shrink-0">PR #{a.pullRequestNumber}</span>
                           <span className="text-cw-txt3 font-normal shrink-0">·</span>
@@ -1064,7 +1101,7 @@ export function Dashboard({ onRunClick }: Props) {
                             </Pill>
                           )}
                           {a.mode === 'auto' && a.deadlineAt && (
-                            <span className="inline-flex items-center gap-1 text-[11px] text-cw-amber">
+                            <span className="inline-flex items-center gap-1 text-[12px] text-cw-amber">
                               <Timer size={11} /> {deadlineLabel(a.deadlineAt)} unless you act
                             </span>
                           )}
@@ -1107,7 +1144,7 @@ export function Dashboard({ onRunClick }: Props) {
                         value={alertTimeFilter}
                         onChange={(e) => setAlertTimeFilter(e.target.value)}
                         aria-label="Alert time range"
-                        className={`appearance-none bg-cw-bg2 border border-cw-bdr text-cw-txt2 hover:text-cw-txt text-[11px] rounded-md pl-2 pr-6 py-1 cursor-pointer ${FOCUS_RING}`}
+                        className={`appearance-none bg-cw-bg2 border border-cw-bdr text-cw-txt2 hover:text-cw-txt text-[12px] rounded-md pl-2 pr-6 py-1 cursor-pointer ${FOCUS_RING}`}
                       >
                         <option value="all">All time</option>
                         <option value="1d">Yesterday</option>
@@ -1132,15 +1169,12 @@ export function Dashboard({ onRunClick }: Props) {
                   </>
                 }
               />
-              <div className="p-3 flex flex-col gap-2">
+              <div className="flex flex-col">
                 {alertsPending ? (
                   Array.from({ length: 3 }).map((_, i) => (
-                    <div key={i} className="rounded-md border border-cw-bdr px-3.5 py-3 flex items-start gap-3">
-                      <Skeleton className="w-7 h-7 rounded-md shrink-0" />
-                      <div className="flex-1 flex flex-col gap-2">
-                        <Skeleton className="h-3.5 w-2/3" />
-                        <Skeleton className="h-3 w-full" />
-                      </div>
+                    <div key={i} className="h-11 px-4 border-b border-cw-bdr last:border-b-0 flex items-center gap-3">
+                      <Skeleton className="h-3.5 w-2/3" />
+                      <Skeleton className="h-3.5 w-16 ml-auto" />
                     </div>
                   ))
                 ) : viewAlerts.length === 0 ? (
@@ -1149,51 +1183,25 @@ export function Dashboard({ onRunClick }: Props) {
                     title="No high priority alerts currently."
                     hint="Critical and high-severity findings, escalated issues and auto-fix PRs will be listed here as agents report them."
                   />
-                ) : viewAlerts.slice(0, 3).map((alert, i) => {
+                ) : viewAlerts.slice(0, 5).map((alert, i) => {
                   const isCritical = alert.severity === 'CRITICAL';
-                  const isHigh = alert.severity === 'HIGH';
-                  const tone = severityTone(alert.severity);
-
-                  const hoverColor = isCritical ? 'hover:border-cw-red/40' : (isHigh ? 'hover:border-cw-amber/40' : 'hover:border-cw-blue/40');
-                  const iconBgColor = isCritical ? 'bg-cw-red/10 border-cw-red/25 text-cw-red' : (isHigh ? 'bg-cw-amber/10 border-cw-amber/25 text-cw-amber' : 'bg-cw-blue/10 border-cw-blue/25 text-cw-blue');
-                  const titleColor = isCritical ? 'text-cw-red' : (isHigh ? 'text-cw-amber' : 'text-cw-txt');
-                  const actionColor = isCritical ? 'text-cw-red hover:text-cw-txt' : 'text-cw-purple hover:text-cw-txt';
-                  const actionText = isCritical ? 'Resolve now' : (alert.kind === 'escalation' ? 'View issue' : 'View suggested fix');
-                  const Icon = isCritical ? Key : (isHigh ? AlertTriangle : CircleDot);
-
+                  const actionText = isCritical ? 'Resolve' : (alert.kind === 'escalation' ? 'View issue' : 'View fix');
                   return (
-                    <article
+                    <FindingRow
                       key={alert.id || i}
-                      className={`relative rounded-md border border-cw-bdr bg-cw-bg/50 pl-4 pr-3.5 py-3 transition-colors ${hoverColor}`}
-                    >
-                      <span aria-hidden="true" className={`absolute left-0 top-2.5 bottom-2.5 w-[2px] rounded-full ${TONE_DOT[tone]}`} />
-                      <div className="flex items-start gap-3">
-                        <div className={`w-7 h-7 rounded-md border flex items-center justify-center shrink-0 ${iconBgColor}`}>
-                          <Icon size={13} />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between gap-2">
-                            <div className={`text-[12.5px] font-semibold leading-5 truncate ${titleColor}`}>{alert.title}</div>
-                            <div className="text-[10px] font-mono text-cw-txt3 shrink-0 leading-5">{timeAgo(alert.createdAt)}</div>
-                          </div>
-                          <p className="text-[11px] text-cw-txt2 leading-4 mt-0.5 line-clamp-2">{alert.description}</p>
-                          <div className="mt-2 flex items-center justify-between gap-3">
-                            <button
-                              type="button"
-                              onClick={() => navigate('/dashboard/alerts')}
-                              className={`inline-flex items-center gap-1 text-[11px] font-semibold bg-transparent border-none p-0 cursor-pointer transition-colors rounded-sm ${FOCUS_RING} ${actionColor}`}
-                            >
-                              {actionText} <ArrowRight size={11} />
-                            </button>
-                            {alert.source && (
-                              <div className="text-[10px] text-cw-txt3 font-medium truncate">
-                                {alert.severity !== 'INFO' ? `${alert.severity.charAt(0).toUpperCase() + alert.severity.slice(1).toLowerCase()} · ` : ''}{alert.source}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </article>
+                      alert={alert}
+                      showRepo={false}
+                      onSelect={() => navigate('/dashboard/alerts')}
+                      action={
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); navigate('/dashboard/alerts'); }}
+                          className={`${BTN_LINK} ${isCritical ? 'text-cw-red' : ''}`}
+                        >
+                          {actionText} <ArrowRight size={11} />
+                        </button>
+                      }
+                    />
                   );
                 })}
               </div>
@@ -1246,9 +1254,9 @@ export function Dashboard({ onRunClick }: Props) {
                         </div>
                         <div className="mt-1 flex items-center gap-2">
                           {viewHealth.grade ? (
-                            <Pill tone="green">Grade {viewHealth.grade}</Pill>
+                            <Pill tone="green">{gradeLabel(viewHealth.grade)}</Pill>
                           ) : (
-                            <span className="text-[11px] text-cw-txt3">Run a scan to establish a baseline</span>
+                            <span className="text-[12px] text-cw-txt3">Run a scan to establish a baseline</span>
                           )}
                         </div>
                       </div>
@@ -1260,7 +1268,7 @@ export function Dashboard({ onRunClick }: Props) {
                         {debtRows.map((item) => {
                           const widthPct = Math.max(3, Math.round((item.val / debtMax) * 100));
                           return (
-                            <div key={item.label} className="flex items-center gap-3 text-[11px]">
+                            <div key={item.label} className="flex items-center gap-3 text-[12px]">
                               <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${TONE_DOT[item.tone]}`} />
                               <span className="text-cw-txt2 w-[120px] shrink-0 truncate">{item.label}</span>
                               <div className="flex-1 h-1 bg-cw-bg3 rounded-full overflow-hidden min-w-[40px]">
@@ -1313,12 +1321,12 @@ export function Dashboard({ onRunClick }: Props) {
                           {isRunning && <span className={`absolute inset-0 rounded-full animate-ping opacity-60 ${TONE_DOT[tone]}`} />}
                         </span>
                         <img src={`https://github.com/${run.repoFullName.split('/')[0]}.png?size=32`} className="w-5 h-5 rounded-full bg-cw-bg3 shrink-0" alt="" />
-                        <span className="text-[12.5px] font-medium text-cw-txt truncate group-hover:text-cw-purple transition-colors">
+                        <span className="text-[14px] font-medium text-cw-txt truncate group-hover:text-cw-purple transition-colors">
                           {run.repoFullName}
                         </span>
                       </div>
                       <div className="flex items-center gap-2.5 shrink-0">
-                        <span className="text-[10px] font-mono text-cw-txt3 hidden sm:inline-block tabular-nums">
+                        <span className="text-[11px] font-mono text-cw-txt3 hidden sm:inline-block tabular-nums">
                           {isRunning ? `${run.commitSha.substring(0, 6)} · ` : ''}{timeAgo(run.createdAt)}
                         </span>
                         <Pill tone={tone} mono className="min-w-[56px] justify-center">{badgeText}</Pill>
@@ -1345,7 +1353,7 @@ export function Dashboard({ onRunClick }: Props) {
           <div className="overflow-x-auto">
             <table className="w-full min-w-[680px] text-left border-collapse">
               <thead>
-                <tr className="text-[10px] uppercase tracking-[0.08em] text-cw-txt3 bg-cw-bg/40">
+                <tr className="text-[11px] uppercase tracking-[0.08em] text-cw-txt3 bg-cw-bg/40">
                   <th scope="col" className="px-4 sm:px-5 py-2.5 font-semibold border-b border-cw-bdr">Pull Request / Target</th>
                   <th scope="col" className="px-4 sm:px-5 py-2.5 font-semibold border-b border-cw-bdr">Repository</th>
                   <th scope="col" className="px-4 sm:px-5 py-2.5 font-semibold border-b border-cw-bdr">Findings</th>
@@ -1354,7 +1362,7 @@ export function Dashboard({ onRunClick }: Props) {
                   <th scope="col" className="px-4 sm:px-5 py-2.5 font-semibold border-b border-cw-bdr text-right"><span className="sr-only">Actions</span></th>
                 </tr>
               </thead>
-              <tbody className="text-[12px] text-cw-txt divide-y divide-cw-bdr">
+              <tbody className="text-[13px] text-cw-txt divide-y divide-cw-bdr">
                 {runsPending ? (
                   Array.from({ length: 3 }).map((_, i) => (
                     <tr key={i}>
@@ -1478,22 +1486,22 @@ export function Dashboard({ onRunClick }: Props) {
                       openCanvas();
                     }
                   }}
-                  className={`px-4 sm:px-5 py-2.5 flex items-start sm:items-center gap-3 hover:bg-cw-bg3/40 transition-colors cursor-pointer group ${FOCUS_RING} focus-visible:ring-inset`}
+                  className={`min-h-11 px-4 sm:px-5 py-2 flex items-start sm:items-center gap-3 hover:bg-cw-bg3/60 transition-colors cursor-pointer group ${FOCUS_RING} focus-visible:ring-inset`}
                 >
-                  <div className={`w-7 h-7 rounded-md border border-cw-bdr bg-cw-bg/60 flex items-center justify-center shrink-0 ${item.color}`}>
+                  <div className="w-7 h-7 rounded-md border border-cw-bdr bg-cw-bg flex items-center justify-center shrink-0 text-cw-txt3">
                     <Icon size={14} />
                   </div>
                   <div className="flex-1 min-w-0 flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-3">
                     <div className="flex-1 min-w-0 flex flex-wrap items-center gap-x-2 gap-y-1">
-                      <span className="text-[12.5px] text-cw-txt leading-5 break-words min-w-0">{item.text}</span>
+                      <span className="text-[14px] text-cw-txt leading-5 break-words min-w-0">{humanizeFeedText(item.text)}</span>
                       {item.highlightText && (
-                        <span className={`inline-flex items-center px-1.5 py-[3px] rounded border text-[10px] font-semibold leading-none whitespace-nowrap ${item.badgeStyle || 'bg-cw-bg3 text-cw-txt border-cw-bdr'}`}>
+                        <span className={`inline-flex items-center px-1.5 py-[3px] rounded border text-[11px] font-semibold leading-none whitespace-nowrap ${item.badgeStyle || 'bg-cw-bg3 text-cw-txt border-cw-bdr'}`}>
                           {item.highlightText}
                         </span>
                       )}
                     </div>
                     <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0">
-                    <span className="text-[10px] font-mono text-cw-txt3 whitespace-nowrap tabular-nums">{item.time}</span>
+                    <span className="text-[11px] font-mono text-cw-txt3 whitespace-nowrap tabular-nums">{item.time}</span>
                     <button
                       type="button"
                       onClick={(e) => {
@@ -1501,10 +1509,10 @@ export function Dashboard({ onRunClick }: Props) {
                         sessionStorage.setItem('cw_target_agent_id', agentId);
                         navigate('/dashboard/livefeed');
                       }}
-                      title={`Open ${agentId} in Agent Canvas`}
-                      className={`${BTN_BASE} px-2 py-1 text-[11px] bg-cw-purple/10 text-cw-purple border border-cw-purple/25 hover:bg-cw-purple hover:text-white hover:border-cw-purple`}
+                      title={`Open ${agentId} in the run timeline`}
+                      className={BTN_GHOST_SM}
                     >
-                      Canvas <ArrowRight size={11} />
+                      Timeline <ArrowRight size={11} />
                     </button>
                     </div>
                   </div>
@@ -1516,7 +1524,7 @@ export function Dashboard({ onRunClick }: Props) {
                 <button
                   type="button"
                   onClick={() => setFeedLimit(feedLimit === 5 ? 50 : 5)}
-                  className={`${BTN_BASE} w-full justify-center py-1.5 text-[11px] text-cw-txt3 hover:text-cw-txt bg-cw-bg/40 hover:bg-cw-bg3 border border-transparent hover:border-cw-bdr`}
+                  className={`${BTN_BASE} w-full justify-center py-1.5 text-[12px] text-cw-txt3 hover:text-cw-txt bg-cw-bg/40 hover:bg-cw-bg3 border border-transparent hover:border-cw-bdr`}
                 >
                   {feedLimit === 5 ? `View all activity (${viewFeed.length})` : 'Show less'}
                 </button>

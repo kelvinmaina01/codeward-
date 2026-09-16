@@ -227,6 +227,7 @@ alertsRouter.get('/', async (c) => {
         source: AGENT_DISPLAY[task.agentId] ?? task.agentId, repo: repoName,
         file: f.file ?? null, line: f.line ?? null,
         evidence: f.rawEvidence ?? null, suggestedFix: f.suggestedFix ?? null,
+        exposure: f.exposure ?? null,
         runId: run.id, repoId: run.repoId, createdAt: run.createdAt,
       });
     }

@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
-import * as HugeIcons from 'hugeicons-react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { X, Lock, Shield, FileText, Settings2, CheckCircle2, Loader2, Terminal as TerminalIcon, type LucideIcon } from 'lucide-react';
 import { agentCanvasData, AgentData } from './AgentCanvasData';
 import { RepoSelector, RepoOption } from './RepoSelector';
 import { API_URL, WS_URL } from '../../../lib/api';
-import './AgentCanvas.css';
+import { RunTimeline, agentIcon, statusTone } from './RunTimeline';
+import { EYEBROW, TONE_PILL, TONE_TEXT, FOCUS_RING, type Tone } from './findings/finding-ui';
 
 /** Escalating patience loader for the canvas initial data fetch */
 function CanvasLoader() {
@@ -21,21 +22,9 @@ function CanvasLoader() {
     'Taking a bit longer than usual…',
   ];
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '5rem 1rem', gap: '1rem' }}>
-      <span style={{
-        width: 28, height: 28,
-        border: '3px solid var(--cw-purple)',
-        borderTopColor: 'transparent',
-        borderRadius: '50%',
-        display: 'inline-block',
-        animation: 'spin 0.75s linear infinite',
-      }} />
-      <span
-        key={phase}
-        style={{ fontSize: 12, color: 'var(--cw-txt3)', fontFamily: 'var(--font-sans)', transition: 'opacity 0.4s' }}
-      >
-        {msgs[phase]}
-      </span>
+    <div className="flex flex-col items-center justify-center py-20 gap-3">
+      <Loader2 size={18} className="animate-spin text-cw-purple" />
+      <span key={phase} className="text-[13px] text-cw-txt3">{msgs[phase]}</span>
     </div>
   );
 }
@@ -87,6 +76,42 @@ const mapLiveLogType = (level?: string, msg?: string): 'info' | 'tool' | 'pass' 
   if (isTool) return 'tool';
   return 'info';
 };
+
+// ── Presentation-only helpers ─────────────────────────────────────────────────
+const LOG_TONE: Record<string, string> = {
+  info: 'text-cw-txt2',
+  tool: 'text-cw-blue',
+  pass: 'text-cw-green',
+  fail: 'text-cw-red',
+  warn: 'text-cw-amber',
+};
+
+const OP_ICON: Record<string, LucideIcon> = {
+  Lock01Icon: Lock, Shield01Icon: Shield, File01Icon: FileText, Settings01Icon: Settings2,
+};
+
+const DETAIL_TABS: { key: 'logs' | 'findings' | 'sandbox' | 'config' | 'summary'; label: string }[] = [
+  { key: 'logs', label: 'Logs' },
+  { key: 'findings', label: 'Findings' },
+  { key: 'sandbox', label: 'Sandbox' },
+  { key: 'config', label: 'Config' },
+  { key: 'summary', label: 'Summary' },
+];
+
+const SEV_TONE: Record<string, Tone> = { critical: 'red', high: 'amber', medium: 'blue', info: 'neutral' };
+
+/** REST is the source of truth for status/score/progress; keep the client's log tail when it is longer
+ *  (worker-level events like "Completed" are broadcast without a runId and are never persisted). */
+function mergeAgents(prev: AgentData[], next: AgentData[]): AgentData[] {
+  const byId = new Map(prev.map((a) => [a.id, a]));
+  return next.map((n) => {
+    const p = byId.get(n.id);
+    return p && p.logs.length > n.logs.length ? { ...n, logs: p.logs } : n;
+  });
+}
+
+const RECONCILE_DEBOUNCE_MS = 800;
+const RUNNING_HEARTBEAT_MS = 10_000;
 
 export function AgentCanvas({ repoId, repoFilter, onRepoChange, repoList, viewMode = 'canvas', onViewModeChange }: AgentCanvasProps = {}) {
   const [internalRepoList, setInternalRepoList] = useState<RepoOption[]>(repoList || []);
@@ -140,21 +165,31 @@ export function AgentCanvas({ repoId, repoFilter, onRepoChange, repoList, viewMo
     onRepoChange?.(val);
   };
 
-  // Fetch real agent canvas data from API
-  useEffect(() => {
-    let cancelled = false;
-    const targetId = activeFilter !== 'All' ? activeFilter : undefined;
+  // ── Reconciliation: the DB is the source of truth; the socket is a hint ──────────────
+  // Some lanes only ever receive `agent_active`: Guardian reviews run inside another agent's
+  // job and have no job of their own, so no `agent_completed` for "guardian" is ever emitted
+  // and a WS-only model leaves that lane "running" forever. Every terminal event, every
+  // (re)connect, and a heartbeat while anything is running re-reads /api/reports/canvas and
+  // lets it win. A request sequence number discards responses superseded by a newer request.
+  const requestSeq = useRef(0);
+  const reconcileTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const activeFilterRef = useRef(activeFilter);
+  activeFilterRef.current = activeFilter;
+
+  const loadCanvas = useCallback((filter: string, silent: boolean) => {
+    const seq = ++requestSeq.current;
+    const targetId = filter !== 'All' ? filter : undefined;
     const query = targetId ? `?repoId=${targetId}` : '';
-    setCanvasLoading(true);
-    fetch(`${API_URL}/api/reports/canvas${query}`, { credentials: 'include' })
+    if (!silent) setCanvasLoading(true);
+    return fetch(`${API_URL}/api/reports/canvas${query}`, { credentials: 'include' })
       .then((res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return res.json();
       })
       .then((data) => {
-        if (cancelled) return;
+        if (seq !== requestSeq.current) return; // superseded by a newer request
         if (data?.agents && Array.isArray(data.agents) && data.agents.length > 0) {
-          setAgents(data.agents);
+          setAgents((prev) => mergeAgents(prev, data.agents));
         }
         if (data?.run) {
           setRunInfo(data.run);
@@ -167,13 +202,34 @@ export function AgentCanvas({ repoId, repoFilter, onRepoChange, repoList, viewMo
         console.warn('AgentCanvas fetch error, using dynamic fallback:', err);
       })
       .finally(() => {
-        if (!cancelled) setCanvasLoading(false);
+        if (!silent && seq === requestSeq.current) setCanvasLoading(false);
       });
+  }, []);
 
-    return () => {
-      cancelled = true;
-    };
-  }, [activeFilter]);
+  /** Debounced silent refetch — bursts of terminal events collapse into one request. */
+  const scheduleReconcile = useCallback(() => {
+    if (reconcileTimer.current) clearTimeout(reconcileTimer.current);
+    reconcileTimer.current = setTimeout(() => {
+      reconcileTimer.current = null;
+      loadCanvas(activeFilterRef.current, true);
+    }, RECONCILE_DEBOUNCE_MS);
+  }, [loadCanvas]);
+
+  useEffect(() => () => { if (reconcileTimer.current) clearTimeout(reconcileTimer.current); }, []);
+
+  // Initial + filter-change load (visible loader)
+  useEffect(() => {
+    loadCanvas(activeFilter, false);
+  }, [activeFilter, loadCanvas]);
+
+  // Safety net: while anything is running, poll so a frame lost during a socket gap
+  // can never strand the UI in a loading state.
+  const anyRunning = agents.some((a) => a.status === 'running');
+  useEffect(() => {
+    if (!anyRunning) return;
+    const id = setInterval(() => loadCanvas(activeFilterRef.current, true), RUNNING_HEARTBEAT_MS);
+    return () => clearInterval(id);
+  }, [anyRunning, loadCanvas]);
 
   // Auto-scroll logs
   useEffect(() => {
@@ -198,13 +254,16 @@ export function AgentCanvas({ repoId, repoFilter, onRepoChange, repoList, viewMo
     let ws: WebSocket | null = null;
     let reconnectTimer: any = null;
     let isMounted = true;
+    let hasConnectedOnce = false;
 
     const connectWs = () => {
       try {
         ws = new WebSocket(`${WS_URL}/ws/feed`);
 
         ws.onopen = () => {
-          // WebSocket connected
+          // Anything that happened while we were disconnected is only in the DB — reconcile.
+          if (hasConnectedOnce) scheduleReconcile();
+          hasConnectedOnce = true;
         };
 
         ws.onmessage = (event) => {
@@ -345,6 +404,12 @@ export function AgentCanvas({ repoId, repoFilter, onRepoChange, repoList, viewMo
                 };
               });
             });
+
+            // Terminal events are hints; the DB decides. This is what clears lanes (Guardian)
+            // that only ever receive `agent_active` from inside another agent's job.
+            if (type === 'agent_completed' || type === 'agent_failed') {
+              scheduleReconcile();
+            }
           } catch {
             // Ignore malformed WS frames
           }
@@ -387,14 +452,16 @@ export function AgentCanvas({ repoId, repoFilter, onRepoChange, repoList, viewMo
         }
       }
     };
-  }, [activeFilter, internalRepoList]);
+  }, [activeFilter, internalRepoList, scheduleReconcile]);
 
   // Keep top stats synchronized with real-time agent updates
   useEffect(() => {
     const runningCount = agents.filter((a) => a.status === 'running').length;
     const completedCount = agents.filter((a) => a.status === 'passed' || a.status === 'blocked').length;
+    // A real critical is a critical finding, or a status line counting one or more criticals.
+    // A plain substring test used to match "PASS — 0 critical issues" and flip the decision to BLOCKED.
     const hasCritical = agents.some((a) =>
-      a.statusText.toLowerCase().includes('critical') || a.findings.some((f) => f.sev === 'critical')
+      /\b[1-9]\d*\s+critical\b/i.test(a.statusText) || a.findings.some((f) => f.sev === 'critical')
     );
     const anyBlocked = agents.some((a) => a.status === 'blocked');
 
@@ -405,224 +472,229 @@ export function AgentCanvas({ repoId, repoFilter, onRepoChange, repoList, viewMo
     }));
   }, [agents]);
 
-  const renderHugeIcon = (iconName: string, size = 16) => {
-    // Attempt to dynamically find the icon, fallback to a standard one
-    const IconComp = (HugeIcons as any)[iconName] || (HugeIcons as any)['CircleIcon'] || (() => <span>•</span>);
-    return <IconComp size={size} className="hugeicon" />;
-  };
+  // ── Presentation-only derivations ───────────────────────────────────────────
+  const decisionTone: Tone = stats.decision === 'BLOCKED' ? 'red' : stats.decision === 'RUNNING' ? 'purple' : 'green';
+  const dispatched = agents.filter((a) => a.status !== 'idle');
+  // With no agent selected the log pane shows every dispatched agent's log, agent-prefixed, in order.
+  const mergedLogs = dispatched.flatMap((a) => a.logs.map((log, idx) => ({ ...log, agent: a.name, key: `${a.id}-${idx}` })));
+  const ActiveIcon = activeAgent ? agentIcon(activeAgent.icon) : TerminalIcon;
 
   return (
-    <div className="agent-canvas-container">
-      <div className="canvas-wrap">
-        <div className="top-bar w-full">
-          <div className="top-row flex items-center justify-between flex-wrap gap-3 w-full">
-            <div className="top-left flex items-center gap-2.5 shrink-0 min-w-0">
-              <div className="logo">Agent <span>Canvas</span></div>
-              <div className="run-badge">Run #{runInfo.id}</div>
-            </div>
-            <div className="top-right flex items-center gap-2.5 flex-wrap">
-              {onViewModeChange && (
-                <div className="inline-flex p-0.5 bg-cw-bg2 border border-cw-bdr rounded-lg items-center shadow-xs">
-                  <button
-                    type="button"
-                    onClick={() => onViewModeChange('stream')}
-                    className={`px-2.5 py-1 rounded-md text-[11px] sm:text-[12px] font-medium transition-all cursor-pointer ${
-                      viewMode === 'stream'
-                        ? 'bg-cw-purple text-white font-semibold shadow-xs'
-                        : 'text-cw-txt2 hover:text-cw-txt'
-                    }`}
-                  >
-                    Stream
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => onViewModeChange('canvas')}
-                    className={`px-2.5 py-1 rounded-md text-[11px] sm:text-[12px] font-medium transition-all cursor-pointer ${
-                      viewMode === 'canvas'
-                        ? 'bg-cw-purple text-white font-semibold shadow-xs'
-                        : 'text-cw-txt2 hover:text-cw-txt'
-                    }`}
-                  >
-                    Agent Canvas
-                  </button>
-                </div>
-              )}
-              <RepoSelector
-                options={internalRepoList}
-                value={activeFilter}
-                onChange={(val) => handleRepoChange(String(val))}
-                showAllOption={true}
-                allOptionLabel="All connected repositories"
-              />
-            </div>
-          </div>
-          <div className="top-stats">
-            <div className="stat"><div className="stat-label">Agents Active</div><div className="stat-val">{stats.agentsActive}</div></div>
-            <div className="stat"><div className="stat-label">Critical Issues</div><div className="stat-val text-cw-red">{stats.criticalIssues}</div></div>
-            <div className="stat"><div className="stat-label">Lines Auto-Fixed</div><div className="stat-val text-cw-green">{stats.linesFixed}</div></div>
-            <div className="stat"><div className="stat-label">Orchestrator Decision</div><div className={`stat-val font-bold ${stats.decision === 'BLOCKED' ? 'text-cw-red' : 'text-cw-green'}`}>{stats.decision}</div></div>
-          </div>
+    <div className="flex-1 flex flex-col h-full overflow-hidden bg-cw-bg text-cw-txt">
+      {/* Header */}
+      <div className="px-4 sm:px-6 py-3 border-b border-cw-bdr flex items-center justify-between gap-3 flex-wrap shrink-0">
+        <div className="flex items-center gap-3 min-w-0">
+          <h2 className="text-[16px] font-semibold text-cw-txt tracking-tight">Run timeline</h2>
+          <span className="font-mono text-[12px] text-cw-txt3 tabular-nums">#{runInfo.id}{runInfo.commitSha ? ` · ${runInfo.commitSha}` : ''}</span>
+          <span className={`inline-flex items-center h-6 px-2 rounded border font-mono text-[12px] font-semibold ${TONE_PILL[decisionTone]}`}>
+            {stats.decision === 'BLOCKED' ? 'BLOCK' : stats.decision}
+          </span>
         </div>
-
-        <div className="canvas-grid">
-          {canvasLoading ? (
-            <div style={{ gridColumn: '1 / -1' }}>
-              <CanvasLoader />
+        <div className="flex items-center gap-2 flex-wrap">
+          {onViewModeChange && (
+            <div className="inline-flex h-8 p-0.5 bg-cw-bg2 border border-cw-bdr rounded-md items-center">
+              <button
+                type="button"
+                onClick={() => onViewModeChange('stream')}
+                className={`h-full px-2.5 rounded text-[13px] font-medium transition-colors cursor-pointer ${viewMode === 'stream' ? 'bg-cw-bg3 text-cw-txt' : 'text-cw-txt3 hover:text-cw-txt'}`}
+              >
+                Stream
+              </button>
+              <button
+                type="button"
+                onClick={() => onViewModeChange('canvas')}
+                className={`h-full px-2.5 rounded text-[13px] font-medium transition-colors cursor-pointer ${viewMode === 'canvas' ? 'bg-cw-bg3 text-cw-txt' : 'text-cw-txt3 hover:text-cw-txt'}`}
+              >
+                Timeline
+              </button>
             </div>
-          ) : agents.map(agent => (
-            <div
-              key={agent.id}
-              className={`agent-card ${activeAgentId === agent.id ? 'active-card' : ''}`}
-              style={{ '--agent-accent': agent.color } as React.CSSProperties}
-              onClick={() => setActiveAgentId(agent.id)}
-            >
-              <div className="card-header">
-                <div className="agent-title">
-                  <span className="agent-icon" style={{ color: agent.color }}>{renderHugeIcon(agent.icon, 18)}</span>
-                  {agent.name}
-                </div>
-                <div className={`status-dot ${agent.status}`} title={agent.status} />
-              </div>
-              <div className="model-badge" style={{ alignSelf: 'flex-start', marginBottom: '8px' }}>
-                {agent.model}
-              </div>
-              <div className="card-body">
-                <div className="main-status">{agent.label}</div>
-                <div className={`status-large ${
-                  agent.statusText.toLowerCase().includes('critical') || agent.statusText.includes('BLOCK') ? 'red' :
-                  agent.statusText.includes('passing') || agent.statusText.includes('fresh') ? 'green' : 'amber'
-                }`}>
-                  {agent.statusText}
-                </div>
-              </div>
-              <div className="card-footer">
-                {agent.metrics.map((m, idx) => (
-                  <div key={idx} className={`metric-pill ${m.c}`}>{m.t}</div>
-                ))}
-              </div>
-            </div>
-          ))}
+          )}
+          <RepoSelector
+            options={internalRepoList}
+            value={activeFilter}
+            onChange={(val) => handleRepoChange(String(val))}
+            showAllOption={true}
+            allOptionLabel="All connected repositories"
+          />
         </div>
       </div>
 
-      {activeAgent && (
-        <div className="detail-panel animate-in slide-in-from-right">
-          <div className="detail-header">
-            <div className="detail-title">
-              <span className="agent-icon" style={{ color: activeAgent.color }}>{renderHugeIcon(activeAgent.icon, 18)}</span>
-              {activeAgent.name}
+      {/* Stats strip */}
+      <div className="grid grid-cols-2 md:grid-cols-4 border-b border-cw-bdr bg-cw-bg2 shrink-0">
+        {[
+          { label: 'Agents', val: stats.agentsActive, cls: 'text-cw-txt' },
+          { label: 'Critical issues', val: stats.criticalIssues, cls: stats.criticalIssues > 0 ? 'text-cw-red' : 'text-cw-txt' },
+          { label: 'Lines auto-fixed', val: stats.linesFixed, cls: 'text-cw-txt' },
+          { label: 'Gate decision', val: stats.decision === 'BLOCKED' ? 'BLOCK' : stats.decision, cls: TONE_TEXT[decisionTone] },
+        ].map((k) => (
+          <div key={k.label} className="px-4 sm:px-6 py-3 border-r border-b md:border-b-0 border-cw-bdr last:border-r-0 flex flex-col gap-1 min-w-0">
+            <span className={EYEBROW}>{k.label}</span>
+            <span className={`text-[20px] leading-7 font-semibold tabular-nums truncate ${k.cls}`}>{k.val}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Body: pipeline + log pane */}
+      <div className="flex-1 min-h-0 flex flex-col lg:flex-row">
+        <div className="flex-1 min-w-0 min-h-0 overflow-y-auto">
+          {canvasLoading ? (
+            <CanvasLoader />
+          ) : (
+            <RunTimeline agents={agents} runInfo={runInfo} stats={stats} activeAgentId={activeAgentId} onSelect={(id) => setActiveAgentId(id)} />
+          )}
+        </div>
+
+        <div className="lg:w-[46%] xl:w-[44%] shrink-0 min-h-[280px] lg:min-h-0 flex flex-col border-t lg:border-t-0 lg:border-l border-cw-bdr bg-cw-log-bg">
+          {/* Pane header */}
+          <div className="h-11 px-4 border-b border-cw-bdr flex items-center justify-between gap-3 shrink-0">
+            <div className="flex items-center gap-2 min-w-0">
+              <ActiveIcon size={15} className={activeAgent ? TONE_TEXT[statusTone(activeAgent.status)] : 'text-cw-txt3'} />
+              <span className="text-[13px] font-medium text-cw-txt truncate">{activeAgent ? activeAgent.name : 'All dispatched agents'}</span>
+              {!activeAgent && <span className="text-[12px] text-cw-txt3 hidden sm:inline">· select an agent to inspect</span>}
             </div>
-            <button className="close-btn" onClick={() => setActiveAgentId(null)}>
-              {renderHugeIcon('Cancel01Icon', 20)}
-            </button>
+            {activeAgent && (
+              <button
+                type="button"
+                onClick={() => setActiveAgentId(null)}
+                aria-label="Back to all agents"
+                className={`w-7 h-7 rounded-md border border-cw-bdr hover:bg-cw-bg3 flex items-center justify-center text-cw-txt3 hover:text-cw-txt cursor-pointer ${FOCUS_RING}`}
+              >
+                <X size={14} />
+              </button>
+            )}
           </div>
-          <div className="detail-tabs">
-            <div className={`tab ${activeTab === 'logs' ? 'active' : ''}`} onClick={() => setActiveTab('logs')}>Logs</div>
-            <div className={`tab ${activeTab === 'findings' ? 'active' : ''}`} onClick={() => setActiveTab('findings')}>Findings ({activeAgent.findings.length})</div>
-            <div className={`tab ${activeTab === 'sandbox' ? 'active' : ''}`} onClick={() => setActiveTab('sandbox')}>Sandbox Ops</div>
-            <div className={`tab ${activeTab === 'config' ? 'active' : ''}`} onClick={() => setActiveTab('config')}>Config</div>
-            <div className={`tab ${activeTab === 'summary' ? 'active' : ''}`} onClick={() => setActiveTab('summary')}>Summary</div>
-          </div>
-          
-          <div className="detail-content">
-            {/* Logs Tab */}
-            <div className={`tab-pane ${activeTab === 'logs' ? 'active' : ''}`}>
-              <div className="terminal-view">
+
+          {/* Tabs (agent selected) */}
+          {activeAgent && (
+            <div className="px-2 border-b border-cw-bdr flex items-center gap-1 shrink-0 overflow-x-auto">
+              {DETAIL_TABS.map((t) => (
+                <button
+                  key={t.key}
+                  type="button"
+                  onClick={() => setActiveTab(t.key)}
+                  className={`h-9 px-2.5 text-[13px] font-medium border-b-2 -mb-px whitespace-nowrap transition-colors cursor-pointer ${activeTab === t.key ? 'border-cw-purple text-cw-txt' : 'border-transparent text-cw-txt3 hover:text-cw-txt'}`}
+                >
+                  {t.label}{t.key === 'findings' ? ` (${activeAgent.findings.length})` : ''}
+                </button>
+              ))}
+            </div>
+          )}
+
+          <div className="flex-1 min-h-0 overflow-y-auto">
+            {/* No selection: merged stream */}
+            {!activeAgent && (
+              <div className="font-jetbrains text-[13px] leading-6 px-4 py-3">
+                {mergedLogs.length === 0 ? (
+                  <div className="text-cw-txt3 py-10 text-center">No run logs captured yet.</div>
+                ) : mergedLogs.map((log, idx) => (
+                  <div key={log.key} className="flex items-start gap-3 hover:bg-white/[0.03] px-1 rounded">
+                    <span className="text-cw-txt3 shrink-0 tabular-nums text-[12px] pt-px">{formatLogTimestamp(log.t, idx)}</span>
+                    <span className="text-cw-txt3 shrink-0 text-[12px] pt-px w-[110px] truncate hidden md:inline">{log.agent}</span>
+                    <span className={`break-words flex-1 ${LOG_TONE[log.type] ?? 'text-cw-txt2'}`}>{log.msg}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Logs tab */}
+            {activeAgent && activeTab === 'logs' && (
+              <div className="font-jetbrains text-[13px] leading-6 px-4 py-3">
                 {activeAgent.logs.map((log, idx) => (
-                  <div key={idx} className={`log-line log-type-${log.type}`}>
-                    <span className="log-time">{formatLogTimestamp(log.t, idx)}</span>
-                    <span className="log-msg">
+                  <div key={idx} className="flex items-start gap-3 hover:bg-white/[0.03] px-1 rounded">
+                    <span className="text-cw-txt3 shrink-0 tabular-nums text-[12px] pt-px">{formatLogTimestamp(log.t, idx)}</span>
+                    <span className={`break-words flex-1 ${LOG_TONE[log.type] ?? 'text-cw-txt2'}`}>
                       {log.msg}
                       {idx === activeAgent.logs.length - 1 && activeAgent.status === 'running' && (
-                        <span className="terminal-cursor" />
+                        <span className="inline-block w-[7px] h-[14px] ml-1 align-middle bg-cw-txt2 animate-pulse" />
                       )}
                     </span>
                   </div>
                 ))}
                 <div ref={logsEndRef} />
               </div>
-            </div>
+            )}
 
-            {/* Findings Tab */}
-            <div className={`tab-pane ${activeTab === 'findings' ? 'active' : ''}`}>
-              {activeAgent.findings.map((f, idx) => (
-                <div key={idx} className={`finding-item ${f.sev}`}>
-                  <div className="finding-header">
-                    <span className={`sev-badge sev-${f.sev}`}>{f.sev}</span>
-                    <span className="finding-title">{f.title}</span>
-                  </div>
-                  <div className="finding-desc">{f.desc}</div>
-                </div>
-              ))}
-              {activeAgent.findings.length === 0 && (
-                <div className="text-center text-cw-txt3 mt-8 text-[12px]">No findings recorded.</div>
-              )}
-            </div>
+            {/* Findings tab */}
+            {activeAgent && activeTab === 'findings' && (
+              <div className="flex flex-col">
+                {activeAgent.findings.map((f, idx) => (
+                  <details key={idx} className="group border-b border-cw-bdr">
+                    <summary className="list-none cursor-pointer min-h-11 px-4 py-2 flex items-center gap-3 hover:bg-cw-bg3/60 [&::-webkit-details-marker]:hidden">
+                      <span className={`inline-flex items-center h-5 px-1.5 rounded border text-[11px] font-semibold uppercase tracking-wider shrink-0 ${TONE_PILL[SEV_TONE[f.sev] ?? 'neutral']}`}>{f.sev}</span>
+                      <span className="text-[14px] text-cw-txt truncate">{f.title}</span>
+                    </summary>
+                    <p className="px-4 pb-3 text-[13px] leading-5 text-cw-txt2">{f.desc}</p>
+                  </details>
+                ))}
+                {activeAgent.findings.length === 0 && (
+                  <div className="text-center text-cw-txt3 py-10 text-[13px]">No findings recorded.</div>
+                )}
+              </div>
+            )}
 
-            {/* Sandbox Ops Tab */}
-            <div className={`tab-pane ${activeTab === 'sandbox' ? 'active' : ''}`}>
-              {activeAgent.sandbox.map((op, idx) => (
-                <div key={idx} className="sandbox-op">
-                  <div className="op-icon">
-                    {renderHugeIcon(op.icon, 16)}
-                  </div>
-                  <div className="op-info">
-                    <div className="op-name">{op.name}</div>
-                    <div className="op-status">{op.status}</div>
-                  </div>
-                  {op.active && <div className="op-spinner" />}
-                  {op.done && renderHugeIcon('CheckmarkCircle01Icon', 16)}
-                </div>
-              ))}
-              {activeAgent.sandbox.length === 0 && (
-                <div className="text-center text-cw-txt3 mt-8 text-[12px]">No sandbox operations executed.</div>
-              )}
-            </div>
+            {/* Sandbox tab */}
+            {activeAgent && activeTab === 'sandbox' && (
+              <div className="flex flex-col">
+                {activeAgent.sandbox.map((op, idx) => {
+                  const OpIcon = OP_ICON[op.icon] ?? Settings2;
+                  return (
+                    <div key={idx} className="min-h-11 px-4 py-2 border-b border-cw-bdr flex items-center gap-3">
+                      <OpIcon size={15} className="text-cw-txt3 shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <div className="text-[13px] font-mono text-cw-txt truncate">{op.name}</div>
+                        <div className="text-[12px] text-cw-txt3 truncate">{op.status}</div>
+                      </div>
+                      {op.active && <Loader2 size={14} className="animate-spin text-cw-purple shrink-0" />}
+                      {op.done && <CheckCircle2 size={14} className="text-cw-green shrink-0" />}
+                    </div>
+                  );
+                })}
+                {activeAgent.sandbox.length === 0 && (
+                  <div className="text-center text-cw-txt3 py-10 text-[13px]">No sandbox operations executed.</div>
+                )}
+              </div>
+            )}
 
-            {/* Config Tab */}
-            <div className={`tab-pane ${activeTab === 'config' ? 'active' : ''}`}>
-              <div style={{ background: 'var(--color-cw-bg2)', border: '1px solid var(--color-cw-bdr)', borderRadius: '8px', padding: '12px' }}>
+            {/* Config tab */}
+            {activeAgent && activeTab === 'config' && (
+              <div className="flex flex-col">
                 {Object.entries(activeAgent.config).map(([key, val], idx) => (
-                  <div key={idx} className="config-row">
-                    <div className="config-key">{key}</div>
-                    <div className="config-val">{val}</div>
+                  <div key={idx} className="min-h-10 px-4 py-2 border-b border-cw-bdr grid grid-cols-[140px_minmax(0,1fr)] gap-3 items-center">
+                    <span className="font-mono text-[12px] text-cw-txt3 truncate">{key}</span>
+                    <span className="font-mono text-[13px] text-cw-txt break-all">{val}</span>
                   </div>
                 ))}
               </div>
-            </div>
+            )}
 
-            {/* Summary Tab */}
-            <div className={`tab-pane ${activeTab === 'summary' ? 'active' : ''}`}>
-              {activeAgent.score !== null && (
-                <div className={`score-circle ${activeAgent.score < 50 ? 'red' : activeAgent.score < 90 ? 'amber' : 'green'}`}>
-                  {activeAgent.score}
+            {/* Summary tab */}
+            {activeAgent && activeTab === 'summary' && (
+              <div className="p-4 flex flex-col gap-4">
+                {activeAgent.score !== null && (
+                  <div className="flex items-baseline gap-2">
+                    <span className={`text-[32px] leading-none font-semibold tabular-nums ${TONE_TEXT[activeAgent.score < 50 ? 'red' : activeAgent.score < 90 ? 'amber' : 'green']}`}>{activeAgent.score}</span>
+                    <span className="text-[13px] text-cw-txt3">/ 100</span>
+                  </div>
+                )}
+                <div className="grid grid-cols-2 sm:grid-cols-4 border border-cw-bdr rounded-md overflow-hidden bg-cw-bg2">
+                  {[
+                    { label: 'Critical', val: activeAgent.summary.criticals, cls: activeAgent.summary.criticals > 0 ? 'text-cw-red' : 'text-cw-txt' },
+                    { label: 'High', val: activeAgent.summary.highs, cls: 'text-cw-txt' },
+                    { label: 'Auto-fixed', val: activeAgent.summary.fixed, cls: 'text-cw-green' },
+                    { label: 'Lines removed', val: activeAgent.summary.linesRemoved, cls: 'text-cw-txt' },
+                  ].map((k) => (
+                    <div key={k.label} className="px-3 py-2.5 border-r border-b sm:border-b-0 border-cw-bdr last:border-r-0 flex flex-col gap-0.5">
+                      <span className={EYEBROW}>{k.label}</span>
+                      <span className={`text-[18px] leading-6 font-semibold tabular-nums ${k.cls}`}>{k.val}</span>
+                    </div>
+                  ))}
                 </div>
-              )}
-              <div className="summary-grid">
-                <div className="summary-box">
-                  <div className="s-val red">{activeAgent.summary.criticals}</div>
-                  <div className="s-lbl">Critical</div>
-                </div>
-                <div className="summary-box">
-                  <div className="s-val">{activeAgent.summary.highs}</div>
-                  <div className="s-lbl">High</div>
-                </div>
-                <div className="summary-box">
-                  <div className="s-val text-cw-green">{activeAgent.summary.fixed}</div>
-                  <div className="s-lbl">Auto-Fixed</div>
-                </div>
-                <div className="summary-box">
-                  <div className="s-val">{activeAgent.summary.linesRemoved}</div>
-                  <div className="s-lbl">Lines Removed</div>
-                </div>
+                <div className="text-[13px] text-cw-txt2">Total runtime <span className="font-mono text-cw-txt">{activeAgent.summary.duration}</span></div>
               </div>
-              <div className="text-center text-[12px] text-cw-txt2 mt-4">
-                Total runtime: <strong>{activeAgent.summary.duration}</strong>
-              </div>
-            </div>
+            )}
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }
