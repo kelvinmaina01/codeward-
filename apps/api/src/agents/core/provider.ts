@@ -95,6 +95,15 @@ export interface AgentResult {
   toolsExecuted?: Array<{ toolName: string; calledAt: string; durationMs: number; resultSummary: string }>;
   summary?: Record<string, unknown>;
   /**
+   * The rest of the agent's submit_*_report payload, minus the findings array (which is carried
+   * separately and would double the row size). Every agent's schema already asks for structured
+   * top-level facts the model produces on every run — broken_code's testSuiteResult and
+   * migrationRollbackPassed, architecture's performanceMetrics, ai_era's promptInjectionVulnerable,
+   * bloat's fallowHealthScore, data_dx's teamMetrics — and all of it was being discarded at this
+   * boundary, which is why the orchestrator's Hard Rules could never see a red test suite.
+   */
+  report?: Record<string, unknown>;
+  /**
    * What the backend finding policy made of this agent's findings. Recorded per-agent so a
    * prompt or threshold change can be evaluated against real runs: a sudden jump in
    * suppressedCount is the signal that a change went too far and started hiding real work.

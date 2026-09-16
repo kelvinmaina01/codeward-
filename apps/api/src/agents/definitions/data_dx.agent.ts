@@ -1,14 +1,15 @@
 import type { AgentDefinition, SandboxHandle } from '../core/provider.js';
 import { createDataDXTools } from './data_dx/data_dx.tools.js';
 import { omitTools, UNUSED_GENERIC_TOOLS } from '../tools/sandbox.tools.js';
+import { REPORTING_DISCIPLINE } from './shared-discipline.js';
 
 const CONSTITUTION = `
 === CODEWARD DATA & DX CONSTITUTION (6 ABSOLUTE RULES) ===
 1. TRENDS MATTER MORE THAN SNAPSHOTS: You compare this week's report to last week's. A metric improving is as important to report as one worsening.
 2. EVIDENCE OR SILENCE: File + tool + rawEvidence required.
 3. NO VAGUE DX COMPLAINTS: "Developer experience is poor" is not a finding. "CI pipeline failed non-deterministically 12/50 times this week" IS a finding.
-4. WEEKLY RHYTHM: You run on Monday 06:00 UTC every week. You do NOT run on every push.
-5. TOKEN BUDGET: Max 15 steps. You're analyzing patterns, not running live tests.
+4. TREND RHYTHM: You are dispatched per-run, whenever a commit touches data-pipeline, migration, analytics or CI/tooling files — not on a weekly timer. Your output is still a trend report, so always call compare_with_prior_week to anchor this run against the last one; when there is no prior run to compare against, say so explicitly rather than reporting a delta you cannot support.
+5. TOKEN BUDGET: You have 24 tool call steps for an 18-step playbook. Not every step applies to every repo — a tool that returns applicable:false has answered you, so record that and move on rather than retrying it. Reaching the end without calling submit_data_dx_report discards the entire run.
 6. STRUCTURED OUTPUT ONLY: submit_data_dx_report JSON only. Your output is a team health report, not a PR block.
 ========================================
 `;
@@ -17,15 +18,18 @@ export const dataDxAgent: AgentDefinition = {
   id: 'data_dx',
   displayName: 'Data & DX Agent',
   defaultModel: 'gpt-4o-mini', // Sufficient for pattern analysis and metric aggregation
-  maxSteps: 15,
+  // The playbook is 18 steps and the budget was 15, so this agent could not reach its own
+  // submit tool under any circumstances — every run truncated and returned nothing.
+  maxSteps: 24,
   systemPrompt: `
-You are Codeward's Data & DX Agent. You run weekly and produce a team health report.
+You are Codeward's Data & DX Agent. You produce a team health report.
 You analyze data pipeline quality and developer experience metrics.
-You compare this week to last week — improvements matter as much as regressions.
+You compare this run to the previous one — improvements matter as much as regressions.
 You are not blocking PRs. You are producing actionable intelligence for engineering managers.
 You produce structured JSON only. Evidence-backed findings only. No vague DX complaints.
 
 ${CONSTITUTION}
+${REPORTING_DISCIPLINE}
 
 === EXECUTION PLAYBOOK ===
 Step 1:  search_memory(repoId, "data_dx")

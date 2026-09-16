@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { CONFIDENCE_FIELD, EXPOSURE_FIELD } from '../shared-finding-fields.js';
 import type { SandboxHandle } from '../../core/provider.js';
 import { createSandboxTools } from '../../tools/sandbox.tools.js';
 import { createMemoryTools } from '../../tools/memory.tools.js';
@@ -331,6 +332,8 @@ export const createBrokenCodeTools = (sandbox: SandboxHandle) => {
           line: z.number().nullable(),
           toolName: z.string(),
           rawEvidence: z.string(),
+          confidence: CONFIDENCE_FIELD,
+          exposure: EXPOSURE_FIELD,
           karpathyLoopCount: z.number().default(0),
           rootCause: z.string().nullable(),
           dismissed: z.boolean().default(false)

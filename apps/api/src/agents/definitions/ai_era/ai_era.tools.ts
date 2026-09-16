@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { CONFIDENCE_FIELD, EXPOSURE_FIELD } from '../shared-finding-fields.js';
 import type { SandboxHandle } from '../../core/provider.js';
 import { createSandboxTools } from '../../tools/sandbox.tools.js';
 import { createMemoryTools } from '../../tools/memory.tools.js';
@@ -176,6 +177,7 @@ export const createAIEraTools = (sandbox: SandboxHandle) => {
           id: z.string(), severity: z.enum(["CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO"]),
           category: z.enum(["PROMPT_INJECTION", "TOKEN_SPEND", "UNVALIDATED_OUTPUT", "MODEL_VERSION", "PII_IN_PIPELINE", "NO_AI_RATE_LIMIT", "HALLUCINATION_TRUST", "TRAINING_EXPOSURE", "SYSTEM_PROMPT_LEAK", "UI_DRIFT", "STALE_VECTOR_INDEX", "AI_LOGIC_SHIFT", "AI_ATTRIBUTION", "PROMPT_VERSION", "RAG_CONTEXT_BLOAT", "MISSING_HITL", "MODEL_BIAS", "EVASIVE_AI_TEST"]),
           title: z.string(), description: z.string(), file: z.string().nullable(), line: z.number().nullable(), toolName: z.string(), rawEvidence: z.string(),
+          confidence: CONFIDENCE_FIELD, exposure: EXPOSURE_FIELD,
           adversarialPayload: z.string().nullable(), dismissed: z.boolean().default(false)
         }))
       }),

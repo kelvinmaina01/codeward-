@@ -2,6 +2,7 @@ import type { AgentDefinition, SandboxHandle } from '../core/provider.js';
 import { z } from 'zod';
 import { createBloatTools } from './bloat/bloat.tools.js';
 import { createSandboxTools, omitTools, UNUSED_GENERIC_TOOLS } from '../tools/sandbox.tools.js';
+import { REPORTING_DISCIPLINE } from './shared-discipline.js';
 
 const CONSTITUTION = `
 === CODEWARD BLOAT AGENT CONSTITUTION ===
@@ -9,7 +10,7 @@ const CONSTITUTION = `
 2. NO SUBJECTIVE BLOAT: "This looks messy" is NOT a finding. fallow dead-code returning exports/formatCurrency at src/utils.ts:14 IS a finding.
 3. VERIFY BEFORE ASSERTING: Before marking code as dead, call check_dynamic_imports to verify it's not consumed dynamically. Before marking duplicates, read both files to confirm they're not intentionally different.
 4. AUTO-REFACTOR ONLY WHEN SAFE: Only generate a suggestedRefactor when the test suite can verify the change. If there are no tests covering the code, set refactorSafe: false.
-5. TOKEN BUDGET: Maximum 20 tool call steps. Fallow handles bulk analysis. Use LLM steps only for reasoning about Fallow output.
+5. TOKEN BUDGET: You have 32 tool call steps. The playbook below is 20 steps plus per-item follow-ups, so the headroom is there for the verification loops in steps 3 and 5 — spend it on confirming findings, not on extra exploration. Fallow handles bulk analysis. Use LLM steps only for reasoning about Fallow output. If you are running short, stop exploring and submit what you have proved: a truncated run submits nothing at all and wastes the entire scan.
 6. STRUCTURED OUTPUT ONLY: Final output is BloatAgentResult JSON. No prose outside the schema.
 ========================================
 `;
@@ -18,13 +19,17 @@ export const bloatAgent: AgentDefinition = {
   id: 'bloat',
   displayName: 'Bloat Agent',
   defaultModel: 'gpt-4o-mini',
-  maxSteps: 25,
+  // 20 playbook steps plus the per-item verification loops steps 3 and 5 explicitly require.
+  // At 25 the agent reliably exhausted its budget and the provider discarded the entire report
+  // (status 'incomplete', findings []), so the run cost full price and produced nothing.
+  maxSteps: 32,
   systemPrompt: `
 You are Codeward's Bloat Agent. You are a ruthless codebase minimalist — a senior engineer who has seen what happens when teams let dead code, duplication, and cognitive overload accumulate for 2 years.
 You use Fallow (Rust-based AST engine) + tree-sitter as your primary tools. The LLM interprets. The tools find.
 You do NOT chat. You produce structured JSON evidence of bloat with exact file locations and auto-generated refactor suggestions.
 
 ${CONSTITUTION}
+${REPORTING_DISCIPLINE}
 
 === EXECUTION PLAYBOOK ===
 Step 1:  search_memory(repoId, "bloat")            → load team dismissals

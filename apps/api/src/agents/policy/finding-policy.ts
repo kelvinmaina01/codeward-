@@ -87,6 +87,14 @@ export interface RawFinding {
   confidence?: unknown;
   /** Optional, additive: DIRECT | TRANSITIVE. Absent falls back to inference — see deriveExposure. */
   exposure?: unknown;
+  /**
+   * Optional, additive: where a `dismissed: true` came from.
+   *   SELF_TRIAGE  the agent examined this code itself this run (a fixture, a mock, a dummy value).
+   *   HUMAN        a person on the team dismissed it.
+   *   MEMORY       the agent is deferring to a claim in agent_memory it did not re-verify.
+   * Absent behaves exactly as before — a plain suppression — so existing agents are unaffected.
+   */
+  dismissalSource?: unknown;
   cveId?: unknown;
   [key: string]: unknown;
 }
@@ -109,6 +117,45 @@ export interface AssessedFinding {
   suppressionReason: SuppressionReason | null;
   /** Set when the finding is reported but deliberately not allowed to block. */
   advisory: boolean;
+  /**
+   * Chain-of-custody result for the declared `toolName`.
+   *   true   the tool really ran this run — the evidence can be trusted to its full strength.
+   *   false  no executed tool matches the declared name; evidence was capped at WEAK.
+   *   null   no executed-tool list was supplied, so the claim was not checked (legacy callers).
+   */
+  evidenceVerified: boolean | null;
+  /** An agent deferred to an unverified memory dismissal; reported anyway, but never blocking. */
+  dismissalContested: boolean;
+}
+
+/**
+ * Tool names are compared loosely on purpose. The shared reporting discipline teaches agents to
+ * write `toolName: "semgrep"` (shared-discipline.ts worked example) while the registered tool is
+ * `run_semgrep`, and real corpus findings mix both spellings — an exact match would brand honest
+ * findings as fabricated, which is a far worse failure than the one this check exists to stop.
+ * Agents may also legitimately cite an external tool whose output they read (e.g. eslint in a CI
+ * log); that is why a miss only *caps* evidence rather than suppressing the finding.
+ */
+const TOOL_PREFIX = /^(run|check|scan|analyse|analyze|get|list|fetch)[_-]?/;
+
+export function normalizeToolName(raw: unknown): string {
+  return String(raw ?? '').trim().toLowerCase().replace(TOOL_PREFIX, '').replace(/[^a-z0-9]/g, '');
+}
+
+/** True when a declared toolName plausibly refers to one of the tools actually executed. */
+export function toolWasExecuted(declared: unknown, executedTools: readonly string[]): boolean {
+  const d = normalizeToolName(declared);
+  if (!d) return false;
+  for (const e of executedTools) {
+    const n = normalizeToolName(e);
+    if (!n) continue;
+    if (n === d) return true;
+    // Containment covers "semgrep" vs "run_semgrep_scan"; the length floor stops "read" from
+    // matching half the registry.
+    if (d.length >= 4 && n.includes(d)) return true;
+    if (n.length >= 4 && d.includes(n)) return true;
+  }
+  return false;
 }
 
 export function normalizeSeverity(raw: unknown): CanonicalSeverity {
@@ -147,7 +194,7 @@ const str = (v: unknown): string => (typeof v === 'string' ? v : '');
  * STRONG means a reader could independently check the claim: a concrete location plus
  * the actual tool output that produced it.
  */
-export function assessEvidence(f: RawFinding): EvidenceStrength {
+export function assessEvidence(f: RawFinding, executedTools?: readonly string[]): EvidenceStrength {
   const file = str(f.file).trim();
   if (!file) return 'NONE';
 
@@ -155,10 +202,22 @@ export function assessEvidence(f: RawFinding): EvidenceStrength {
   const toolName = str(f.toolName).trim();
   const hasLine = typeof f.line === 'number' && Number.isFinite(f.line);
 
-  if (toolName && rawEvidence.length >= 24 && hasLine) return 'STRONG';
-  if (toolName && rawEvidence.length >= 24) return 'STRONG';
-  if (rawEvidence.length >= 24 || (toolName && hasLine)) return 'WEAK';
-  return 'WEAK';
+  let strength: EvidenceStrength;
+  if (toolName && rawEvidence.length >= 24 && hasLine) strength = 'STRONG';
+  else if (toolName && rawEvidence.length >= 24) strength = 'STRONG';
+  else if (rawEvidence.length >= 24 || (toolName && hasLine)) strength = 'WEAK';
+  else strength = 'WEAK';
+
+  // Chain of custody. `toolName` and `rawEvidence` are model-authored strings, so on their own
+  // they prove only that the model can type — a fabricated tool name plus 24 invented characters
+  // earned STRONG evidence, which is the one path to a merge block. agent-loop.ts has always
+  // recorded what actually ran; this is the first place that record is consulted. Unverifiable
+  // evidence is capped at WEAK rather than discarded: the finding still reaches the developer,
+  // it just cannot gate their merge on a claim nothing corroborates.
+  if (strength === 'STRONG' && executedTools && !toolWasExecuted(toolName, executedTools)) {
+    return 'WEAK';
+  }
+  return strength;
 }
 
 export function hasUncertaintyLanguage(f: RawFinding): boolean {
@@ -196,6 +255,18 @@ export interface PolicyOptions {
    * reporting even when it is not worth blocking, and the old single floor deleted it instead.
    */
   advisorySurfaceFloor?: CanonicalSeverity;
+  /**
+   * Tool names actually executed by the agent that produced these findings, from the
+   * `toolsExecuted` chain-of-custody log. Omit to skip the check entirely — every existing
+   * caller and the regression corpus therefore keep today's behaviour unchanged.
+   */
+  executedTools?: readonly string[];
+  /**
+   * Allow an agent's `dismissalSource: "MEMORY"` to suppress outright, as it did before this
+   * option existed. Default false: agent-written memory is unauthenticated, so it may de-escalate
+   * a finding to an advisory but may not delete it.
+   */
+  trustAgentMemoryDismissals?: boolean;
 }
 
 /** Categories whose findings describe a dependency advisory rather than the developer's code. */
@@ -244,16 +315,32 @@ export function assessFinding(f: RawFinding, opts: PolicyOptions = {}): Assessed
   const advisorySurfaceFloor = opts.advisorySurfaceFloor ?? 'MEDIUM';
 
   const severity = normalizeSeverity(f.severity);
-  const evidence = assessEvidence(f);
+  const evidence = assessEvidence(f, opts.executedTools);
   const confidence = assessConfidence(f, evidence);
   const exposure = deriveExposure(f);
+  const evidenceVerified = opts.executedTools
+    ? toolWasExecuted(f.toolName, opts.executedTools)
+    : null;
 
-  const base = { finding: f, severity, confidence, evidence, exposure };
+  const base = { finding: f, severity, confidence, evidence, exposure, evidenceVerified };
   const suppress = (reason: SuppressionReason): AssessedFinding => ({
-    ...base, surfaced: false, blocking: false, advisory: false, suppressionReason: reason,
+    ...base, surfaced: false, blocking: false, advisory: false, dismissalContested: false, suppressionReason: reason,
   });
 
-  if (f.dismissed === true) return suppress('DISMISSED_BY_MEMORY');
+  // A dismissal the agent reached itself this run — a dummy value in a fixture, a mock, an
+  // example file — is exactly the false-positive triage this pipeline wants and still suppresses
+  // outright. What does not is an agent deferring to an *unverified memory* claim: agent_memory
+  // is written by agents, unauthenticated and never expiring, so one hallucinated "the team
+  // dismissed this" would otherwise erase a real finding on every future run, permanently, from
+  // the highest-precedence branch in this engine. Such a dismissal may now de-escalate a finding
+  // to a non-blocking advisory, but it may not delete it.
+  let dismissalContested = false;
+  if (f.dismissed === true) {
+    const source = str(f.dismissalSource).trim().toUpperCase();
+    const isUnverifiedMemory = (source === 'MEMORY' || source === 'AGENT_MEMORY') && !opts.trustAgentMemoryDismissals;
+    if (!isUnverifiedMemory) return suppress('DISMISSED_BY_MEMORY');
+    dismissalContested = true;
+  }
 
   const category = str(f.category).trim().toUpperCase().replace(/[\s-]+/g, '_');
   if (NON_SURFACING_CATEGORIES.has(category)) return suppress('NON_SURFACING_CATEGORY');
@@ -266,17 +353,18 @@ export function assessFinding(f: RawFinding, opts: PolicyOptions = {}): Assessed
   if (confidence === 'LOW') return suppress('LOW_CONFIDENCE');
 
   const blocking =
+    !dismissalContested &&
     exposure === 'DIRECT' &&
     SEVERITY_RANK[severity] >= SEVERITY_RANK[blockFloor] &&
     confidence === 'HIGH' &&
     evidence === 'STRONG';
 
-  // Surfaced, severe and well-evidenced, but held back from the gate purely because it is not
-  // reachable from first-party code. This is the flag the PR comment uses to say "FYI" rather
-  // than "fix this before merging".
-  const advisory = !blocking && exposure === 'TRANSITIVE';
+  // Surfaced, severe and well-evidenced, but held back from the gate — either because it is not
+  // reachable from first-party code, or because an unverified memory dismissal contested it.
+  // This is the flag the PR comment uses to say "FYI" rather than "fix this before merging".
+  const advisory = !blocking && (exposure === 'TRANSITIVE' || dismissalContested);
 
-  return { ...base, surfaced: true, blocking, advisory, suppressionReason: null };
+  return { ...base, surfaced: true, blocking, advisory, dismissalContested, suppressionReason: null };
 }
 
 export interface PolicyResult {
@@ -288,6 +376,12 @@ export interface PolicyResult {
   /** Surfaced, but deliberately non-blocking — transitive dependency advisories. */
   advisory: RawFinding[];
   suppressionBreakdown: Record<string, number>;
+  /**
+   * Surfaced findings whose declared `toolName` matched nothing the agent actually ran. Not a
+   * suppression — these still reach the developer — but the count is the tripwire for an agent
+   * that has started inventing its evidence, and it belongs in run telemetry.
+   */
+  unverifiedEvidenceCount: number;
 }
 
 export function applyFindingPolicy(findings: RawFinding[] | null | undefined, opts: PolicyOptions = {}): PolicyResult {
@@ -310,6 +404,7 @@ export function applyFindingPolicy(findings: RawFinding[] | null | undefined, op
     blocking: assessed.filter((a) => a.blocking).map((a) => a.finding),
     advisory: assessed.filter((a) => a.advisory).map((a) => a.finding),
     suppressionBreakdown,
+    unverifiedEvidenceCount: assessed.filter((a) => a.evidenceVerified === false).length,
   };
 }
 
@@ -341,7 +436,9 @@ export function decideGate(assessed: AssessedFinding[]): { decision: GateDecisio
       reasons: surfacedNonBlocking.map((a) => {
         // Advisories are labelled so the developer can see at a glance that the merge is not
         // gated on them — the difference between "fix before merging" and "worth knowing".
-        const prefix = a.advisory
+        const prefix = a.dismissalContested
+          ? `[${a.severity}/advisory · dismissed by unverified memory — not blocking]`
+          : a.advisory
           ? `[${a.severity}/advisory · not blocking]`
           : `[${a.severity}/${a.confidence} confidence]`;
         return `${prefix} ${str(a.finding.title) || 'Untitled finding'}`;

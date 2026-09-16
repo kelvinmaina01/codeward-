@@ -23,7 +23,7 @@ import dotenv from 'dotenv';
 import { createRedisConnection, BULLMQ_PREFIX } from '../../lib/redis.js';
 import { workerDb as db } from '../../db/index.js';
 import { agentTasks, runs, repositories, runLogs, user } from '../../db/schema.js';
-import { eq, and, notLike } from 'drizzle-orm';
+import { eq, and, ne, notLike, desc } from 'drizzle-orm';
 import { getProvider } from '../core/registry.js';
 import type { AgentDefinition, SandboxHandle, AgentRunConfig } from '../core/provider.js';
 import { ResilientSandbox } from '../../sandbox/resilient-sandbox.js';
@@ -207,30 +207,186 @@ async function claimTaskRow(runId: number, agentId: string, providerName?: strin
 }
 
 // ---------------------------------------------------------------------------
+// Orchestrator phase hand-off
+// ---------------------------------------------------------------------------
+
+/**
+ * Builds the context block appended to an orchestrator phase's task prompt.
+ *
+ * The three phases previously shared one identical task prompt and communicated only through
+ * the agent_tasks table, so Phase 2 never saw what Phase 1 ingested and Phase 3 never saw the
+ * run it was deciding on. That is also why Phase 3's submit schema asked for facts — the branch,
+ * the author, the elapsed time, the score trend, the risk profile — that no tool in its toolset
+ * could answer: the data existed, it just never travelled. Rather than strip those fields out of
+ * a schema the author clearly wanted populated, this hands the phase the real values so it can
+ * fill them honestly instead of inventing them.
+ */
+async function buildOrchestratorContext(
+  agentId: string,
+  runId: number,
+  sandbox: SandboxHandle,
+  runRow: { repoId?: number | null; prNumber?: number | null; createdAt?: Date | null; scope?: unknown } | null | undefined,
+  repoFullName: string,
+  commitSHA: string,
+): Promise<string> {
+  if (!agentId.startsWith('orchestrator')) return '';
+
+  const git = async (cmd: string): Promise<string | null> => {
+    try {
+      const res = await sandbox.exec(cmd);
+      const out = (res.stdout ?? '').trim();
+      return res.exitCode === 0 && out ? out : null;
+    } catch { return null; }
+  };
+
+  const lines: string[] = [];
+
+  if (agentId === 'orchestrator_phase2') {
+    // Phase 1's ingestion output, persisted by analyse_commit_diff. Without this Phase 2 had to
+    // re-derive from scratch what Phase 1 had already paid an LLM loop to work out.
+    const ingestion = (runRow?.scope as any)?.ingestion;
+    if (ingestion) {
+      lines.push('=== PHASE 1 INGESTION RESULT (already computed — do not re-derive) ===');
+      lines.push(JSON.stringify(ingestion).slice(0, 2000));
+      lines.push('Use this to justify any override you pass to dispatch_recommended_agents. The tool');
+      lines.push('re-derives the classification itself, so you do not need to repeat the analysis.');
+    } else {
+      lines.push('=== PHASE 1 INGESTION RESULT ===');
+      lines.push('Not available for this run — dispatch_recommended_agents will derive it from the real diff itself.');
+    }
+  }
+
+  if (agentId === 'orchestrator_phase3') {
+    const [branch, authorEmail, committedAt] = await Promise.all([
+      git('git rev-parse --abbrev-ref HEAD'),
+      git('git log -1 --format=%ae'),
+      git('git log -1 --format=%cI'),
+    ]);
+
+    const startedAt = runRow?.createdAt ? new Date(runRow.createdAt) : null;
+    const totalDurationMs = startedAt ? Math.max(0, Date.now() - startedAt.getTime()) : null;
+
+    // Prior completed run for this repo — the real source for scoreVsPriorRun / historicalTrend.
+    let priorScore: number | null = null;
+    let priorRunCount = 0;
+    if (runRow?.repoId != null) {
+      try {
+        const prior = await db.select({ score: runs.score })
+          .from(runs)
+          .where(and(eq(runs.repoId, runRow.repoId), eq(runs.status, 'completed'), ne(runs.id, runId)))
+          .orderBy(desc(runs.createdAt))
+          .limit(5);
+        priorRunCount = prior.length;
+        priorScore = prior.find((r) => r.score != null)?.score ?? null;
+      } catch { /* prior history is advisory; never fail the run over it */ }
+    }
+
+    const tasks = await db.select().from(agentTasks).where(
+      and(eq(agentTasks.runId, runId), notLike(agentTasks.agentId, 'orchestrator%'))
+    );
+
+    lines.push('=== RUN FACTS (use these EXACT values; do not invent or estimate any of them) ===');
+    lines.push(`runId: ${runId}`);
+    lines.push(`repoId: ${runRow?.repoId ?? 'unknown'}`);
+    lines.push(`repoFullName: ${repoFullName}`);
+    lines.push(`commitSha: ${commitSHA}`);
+    lines.push(`branch: ${branch ?? 'unknown — report "unknown", do not guess'}`);
+    lines.push(`authorEmail: ${authorEmail ?? 'unknown — report "unknown", do not guess'}`);
+    lines.push(`commitAuthoredAt: ${committedAt ?? 'unknown'}`);
+    lines.push(`executedAt: ${startedAt ? startedAt.toISOString() : 'unknown'}`);
+    lines.push(`completedAt: ${new Date().toISOString()}`);
+    lines.push(`totalDurationMs: ${totalDurationMs ?? 'unknown — report 0 rather than guessing'}`);
+    lines.push(`pullRequestNumber: ${runRow?.prNumber ?? 'none — this run is not attached to a PR'}`);
+    lines.push(`priorCompletedRuns: ${priorRunCount}`);
+    lines.push(`priorRunScore: ${priorScore ?? 'none — this is the first scored run, so scoreVsPriorRun is 0 and historicalTrend is "stable"'}`);
+
+    const scope = (runRow?.scope as any) ?? {};
+    if (scope.overallRisk || scope.isDocOrConfigOnly !== undefined) {
+      lines.push('');
+      lines.push('=== COMMIT RISK PROFILE (computed from the real diff at dispatch time) ===');
+      lines.push(JSON.stringify({
+        overallRisk: scope.overallRisk ?? null,
+        isDocOrConfigOnly: scope.isDocOrConfigOnly ?? null,
+        recommendedAgents: scope.recommendedAgents ?? null,
+        dispatchedAgents: scope.dispatchedAgents ?? null,
+        changedFilesSummary: scope.changedFilesSummary ?? null,
+        ...(scope.ingestion?.riskProfile ?? {}),
+      }).slice(0, 2000));
+      lines.push('Populate commitRiskProfile from THIS. If a field is absent here, report a neutral');
+      lines.push('value and say in your rationale that it was not measured — never fabricate one.');
+    }
+
+    lines.push('');
+    lines.push('=== SUB-AGENT OUTCOMES (this run) ===');
+    for (const t of tasks) {
+      lines.push(`- ${t.agentId}: status=${t.status} score=${t.score ?? 'null'} findings=${t.findingsCount ?? 0}` +
+        `${(t.reportMeta as any)?.truncated ? ' TRUNCATED (ran out of steps — its analysis is INCOMPLETE, not clean)' : ''}`);
+    }
+    if (tasks.length === 0) lines.push('- none recorded');
+    lines.push('');
+    lines.push('Call aggregate_results to get the validated findings and the policy verdict. An agent');
+    lines.push('that is incomplete or failed has NOT verified its area — never describe that as a pass.');
+  }
+
+  return lines.length > 0 ? `\n\n${lines.join('\n')}` : '';
+}
+
+// ---------------------------------------------------------------------------
 // Run Policy Gate (Phase 3)
 // ---------------------------------------------------------------------------
 
 export function evaluateRunPolicyGate(
-  subAgentTasks: Array<{ agentId: string; status: string; findings?: any }>,
+  subAgentTasks: Array<{ agentId: string; status: string; findings?: any; reportMeta?: any }>,
   isDocOrConfigOnly: boolean = false
 ) {
-  const rawFindings = subAgentTasks.flatMap((t) =>
-    ((t.findings as any[]) ?? []).map((f) => ({ ...f, agentId: t.agentId }))
-  );
-  const policy = applyFindingPolicy(rawFindings);
-  const gate = decideGate(policy.assessed);
+  // Assessed per agent, not per run: the chain-of-custody list is only meaningful against the
+  // agent that produced it, so pooling every run's findings first would let one agent's tool log
+  // vouch for another agent's claims. Each task is judged against its own executed tools, then
+  // the validated results are combined for the single max-based gate decision.
+  const perAgent = subAgentTasks.map((t) => {
+    const findings = ((t.findings as any[]) ?? []).map((f) => ({ ...f, agentId: t.agentId }));
+    const executed = ((t.reportMeta as any)?.toolsExecuted ?? []) as Array<{ toolName?: string }>;
+    const executedTools = Array.isArray(executed)
+      ? executed.map((e) => String(e?.toolName ?? '')).filter(Boolean)
+      : [];
+    // An older task row with no recorded tool log is not evidence of fabrication — skip the
+    // check for it rather than retroactively downgrading history.
+    return applyFindingPolicy(findings, executedTools.length > 0 ? { executedTools } : {});
+  });
+
+  const assessed = perAgent.flatMap((p) => p.assessed);
+  const surfaced = perAgent.flatMap((p) => p.surfaced);
+  const suppressed = perAgent.flatMap((p) => p.suppressed);
+  const unverifiedEvidenceCount = perAgent.reduce((n, p) => n + p.unverifiedEvidenceCount, 0);
+
+  const gate = decideGate(assessed);
   const runPolicy = {
     decision: gate.decision as 'PASS' | 'WARN' | 'BLOCK',
     reasons: [...gate.reasons],
-    surfacedFindings: policy.surfaced.map((f: any) => ({
+    surfacedFindings: surfaced.map((f: any) => ({
       agentId: String(f.agentId ?? 'unknown'),
       severity: String(f.severity ?? 'INFO'),
       title: String(f.title ?? 'Untitled finding'),
       file: f.file ?? null,
       line: f.line ?? null,
     })),
-    suppressedCount: policy.suppressed.length,
+    suppressedCount: suppressed.length,
+    unverifiedEvidenceCount,
   };
+
+  // A-6: an agent that ran out of steps did NOT verify its area. The provider discards a
+  // truncated agent's findings entirely (status 'incomplete', findings []), which made an
+  // exhausted scan indistinguishable from a clean one — the run could reach PASS on the
+  // strength of analysis that never finished. Extends the same fail-closed reasoning B-3
+  // applies to security, at WARN rather than BLOCK: incomplete is unverified, not proven bad.
+  const unfinished = subAgentTasks.filter((t) => t.status === 'incomplete' || t.status === 'failed');
+  if (unfinished.length > 0 && runPolicy.decision === 'PASS') {
+    runPolicy.decision = 'WARN';
+    runPolicy.reasons.unshift(
+      `[Incomplete Analysis] ${unfinished.map((t) => `${t.agentId} (${t.status})`).join(', ')} did not finish, ` +
+      `so ${unfinished.length === 1 ? 'that area was' : 'those areas were'} never verified. This is not a clean pass.`
+    );
+  }
 
   // B-3: Security Fail-Open Hardening
   // The security agent is mandatory for all code runs. If it crashed, failed, was incomplete,
@@ -330,6 +486,16 @@ export function startAgentWorker(customOpts?: any): Worker<AgentJobData> {
     // needs the real identifiers stated explicitly, not left for the model to guess.
     const [runRow] = await db.select().from(runs).where(eq(runs.id, runId));
 
+    // Phase-to-phase hand-off. Empty for every non-orchestrator agent, so sub-agent prompts are
+    // unchanged. Never allowed to fail the run — a missing context block degrades the orchestrator
+    // to its previous behaviour rather than aborting the phase.
+    let orchestratorContext = '';
+    try {
+      orchestratorContext = await buildOrchestratorContext(agentId, runId, sandbox!, runRow, repoFullName, commitSHA);
+    } catch (ctxError) {
+      console.warn(`[AgentWorker] Could not build orchestrator context for ${agentId} run #${runId}:`, (ctxError as Error).message);
+    }
+
     // Incremental push runs carry a real changed-file scope computed by pushWorker from the
     // actual commit diff. Comprehensive (first-connect) runs have scope=null and get no
     // scoping instruction — they analyze the whole repo as before.
@@ -353,7 +519,7 @@ export function startAgentWorker(customOpts?: any): Worker<AgentJobData> {
       taskPrompt: `Analyze commit ${commitSHA} on repository ${repoFullName}.
 runId: ${runId}
 repoId: ${runRow?.repoId ?? 'unknown — this run has no repoId on record; do not invent one, omit repoId-requiring tool arguments instead'}
-Use these EXACT values for any tool parameter named runId/repoId — never invent, guess, or reuse a value from an example. This pipeline clones the repo and analyzes it statically — there is NO running instance of the app and NO live databaseUrl/baseUrl available. Tools that need one will honestly report applicable:false if you omit that argument; treat that as "not tested", never as "passed", and do not invent a placeholder connection string or URL to pass in. Follow your instructions precisely and report all findings as a JSON array.${scopeInstruction}`,
+Use these EXACT values for any tool parameter named runId/repoId — never invent, guess, or reuse a value from an example. This pipeline clones the repo and analyzes it statically — there is NO running instance of the app and NO live databaseUrl/baseUrl available. Tools that need one will honestly report applicable:false if you omit that argument; treat that as "not tested", never as "passed", and do not invent a placeholder connection string or URL to pass in. Follow your instructions precisely and report all findings as a JSON array.${scopeInstruction}${orchestratorContext}`,
       tools,
       maxSteps: definition.maxSteps,
       model: model || ((!runScope?.incremental || commitSHA === 'baseline') && process.env.INITIAL_SCAN_MODEL
@@ -572,6 +738,7 @@ Use these EXACT values for any tool parameter named runId/repoId — never inven
       reasons: string[];
       surfacedFindings: Array<{ agentId: string; severity: string; title: string; file: string | null; line: number | null }>;
       suppressedCount: number;
+      unverifiedEvidenceCount: number;
     } | null = null;
 
     if (agentId === 'orchestrator_phase3') {
@@ -585,7 +752,9 @@ Use these EXACT values for any tool parameter named runId/repoId — never inven
 
         runPolicy = evaluateRunPolicyGate(subAgentTasks as any, isDocOrConfigOnly);
         console.log(
-          `[AgentWorker] Run #${runId} policy gate: ${runPolicy.decision} — ${runPolicy.surfacedFindings.length} surfaced, ${runPolicy.suppressedCount} suppressed of ${subAgentTasks.length} subagents (model said: ${result.gateDecision ?? 'none'}).`
+          `[AgentWorker] Run #${runId} policy gate: ${runPolicy.decision} — ${runPolicy.surfacedFindings.length} surfaced, ${runPolicy.suppressedCount} suppressed` +
+          `${runPolicy.unverifiedEvidenceCount ? `, ${runPolicy.unverifiedEvidenceCount} with unverified tool evidence` : ''}` +
+          ` of ${subAgentTasks.length} subagents (model said: ${result.gateDecision ?? 'none'}).`
         );
       } catch (policyError) {
         const message = (policyError as Error).message;
@@ -598,6 +767,7 @@ Use these EXACT values for any tool parameter named runId/repoId — never inven
           reasons: [`[Policy Fail-Closed] Run policy evaluation failed (${message}). Blocking because the run could not be verified.`],
           surfacedFindings: [],
           suppressedCount: 0,
+          unverifiedEvidenceCount: 0,
         };
       }
     }
@@ -719,6 +889,10 @@ Use these EXACT values for any tool parameter named runId/repoId — never inven
           policy: result.policy ?? null,
           runPolicy: runPolicy ? { decision: runPolicy.decision, suppressedCount: runPolicy.suppressedCount, surfacedCount: runPolicy.surfacedFindings.length } : null,
           toolsExecuted: result.toolsExecuted ?? [], summary: result.summary ?? null, autoFixPR, escalation, humanPrReview,
+          // The agent's structured report minus findings — makes broken_code's testSuiteResult /
+          // migrationRollbackPassed (and every other agent's top-level facts) readable by
+          // aggregate_results and the dashboard instead of being discarded at the provider.
+          report: (result as any).report ?? null,
           // Which cascade candidate actually served the run. Without it the token counts cannot
           // be priced, since the fallbacks bill at very different rates than OpenAI direct.
           servedBy: result.servedBy ?? null,
@@ -920,7 +1094,15 @@ Use these EXACT values for any tool parameter named runId/repoId — never inven
     const [phase2] = await db.select().from(agentTasks).where(and(eq(agentTasks.runId, runId), eq(agentTasks.agentId, 'orchestrator_phase2')));
     if (!phase2 || phase2.status === 'queued' || phase2.status === 'running') return;
 
-    const spawnedMandatory = await ensureMandatoryAgentsSpawned(runId, repoFullName, commitSHA);
+    // A-5: a backstop spawn used to return unconditionally, so if that spawn threw, nothing
+    // ever re-triggered Phase 3 and the run hung until the sweeper collected it. A failure to
+    // spawn now falls through to the pending check instead of stranding the run.
+    let spawnedMandatory = false;
+    try {
+      spawnedMandatory = await ensureMandatoryAgentsSpawned(runId, repoFullName, commitSHA);
+    } catch (spawnError) {
+      console.error(`[Orchestrator] Mandatory-agent backstop failed for run #${runId}; continuing so Phase 3 can still be reached:`, (spawnError as Error).message);
+    }
     if (spawnedMandatory) return;
 
     const remaining = await db.select().from(agentTasks).where(
