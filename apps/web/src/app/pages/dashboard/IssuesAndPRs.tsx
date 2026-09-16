@@ -9,6 +9,9 @@ import {
 } from 'lucide-react';
 import { API_URL } from '../../../lib/api';
 import { GithubIcon, GithubLink } from '../../components/shared/GithubLink';
+import { TONE_PILL, severityTone, stripIssuePrefix } from '../../components/shared/findings/finding-ui';
+import { LoadMoreRow } from '../../components/shared/findings/LoadMoreRow';
+import { usePagedList } from '../../../lib/usePagedList';
 
 // ── Real shapes returned by /api/issues-prs ──────────────────────────────────
 interface RealIssue {
@@ -111,7 +114,7 @@ function relTime(iso: string): string {
 function MarkdownView({ text }: { text: string }) {
   if (!text || !text.trim()) return <div className="text-[12px] text-cw-txt3 italic">No description provided.</div>;
   return (
-    <div className="text-[12.5px] leading-relaxed text-cw-txt2 space-y-2 [&_p]:mb-2 [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_code]:bg-cw-bg3 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-[11px] [&_code]:font-mono [&_code]:text-cw-txt [&_pre]:bg-cw-bg3 [&_pre]:p-3 [&_pre]:rounded-lg [&_pre]:overflow-x-auto [&_pre]:my-2 [&_h1]:text-sm [&_h2]:text-xs [&_h3]:text-[12px] [&_h1]:font-bold [&_h2]:font-bold [&_h3]:font-bold [&_blockquote]:border-l-2 [&_blockquote]:border-cw-blue/40 [&_blockquote]:pl-3 [&_blockquote]:italic text-wrap break-words overflow-hidden">
+    <div className="text-[14px] leading-relaxed text-cw-txt2 space-y-2 [&_p]:mb-2 [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_code]:bg-cw-bg3 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-[12px] [&_code]:font-mono [&_code]:text-cw-txt [&_pre]:bg-cw-bg3 [&_pre]:p-3 [&_pre]:rounded-lg [&_pre]:overflow-x-auto [&_pre]:my-2 [&_h1]:text-sm [&_h2]:text-xs [&_h3]:text-[12px] [&_h1]:font-bold [&_h2]:font-bold [&_h3]:font-bold [&_blockquote]:border-l-2 [&_blockquote]:border-cw-blue/40 [&_blockquote]:pl-3 [&_blockquote]:italic text-wrap break-words overflow-hidden">
       <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>
     </div>
   );
@@ -242,6 +245,8 @@ export function IssuesAndPRs() {
 
   const visibleIssues = issues.filter((i) => matchRepo(i.repoFullName) && (stateFilter === 'all' || i.state === stateFilter));
   const visiblePrs = prs.filter((p) => matchRepo(p.repoFullName));
+  const pagedIssues = usePagedList<RealIssue>(visibleIssues, { resetKey: `${repoFilter}|${stateFilter}` });
+  const pagedPrs = usePagedList<RealPR>(visiblePrs, { resetKey: repoFilter });
 
   const drawerOpen = !!(selectedIssue || selectedPr);
   const closeDrawer = () => { setSelectedIssue(null); setSelectedPr(null); };
@@ -258,11 +263,11 @@ export function IssuesAndPRs() {
           <div>
             <div className="text-[15px] font-semibold text-cw-txt flex items-center gap-2 flex-wrap">
               <span>Issues & PRs</span>
-              <span className="text-[11px] font-mono font-medium px-2.5 py-0.5 rounded-full bg-cw-purple/10 text-cw-purple border border-cw-purple/25">
+              <span className="text-[12px] font-mono font-medium px-2.5 py-0.5 rounded-full bg-cw-purple/10 text-cw-purple border border-cw-purple/25">
                 (Opened by Codeward Agent)
               </span>
             </div>
-            <div className="text-[11.5px] text-cw-txt3 mt-0.5">Real escalated GitHub issues and pull requests opened by your Codeward agents — proof of what your agents actually did.</div>
+            <div className="text-[13px] text-cw-txt3 mt-0.5">Real escalated GitHub issues and pull requests opened by your Codeward agents — proof of what your agents actually did.</div>
           </div>
           <div className="flex items-center gap-2.5">
             <select
@@ -283,13 +288,13 @@ export function IssuesAndPRs() {
             onClick={() => handleTabChange('issues')}
             className={`flex items-center gap-2 px-3 py-2 text-[13px] font-medium border-b-2 -mb-px transition-colors ${tab === 'issues' ? 'border-cw-purple text-cw-txt' : 'border-transparent text-cw-txt3 hover:text-cw-txt2'}`}
           >
-            <CircleDot size={15} /> Issues <span className="text-[11px] text-cw-txt3">({visibleIssues.length})</span>
+            <CircleDot size={15} /> Issues <span className="text-[12px] text-cw-txt3">({visibleIssues.length})</span>
           </button>
           <button
             onClick={() => handleTabChange('prs')}
             className={`flex items-center gap-2 px-3 py-2 text-[13px] font-medium border-b-2 -mb-px transition-colors ${tab === 'prs' ? 'border-cw-purple text-cw-txt' : 'border-transparent text-cw-txt3 hover:text-cw-txt2'}`}
           >
-            <GitPullRequest size={15} /> Pull requests <span className="text-[11px] text-cw-txt3">({visiblePrs.length})</span>
+            <GitPullRequest size={15} /> Pull requests <span className="text-[12px] text-cw-txt3">({visiblePrs.length})</span>
           </button>
         </div>
 
@@ -316,10 +321,11 @@ export function IssuesAndPRs() {
                   sub="When an agent finds a critical problem it can't auto-fix, it opens a real GitHub issue — those appear here as proof of work."
                 />
               ) : (
-                <div className={`grid gap-3 ${drawerOpen ? 'grid-cols-1 xl:grid-cols-2' : 'grid-cols-1 md:grid-cols-2'}`}>
-                  {visibleIssues.map((issue) => (
+                <div className="border border-cw-bdr rounded-md overflow-hidden bg-cw-bg2 flex flex-col">
+                  {pagedIssues.visible.map((issue) => (
                     <IssueCard key={issue.id} issue={issue} onOpen={() => { closeDrawer(); setSelectedIssue(issue); }} />
                   ))}
+                  {pagedIssues.hasMore && <LoadMoreRow remaining={pagedIssues.remaining} pageSize={pagedIssues.pageSize} onClick={pagedIssues.showMore} />}
                 </div>
               )}
             </>
@@ -332,10 +338,11 @@ export function IssuesAndPRs() {
                   sub="Codeward's auto-fix PRs and human PRs your guardian reviewed will appear here with real merge status."
                 />
               ) : (
-                <div className={`grid gap-3 ${drawerOpen ? 'grid-cols-1 xl:grid-cols-2' : 'grid-cols-1 md:grid-cols-2'}`}>
-                  {visiblePrs.map((pr) => (
+                <div className="border border-cw-bdr rounded-md overflow-hidden bg-cw-bg2 flex flex-col">
+                  {pagedPrs.visible.map((pr) => (
                     <PrCard key={pr.id} pr={pr} onOpen={() => { closeDrawer(); setSelectedPr(pr); }} />
                   ))}
+                  {pagedPrs.hasMore && <LoadMoreRow remaining={pagedPrs.remaining} pageSize={pagedPrs.pageSize} onClick={pagedPrs.showMore} />}
                 </div>
               )}
             </>
@@ -367,36 +374,30 @@ function EmptyState({ icon, title, sub }: { icon: React.ReactNode; title: string
   );
 }
 
+const ROW = 'group w-full text-left min-h-11 px-4 py-2 border-b border-cw-bdr last:border-b-0 hover:bg-cw-bg3/60 transition-colors cursor-pointer grid items-center gap-x-3 grid-cols-[auto_minmax(0,1fr)_auto] focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-cw-purple/60';
+
 function IssueCard({ issue, onOpen }: { issue: RealIssue; onOpen: () => void }) {
   const open = issue.state === 'open';
   return (
-    <button
-      type="button"
-      onClick={onOpen}
-      className="group text-left bg-cw-bg2 border border-cw-bdr hover:border-cw-purple/50 hover:bg-cw-bg3/30 rounded-xl p-4 transition-all duration-200 flex flex-col gap-2 min-w-0 w-full overflow-hidden cursor-pointer relative shadow-2xs hover:shadow-md"
-    >
-      <div className="flex items-start justify-between gap-2 min-w-0">
-        <div className="flex items-center gap-2 min-w-0 flex-1">
-          <GithubIcon size={15} className="text-cw-txt2 shrink-0 group-hover:text-cw-purple transition-colors" />
-          {open
-            ? <CircleDot size={15} className="text-cw-green shrink-0" />
-            : <CheckCircle2 size={15} className="text-cw-purple shrink-0" />}
-          <span className="text-[13px] font-semibold text-cw-txt truncate group-hover:text-cw-purple transition-colors">{issue.title}</span>
+    <button type="button" onClick={onOpen} className={ROW}>
+      {open
+        ? <CircleDot size={16} className="text-cw-green shrink-0" aria-label="Open" />
+        : <CheckCircle2 size={16} className="text-cw-purple shrink-0" aria-label="Closed" />}
+      <div className="min-w-0 flex flex-col gap-0.5">
+        <div className="min-w-0 flex items-center gap-2">
+          <span className="text-[14px] font-medium text-cw-txt truncate">{stripIssuePrefix(issue.title)}</span>
+          {issue.severity && (
+            <span className={`hidden sm:inline-flex items-center h-5 px-1.5 rounded border text-[12px] font-semibold uppercase tracking-wider shrink-0 ${TONE_PILL[severityTone(issue.severity)]}`}>{issue.severity}</span>
+          )}
         </div>
-        <div className="flex items-center gap-2 shrink-0">
-          {issue.severity && <span className={`text-[9px] font-bold px-2 py-0.5 rounded uppercase shrink-0 ${sevChip[issue.severity] ?? 'bg-cw-bg3 text-cw-txt3'}`}>{issue.severity}</span>}
-          <span className="w-5 h-5 rounded-md bg-cw-purple/10 border border-cw-purple/20 flex items-center justify-center text-cw-purple opacity-0 -translate-x-1 translate-y-1 group-hover:opacity-100 group-hover:translate-x-0 group-hover:translate-y-0 transition-all duration-200 shadow-2xs shrink-0">
-            <ArrowUpRight size={12} className="transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-          </span>
+        <div className="flex items-center gap-2 text-[12px] text-cw-txt3 min-w-0 tabular-nums">
+          <span className="font-mono truncate max-w-[200px]" title={issue.repoFullName}>{issue.repoFullName.split('/').pop()}</span>
+          <span className="font-mono shrink-0">#{issue.issueNumber}</span>
+          <span className="shrink-0">· opened {relTime(issue.createdAt)}</span>
+          <span className="flex items-center gap-1 shrink-0"><MessageSquare size={11} /> {issue.comments}</span>
         </div>
       </div>
-      <div className="text-[12px] text-cw-txt2 line-clamp-2">{(issue.body || '').replace(/[#*`_>]/g, '').trim() || 'No description.'}</div>
-      <div className="flex items-center gap-2 text-[11px] text-cw-txt3 mt-1 flex-wrap min-w-0">
-        <span className="font-mono truncate max-w-[170px]" title={issue.repoFullName}>{issue.repoFullName}</span>
-        <span className="shrink-0">#{issue.issueNumber}</span>
-        <span className="flex items-center gap-1 shrink-0"><MessageSquare size={11} /> {issue.comments}</span>
-        <span className="ml-auto shrink-0 text-cw-txt3">{relTime(issue.createdAt)}</span>
-      </div>
+      <ArrowUpRight size={16} className="text-cw-txt3 group-hover:text-cw-txt transition-colors shrink-0" />
     </button>
   );
 }
@@ -404,35 +405,23 @@ function IssueCard({ issue, onOpen }: { issue: RealIssue; onOpen: () => void }) 
 function PrCard({ pr, onOpen }: { pr: RealPR; onOpen: () => void }) {
   const meta = prStatusMeta(pr);
   return (
-    <button
-      type="button"
-      onClick={onOpen}
-      className="group text-left bg-cw-bg2 border border-cw-bdr hover:border-cw-purple/50 hover:bg-cw-bg3/30 rounded-xl p-4 transition-all duration-200 flex flex-col gap-2 min-w-0 w-full overflow-hidden cursor-pointer relative shadow-2xs hover:shadow-md"
-    >
-      <div className="flex items-start justify-between gap-2 min-w-0">
-        <div className="flex items-center gap-2 min-w-0 flex-1">
-          <GithubIcon size={15} className="text-cw-txt2 shrink-0 group-hover:text-cw-purple transition-colors" />
-          {pr.kind === 'autofix' ? <Bot size={15} className="text-cw-purple shrink-0" /> : <UserIcon size={15} className="text-cw-blue shrink-0" />}
-          <span className="text-[13px] font-semibold text-cw-txt truncate group-hover:text-cw-purple transition-colors">{pr.prTitle || `PR #${pr.pullRequestNumber}`}</span>
+    <button type="button" onClick={onOpen} className={ROW}>
+      {pr.kind === 'autofix' ? <Bot size={16} className="text-cw-txt3 shrink-0" /> : <UserIcon size={16} className="text-cw-txt3 shrink-0" />}
+      <div className="min-w-0 flex flex-col gap-0.5">
+        <div className="min-w-0 flex items-center gap-2">
+          <span className="text-[14px] font-medium text-cw-txt truncate">{pr.prTitle || `PR #${pr.pullRequestNumber}`}</span>
+          <span className={`hidden sm:inline-flex items-center gap-1 h-5 px-1.5 rounded border text-[12px] font-medium shrink-0 ${meta.cls}`}><meta.Icon size={10} /> {meta.label}</span>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <span className={`text-[9px] font-bold px-2 py-0.5 rounded border uppercase shrink-0 flex items-center gap-1 ${meta.cls}`}><meta.Icon size={10} /> {meta.label}</span>
-          <span className="w-5 h-5 rounded-md bg-cw-purple/10 border border-cw-purple/20 flex items-center justify-center text-cw-purple opacity-0 -translate-x-1 translate-y-1 group-hover:opacity-100 group-hover:translate-x-0 group-hover:translate-y-0 transition-all duration-200 shadow-2xs shrink-0">
-            <ArrowUpRight size={12} className="transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-          </span>
+        <div className="flex items-center gap-2 text-[12px] text-cw-txt3 min-w-0 tabular-nums">
+          <span className="font-mono truncate max-w-[200px]" title={pr.repoFullName}>{pr.repoFullName.split('/').pop()}</span>
+          <span className="font-mono shrink-0">#{pr.pullRequestNumber}</span>
+          {pr.headBranch && pr.baseBranch && (
+            <span className="hidden md:inline-flex items-center gap-1 font-mono truncate min-w-0"><GitBranch size={11} className="shrink-0" /> {pr.headBranch} → {pr.baseBranch}</span>
+          )}
+          <span className="shrink-0">· {pr.kind === 'autofix' ? 'auto-fix' : 'human'} · {relTime(pr.createdAt)}</span>
         </div>
       </div>
-      {pr.headBranch && pr.baseBranch && (
-        <div className="flex items-center gap-1.5 text-[11px] text-cw-txt3 truncate min-w-0">
-          <GitBranch size={11} className="shrink-0" /> <span className="font-mono text-cw-txt2 truncate">{pr.headBranch}</span> → <span className="font-mono text-cw-txt2 truncate">{pr.baseBranch}</span>
-        </div>
-      )}
-      <div className="flex items-center gap-2 text-[11px] text-cw-txt3 mt-1 flex-wrap min-w-0">
-        <span className="font-mono truncate max-w-[170px]" title={pr.repoFullName}>{pr.repoFullName}</span>
-        <span className="shrink-0">#{pr.pullRequestNumber}</span>
-        <span className="px-1.5 py-0.5 rounded bg-cw-bg3 text-[10px] shrink-0">{pr.kind === 'autofix' ? 'Codeward auto-fix' : 'Human PR'}</span>
-        <span className="ml-auto shrink-0 text-cw-txt3">{relTime(pr.createdAt)}</span>
-      </div>
+      <ArrowUpRight size={16} className="text-cw-txt3 group-hover:text-cw-txt transition-colors shrink-0" />
     </button>
   );
 }
@@ -440,20 +429,20 @@ function PrCard({ pr, onOpen }: { pr: RealPR; onOpen: () => void }) {
 // Full static class strings per tone — Tailwind's JIT only sees complete literals, never
 // runtime-built `border-${x}` names, so we map them explicitly here.
 const TONES: Record<string, { wrap: string; label: string }> = {
-  'cw-purple': { wrap: 'border-cw-purple/25 bg-cw-purple/5', label: 'text-cw-purple' },
-  'cw-blue': { wrap: 'border-cw-blue/25 bg-cw-blue/5', label: 'text-cw-blue' },
-  'cw-green': { wrap: 'border-cw-green/25 bg-cw-green/5', label: 'text-cw-green' },
-  'cw-amber': { wrap: 'border-cw-amber/25 bg-cw-amber/5', label: 'text-cw-amber' },
-  'cw-red': { wrap: 'border-cw-red/25 bg-cw-red/5', label: 'text-cw-red' },
+  'cw-purple': { wrap: 'border-cw-bdr', label: 'text-cw-txt3' },
+  'cw-blue': { wrap: 'border-cw-bdr', label: 'text-cw-txt3' },
+  'cw-green': { wrap: 'border-cw-bdr', label: 'text-cw-green' },
+  'cw-amber': { wrap: 'border-cw-bdr', label: 'text-cw-amber' },
+  'cw-red': { wrap: 'border-cw-bdr', label: 'text-cw-red' },
 };
 
 function Section({ color, title, icon, children }: { color: string; title: string; icon?: React.ReactNode; children: React.ReactNode }) {
   const tone = TONES[color] ?? TONES['cw-purple'];
   return (
-    <div className={`rounded-xl border p-3 mb-3 ${tone.wrap}`}>
-      <div className={`text-[10px] font-bold ${tone.label} uppercase tracking-wide mb-1.5 flex items-center gap-1.5`}>{icon} {title}</div>
+    <section className={`border-t py-4 first:border-t-0 first:pt-0 ${tone.wrap}`}>
+      <div className={`text-[12px] font-medium ${tone.label} uppercase tracking-wider mb-2 flex items-center gap-1.5`}>{icon} {title}</div>
       {children}
-    </div>
+    </section>
   );
 }
 
@@ -468,7 +457,7 @@ function IssueDrawer({ issue, comments, loadingComments, onClose }: { issue: Rea
           </div>
           <div className="min-w-0">
             <div className="text-[13px] font-bold text-cw-txt truncate">Issue #{issue.issueNumber}</div>
-            <div className="text-[11px] text-cw-txt3">{open ? 'Open' : 'Closed'} · {issue.repoFullName}</div>
+            <div className="text-[12px] text-cw-txt3">{open ? 'Open' : 'Closed'} · {issue.repoFullName}</div>
           </div>
         </div>
         <button onClick={onClose} className="w-8 h-8 shrink-0 rounded-full hover:bg-cw-bg3 flex items-center justify-center text-cw-txt3 hover:text-cw-txt"><XIcon size={16} /></button>
@@ -477,9 +466,9 @@ function IssueDrawer({ issue, comments, loadingComments, onClose }: { issue: Rea
       <div className="flex-1 overflow-y-auto px-5 py-4">
         <h3 className="text-[16px] font-bold text-cw-txt leading-tight mb-2">{issue.title}</h3>
         <div className="flex items-center gap-2 mb-4 flex-wrap">
-          {issue.severity && <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${sevChip[issue.severity] ?? 'bg-cw-bg3 text-cw-txt3'}`}>{issue.severity}</span>}
-          <span className="text-[11px] text-cw-txt3 font-mono">{issue.repoFullName}</span>
-          <span className="text-[11px] text-cw-txt3">Opened {relTime(issue.createdAt)}</span>
+          {issue.severity && <span className={`text-[11px] font-bold px-2 py-0.5 rounded uppercase ${sevChip[issue.severity] ?? 'bg-cw-bg3 text-cw-txt3'}`}>{issue.severity}</span>}
+          <span className="text-[12px] text-cw-txt3 font-mono">{issue.repoFullName}</span>
+          <span className="text-[12px] text-cw-txt3">Opened {relTime(issue.createdAt)}</span>
         </div>
 
         {/* Why raised (purple) */}
@@ -504,8 +493,8 @@ function IssueDrawer({ issue, comments, loadingComments, onClose }: { issue: Rea
                 <div key={c.id} className="border-t border-cw-green/15 pt-2 first:border-0 first:pt-0">
                   <div className="flex items-center gap-2 mb-1">
                     {c.authorAvatar && <img src={c.authorAvatar} alt="" className="w-4 h-4 rounded-full" />}
-                    <span className="text-[11px] font-semibold text-cw-txt">{c.author}</span>
-                    <span className="text-[10px] text-cw-txt3">{relTime(c.createdAt)}</span>
+                    <span className="text-[12px] font-semibold text-cw-txt">{c.author}</span>
+                    <span className="text-[11px] text-cw-txt3">{relTime(c.createdAt)}</span>
                   </div>
                   <MarkdownView text={c.body} />
                 </div>
@@ -549,7 +538,7 @@ function PrDrawer({ pr, detail, loadingDetail, onClose }: { pr: RealPR; detail: 
           </div>
           <div className="min-w-0">
             <div className="text-[13px] font-bold text-cw-txt truncate">PR #{pr.pullRequestNumber}</div>
-            <div className="text-[11px] text-cw-txt3">{pr.kind === 'autofix' ? 'Codeward auto-fix' : 'Human PR'} · {pr.repoFullName}</div>
+            <div className="text-[12px] text-cw-txt3">{pr.kind === 'autofix' ? 'Codeward auto-fix' : 'Human PR'} · {pr.repoFullName}</div>
           </div>
         </div>
         <button onClick={onClose} className="w-8 h-8 shrink-0 rounded-full hover:bg-cw-bg3 flex items-center justify-center text-cw-txt3 hover:text-cw-txt"><XIcon size={16} /></button>
@@ -558,9 +547,9 @@ function PrDrawer({ pr, detail, loadingDetail, onClose }: { pr: RealPR; detail: 
       <div className="flex-1 overflow-y-auto px-5 py-4">
         <h3 className="text-[16px] font-bold text-cw-txt leading-tight mb-2">{pr.prTitle || `PR #${pr.pullRequestNumber}`}</h3>
         <div className="flex items-center gap-2 mb-4 flex-wrap">
-          <span className={`text-[10px] font-bold px-2 py-0.5 rounded border uppercase flex items-center gap-1 ${meta.cls}`}><meta.Icon size={10} /> {meta.label}</span>
-          {pr.maxSeverity && <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${sevChip[pr.maxSeverity] ?? 'bg-cw-bg3 text-cw-txt3'}`}>{pr.maxSeverity}</span>}
-          <span className="text-[11px] text-cw-txt3">Opened {relTime(pr.createdAt)}</span>
+          <span className={`text-[11px] font-bold px-2 py-0.5 rounded border uppercase flex items-center gap-1 ${meta.cls}`}><meta.Icon size={10} /> {meta.label}</span>
+          {pr.maxSeverity && <span className={`text-[11px] font-bold px-2 py-0.5 rounded uppercase ${sevChip[pr.maxSeverity] ?? 'bg-cw-bg3 text-cw-txt3'}`}>{pr.maxSeverity}</span>}
+          <span className="text-[12px] text-cw-txt3">Opened {relTime(pr.createdAt)}</span>
         </div>
 
         {/* What it was about + branches (blue) */}
@@ -581,7 +570,7 @@ function PrDrawer({ pr, detail, loadingDetail, onClose }: { pr: RealPR; detail: 
               {deletions != null && <span className="text-cw-red">−{deletions}</span>}
             </div>
           )}
-          {author && <div className="text-[11px] text-cw-txt3 mt-2">Author: <span className="text-cw-txt2">@{author}</span></div>}
+          {author && <div className="text-[12px] text-cw-txt3 mt-2">Author: <span className="text-cw-txt2">@{author}</span></div>}
         </Section>
 
         {/* Full PR description/message (blue) — the real GitHub PR body */}
@@ -607,14 +596,14 @@ function PrDrawer({ pr, detail, loadingDetail, onClose }: { pr: RealPR; detail: 
                 return (
                   <div key={i} className="border-t border-cw-purple/15 pt-2 first:border-0 first:pt-0">
                     <div className="flex items-center gap-2 mb-1 flex-wrap">
-                      <span className={`text-[11px] font-bold ${ev.cls}`}>{ev.label}</span>
-                      {rv.author && <span className="text-[11px] text-cw-txt3">by {rv.author}</span>}
-                      {rv.viaComment && <span className="text-[9px] text-cw-txt3 px-1.5 py-0.5 rounded bg-cw-bg3">as comment</span>}
-                      {rv.createdAt && <span className="text-[10px] text-cw-txt3">{relTime(rv.createdAt)}</span>}
+                      <span className={`text-[12px] font-bold ${ev.cls}`}>{ev.label}</span>
+                      {rv.author && <span className="text-[12px] text-cw-txt3">by {rv.author}</span>}
+                      {rv.viaComment && <span className="text-[11px] text-cw-txt3 px-1.5 py-0.5 rounded bg-cw-bg3">as comment</span>}
+                      {rv.createdAt && <span className="text-[11px] text-cw-txt3">{relTime(rv.createdAt)}</span>}
                     </div>
                     {rv.body && rv.body.trim()
                       ? <MarkdownView text={rv.body} />
-                      : <div className="text-[11px] text-cw-txt3 italic">No written comment — verdict only.</div>}
+                      : <div className="text-[12px] text-cw-txt3 italic">No written comment — verdict only.</div>}
                   </div>
                 );
               })}
@@ -641,8 +630,8 @@ function PrDrawer({ pr, detail, loadingDetail, onClose }: { pr: RealPR; detail: 
               ? `On auto-merge — merges in ${timeUntil(pr.deadlineAt)} unless someone acts first.`
               : 'Awaiting a human merge/reject decision.')}
           </div>
-          {pr.decisionNote && <div className="text-[11px] text-cw-txt3 mt-2 border-t border-cw-green/15 pt-2">Note: {pr.decisionNote}</div>}
-          {pr.decidedBy && <div className="text-[11px] text-cw-txt3 mt-1">Decided by: {pr.decidedBy === 'timeout' ? 'auto-merge timeout' : pr.decidedBy}</div>}
+          {pr.decisionNote && <div className="text-[12px] text-cw-txt3 mt-2 border-t border-cw-green/15 pt-2">Note: {pr.decisionNote}</div>}
+          {pr.decidedBy && <div className="text-[12px] text-cw-txt3 mt-1">Decided by: {pr.decidedBy === 'timeout' ? 'auto-merge timeout' : pr.decidedBy}</div>}
         </Section>
 
         {pr.prUrl && (

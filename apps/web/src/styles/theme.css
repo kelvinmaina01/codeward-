@@ -30,7 +30,7 @@
   --chart-3: oklch(0.398 0.07 227.392);
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
-  --radius: 0.625rem;
+  --radius: 0.375rem;
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: #030213;
@@ -39,20 +39,25 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
-  --cw-bg: #0f1117;
-  --cw-bg2: #1a1d24;
-  --cw-bg3: #22262f;
-  --cw-txt: #f4f6fa;
-  --cw-txt2: #a9b1bd;
-  --cw-txt3: #7d8492;
-  --cw-bdr: #2d3139;
-  --cw-blue: #5B8FE8;
+  /*
+   * Dark tokens — "developer tool" palette. Ground is near-black, surfaces lift by
+   * a single step, and every separation is a 1px --cw-bdr line (no shadows).
+   * Contrast on --cw-bg2 (cards): txt 18.6:1 · txt2 12.5:1 · txt3 7.5:1 — all AA+.
+   */
+  --cw-bg: #09090b;
+  --cw-bg2: #0f0f12;
+  --cw-bg3: #18181b;
+  --cw-txt: #fafafa;
+  --cw-txt2: #d4d4d8;
+  --cw-txt3: #a1a1aa;
+  --cw-bdr: #27272a;
+  --cw-blue: #60A5FA;
   --cw-green: #22C55E;
   --cw-red: #EF4444;
   --cw-amber: #F59E0B;
   --cw-teal: #14B8A6;
   --cw-purple: #8957E5;
-  --cw-log-bg: #090c10;
+  --cw-log-bg: #09090b;
 }
 
 .dark {
@@ -110,20 +115,20 @@
 }
 
 .theme-dark {
-  --cw-bg: #0f1117;
-  --cw-bg2: #1a1d24;
-  --cw-bg3: #22262f;
-  --cw-txt: #f4f6fa;
-  --cw-txt2: #a9b1bd;
-  --cw-txt3: #7d8492;
-  --cw-bdr: #2d3139;
-  --cw-blue: #5B8FE8;
+  --cw-bg: #09090b;
+  --cw-bg2: #0f0f12;
+  --cw-bg3: #18181b;
+  --cw-txt: #fafafa;
+  --cw-txt2: #d4d4d8;
+  --cw-txt3: #a1a1aa;
+  --cw-bdr: #27272a;
+  --cw-blue: #60A5FA;
   --cw-green: #22C55E;
   --cw-red: #EF4444;
   --cw-amber: #F59E0B;
   --cw-teal: #14B8A6;
   --cw-purple: #8957E5;
-  --cw-log-bg: #090c10;
+  --cw-log-bg: #09090b;
 }
 
 .theme-white {

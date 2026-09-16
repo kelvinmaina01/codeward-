@@ -28,6 +28,7 @@ import {
   type Message,
   type Tool,
 } from '@aws-sdk/client-bedrock-runtime';
+import { zodToJsonSchema } from 'zod-to-json-schema';
 import type { AgentProvider, AgentRunConfig, AgentResult, AgentTool } from './openai.provider.js';
 
 /**
@@ -121,14 +122,58 @@ function toConverseMessages(messages: any[]): Message[] {
   return out;
 }
 
+/**
+ * Agent tools declare their parameters as live Zod schemas — the layer-1 provider's
+ * `toolMapToArray` passes `def.parameters` straight through and NativeOpenAIProvider converts
+ * them at request time. Bedrock's `inputSchema.json` expects real JSON Schema; a Zod object
+ * serializes to its internal `{"_def":{...},"~standard":{...}}` shape with no `"type"` key, so
+ * without this the model receives an uninterpretable parameter schema for every tool. The
+ * `_def` probe mirrors the guard NativeOpenAIProvider already uses, so a tool that supplies
+ * plain JSON Schema passes through untouched.
+ */
+function toJsonSchema(parameters: any): any {
+  if (!parameters) return { type: 'object', properties: {} };
+  if (parameters._def) return zodToJsonSchema(parameters);
+  return parameters;
+}
+
 function toConverseTools(tools: AgentTool[] | undefined): Tool[] {
   return (tools ?? []).map((t) => ({
     toolSpec: {
       name: t.name,
       description: t.description,
-      inputSchema: { json: t.parameters ?? { type: 'object', properties: {} } },
+      inputSchema: { json: toJsonSchema(t.parameters) },
     },
   })) as Tool[];
+}
+
+/**
+ * Bedrock requires `toolConfig` whenever the conversation history contains any toolUse or
+ * toolResult block — the model needs the tool definitions to interpret its own prior turns,
+ * even when it is not being offered tools now. It also rejects `tools: []`, so an empty
+ * toolConfig is not a legal way to satisfy that requirement; a placeholder tool is.
+ *
+ * This is reached on the FINAL step of any agent with no `submit_*` tool. `agent-loop.ts`
+ * narrows the tool list to terminal tools only on the last step, which yields `[]` for
+ * orchestrator phase 1 and phase 2 (neither declares a submit tool) while their history is full
+ * of tool blocks from earlier steps — so it failed deterministically, once per run, not
+ * intermittently.
+ */
+const NOOP_TOOL_NAME = 'no_op';
+const NOOP_TOOL: Tool = {
+  toolSpec: {
+    name: NOOP_TOOL_NAME,
+    description:
+      'Placeholder only. Do NOT call this tool. It exists solely to satisfy an API requirement ' +
+      'and performs no action. Reply with your final answer as text instead.',
+    inputSchema: { json: { type: 'object', properties: {} } },
+  },
+} as Tool;
+
+function historyContainsToolBlocks(messages: Message[]): boolean {
+  return messages.some((m) =>
+    ((m.content ?? []) as any[]).some((b) => b && (b.toolUse || b.toolResult))
+  );
 }
 
 export class BedrockProvider implements AgentProvider {
@@ -150,20 +195,29 @@ export class BedrockProvider implements AgentProvider {
     // are byte-identical across every step of a run, which is exactly the reuse Bedrock bills at
     // the cache-read rate; the message history after them changes every step and is not marked.
     const system: any[] = [{ text: config.systemPrompt }, CACHE_POINT];
-    const toolConfig: any = converseTools.length > 0
-      ? {
-          tools: [...converseTools, CACHE_POINT],
-          // The agent contract depends on forced tool use: every run must terminate by calling
-          // its submit_* tool. Anthropic models on Bedrock honour `any`; verify before pointing
-          // this provider at a model family that does not.
-          toolChoice: { any: {} },
-        }
-      : undefined;
+    const messages = toConverseMessages(config.messages || []);
+
+    let toolConfig: any;
+    if (converseTools.length > 0) {
+      toolConfig = {
+        tools: [...converseTools, CACHE_POINT],
+        // The agent contract depends on forced tool use: every run must terminate by calling
+        // its submit_* tool. Anthropic models on Bedrock honour `any`; verify before pointing
+        // this provider at a model family that does not.
+        toolChoice: { any: {} },
+      };
+    } else if (historyContainsToolBlocks(messages)) {
+      // No tools offered this turn, but the history references them — Bedrock demands toolConfig
+      // anyway. `auto` (never `any`) so the model is free to answer with text rather than being
+      // forced to invoke the placeholder. No cache point here: a single tiny tool falls under
+      // the minimum cacheable size and marking it would waste a checkpoint.
+      toolConfig = { tools: [NOOP_TOOL], toolChoice: { auto: {} } };
+    }
 
     const command = new ConverseCommand({
       modelId,
       system,
-      messages: toConverseMessages(config.messages || []),
+      messages,
       inferenceConfig: {
         maxTokens: config.maxTokens ?? 8192,
         temperature: config.temperature ?? 0,

@@ -311,15 +311,15 @@ export function LiveFeed({ viewMode = 'canvas', onViewModeChange }: LiveFeedProp
           {/* Header Bar with Repo Filter & Terminal Action Controls */}
           <div className="flex items-center justify-between gap-3 mb-4 pb-3 border-b border-cw-bdr/50 flex-wrap shrink-0 w-full">
             <div className="shrink-0 min-w-0">
-              <div className="text-[14px] font-bold text-cw-txt flex items-center gap-2 flex-wrap">
+              <div className="text-[16px] font-semibold text-cw-txt flex items-center gap-2 flex-wrap">
                 Live Agent Execution Feed
                 {isLiveScanning && (
-                  <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-cw-purple/20 text-cw-purple border border-cw-purple/30 animate-pulse">
+                  <span className="flex items-center gap-1 text-[11px] font-medium uppercase tracking-wider h-5 px-1.5 rounded border border-cw-bdr text-cw-txt2">
                     <Radio size={10} /> Live streaming
                   </span>
                 )}
               </div>
-              <div className="text-[11px] text-cw-txt3 mt-0.5">
+              <div className="text-[13px] text-cw-txt3 mt-0.5">
                 Real-time sublogs, AST container steps, tool execution, and persistent run logs.
               </div>
             </div>
@@ -327,13 +327,13 @@ export function LiveFeed({ viewMode = 'canvas', onViewModeChange }: LiveFeedProp
             {/* Filter & Terminal Actions Bar — wraps nicely on smaller widths */}
             <div className="flex items-center gap-2.5 flex-wrap shrink-0">
               {onViewModeChange && (
-                <div className="inline-flex p-0.5 bg-cw-bg2 border border-cw-bdr rounded-lg items-center shadow-xs shrink-0">
+                <div className="inline-flex p-0.5 bg-cw-bg2 border border-cw-bdr rounded-lg items-center shrink-0">
                   <button
                     type="button"
                     onClick={() => onViewModeChange('stream')}
-                    className={`px-2.5 py-1 rounded-md text-[11px] sm:text-[12px] font-medium transition-all cursor-pointer ${
+                    className={`px-2.5 py-1 rounded-md text-[13px] font-medium transition-all cursor-pointer ${
                       viewMode === 'stream'
-                        ? 'bg-cw-purple text-white font-semibold shadow-xs'
+                        ? 'bg-cw-purple text-white font-semibold'
                         : 'text-cw-txt2 hover:text-cw-txt'
                     }`}
                   >
@@ -342,13 +342,13 @@ export function LiveFeed({ viewMode = 'canvas', onViewModeChange }: LiveFeedProp
                   <button
                     type="button"
                     onClick={() => onViewModeChange('canvas')}
-                    className={`px-2.5 py-1 rounded-md text-[11px] sm:text-[12px] font-medium transition-all cursor-pointer ${
+                    className={`px-2.5 py-1 rounded-md text-[13px] font-medium transition-all cursor-pointer ${
                       viewMode === 'canvas'
-                        ? 'bg-cw-purple text-white font-semibold shadow-xs'
+                        ? 'bg-cw-purple text-white font-semibold'
                         : 'text-cw-txt2 hover:text-cw-txt'
                     }`}
                   >
-                    Agent Canvas
+                    Timeline
                   </button>
                 </div>
               )}
@@ -366,7 +366,7 @@ export function LiveFeed({ viewMode = 'canvas', onViewModeChange }: LiveFeedProp
                 <button
                   onClick={handleDownloadLog}
                   title="Download full log file"
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold text-cw-txt2 hover:text-cw-txt hover:bg-cw-bg3 transition-colors border-r border-cw-bdr cursor-pointer"
+                  className="flex items-center gap-1.5 h-8 px-3 text-[13px] font-medium text-cw-txt2 hover:text-cw-txt hover:bg-cw-bg3 transition-colors border-r border-cw-bdr cursor-pointer"
                 >
                   <Download size={13} />
                   <span>Download log</span>
@@ -375,7 +375,7 @@ export function LiveFeed({ viewMode = 'canvas', onViewModeChange }: LiveFeedProp
                 <button
                   onClick={handleCopyLog}
                   title="Copy log text to clipboard"
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold text-cw-txt2 hover:text-cw-txt hover:bg-cw-bg3 transition-colors border-r border-cw-bdr cursor-pointer"
+                  className="flex items-center gap-1.5 h-8 px-3 text-[13px] font-medium text-cw-txt2 hover:text-cw-txt hover:bg-cw-bg3 transition-colors border-r border-cw-bdr cursor-pointer"
                 >
                   {copied ? <Check size={13} className="text-cw-green" /> : <Copy size={13} />}
                   <span>{copied ? 'Copied!' : 'Copy run log'}</span>
@@ -384,7 +384,7 @@ export function LiveFeed({ viewMode = 'canvas', onViewModeChange }: LiveFeedProp
                 <button
                   onClick={handleExplainLogs}
                   title="Ask Gordon AI to analyze sandbox state, memory, and logs"
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold text-cw-purple hover:bg-cw-purple/10 transition-colors cursor-pointer"
+                  className="flex items-center gap-1.5 h-8 px-3 text-[13px] font-medium text-cw-purple hover:bg-cw-purple/10 transition-colors cursor-pointer"
                 >
                   <Sparkles size={13} />
                   <span>Explain logs</span>
@@ -394,7 +394,7 @@ export function LiveFeed({ viewMode = 'canvas', onViewModeChange }: LiveFeedProp
           </div>
 
           {/* Full Height Terminal Display with Sharp Edges */}
-          <div className="flex-1 overflow-hidden rounded-none border border-cw-bdr bg-cw-log-bg flex flex-col shadow-inner">
+          <div className="flex-1 overflow-hidden rounded-none border border-cw-bdr bg-cw-log-bg flex flex-col">
             {/* Terminal Body */}
             <div className="flex-1 overflow-y-auto px-5 py-4 font-jetbrains text-[13px] md:text-[14px] leading-[1.8] select-text tracking-tight">
               {loading ? (

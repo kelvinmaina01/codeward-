@@ -18,6 +18,7 @@
  */
 
 import { Queue, Worker, Job, UnrecoverableError } from 'bullmq';
+import { customBackoffStrategy } from '../../lib/queue-backoff.js';
 import dotenv from 'dotenv';
 import { createRedisConnection } from '../../lib/redis.js';
 import { workerDb as db } from '../../db/index.js';
@@ -877,13 +878,7 @@ Use these EXACT values for any tool parameter named runId/repoId — never inven
     concurrency,
     lockDuration: 300000,
     settings: {
-      backoffStrategies: {
-        custom(attemptsMade: number) {
-          const base = 5000 * Math.pow(2, attemptsMade - 1);
-          const jitter = Math.random() * base * 0.3; // up to 30% randomized jitter
-          return Math.round(base + jitter);
-        },
-      },
+      backoffStrategy: customBackoffStrategy,
     },
     ...customOpts,
   });

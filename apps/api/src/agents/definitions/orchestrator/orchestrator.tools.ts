@@ -658,7 +658,10 @@ export const createOrchestratorTools = (sandbox: SandboxHandle) => ({
         await emailQueue.add(
           'run-completed',
           { type: 'run-completed', runId: Number(args.runId) },
-          { jobId: `run-completed:${args.runId}` }
+          // BullMQ rejects ':' in a custom job id ("Custom Id cannot contain :") because it is
+          // the delimiter in its own Redis key scheme, so this threw on every completed run and
+          // the run-completed email was never actually enqueued.
+          { jobId: `run-completed-${args.runId}` }
         );
       } catch (queueErr) {
         console.warn(`[Orchestrator] Failed to enqueue run-completed email:`, queueErr);

@@ -236,6 +236,55 @@ export const FINDING_CORPUS: CorpusCase[] = [
       rawEvidence: 'fallow dead-code: export legacyFormatDate at src/utils/date.ts:41 has 0 importers across 412 scanned modules',
     },
   },
+  // ---------------------------------------------------------------------------
+  // Exposure: transitive dependency advisories must be REPORTED but never BLOCK.
+  // These are drawn verbatim from run #102, which blocked a pull request on four
+  // devDependency CVEs — the exact behaviour that makes engineers uninstall the product.
+  // ---------------------------------------------------------------------------
+  {
+    id: 'advisory-brace-expansion-dos',
+    rationale: 'Real HIGH-severity DoS, but in a nested build-time dependency. Report it; never block a merge on it.',
+    expect: 'SURFACE',
+    finding: {
+      severity: 'HIGH', category: 'CVE', confidence: 'HIGH', exposure: 'TRANSITIVE',
+      title: 'brace-expansion: DoS via unbounded expansion length',
+      description: 'brace-expansion resolves as a nested dependency of the test tooling. No first-party file imports it and it never executes in a production code path.',
+      file: 'package-lock.json', line: null,
+      toolName: 'run_npm_audit',
+      cveId: 'GHSA-mh99-v99m-4gvg',
+      rawEvidence: 'npm audit: brace-expansion <=2.0.1 — Uncontrolled Resource Consumption. Path: node_modules/.pnpm/test-runner/node_modules/brace-expansion. dev: true',
+      suggestedFix: 'Run npm audit fix, or wait for the parent devDependency to bump its range.',
+    },
+  },
+  {
+    id: 'advisory-js-yaml-inferred',
+    rationale: 'Same class, but the agent omitted `exposure`. Inference from category + lockfile path must still classify it as an advisory.',
+    expect: 'SURFACE',
+    finding: {
+      severity: 'HIGH', category: 'CVE', confidence: 'HIGH',
+      title: 'js-yaml: maxTotalMergeKeys does not limit CPU use for empty merge sources',
+      description: 'js-yaml is pulled in transitively by the build pipeline; the parser is never handed untrusted input at runtime.',
+      file: 'pnpm-lock.yaml', line: null,
+      toolName: 'run_npm_audit',
+      cveId: 'GHSA-2883-xcg3-v3hh',
+      rawEvidence: 'npm audit: js-yaml — CPU exhaustion via crafted merge keys. Path: node_modules/.pnpm/js-yaml. dev: true',
+    },
+  },
+  {
+    id: 'tp-direct-dependency-rce',
+    rationale: 'A CVE in a PRODUCTION dependency with a named importing file. Reachable, so it must still block.',
+    expect: 'BLOCK',
+    finding: {
+      severity: 'CRITICAL', category: 'CVE', confidence: 'HIGH', exposure: 'DIRECT',
+      title: 'Remote code execution in production template renderer',
+      description: 'The vulnerable render() entry point is called from src/routes/render.ts:44 with request-controlled template input on every page render, so the published exploit works against this deployment as written.',
+      file: 'src/routes/render.ts', line: 44,
+      toolName: 'run_npm_audit',
+      cveId: 'GHSA-aaaa-bbbb-cccc',
+      rawEvidence: 'npm audit: template-engine 2.1.0 — RCE via template injection. dependencies (production). Imported at src/routes/render.ts:44.',
+      suggestedFix: 'Upgrade template-engine to 2.1.4.',
+    },
+  },
   {
     id: 'noise-refactor-suggestion',
     rationale: 'Generic best-practice advice with no concrete defect.',

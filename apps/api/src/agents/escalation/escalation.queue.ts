@@ -1,5 +1,6 @@
 import { Queue, Worker, Job } from 'bullmq';
 import { createRedisConnection } from '../../lib/redis.js';
+import { customBackoffStrategy } from '../../lib/queue-backoff.js';
 import { escalateUnresolvedFindings, type EscalationResult } from './escalation.service.js';
 import { ResilientSandbox } from '../../sandbox/resilient-sandbox.js';
 import type { SandboxHandle } from '../../sandbox/local-exec.js';
@@ -98,13 +99,7 @@ export function startEscalationWorker(customOpts?: any): Worker<EscalationJobDat
         duration: 60_000,
       },
       settings: {
-        backoffStrategies: {
-          custom(attemptsMade: number) {
-            const base = 5000 * Math.pow(2, attemptsMade - 1);
-            const jitter = Math.random() * base * 0.3; // up to 30% jitter
-            return Math.round(base + jitter);
-          },
-        },
+        backoffStrategy: customBackoffStrategy,
       },
       ...customOpts,
     }

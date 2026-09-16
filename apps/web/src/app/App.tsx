@@ -45,6 +45,9 @@ const CommitHistory = lazy(() => import('./pages/dashboard/CommitHistory').then(
 // Shared Components & Drawers
 import { GordonIcon } from './components/shared/GordonIcon';
 import { GitHubStarButton } from './components/shared/GitHubStarButton';
+import { MoreHorizontal } from 'lucide-react';
+import { markSeen, countUnseen } from '../lib/alert-seen';
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from './components/ui/dropdown-menu';
 const DiffViewer          = lazy(() => import('./components/shared/DiffViewer').then(m => ({ default: m.DiffViewer })));
 import { LegalPage } from './components/legal/LegalPage';
 import { WorkspaceSwitcher } from './components/modals/WorkspaceSwitcher';
@@ -235,12 +238,16 @@ function DashboardLayout() {
   const [isHelpDrawerOpen, setIsHelpDrawerOpen] = useState(false);
   const bellRef = useRef<HTMLButtonElement>(null);
 
-  // Real dynamic system badge counts (replaces mock alerts/security/livefeed counts)
-  const [systemBadges, setSystemBadges] = useState<{
-    alerts: number;
-    security: number;
-    livefeed: number;
-  }>({ alerts: 0, security: 0, livefeed: 0 });
+  // Sidebar badges = alerts the user has NOT seen yet. The API only knows how many alerts are
+  // open, so "seen" is a per-user watermark of ids kept in localStorage (lib/alert-seen): the
+  // poll below refreshes the id lists; visiting a tab marks its ids seen; the badge is the
+  // difference. It clears the moment the tab opens, survives the 30s poll and reloads, and
+  // comes back only for genuinely new alert ids.
+  const badgeUserId = session?.user?.id ?? null;
+  const [badgeIds, setBadgeIds] = useState<{ alerts: string[]; security: string[]; livefeed: number }>({
+    alerts: [], security: [], livefeed: 0,
+  });
+  const [seenVersion, setSeenVersion] = useState(0);
 
   useEffect(() => {
     let isMounted = true;
@@ -252,17 +259,13 @@ function DashboardLayout() {
         if (!isMounted) return;
 
         const alertsList = Array.isArray(data?.alerts) ? data.alerts : [];
-        const totalAlerts = Number(data?.stats?.total ?? alertsList.length) || 0;
-        const secCount = alertsList.filter((a: any) =>
-          a.kind === 'finding' && (a.source === 'Security Agent' || a.severity === 'CRITICAL' || a.severity === 'HIGH')
-        ).length;
+        const alertIds: string[] = alertsList.map((a: any) => String(a.id));
+        const securityIds: string[] = alertsList
+          .filter((a: any) => a.kind === 'finding' && (a.source === 'Security Agent' || a.severity === 'CRITICAL' || a.severity === 'HIGH'))
+          .map((a: any) => String(a.id));
         const activeRuns = alertsList.filter((a: any) => a.kind === 'running' || a.status === 'in_progress').length;
 
-        setSystemBadges({
-          alerts: totalAlerts,
-          security: secCount,
-          livefeed: activeRuns,
-        });
+        setBadgeIds({ alerts: alertIds, security: securityIds, livefeed: activeRuns });
       } catch {
         // Silently fallback without crashing UI
       }
@@ -275,6 +278,23 @@ function DashboardLayout() {
       clearInterval(interval);
     };
   }, []);
+
+  // Being on the tab is what "reads" its alerts — including ones that arrive while you're there.
+  useEffect(() => {
+    if (!badgeUserId) return;
+    const onAlerts = location.pathname === '/dashboard/alerts';
+    const onSecurity = location.pathname === '/dashboard/security';
+    if (!onAlerts && !onSecurity) return;
+    const ids = onAlerts ? badgeIds.alerts : badgeIds.security;
+    if (markSeen(badgeUserId, ids)) setSeenVersion((v) => v + 1);
+  }, [location.pathname, badgeIds, badgeUserId]);
+
+  const systemBadges = useMemo(() => ({
+    alerts: countUnseen(badgeUserId, badgeIds.alerts),
+    security: countUnseen(badgeUserId, badgeIds.security),
+    livefeed: badgeIds.livefeed,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }), [badgeIds, badgeUserId, seenVersion]);
 
   const nav: NavGroup[] = useMemo(() => [
     { group: 'Overview', items: [
@@ -495,7 +515,7 @@ function DashboardLayout() {
   };
 
   return (
-    <div className={`theme-${theme} flex h-screen overflow-hidden font-sans bg-cw-bg text-cw-txt text-[13px] leading-relaxed transition-colors duration-250`}>
+    <div className={`theme-${theme} flex h-screen overflow-hidden font-sans bg-cw-bg text-cw-txt text-[14px] leading-relaxed transition-colors duration-250`}>
       {/* SIDEBAR */}
       <div className={`${isSidebarPinned ? 'w-[240px]' : 'w-0'} bg-cw-bg2 border-r border-cw-bdr flex flex-col overflow-x-hidden overflow-y-auto transition-[width] duration-300 ease-in-out z-20 shrink-0`}>
         {/* Workspace Switcher */}
@@ -625,17 +645,34 @@ function DashboardLayout() {
                 <Globe size={14} /> <span className="hidden sm:inline">Global feed</span>
               </button>
               
-              <button onClick={() => navigate('/dashboard/agent')} className="px-2.5 sm:px-3 py-1.5 rounded-md border border-cw-bdr bg-cw-bg2 text-cw-txt text-[12px] sm:text-[13px] font-medium hover:bg-cw-bg3 transition-colors flex items-center gap-1.5 whitespace-nowrap shrink-0">
-                <Sparkles size={14} /> <span className="hidden sm:inline">Skills</span>
-              </button>
-
-              <a href="https://discord.gg/nnMH4URBsK" target="_blank" rel="noreferrer" className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-cw-bdr bg-[#5865F2]/10 text-[13px] font-medium text-cw-txt no-underline cursor-pointer hover:bg-[#5865F2]/20 border-[#5865F2]/30 transition-colors whitespace-nowrap shrink-0">
-                <svg width="14" height="14" viewBox="0 0 127.14 96.36" fill="currentColor" className="text-[#5865F2]">
-                  <path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1,105.25,105.25,0,0,0,32.19-16.14h0c2.64-27.38-4.51-51.11-19.32-72.15ZM42.63,65.22c-5.22,0-9.49-4.77-9.49-10.6s4.19-10.6,9.49-10.6,9.54,4.77,9.49,10.6c0,5.83-4.27,10.6-9.49,10.6Zm41.83,0c-5.22,0-9.49-4.77-9.49-10.6s4.19-10.6,9.49-10.6,9.54,4.77,9.49,10.6c0,5.83-4.27,10.6-9.49,10.6Z"/>
-                </svg> Discord
-              </a>
-
-              <GitHubStarButton variant="dashboard" />
+              {/* Community & extras live behind one overflow control — product chrome stays product chrome. */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    aria-label="More"
+                    className="w-9 h-9 rounded-md border border-cw-bdr bg-cw-bg2 text-cw-txt2 hover:text-cw-txt hover:bg-cw-bg3 transition-colors flex items-center justify-center shrink-0 cursor-pointer"
+                  >
+                    <MoreHorizontal size={16} />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="min-w-[200px] bg-cw-bg2 border-cw-bdr text-cw-txt p-1">
+                  <DropdownMenuItem onSelect={() => navigate('/dashboard/agent')} className="text-[13px] cursor-pointer focus:bg-cw-bg3 focus:text-cw-txt">
+                    <Sparkles size={14} className="text-cw-txt3" /> Skills
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild className="text-[13px] cursor-pointer focus:bg-cw-bg3 focus:text-cw-txt">
+                    <a href="https://discord.gg/nnMH4URBsK" target="_blank" rel="noreferrer" className="no-underline flex items-center gap-2">
+                      <svg width="14" height="14" viewBox="0 0 127.14 96.36" fill="currentColor" className="text-cw-txt3">
+                        <path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1,105.25,105.25,0,0,0,32.19-16.14h0c2.64-27.38-4.51-51.11-19.32-72.15ZM42.63,65.22c-5.22,0-9.49-4.77-9.49-10.6s4.19-10.6,9.49-10.6,9.54,4.77,9.49,10.6c0,5.83-4.27,10.6-9.49,10.6Zm41.83,0c-5.22,0-9.49-4.77-9.49-10.6s4.19-10.6,9.49-10.6,9.54,4.77,9.49,10.6c0,5.83-4.27,10.6-9.49,10.6Z"/>
+                      </svg> Discord community
+                    </a>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator className="bg-cw-bdr" />
+                  <div className="px-1 py-1">
+                    <GitHubStarButton variant="dashboard" className="!flex w-full justify-between" />
+                  </div>
+                </DropdownMenuContent>
+              </DropdownMenu>
 
               <button 
                 onClick={() => setIsHelpDrawerOpen(true)}

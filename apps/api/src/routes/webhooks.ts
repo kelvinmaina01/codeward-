@@ -179,7 +179,8 @@ webhookRouter.post('/github', async (c) => {
             await emailQueue.add(
               'trial-limit-reached',
               { type: 'trial-limit-reached', orgId: repo.orgId },
-              { jobId: `trial-limit:${repo.orgId}` }
+              // ':' is reserved in BullMQ custom job ids and throws, silently dropping the email.
+              { jobId: `trial-limit-${repo.orgId}` }
             );
           } catch (emailErr) {
             console.warn('[Webhook] Failed to enqueue trial limit email:', emailErr);
@@ -466,7 +467,8 @@ webhookRouter.post('/polar', async (c) => {
             { type: 'plan-upgraded', orgId, planType: newPlan },
             // Use Polar's subscription ID as the BullMQ job ID so replaying
             // the same event twice deduplicates at the queue level too.
-            { jobId: `plan-upgraded:${subId}` }
+            // ':' is reserved in BullMQ custom job ids and throws, silently dropping the email.
+            { jobId: `plan-upgraded-${subId}` }
           );
         } catch (e) {
           console.warn('[Polar Webhook] Failed to enqueue upgrade email:', e);

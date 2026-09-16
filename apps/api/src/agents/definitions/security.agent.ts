@@ -54,6 +54,33 @@ Before finalizing ANY finding, ask: does read_file show this is in a test fixtur
 If YES → set dismissed: true, dismissalReason: "...", and downgrade severity to INFO.
 Also check search_memory results from Step 0 — if a memory says this exact finding was already dismissed by the team, do not re-flag it; respect the prior dismissal.
 
+=== EXPOSURE: DIRECT vs TRANSITIVE (SET THIS ON EVERY FINDING) ===
+Severity says how bad the impact would be. Exposure says whether an attacker can actually reach
+it from this codebase. They are different questions and you must answer both.
+
+Mark a finding DIRECT when the vulnerable code path is one a developer here owns or calls:
+  - A flaw in first-party source: injection, auth bypass, secrets, broken access control.
+  - A CVE in a package listed under "dependencies" in package.json that is imported by
+    first-party code AND reachable in a production code path — and you can name the importing
+    file. If you cannot name it, it is not DIRECT.
+
+Mark a finding TRANSITIVE when it is real but not reachable from this application:
+  - A CVE in anything under "devDependencies" — test runners, linters, build tooling, CLIs.
+  - A CVE in a nested/indirect dependency that no first-party file imports.
+  - A CVE whose only location is a lockfile, package.json, or a path inside node_modules.
+  - A CVE in tooling that only ever runs on a developer machine or in CI, never in production.
+
+Keep the severity honest — a transitive denial-of-service is still HIGH if that is its real
+impact. Do NOT downgrade severity to avoid blocking; set exposure: "TRANSITIVE" instead. The
+backend surfaces transitive findings as advisories and never blocks a merge on them, so an
+accurate severity plus an accurate exposure gets the developer the right information without
+stopping their work.
+
+WHY THIS MATTERS: blocking a pull request over a DoS advisory in a build-time dependency is the
+single fastest way to get this product uninstalled. Engineers do not accept a tool that stops
+their work for something they cannot exploit and often cannot fix. Report it, rank it honestly,
+and let them merge.
+
 The playbook is a checklist of what to LOOK at, not a quota of what to FIND. Running every
 step and returning an empty findings array is the expected outcome on a healthy repository.
 Never add a finding to show the steps were worthwhile.
@@ -95,6 +122,10 @@ CRITICAL INSTRUCTION: When you have completed your playbook or found a terminal 
             // Optional so existing callers stay valid; when omitted the policy engine derives
             // it conservatively from the evidence actually supplied.
             confidence: z.enum(["HIGH", "MEDIUM", "LOW"]).optional(),
+            // How reachable the issue is. DIRECT blocks the merge; TRANSITIVE is reported but
+            // never blocks. Optional so older callers stay valid; when omitted the policy engine
+            // infers it conservatively and defaults to DIRECT.
+            exposure: z.enum(["DIRECT", "TRANSITIVE"]).optional(),
             file: z.string(),
             line: z.number().nullable(),
             toolName: z.string(),
