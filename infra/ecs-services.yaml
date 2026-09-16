@@ -75,6 +75,21 @@ Resources:
             Action: sts:AssumeRole
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+      Policies:
+        - PolicyName: SsmParameterStoreAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ssm:GetParameters
+                  - ssm:GetParameter
+                Resource: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/codeward/prod/*'
+              - Effect: Allow
+                Action:
+                  - kms:Decrypt
+                Resource: '*'
+
 
   # ─── ECS Task Role (Allows container to call Bedrock Claude models!) ──────────
   EcsTaskRole:
@@ -164,6 +179,74 @@ Resources:
               Value: !Ref FrontendUrl
             - Name: AWS_REGION
               Value: !Ref 'AWS::Region'
+            - Name: AI_ENGINE
+              Value: bedrock
+            - Name: BEDROCK_REGION
+              Value: !Ref 'AWS::Region'
+            - Name: BETTER_AUTH_URL
+              Value: !Ref ApiUrl
+          Secrets:
+            - Name: GITHUB_APP_ID
+              ValueFrom: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/codeward/prod/GITHUB_APP_ID'
+            - Name: GITHUB_CLIENT_ID
+              ValueFrom: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/codeward/prod/GITHUB_CLIENT_ID'
+            - Name: GITHUB_CLIENT_SECRET
+              ValueFrom: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/codeward/prod/GITHUB_CLIENT_SECRET'
+            - Name: GITHUB_WEBHOOK_SECRET
+              ValueFrom: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/codeward/prod/GITHUB_WEBHOOK_SECRET'
+            - Name: GITHUB_PRIVATE_KEY
+              ValueFrom: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/codeward/prod/GITHUB_PRIVATE_KEY'
+            - Name: BETTER_AUTH_SECRET
+              ValueFrom: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/codeward/prod/BETTER_AUTH_SECRET'
+            - Name: GOOGLE_CLIENT_ID
+              ValueFrom: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/codeward/prod/GOOGLE_CLIENT_ID'
+            - Name: GOOGLE_CLIENT_SECRET
+              ValueFrom: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/codeward/prod/GOOGLE_CLIENT_SECRET'
+            - Name: FLY_API_TOKEN
+              ValueFrom: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/codeward/prod/FLY_API_TOKEN'
+            - Name: OPENAI_API_KEY
+              ValueFrom: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/codeward/prod/OPENAI_API_KEY'
+            - Name: AGENTROUTER_API_KEY
+              ValueFrom: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/codeward/prod/AGENTROUTER_API_KEY'
+            - Name: TOKENROUTER_BASE_URL
+              ValueFrom: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/codeward/prod/TOKENROUTER_BASE_URL'
+            - Name: TOKENROUTER_API_KEY
+              ValueFrom: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/codeward/prod/TOKENROUTER_API_KEY'
+            - Name: TOKENROUTER_MODEL
+              ValueFrom: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/codeward/prod/TOKENROUTER_MODEL'
+            - Name: TOKENROUTER_GLM_API_KEY
+              ValueFrom: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/codeward/prod/TOKENROUTER_GLM_API_KEY'
+            - Name: TOKENROUTER_GPT_API_KEY
+              ValueFrom: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/codeward/prod/TOKENROUTER_GPT_API_KEY'
+            - Name: FALLOW_API_KEY
+              ValueFrom: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/codeward/prod/FALLOW_API_KEY'
+            - Name: FALLOW_API_ENDPOINT
+              ValueFrom: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/codeward/prod/FALLOW_API_ENDPOINT'
+            - Name: POLAR_ACCESS_TOKEN
+              ValueFrom: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/codeward/prod/POLAR_ACCESS_TOKEN'
+            - Name: POLAR_ORGANIZATION_ID
+              ValueFrom: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/codeward/prod/POLAR_ORGANIZATION_ID'
+            - Name: POLAR_WEBHOOK_SECRET
+              ValueFrom: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/codeward/prod/POLAR_WEBHOOK_SECRET'
+            - Name: POLAR_TEAM_PRODUCT_ID
+              ValueFrom: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/codeward/prod/POLAR_TEAM_PRODUCT_ID'
+            - Name: POLAR_PRO_PRODUCT_ID
+              ValueFrom: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/codeward/prod/POLAR_PRO_PRODUCT_ID'
+            - Name: RESEND_API_KEY
+              ValueFrom: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/codeward/prod/RESEND_API_KEY'
+            - Name: BREVO_API_KEY
+              ValueFrom: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/codeward/prod/BREVO_API_KEY'
+            - Name: QUICKEMAILVERIFICATION_API_KEY
+              ValueFrom: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/codeward/prod/QUICKEMAILVERIFICATION_API_KEY'
+            - Name: EUSEND_API_KEY
+              ValueFrom: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/codeward/prod/EUSEND_API_KEY'
+            - Name: EUSEND_FROM_ADDRESS
+              ValueFrom: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/codeward/prod/EUSEND_FROM_ADDRESS'
+            - Name: UPSTASH_REDIS_REST_URL
+              ValueFrom: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/codeward/prod/UPSTASH_REDIS_REST_URL'
+            - Name: UPSTASH_REDIS_REST_TOKEN
+              ValueFrom: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/codeward/prod/UPSTASH_REDIS_REST_TOKEN'
+
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -208,6 +291,68 @@ Resources:
               Value: !Ref 'AWS::Region'
             - Name: WORKER_CONCURRENCY
               Value: '5'
+            - Name: AI_ENGINE
+              Value: bedrock
+            - Name: BEDROCK_REGION
+              Value: !Ref 'AWS::Region'
+          Secrets:
+            - Name: GITHUB_APP_ID
+              ValueFrom: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/codeward/prod/GITHUB_APP_ID'
+            - Name: GITHUB_CLIENT_ID
+              ValueFrom: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/codeward/prod/GITHUB_CLIENT_ID'
+            - Name: GITHUB_CLIENT_SECRET
+              ValueFrom: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/codeward/prod/GITHUB_CLIENT_SECRET'
+            - Name: GITHUB_WEBHOOK_SECRET
+              ValueFrom: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/codeward/prod/GITHUB_WEBHOOK_SECRET'
+            - Name: GITHUB_PRIVATE_KEY
+              ValueFrom: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/codeward/prod/GITHUB_PRIVATE_KEY'
+            - Name: BETTER_AUTH_SECRET
+              ValueFrom: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/codeward/prod/BETTER_AUTH_SECRET'
+            - Name: FLY_API_TOKEN
+              ValueFrom: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/codeward/prod/FLY_API_TOKEN'
+            - Name: OPENAI_API_KEY
+              ValueFrom: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/codeward/prod/OPENAI_API_KEY'
+            - Name: AGENTROUTER_API_KEY
+              ValueFrom: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/codeward/prod/AGENTROUTER_API_KEY'
+            - Name: TOKENROUTER_BASE_URL
+              ValueFrom: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/codeward/prod/TOKENROUTER_BASE_URL'
+            - Name: TOKENROUTER_API_KEY
+              ValueFrom: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/codeward/prod/TOKENROUTER_API_KEY'
+            - Name: TOKENROUTER_MODEL
+              ValueFrom: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/codeward/prod/TOKENROUTER_MODEL'
+            - Name: TOKENROUTER_GLM_API_KEY
+              ValueFrom: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/codeward/prod/TOKENROUTER_GLM_API_KEY'
+            - Name: TOKENROUTER_GPT_API_KEY
+              ValueFrom: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/codeward/prod/TOKENROUTER_GPT_API_KEY'
+            - Name: FALLOW_API_KEY
+              ValueFrom: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/codeward/prod/FALLOW_API_KEY'
+            - Name: FALLOW_API_ENDPOINT
+              ValueFrom: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/codeward/prod/FALLOW_API_ENDPOINT'
+            - Name: POLAR_ACCESS_TOKEN
+              ValueFrom: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/codeward/prod/POLAR_ACCESS_TOKEN'
+            - Name: POLAR_ORGANIZATION_ID
+              ValueFrom: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/codeward/prod/POLAR_ORGANIZATION_ID'
+            - Name: POLAR_WEBHOOK_SECRET
+              ValueFrom: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/codeward/prod/POLAR_WEBHOOK_SECRET'
+            - Name: POLAR_TEAM_PRODUCT_ID
+              ValueFrom: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/codeward/prod/POLAR_TEAM_PRODUCT_ID'
+            - Name: POLAR_PRO_PRODUCT_ID
+              ValueFrom: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/codeward/prod/POLAR_PRO_PRODUCT_ID'
+            - Name: RESEND_API_KEY
+              ValueFrom: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/codeward/prod/RESEND_API_KEY'
+            - Name: BREVO_API_KEY
+              ValueFrom: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/codeward/prod/BREVO_API_KEY'
+            - Name: QUICKEMAILVERIFICATION_API_KEY
+              ValueFrom: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/codeward/prod/QUICKEMAILVERIFICATION_API_KEY'
+            - Name: EUSEND_API_KEY
+              ValueFrom: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/codeward/prod/EUSEND_API_KEY'
+            - Name: EUSEND_FROM_ADDRESS
+              ValueFrom: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/codeward/prod/EUSEND_FROM_ADDRESS'
+            - Name: UPSTASH_REDIS_REST_URL
+              ValueFrom: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/codeward/prod/UPSTASH_REDIS_REST_URL'
+            - Name: UPSTASH_REDIS_REST_TOKEN
+              ValueFrom: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/codeward/prod/UPSTASH_REDIS_REST_TOKEN'
+
           LogConfiguration:
             LogDriver: awslogs
             Options:
