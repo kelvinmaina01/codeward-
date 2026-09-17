@@ -19,11 +19,16 @@ export async function startPrLifecycle(runId: number, estimatedDurationSeconds =
   let statusCommentId = run.githubStatusCommentId;
 
   const runUrl = `${process.env.FRONTEND_URL || 'https://codeward.cloud'}/runs/${run.id}`;
+  const agentsConfig = (repo?.config as any)?.agents;
+  const dispatchedAgentIds = (run?.scope as any)?.dispatchedAgents;
 
   if (!checkRunId) {
     const dispatch = buildDispatchOutput({
       runId: run.id,
       repoFullName: repo.fullName,
+      agentsConfig,
+      dispatchedAgentIds,
+      estimatedDurationSeconds,
     });
     const check: any = await octokit.request('POST /repos/{owner}/{repo}/check-runs', {
       owner: repo.owner,
@@ -52,6 +57,8 @@ export async function startPrLifecycle(runId: number, estimatedDurationSeconds =
         commitSha: run.commitSha,
         estimatedDurationSeconds,
         runId: run.id,
+        agentsConfig,
+        dispatchedAgentIds,
       }),
     });
     statusCommentId = comment.data.id;

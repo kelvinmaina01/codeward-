@@ -9,20 +9,30 @@
 
 ### 1. In Progress (Webhook Dispatch)
 - **Status**: `in_progress`
-- **Title**: `🛡️ 5 agents dispatched`
+- **Title**: `🛡️ {count} agents dispatched` (dynamically computed from repo/run config)
 - **Summary**: `Codeward is reviewing this PR in isolated sandboxes. Usually done in under 6 minutes.`
-- **Text Body**:
+- **Text Body**: Includes the dynamic bullet list, the full branded Multi-Agent Dispatch Table, and the reassuring developer guidance note.
 ```markdown
 ### 🛡️ Codeward
 
-5 agents dispatched into ephemeral Firecracker sandboxes:
-- **Security** — spinning up sandbox
-- **Bloat** — spinning up sandbox
-- **Architecture** — spinning up sandbox
-- **Compliance** — spinning up sandbox
-- **Guardian** — spinning up sandbox
+{count} agents dispatched into ephemeral Firecracker sandboxes:
+• Security — spinning up sandbox
+• Bloat — spinning up sandbox
+• Architecture — spinning up sandbox
+...
+
+#### 🤖 Multi-Agent Review Team
+| Agent | Domain | Focus Area | Status |
+| :--- | :--- | :--- | :--- |
+| **🛡️ Runtime Security** | OWASP & AppSec | SQLi, broken auth/RLS, secret leaks & vulnerability vectors | 🔄 Analyzing in sandbox |
+| **🏛️ Architecture** | System Design | Circular dependencies, architectural drift & module coupling | 🔄 Analyzing in sandbox |
+| **📦 Bloat & Dead Code** | Code Health | Zombie exports, bundle overhead & unused packages | 🔄 Analyzing in sandbox |
+...
 
 Each runs independently — SAST, dependency checks, architecture and compliance review — then reports to the orchestrator for one consolidated verdict.
+
+> ☕ **Please be patient while our agents do the heavy lifting.**
+> Unlike traditional superficial linters, Codeward executes real static & dynamic checks and dry-runs potential fixes in an isolated Firecracker microVM sandbox. Analysis typically takes **~1–2 minutes**.
 
 [Watch it live →](https://codeward.cloud/runs/{runId})
 ```
