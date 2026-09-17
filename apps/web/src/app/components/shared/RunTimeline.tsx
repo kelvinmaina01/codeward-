@@ -1,23 +1,15 @@
 import { useState, useEffect, type ReactNode, type ComponentType } from 'react';
 import {
-  CpuIcon,
-  Shield01Icon,
-  Shield02Icon,
-  Delete01Icon,
-  Bug02Icon,
-  Structure01Icon,
-  AiBrain01Icon,
-  TickDouble01Icon,
-  Database01Icon,
-  Message01Icon,
-  Robot01Icon,
   Tick01Icon,
   Cancel01Icon,
   MinusSignIcon,
   ArrowDown01Icon,
   ArrowRight01Icon,
 } from 'hugeicons-react';
-import { Loader2 } from 'lucide-react';
+import {
+  Loader2, ShieldQuestion,
+  Cpu, ShieldCheck, Shield, Trash2, FileCode2, Zap, Brain, ListChecks, Database, MessageSquare, Bot,
+} from 'lucide-react';
 import type { AgentData } from './AgentCanvasData';
 import { EYEBROW, TONE_DOT, TONE_PILL, FOCUS_RING, type Tone, type RunPolicySummary } from './findings/finding-ui';
 
@@ -39,24 +31,29 @@ export function UnverifiedEvidenceBadge({ count, className = '' }: { count: numb
   );
 }
 
-export type TimelineIcon = ComponentType<{ size?: number | string; className?: string }>;
+export type TimelineIcon = ComponentType<{ size?: number | string; className?: string; strokeWidth?: number }>;
 
-/** Backend icon names → Hugeicons (16px, crisp SVG geometry — tinted by state). */
+/**
+ * Backend icon names → Lucide, rendered at strokeWidth 1.5.
+ * Lucide's 24px-grid geometry stays crisp when scaled down and its stroke weight is tunable,
+ * which is what the smaller agent glyphs were missing — they read as soft at 14px.
+ * Keys are the identifiers the API actually sends (see AgentCanvasData).
+ */
 const AGENT_ICON: Record<string, TimelineIcon> = {
-  CpuIcon: CpuIcon,
-  Shield01Icon: Shield01Icon,
-  Shield02Icon: Shield02Icon,
-  Delete01Icon: Delete01Icon,
-  Bug02Icon: Bug02Icon,
-  Structure01Icon: Structure01Icon,
-  BrainIcon: AiBrain01Icon,
-  TickDouble01Icon: TickDouble01Icon,
-  Database01Icon: Database01Icon,
-  Message01Icon: Message01Icon,
+  CpuIcon: Cpu,                    // orchestrator
+  Shield01Icon: ShieldCheck,       // security
+  Shield02Icon: Shield,            // guardian
+  Delete01Icon: Trash2,            // bloat
+  Bug02Icon: FileCode2,            // broken code
+  Structure01Icon: Zap,            // architecture
+  BrainIcon: Brain,                // ai-era
+  TickDouble01Icon: ListChecks,    // compliance
+  Database01Icon: Database,        // data & dx
+  Message01Icon: MessageSquare,    // chat
 };
 
 export function agentIcon(name: string): TimelineIcon {
-  return AGENT_ICON[name] ?? Robot01Icon;
+  return AGENT_ICON[name] ?? Bot;
 }
 
 export function statusTone(status: AgentData['status']): Tone {
@@ -101,22 +98,11 @@ function AgentRow({ agent, active, onSelect, connector = true }: { agent: AgentD
             : 'border-cw-bdr/40 bg-cw-bg2/30 hover:border-cw-bdr hover:bg-cw-bg3/70'
         }`}
       >
-        <Icon size={14} className={isIdle ? 'text-cw-txt3' : 'text-cw-txt2'} />
+        <Icon size={18} strokeWidth={1.5} className={`self-center shrink-0 ${isIdle ? 'text-cw-txt3' : 'text-cw-txt2'}`} />
         <div className="min-w-0 flex flex-col gap-0.5">
-          <div className="min-w-0 flex items-center justify-between gap-2">
-            <div className="flex items-center gap-1.5 min-w-0">
-              <span className="text-[13px] font-medium text-cw-txt truncate">{agent.name}</span>
-              <span className="text-[11px] text-cw-txt3 truncate hidden sm:inline">{agent.label}</span>
-            </div>
-            {isIdle ? (
-              <span className="text-[9.5px] uppercase font-mono tracking-wider px-1.5 py-0.5 rounded bg-cw-bg3 text-cw-txt3 border border-cw-bdr/50 shrink-0">
-                Standby
-              </span>
-            ) : (
-              <span className={`text-[9.5px] uppercase font-mono tracking-wider font-semibold px-1.5 py-0.5 rounded border shrink-0 ${TONE_PILL[tone]}`}>
-                {agent.status}
-              </span>
-            )}
+          <div className="min-w-0 flex items-center gap-1.5">
+            <span className="text-[13px] font-medium text-cw-txt truncate">{agent.name}</span>
+            <span className="text-[11px] text-cw-txt3 truncate hidden sm:inline">{agent.label}</span>
           </div>
           <div className="flex items-center gap-2 min-w-0">
             {!isIdle && (
@@ -127,14 +113,29 @@ function AgentRow({ agent, active, onSelect, connector = true }: { agent: AgentD
             <span className={`text-[11px] truncate ${isIdle ? 'text-cw-txt3' : 'text-cw-txt2 font-medium'}`}>{agent.statusText}</span>
           </div>
         </div>
+        {/*
+          The decision pill lives here, in the centred right-hand cluster — not nested in the
+          stacked column above. Inside that column its flex parent only spans the first line, so
+          it top-aligned against a two-line row and no self-center could reach the row's midline.
+          Sitting beside the score under `items-center`, it is now centred with the rest of the row.
+        */}
         <div className="flex items-center gap-1.5 shrink-0 text-cw-txt3">
+          {isIdle ? (
+            <span className="text-[9.5px] uppercase font-mono tracking-wider px-1.5 py-0.5 rounded bg-cw-bg3 text-cw-txt3 border border-cw-bdr/50 shrink-0">
+              Standby
+            </span>
+          ) : (
+            <span className={`text-[9.5px] uppercase font-mono tracking-wider font-semibold px-1.5 py-0.5 rounded border shrink-0 ${TONE_PILL[tone]}`}>
+              {agent.status}
+            </span>
+          )}
           {agent.score != null && (
             <span className={`hidden md:inline-flex items-center h-4.5 px-1 rounded border font-mono text-[11px] font-semibold ${TONE_PILL[tone]}`}>{agent.score}</span>
           )}
           {pills.slice(0, 1).map((m, i) => (
             <span key={i} className={`hidden lg:inline-flex items-center h-4.5 px-1 rounded border text-[10px] font-medium ${TONE_PILL.neutral}`}>{m.t}</span>
           ))}
-          <ArrowRight01Icon size={13} className="text-cw-txt3" />
+          <ArrowRight01Icon size={13} className="text-cw-txt3 shrink-0" />
         </div>
       </button>
     </div>

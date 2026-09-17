@@ -557,7 +557,7 @@ export function AgentCanvas({ repoId, repoFilter, onRepoChange, repoList, viewMo
           {/* Pane header */}
           <div className="h-9 px-3 border-b border-cw-bdr flex items-center justify-between gap-2 shrink-0">
             <div className="flex items-center gap-2 min-w-0">
-              <ActiveIcon size={14} className={activeAgent ? TONE_TEXT[statusTone(activeAgent.status)] : 'text-cw-txt3'} />
+              <ActiveIcon size={16} strokeWidth={1.5} className={`shrink-0 ${activeAgent ? TONE_TEXT[statusTone(activeAgent.status)] : 'text-cw-txt3'}`} />
               <span className="text-[12px] font-medium text-cw-txt truncate">{activeAgent ? activeAgent.name : 'All dispatched agents'}</span>
               {!activeAgent && <span className="text-[11px] text-cw-txt3 hidden sm:inline">· select an agent to inspect</span>}
             </div>
