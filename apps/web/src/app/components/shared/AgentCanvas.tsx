@@ -3,8 +3,8 @@ import { X, Lock, Shield, FileText, Settings2, CheckCircle2, Loader2, Terminal a
 import { agentCanvasData, AgentData } from './AgentCanvasData';
 import { RepoSelector, RepoOption } from './RepoSelector';
 import { API_URL, WS_URL } from '../../../lib/api';
-import { RunTimeline, agentIcon, statusTone } from './RunTimeline';
-import { EYEBROW, TONE_PILL, TONE_TEXT, FOCUS_RING, type Tone } from './findings/finding-ui';
+import { RunTimeline, UnverifiedEvidenceBadge, agentIcon, statusTone } from './RunTimeline';
+import { EYEBROW, TONE_PILL, TONE_TEXT, FOCUS_RING, type Tone, type RunPolicySummary } from './findings/finding-ui';
 
 /** Escalating patience loader for the canvas initial data fetch */
 function CanvasLoader() {
@@ -119,7 +119,7 @@ export function AgentCanvas({ repoId, repoFilter, onRepoChange, repoList, viewMo
   const [agents, setAgents] = useState<AgentData[]>(agentCanvasData);
   const [activeAgentId, setActiveAgentId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'logs' | 'findings' | 'sandbox' | 'config' | 'summary'>('logs');
-  const [runInfo, setRunInfo] = useState<{ id: number | string; commitSha?: string; status?: string; score?: number | null }>({ id: '1' });
+  const [runInfo, setRunInfo] = useState<{ id: number | string; commitSha?: string; status?: string; score?: number | null; runPolicy?: RunPolicySummary | null }>({ id: '1' });
   const [stats, setStats] = useState<{ agentsActive: string; criticalIssues: number; linesFixed: number; decision: string }>({
     agentsActive: '--',
     criticalIssues: 0,
@@ -489,6 +489,7 @@ export function AgentCanvas({ repoId, repoFilter, onRepoChange, repoList, viewMo
           <span className={`inline-flex items-center h-6 px-2 rounded border font-mono text-[12px] font-semibold ${TONE_PILL[decisionTone]}`}>
             {stats.decision === 'BLOCKED' ? 'BLOCK' : stats.decision}
           </span>
+          <UnverifiedEvidenceBadge count={runInfo.runPolicy?.unverifiedEvidenceCount} />
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           {onViewModeChange && (

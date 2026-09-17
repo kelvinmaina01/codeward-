@@ -1,9 +1,9 @@
 import type { ReactNode } from 'react';
-import { X, ClipboardList, Wrench, MapPin, ShieldOff, ShieldAlert } from 'lucide-react';
+import { X, ClipboardList, Wrench, MapPin, ShieldOff, ShieldAlert, Brain, UserCheck, Eye } from 'lucide-react';
 import { GithubLink, PlatformIcon, githubFileUrl, extractFilePaths, isValidRepoFullName } from '../GithubLink';
 import {
   type RealAlert, TONE_PILL, EYEBROW, BTN_PRIMARY, FOCUS_RING,
-  severityTone, timeAgo, isAdvisory, deriveExposure,
+  severityTone, timeAgo, isAdvisory, deriveExposure, dismissalSourceOf,
 } from './finding-ui';
 
 interface FindingDrawerProps {
@@ -54,6 +54,7 @@ export function FindingDrawer({ alert, onClose, kicker = 'Finding', children }: 
 export function FindingDetailBody({ alert, showTitle = false, children }: { alert: RealAlert; showTitle?: boolean; children?: ReactNode }) {
   const advisory = isAdvisory(alert);
   const exposure = deriveExposure(alert);
+  const dismissalSource = dismissalSourceOf(alert);
   const repoOk = isValidRepoFullName(alert.repo);
   const evidencePaths = alert.evidence ? extractFilePaths(alert.evidence).filter((p) => p !== alert.file) : [];
 
@@ -64,10 +65,32 @@ export function FindingDetailBody({ alert, showTitle = false, children }: { aler
           <span className={`inline-flex items-center h-6 px-2 rounded border text-[11px] font-semibold uppercase tracking-wider ${TONE_PILL[severityTone(alert.severity)]}`}>
             {alert.severity}
           </span>
+          {/* Exposure and advisory are separate facts: a DIRECT finding can still be an advisory
+              when a memory dismissal contested it, so each gets its own chip. */}
           {alert.kind === 'finding' && (
-            <span className={`inline-flex items-center gap-1 h-6 px-2 rounded border text-[11px] font-medium ${advisory ? TONE_PILL.neutral : TONE_PILL.red}`}>
-              {advisory ? <ShieldOff size={11} /> : <ShieldAlert size={11} />}
-              {advisory ? 'Advisory · transitive' : 'Direct'}
+            <span className={`inline-flex items-center gap-1 h-6 px-2 rounded border text-[11px] font-semibold uppercase tracking-wider ${exposure === 'TRANSITIVE' ? TONE_PILL.neutral : TONE_PILL.red}`}>
+              {exposure === 'TRANSITIVE' ? <ShieldOff size={11} strokeWidth={1.5} /> : <ShieldAlert size={11} strokeWidth={1.5} />}
+              {exposure === 'TRANSITIVE' ? 'Transitive' : 'Direct'}
+            </span>
+          )}
+          {advisory && (
+            <span className={`inline-flex items-center gap-1 h-6 px-2 rounded border text-[11px] font-medium ${TONE_PILL.amber}`}>
+              Advisory · not blocking
+            </span>
+          )}
+          {dismissalSource === 'MEMORY' && (
+            <span className={`inline-flex items-center gap-1 h-6 px-2 rounded border text-[11px] font-medium ${TONE_PILL.purple}`}>
+              <Brain size={11} strokeWidth={1.5} /> Dismissed by AI memory
+            </span>
+          )}
+          {dismissalSource === 'HUMAN' && (
+            <span className={`inline-flex items-center gap-1 h-6 px-2 rounded border text-[11px] font-medium ${TONE_PILL.green}`}>
+              <UserCheck size={11} strokeWidth={1.5} /> Dismissed by team
+            </span>
+          )}
+          {dismissalSource === 'SELF_TRIAGE' && (
+            <span className={`inline-flex items-center gap-1 h-6 px-2 rounded border text-[11px] font-medium ${TONE_PILL.neutral}`}>
+              <Eye size={11} strokeWidth={1.5} /> Triaged by agent
             </span>
           )}
           {alert.category && <span className="text-[12px] text-cw-txt3 uppercase tracking-wider">{alert.category}</span>}
@@ -113,10 +136,17 @@ export function FindingDetailBody({ alert, showTitle = false, children }: { aler
         {alert.kind === 'finding' && (
           <Section title="Merge gate">
             <p className="text-[14px] text-cw-txt2 leading-6">
-              {exposure === 'TRANSITIVE'
+              {dismissalSource === 'MEMORY'
+                ? 'Held back from the gate because the agent deferred to an unverified memory — a claim written by a previous model run that nobody has confirmed. It is reported here rather than erased so a human can settle it: dismiss it for good, or reopen it.'
+                : exposure === 'TRANSITIVE'
                 ? 'Reported as an advisory. The vulnerable code is not reachable from this application (a dev, build-time or nested dependency), so the merge is not gated on it.'
                 : 'Direct exposure — first-party code or a production dependency imported by it. A Critical or High finding here blocks the merge.'}
             </p>
+            {alert.dismissalReason && dismissalSource && (
+              <p className="mt-2 font-mono text-[12px] leading-5 text-cw-txt3 bg-cw-bg border border-cw-bdr rounded-md p-3 whitespace-pre-wrap break-words">
+                {alert.dismissalReason}
+              </p>
+            )}
           </Section>
         )}
 

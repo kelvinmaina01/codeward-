@@ -1,8 +1,8 @@
 import { memo, type ReactNode } from 'react';
-import { ChevronRight, GitPullRequest, AlertCircle } from 'lucide-react';
+import { ChevronRight, GitPullRequest, AlertCircle, Brain } from 'lucide-react';
 import {
   type RealAlert, type Tone, TONE_DOT, TONE_PILL, FOCUS_RING,
-  severityTone, timeAgo, isAdvisory, locatorOf,
+  severityTone, timeAgo, isAdvisory, isMemoryDismissed, deriveExposure, locatorOf,
 } from './finding-ui';
 
 interface FindingRowProps {
@@ -19,6 +19,8 @@ interface FindingRowProps {
 /** One-line finding preview. 44px tall; everything past the title is progressive disclosure. */
 function FindingRowImpl({ alert, selected = false, onSelect, action, showRepo = true, className = '' }: FindingRowProps) {
   const advisory = isAdvisory(alert);
+  const memoryDismissed = isMemoryDismissed(alert);
+  const exposure = alert.kind === 'finding' ? deriveExposure(alert) : null;
   const tone: Tone = advisory ? 'neutral' : severityTone(alert.severity);
   const locator = locatorOf(alert);
   const KindIcon = alert.kind === 'autofix' ? GitPullRequest : alert.kind === 'escalation' ? AlertCircle : null;
@@ -43,7 +45,17 @@ function FindingRowImpl({ alert, selected = false, onSelect, action, showRepo = 
       <div className="min-w-0 py-2.5 flex flex-col gap-0.5 sm:flex-row sm:items-baseline sm:gap-3">
         <div className="min-w-0 flex items-center gap-2">
           {KindIcon && <KindIcon size={14} className="text-cw-txt3 shrink-0" />}
-          <span className="text-[14px] font-medium text-cw-txt truncate">{alert.title}</span>
+          {/* Advisory titles read as secondary — the gate is not waiting on them */}
+          <span className={`text-[14px] font-medium truncate ${advisory ? 'text-cw-txt2' : 'text-cw-txt'}`}>{alert.title}</span>
+          {/* Autonomous AI suppression is the one thing a developer must be able to see at row level, so it survives the sm: breakpoint */}
+          {memoryDismissed && (
+            <span
+              className={`inline-flex items-center gap-1 h-5 px-1.5 rounded border text-[11px] font-medium shrink-0 ${TONE_PILL.purple}`}
+              title="Dismissed by AI memory — the agent deferred to an unverified memory it did not re-check this run. Reported, not blocking. A human should settle it."
+            >
+              <Brain size={11} strokeWidth={1.5} /> AI Memory
+            </span>
+          )}
         </div>
         {locator && (
           <span className="font-mono text-[12px] text-cw-txt3 truncate shrink-0 sm:max-w-[260px]" title={alert.file ?? undefined}>
@@ -57,8 +69,19 @@ function FindingRowImpl({ alert, selected = false, onSelect, action, showRepo = 
         <span className={`inline-flex items-center h-5 px-1.5 rounded border text-[11px] font-semibold uppercase tracking-wider ${TONE_PILL[severityTone(alert.severity)]}`}>
           {alert.severity}
         </span>
+        {/* Exposure — the axis that decides whether this can stop a merge, distinct from how bad it is */}
+        {exposure === 'DIRECT' && (
+          <span className={`inline-flex items-center h-5 px-1.5 rounded border text-[11px] font-semibold uppercase tracking-wider ${TONE_PILL.red}`} title="Direct exposure — first-party code or a production dependency it imports. Can block the merge.">
+            Direct
+          </span>
+        )}
+        {exposure === 'TRANSITIVE' && (
+          <span className={`inline-flex items-center h-5 px-1.5 rounded border text-[11px] font-semibold uppercase tracking-wider ${TONE_PILL.neutral}`} title="Transitive — a dev, build-time or nested dependency. Not reachable from this application.">
+            Transitive
+          </span>
+        )}
         {advisory && (
-          <span className={`inline-flex items-center h-5 px-1.5 rounded border text-[11px] font-medium ${TONE_PILL.neutral}`} title="Transitive — reported, does not block the merge">
+          <span className={`inline-flex items-center h-5 px-1.5 rounded border text-[11px] font-medium ${TONE_PILL.amber}`} title="Reported, does not block the merge">
             Advisory
           </span>
         )}

@@ -1,10 +1,28 @@
 import type { ReactNode } from 'react';
 import {
   Cpu, Shield, Trash2, Bug, Network, Brain, ShieldCheck, ListChecks, Database, MessageSquare, Bot,
-  Check, X, Loader2, Minus, ChevronDown, type LucideIcon,
+  Check, X, Loader2, Minus, ChevronDown, ShieldQuestion, type LucideIcon,
 } from 'lucide-react';
 import type { AgentData } from './AgentCanvasData';
-import { EYEBROW, TONE_DOT, TONE_PILL, FOCUS_RING, type Tone } from './findings/finding-ui';
+import { EYEBROW, TONE_DOT, TONE_PILL, FOCUS_RING, type Tone, type RunPolicySummary } from './findings/finding-ui';
+
+/**
+ * Compact, muted warning for surfaced findings whose cited tool never ran. Not a suppression — the
+ * findings are still shown — but the developer should know the evidence behind them was capped
+ * and none of them can be what blocked the merge.
+ */
+export function UnverifiedEvidenceBadge({ count, className = '' }: { count: number | null | undefined; className?: string }) {
+  if (!count || count <= 0) return null;
+  return (
+    <span
+      className={`inline-flex items-center gap-1 h-6 px-2 rounded border text-[11px] font-medium ${TONE_PILL.amber} ${className}`}
+      title={`${count} finding${count === 1 ? '' : 's'} cite a tool the agent never actually ran. Their evidence was capped, so they cannot block the merge — verify them before acting.`}
+    >
+      <ShieldQuestion size={11} strokeWidth={1.5} />
+      {count} unverified
+    </span>
+  );
+}
 
 /** Backend/legacy icon names → Lucide (16px, 1.5 stroke, monochrome — tinted only by state). */
 const AGENT_ICON: Record<string, LucideIcon> = {
@@ -92,7 +110,7 @@ function Stage({ label, tone, glyph, children, last = false }: { label: string; 
 
 export interface RunTimelineProps {
   agents: AgentData[];
-  runInfo: { id: number | string; commitSha?: string; status?: string; score?: number | null };
+  runInfo: { id: number | string; commitSha?: string; status?: string; score?: number | null; runPolicy?: RunPolicySummary | null };
   stats: { agentsActive: string; criticalIssues: number; linesFixed: number; decision: string };
   activeAgentId: string | null;
   onSelect: (id: string) => void;
@@ -155,6 +173,7 @@ export function RunTimeline({ agents, runInfo, stats, activeAgentId, onSelect }:
           <span className={`inline-flex items-center h-7 px-2.5 rounded-md border font-mono text-[13px] font-semibold ${TONE_PILL[decisionTone]}`}>
             {decision === 'BLOCKED' ? 'BLOCK' : decision}
           </span>
+          <UnverifiedEvidenceBadge count={runInfo.runPolicy?.unverifiedEvidenceCount} />
           {orchestrator?.statusText && orchestrator.status !== 'idle' && (
             <span className="text-[13px] text-cw-txt2">{orchestrator.statusText}</span>
           )}

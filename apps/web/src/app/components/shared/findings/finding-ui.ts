@@ -7,6 +7,21 @@
 
 export type Exposure = 'DIRECT' | 'TRANSITIVE';
 
+/**
+ * Where a dismissal came from. Only MEMORY is machine-autonomous — the model deferred to an
+ * unverified agent-written memory — and that is the one the developer needs to be able to see.
+ */
+export type DismissalSource = 'MEMORY' | 'SELF_TRIAGE' | 'HUMAN';
+
+/** Per-run policy summary the backend attaches to a run (`runPolicy`). Every field optional. */
+export interface RunPolicySummary {
+  decision?: 'PASS' | 'WARN' | 'BLOCK' | string;
+  surfacedCount?: number;
+  suppressedCount?: number;
+  /** Surfaced findings citing a tool the agent never actually ran — evidence was capped, cannot block. */
+  unverifiedEvidenceCount?: number;
+}
+
 /** The real `/api/alerts` row. Identical across every consumer. */
 export interface RealAlert {
   id: string;
@@ -23,6 +38,11 @@ export interface RealAlert {
   suggestedFix?: string | null;
   htmlUrl?: string | null;
   exposure?: Exposure | string | null;
+  /** Backend verdict: reported but deliberately not allowed to block. Wins over local inference when present. */
+  isAdvisory?: boolean | null;
+  dismissed?: boolean | null;
+  dismissalSource?: DismissalSource | string | null;
+  dismissalReason?: string | null;
   runId?: number;
   repoId?: number;
   createdAt?: string;
@@ -105,7 +125,24 @@ export function deriveExposure(a: Pick<RealAlert, 'kind' | 'exposure' | 'categor
 }
 
 export function isAdvisory(a: RealAlert): boolean {
+  // The backend's own verdict is authoritative when it is present — an advisory can also come
+  // from a contested memory dismissal, which local exposure inference cannot see.
+  if (typeof a.isAdvisory === 'boolean') return a.isAdvisory;
   return a.kind === 'finding' && deriveExposure(a) === 'TRANSITIVE';
+}
+
+/** Normalised dismissal provenance, or null when the finding was not dismissed. */
+export function dismissalSourceOf(a: Pick<RealAlert, 'dismissed' | 'dismissalSource'>): DismissalSource | null {
+  const raw = String(a.dismissalSource ?? '').trim().toUpperCase();
+  if (raw === 'MEMORY' || raw === 'AGENT_MEMORY') return 'MEMORY';
+  if (raw === 'SELF_TRIAGE' || raw === 'SELF') return 'SELF_TRIAGE';
+  if (raw === 'HUMAN') return 'HUMAN';
+  return null;
+}
+
+/** True when the AI suppressed this on its own authority, from an unverified memory — the case a developer must be able to see. */
+export function isMemoryDismissed(a: Pick<RealAlert, 'dismissed' | 'dismissalSource'>): boolean {
+  return dismissalSourceOf(a) === 'MEMORY';
 }
 
 export function groupByExposure<T extends RealAlert>(alerts: T[]): { blocking: T[]; advisory: T[] } {
