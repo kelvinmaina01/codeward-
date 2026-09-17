@@ -79,6 +79,7 @@ const INPUT = `bg-cw-bg2 border border-cw-bdr text-cw-txt rounded-md px-2 py-1 t
 
 interface Props {
   onRunClick?: (repoId: number, runId: number) => void;
+  hasOpenDrawer?: boolean;
 }
 
 interface RecentRun {
@@ -518,7 +519,7 @@ const DASHBOARD_RANGES: { value: string; label: string; title: string }[] = [
   { value: 'custom', label: 'Custom', title: 'Custom Date' },
 ];
 
-export function Dashboard({ onRunClick }: Props) {
+export function Dashboard({ onRunClick, hasOpenDrawer = false }: Props) {
   const navigate = useNavigate();
 
   const [stats, setStats] = useState<{
@@ -945,7 +946,7 @@ export function Dashboard({ onRunClick }: Props) {
         </section>
 
         {/* ── Trends ────────────────────────────────────────────────────────── */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className={`grid grid-cols-1 ${hasOpenDrawer ? '2xl:grid-cols-2' : 'lg:grid-cols-2'} gap-4`}>
           {/* Codebase health trend */}
           <Panel label="Codebase health trend" className="h-[260px]">
             <div className="flex items-start justify-between gap-3 px-4 sm:px-5 pt-4">
@@ -1059,9 +1060,9 @@ export function Dashboard({ onRunClick }: Props) {
         </div>
 
         {/* ── Attention + system state ──────────────────────────────────────── */}
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+        <div className={`grid grid-cols-1 ${hasOpenDrawer ? '2xl:grid-cols-3' : 'xl:grid-cols-3'} gap-4`}>
           {/* Left: things that need a decision */}
-          <div className="xl:col-span-2 flex flex-col gap-4 min-w-0">
+          <div className={`${hasOpenDrawer ? '2xl:col-span-2' : 'xl:col-span-2'} flex flex-col gap-4 min-w-0`}>
 
             {/* Pending merge approvals */}
             <Panel label="Pending merge approvals">
@@ -1204,6 +1205,7 @@ export function Dashboard({ onRunClick }: Props) {
                       key={alert.id || i}
                       alert={alert}
                       showRepo={false}
+                      compact={hasOpenDrawer}
                       onSelect={() => navigate('/dashboard/alerts')}
                       action={
                         <button
@@ -1281,13 +1283,13 @@ export function Dashboard({ onRunClick }: Props) {
                         {debtRows.map((item) => {
                           const widthPct = Math.max(3, Math.round((item.val / debtMax) * 100));
                           return (
-                            <div key={item.label} className="flex items-center gap-3 text-[12px]">
+                            <div key={item.label} className="flex items-center gap-2 sm:gap-3 text-[12px] min-w-0">
                               <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${TONE_DOT[item.tone]}`} />
-                              <span className="text-cw-txt2 w-[120px] shrink-0 truncate">{item.label}</span>
-                              <div className="flex-1 h-1 bg-cw-bg3 rounded-full overflow-hidden min-w-[40px]">
+                              <span className="text-cw-txt2 flex-1 min-w-0 truncate">{item.label}</span>
+                              <div className="w-16 sm:w-24 h-1 bg-cw-bg3 rounded-full overflow-hidden shrink-0">
                                 <div className={`h-full rounded-full ${TONE_DOT[item.tone]}`} style={{ width: `${widthPct}%` }} />
                               </div>
-                              <span className="font-mono font-semibold tabular-nums text-cw-txt w-[44px] text-right shrink-0">{item.val.toLocaleString()}</span>
+                              <span className="font-mono font-semibold tabular-nums text-cw-txt w-[36px] text-right shrink-0">{item.val.toLocaleString()}</span>
                             </div>
                           );
                         })}

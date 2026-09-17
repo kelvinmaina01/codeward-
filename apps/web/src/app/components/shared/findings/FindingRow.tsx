@@ -84,18 +84,18 @@ function FindingRowImpl({
         <span className={`inline-flex items-center h-5 px-1.5 rounded border text-[11px] font-semibold uppercase tracking-wider ${TONE_PILL[severityTone(alert.severity)]}`}>
           {alert.severity}
         </span>
-        {/* Exposure — the axis that decides whether this can stop a merge, distinct from how bad it is */}
-        {exposure === 'DIRECT' && (
+        {/* Exposure — hidden in compact mode to preserve space */}
+        {!compact && exposure === 'DIRECT' && (
           <span className={`inline-flex items-center h-5 px-1.5 rounded border text-[11px] font-semibold uppercase tracking-wider ${TONE_PILL.red}`} title="Direct exposure — first-party code or a production dependency it imports. Can block the merge.">
             Direct
           </span>
         )}
-        {exposure === 'TRANSITIVE' && (
+        {!compact && exposure === 'TRANSITIVE' && (
           <span className={`inline-flex items-center h-5 px-1.5 rounded border text-[11px] font-semibold uppercase tracking-wider ${TONE_PILL.neutral}`} title="Transitive — a dev, build-time or nested dependency. Not reachable from this application.">
             Transitive
           </span>
         )}
-        {advisory && (
+        {!compact && advisory && (
           <span className={`inline-flex items-center h-5 px-1.5 rounded border text-[11px] font-medium ${TONE_PILL.amber}`} title="Reported, does not block the merge">
             Advisory
           </span>
