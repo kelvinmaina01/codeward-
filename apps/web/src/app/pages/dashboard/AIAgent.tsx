@@ -462,6 +462,13 @@ function HistoryDrawer({ sessions, activeId, onSelect, onRename, onDelete, onClo
 
 interface Suggestion { id: string; icon: string; title: string; subtitle: string; prompt: string }
 
+const DEFAULT_SUGGESTIONS: Suggestion[] = [
+  { id: 'approvals', icon: 'approvals', title: 'Review pending auto-fix PRs', subtitle: 'Approve or reject Codeward’s fixes', prompt: 'Show me the Codeward auto-fix PRs waiting for a merge decision, with the guardian verdict for each.' },
+  { id: 'fix', icon: 'fix', title: 'Audit highest-risk security issues', subtitle: 'Identify vulnerabilities needing fixes', prompt: 'What are the highest-priority security issues in my repositories right now, and can you open fixes for them?' },
+  { id: 'report', icon: 'report', title: 'Summarize latest scans', subtitle: 'Scores, top findings & changes', prompt: 'Give me a summary of the latest runs across my repositories: scores, top findings by severity, and what changed.' },
+  { id: 'compare', icon: 'compare', title: 'Compare repository health', subtitle: 'Ranked worst to best', prompt: 'Compare the health scores across all my repositories and show them as a table, worst first.' },
+];
+
 const CAPABILITIES: { icon: HugeIcon; label: string }[] = [
   { icon: SecurityCheckIcon, label: 'Runs real security & quality scans' },
   { icon: Rocket01Icon, label: 'Dispatches agents in a real sandbox' },
@@ -512,30 +519,31 @@ function GordonHero({ suggestions, loadingSuggestions, onPick }: {
 
         {/* dynamic suggestions */}
         <div className="mt-7">
-          <div className="text-[10px] uppercase tracking-wider text-cw-txt3 font-semibold mb-2.5">Suggested for you · from your real activity</div>
-          {loadingSuggestions ? (
-            <div className="flex items-center gap-2 text-[12px] text-cw-txt3 py-3"><Loader2 size={14} className="animate-spin" /> Reading your repositories…</div>
-          ) : suggestions.length === 0 ? (
-            <div className="text-[12px] text-cw-txt3 py-3">No activity yet — connect a repo and Gordon will suggest what to do next.</div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-              {suggestions.map((s) => {
-                const Icon = SUGGESTION_ICON[s.icon] ?? BubbleChatIcon;
-                return (
-                  <button key={s.id} onClick={() => onPick(s.prompt)}
-                    className="group text-left border border-cw-bdr rounded-xl px-3.5 py-3 bg-cw-bg2 hover:border-cw-blue hover:bg-cw-blue/[0.03] transition-colors flex items-start gap-2.5">
-                    <div className="w-8 h-8 rounded-lg bg-cw-blue/10 flex items-center justify-center shrink-0 group-hover:bg-cw-blue/15 transition-colors">
-                      <Icon size={17} className="text-cw-blue" />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="text-[12.5px] font-semibold text-cw-txt leading-tight">{s.title}</div>
-                      <div className="text-[11px] text-cw-txt3 mt-0.5">{s.subtitle}</div>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          )}
+          <div className="flex items-center justify-between mb-2.5">
+            <div className="text-[10px] uppercase tracking-wider text-cw-txt3 font-semibold">Suggested for you · from your real activity</div>
+            {loadingSuggestions && (
+              <div className="flex items-center gap-1.5 text-[11px] text-cw-txt3 opacity-70">
+                <Loader2 size={11} className="animate-spin" /> Syncing repos…
+              </div>
+            )}
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            {(suggestions.length > 0 ? suggestions : DEFAULT_SUGGESTIONS).map((s) => {
+              const Icon = SUGGESTION_ICON[s.icon] ?? BubbleChatIcon;
+              return (
+                <button key={s.id} onClick={() => onPick(s.prompt)}
+                  className="group text-left border border-cw-bdr rounded-xl px-3.5 py-3 bg-cw-bg2 hover:border-cw-blue hover:bg-cw-blue/[0.03] transition-colors flex items-start gap-2.5 cursor-pointer">
+                  <div className="w-8 h-8 rounded-lg bg-cw-blue/10 flex items-center justify-center shrink-0 group-hover:bg-cw-blue/15 transition-colors">
+                    <Icon size={17} className="text-cw-blue" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-[12.5px] font-semibold text-cw-txt leading-tight">{s.title}</div>
+                    <div className="text-[11px] text-cw-txt3 mt-0.5">{s.subtitle}</div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
     </div>
@@ -716,6 +724,7 @@ export function AIAgent() {
   const [skills, setSkills] = useState<Skill[]>([]);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(true);
+  const [quota, setQuota] = useState<{ plan: string; dailyLimit: number; dailyRemaining: number; dailyUsed: number } | null>(null);
   const [logsOpen, setLogsOpen] = useState(false);
   const [detail, setDetail] = useState<ToolDetail | null>(null);
   const [attachedFiles, setAttachedFiles] = useState<AttachmentFile[]>([]);
@@ -790,6 +799,12 @@ export function AIAgent() {
       .then((d) => setSuggestions(d.suggestions ?? []))
       .catch(() => {})
       .finally(() => setLoadingSuggestions(false));
+    fetch(`${API_URL}/api/chat/quota`, { credentials: 'include' })
+      .then((r) => r.ok ? r.json() : null)
+      .then((d) => {
+        if (d) setQuota({ plan: d.plan, dailyLimit: d.dailyLimit, dailyRemaining: d.dailyRemaining, dailyUsed: d.dailyUsed });
+      })
+      .catch(() => {});
   }, [refreshSessions]);
 
   const transport = useMemo(() => new DefaultChatTransport({
@@ -825,6 +840,20 @@ export function AIAgent() {
       if (sid && sid !== sessionIdRef.current) {
         sessionIdRef.current = sid; setActiveSessionId(sid);
         setTimeout(() => { refreshSessions(); }, 3500);
+      }
+      // Update quota in real-time from server headers
+      const planHdr = res.headers.get('X-Gordon-Plan');
+      const limitHdr = res.headers.get('X-Gordon-Daily-Limit');
+      const remainingHdr = res.headers.get('X-Gordon-Daily-Remaining');
+      if (planHdr && limitHdr && remainingHdr) {
+        const dailyLimit = parseInt(limitHdr, 10);
+        const dailyRemaining = parseInt(remainingHdr, 10);
+        setQuota({
+          plan: planHdr,
+          dailyLimit,
+          dailyRemaining,
+          dailyUsed: Math.max(0, dailyLimit - dailyRemaining),
+        });
       }
       return res;
     }) as typeof fetch,
@@ -1125,6 +1154,44 @@ export function AIAgent() {
                 )}
               </div>
             </div>
+          </div>
+
+          {/* Prompt Quota Indicator */}
+          <div className="flex items-center justify-between px-2 pt-2 text-[11px] text-cw-txt3">
+            <div className="flex items-center gap-2">
+              {quota ? (
+                quota.plan === 'free' ? (
+                  <span className="inline-flex items-center gap-1.5 font-mono">
+                    <span className={`inline-block w-1.5 h-1.5 rounded-full ${quota.dailyRemaining > 0 ? 'bg-cw-green' : 'bg-rose-500'}`} />
+                    <span className="text-cw-txt2 font-semibold">Free:</span>
+                    <span className={quota.dailyRemaining === 0 ? 'text-rose-400 font-semibold' : 'text-cw-txt'}>
+                      {quota.dailyRemaining}/{quota.dailyLimit} prompts left today
+                    </span>
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 font-mono text-cw-txt2">
+                    <span className="inline-block w-1.5 h-1.5 rounded-full bg-cw-blue" />
+                    <span className="uppercase text-cw-blue font-bold tracking-wider text-[10px]">{quota.plan}</span>
+                    <span>· {quota.dailyRemaining} prompts remaining today</span>
+                  </span>
+                )
+              ) : (
+                <span className="inline-flex items-center gap-1.5 font-mono">
+                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-cw-green" />
+                  <span className="text-cw-txt2 font-semibold">Free:</span>
+                  <span className="text-cw-txt">3/3 prompts left today</span>
+                </span>
+              )}
+            </div>
+
+            {(!quota || quota.plan === 'free') && (
+              <a
+                href="/dashboard/settings/billing"
+                className="text-cw-purple hover:text-cw-purple/80 hover:underline font-semibold transition-colors flex items-center gap-1"
+              >
+                <Zap size={11} /> Upgrade to Pro
+              </a>
+            )}
           </div>
           </div>
         </div>

@@ -7,7 +7,7 @@ import { RepoSelector } from '../../components/shared/RepoSelector';
 import { 
   Bot, Radio, Download, Copy, Check, Terminal as TerminalIcon, Sparkles, Filter, RefreshCw, ExternalLink 
 } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '../../lib/toast-bridge';
 
 /** Escalating patience loader — shows reassuring copy when things take time */
 function StreamLoader() {

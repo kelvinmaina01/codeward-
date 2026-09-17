@@ -24,9 +24,11 @@ import { API_URL } from '../../../lib/api';
 interface UserProfilePopoverProps {
   onClose: () => void;
   onOpenThemeModal?: () => void;
+  activeTheme?: 'dark' | 'cream' | 'white';
+  onSelectTheme?: (theme: 'dark' | 'cream' | 'white') => void;
 }
 
-export function UserProfilePopover({ onClose, onOpenThemeModal }: UserProfilePopoverProps) {
+export function UserProfilePopover({ onClose, onOpenThemeModal, activeTheme = 'dark', onSelectTheme }: UserProfilePopoverProps) {
   const navigate = useNavigate();
   const { data: session } = useSession();
   const { activeWorkspace, fetchMembers, setOpenInviteDrawer } = useWorkspace();
@@ -291,9 +293,14 @@ export function UserProfilePopover({ onClose, onOpenThemeModal }: UserProfilePop
             <button
               type="button"
               onClick={() => {
-                if (onOpenThemeModal) onOpenThemeModal();
+                if (onSelectTheme) onSelectTheme('dark');
+                else if (onOpenThemeModal) onOpenThemeModal();
               }}
-              className="py-1 px-1.5 rounded text-[11px] font-bold flex items-center justify-center gap-1 bg-cw-bg3 text-cw-txt hover:border-cw-purple border border-transparent transition-all cursor-pointer"
+              className={`py-1 px-1.5 rounded text-[11px] font-bold flex items-center justify-center gap-1 transition-all cursor-pointer ${
+                activeTheme === 'dark'
+                  ? 'bg-cw-purple/20 text-cw-purple border border-cw-purple shadow-sm'
+                  : 'bg-cw-bg3 text-cw-txt hover:border-cw-purple border border-transparent'
+              }`}
               title="Dark Mode"
             >
               <Moon01Icon size={12} className="text-cw-purple" />
@@ -303,9 +310,14 @@ export function UserProfilePopover({ onClose, onOpenThemeModal }: UserProfilePop
             <button
               type="button"
               onClick={() => {
-                if (onOpenThemeModal) onOpenThemeModal();
+                if (onSelectTheme) onSelectTheme('cream');
+                else if (onOpenThemeModal) onOpenThemeModal();
               }}
-              className="py-1 px-1.5 rounded text-[11px] font-bold flex items-center justify-center gap-1 bg-cw-bg3 text-cw-txt hover:border-cw-purple border border-transparent transition-all cursor-pointer"
+              className={`py-1 px-1.5 rounded text-[11px] font-bold flex items-center justify-center gap-1 transition-all cursor-pointer ${
+                activeTheme === 'cream'
+                  ? 'bg-[#c5a882]/20 text-[#855e34] border border-[#c5a882] shadow-sm'
+                  : 'bg-cw-bg3 text-cw-txt hover:border-cw-purple border border-transparent'
+              }`}
               title="Cream Warm Mode"
             >
               <CircleIcon size={12} className="text-[#c5a882] fill-[#c5a882]" />
@@ -315,9 +327,14 @@ export function UserProfilePopover({ onClose, onOpenThemeModal }: UserProfilePop
             <button
               type="button"
               onClick={() => {
-                if (onOpenThemeModal) onOpenThemeModal();
+                if (onSelectTheme) onSelectTheme('white');
+                else if (onOpenThemeModal) onOpenThemeModal();
               }}
-              className="py-1 px-1.5 rounded text-[11px] font-bold flex items-center justify-center gap-1 bg-cw-bg3 text-cw-txt hover:border-cw-purple border border-transparent transition-all cursor-pointer"
+              className={`py-1 px-1.5 rounded text-[11px] font-bold flex items-center justify-center gap-1 transition-all cursor-pointer ${
+                activeTheme === 'white'
+                  ? 'bg-cw-amber/20 text-cw-amber border border-cw-amber shadow-sm'
+                  : 'bg-cw-bg3 text-cw-txt hover:border-cw-purple border border-transparent'
+              }`}
               title="White Mode"
             >
               <Sun01Icon size={12} className="text-cw-amber" />

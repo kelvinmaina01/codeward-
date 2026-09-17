@@ -1,17 +1,19 @@
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
-import {
-  ShieldAlert, Bot, Key, GitMerge, X as XIcon, Plus, AlertTriangle, CheckCircle2,
-  Scissors, Cpu, Shield, ArrowRight, ArrowUpRight, ChevronDown, Timer, LoaderCircle,
-  ShieldCheck, GitCommitHorizontal, GitPullRequest, Activity, CircleDot, Inbox,
-} from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
 import { useEffect, useState, useMemo, useRef } from 'react';
-import type { ReactNode } from 'react';
+import type { ReactNode, ComponentType } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api, API_URL, WS_URL } from '../../../lib/api';
 import { RepoSelector } from '../../components/shared/RepoSelector';
 import { FindingRow } from '../../components/shared/findings/FindingRow';
-import { Search01Icon, Add01Icon, File01Icon, Award01Icon } from 'hugeicons-react';
+import {
+  Search01Icon, Add01Icon, File01Icon, Award01Icon,
+  ShieldKeyIcon, Shield01Icon, Shield02Icon, Delete01Icon,
+  Bug01Icon, Structure01Icon, CheckmarkCircle01Icon, AlertCircleIcon,
+  CpuIcon, Robot01Icon, ArrowRight01Icon, ArrowUpRight01Icon,
+  Clock01Icon, GitMergeIcon, GitCommitIcon, GitPullRequestIcon,
+  ArrowDown01Icon, Cancel01Icon, InboxIcon, Activity01Icon,
+  AiBrain01Icon, Database01Icon, PlusSignIcon, Loading03Icon
+} from 'hugeicons-react';
 
 /** Display-only: pipeline phases are an implementation detail, not something a reader should parse. */
 function humanizeFeedText(text: string): string {
@@ -152,7 +154,7 @@ const DEFAULT_MOCK_ACTIVITIES: ActivityEvent[] = [
     text: 'Security Agent found hardcoded Stripe key in payments-api config.js:14',
     highlightText: 'auto-fix ready',
     time: '2 min ago',
-    icon: Key,
+    icon: ShieldKeyIcon,
     color: 'text-cw-red',
     dotEmoji: '🔴',
     badgeStyle: 'bg-cw-red/10 text-cw-red border-cw-red/30'
@@ -162,7 +164,7 @@ const DEFAULT_MOCK_ACTIVITIES: ActivityEvent[] = [
     text: 'Guardian Agent posted review on PR #214 · score 89/100',
     highlightText: '1 change requested',
     time: '4 min ago',
-    icon: Shield,
+    icon: Shield01Icon,
     color: 'text-cw-purple',
     dotEmoji: '💜',
     badgeStyle: 'bg-cw-purple/10 text-cw-purple border-cw-purple/30'
@@ -172,7 +174,7 @@ const DEFAULT_MOCK_ACTIVITIES: ActivityEvent[] = [
     text: 'Bloat Agent removed 247 dead code lines from frontend',
     highlightText: 'validateEmail() merged to utils/',
     time: '4 min ago',
-    icon: Scissors,
+    icon: Delete01Icon,
     color: 'text-cw-amber',
     dotEmoji: '🟡',
     badgeStyle: 'bg-cw-amber/10 text-cw-amber border-cw-amber/30'
@@ -182,7 +184,7 @@ const DEFAULT_MOCK_ACTIVITIES: ActivityEvent[] = [
     text: 'Broken Code Agent · auth-service 142/142 tests passing',
     highlightText: 'coverage 84%',
     time: '1 hour ago',
-    icon: CheckCircle2,
+    icon: CheckmarkCircle01Icon,
     color: 'text-cw-green',
     dotEmoji: '🟢',
     badgeStyle: 'bg-cw-green/10 text-cw-green border-cw-green/30'
@@ -192,7 +194,7 @@ const DEFAULT_MOCK_ACTIVITIES: ActivityEvent[] = [
     text: 'Architecture Agent detected N+1 on /api/users · JOIN fix reduces 40% latency',
     highlightText: 'GitHub Issue #88 created',
     time: '3 hours ago',
-    icon: Cpu,
+    icon: Structure01Icon,
     color: 'text-cw-blue',
     dotEmoji: '🔵',
     badgeStyle: 'bg-cw-blue/10 text-cw-blue border-cw-blue/30'
@@ -202,7 +204,7 @@ const DEFAULT_MOCK_ACTIVITIES: ActivityEvent[] = [
     text: 'Orchestrator blocked payments-api merge · Critical security finding unresolved',
     highlightText: 'score 0/100',
     time: '3 hours ago',
-    icon: ShieldAlert,
+    icon: AlertCircleIcon,
     color: 'text-cw-red',
     dotEmoji: '📊',
     badgeStyle: 'bg-cw-red/10 text-cw-red border-cw-red/30'
@@ -213,7 +215,18 @@ const processFeedEvent = (data: any, defaultTime: string = 'Just now'): Activity
   if (data.type === 'agent_active' || data.type === 'agent_completed' || data.type === 'agent_failed') {
     const { repo, sha, agent, score, error } = data.payload;
     let text = '';
-    let icon = Bot;
+    const agentLower = String(agent || '').toLowerCase();
+    let icon: any = Robot01Icon;
+    if (agentLower.includes('security')) icon = ShieldKeyIcon;
+    else if (agentLower.includes('guardian')) icon = Shield01Icon;
+    else if (agentLower.includes('bloat')) icon = Delete01Icon;
+    else if (agentLower.includes('broken')) icon = Bug01Icon;
+    else if (agentLower.includes('arch')) icon = Structure01Icon;
+    else if (agentLower.includes('compliance')) icon = CheckmarkCircle01Icon;
+    else if (agentLower.includes('data')) icon = Database01Icon;
+    else if (agentLower.includes('ai_era')) icon = AiBrain01Icon;
+    else if (agentLower.includes('orch')) icon = Robot01Icon;
+
     let color = 'text-cw-purple';
     let dotEmoji = '🤖';
 
@@ -231,7 +244,7 @@ const processFeedEvent = (data: any, defaultTime: string = 'Just now'): Activity
     } else if (data.type === 'agent_failed') {
       text = `${agentName} failed on ${repo}: ${error}`;
       color = 'text-cw-red';
-      icon = ShieldAlert;
+      icon = AlertCircleIcon;
       dotEmoji = '🔴';
     }
 
@@ -420,9 +433,9 @@ function PanelHeader({
   title, description, count, actions,
 }: { title: string; description?: string; count?: number; actions?: ReactNode }) {
   return (
-    <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-3 px-4 sm:px-5 py-3 border-b border-cw-bdr">
+    <div className="flex flex-col gap-1.5 sm:flex-row sm:items-start sm:justify-between sm:gap-2.5 px-3 sm:px-4 py-2 border-b border-cw-bdr">
       <div className="min-w-0">
-        <h2 className="text-[14px] font-semibold text-cw-txt leading-5 flex items-center gap-2 min-w-0">
+        <h2 className="text-[13px] sm:text-[14px] font-semibold text-cw-txt leading-5 flex items-center gap-2 min-w-0">
           <span className="truncate">{title}</span>
           {count != null && (
             <span className="font-mono text-[11px] font-semibold text-cw-txt2 bg-cw-bg3 border border-cw-bdr rounded px-1.5 py-px leading-4 tabular-nums shrink-0">
@@ -430,24 +443,24 @@ function PanelHeader({
             </span>
           )}
         </h2>
-        {description && <p className="text-[12px] text-cw-txt3 leading-4 mt-0.5">{description}</p>}
+        {description && <p className="text-[11px] sm:text-[12px] text-cw-txt3 leading-4 mt-0.5">{description}</p>}
       </div>
-      {actions && <div className="flex items-center gap-2 shrink-0 flex-wrap sm:justify-end">{actions}</div>}
+      {actions && <div className="flex items-center gap-1.5 shrink-0 flex-wrap sm:justify-end">{actions}</div>}
     </div>
   );
 }
 
 function EmptyState({
   icon: Icon, title, hint, action,
-}: { icon: LucideIcon; title: string; hint?: string; action?: ReactNode }) {
+}: { icon: ComponentType<{ size?: number | string; className?: string }>; title: string; hint?: string; action?: ReactNode }) {
   return (
-    <div className="flex flex-col items-center justify-center text-center gap-1.5 px-4 py-8">
-      <div className="w-8 h-8 rounded-md border border-dashed border-cw-bdr bg-cw-bg/60 flex items-center justify-center text-cw-txt3">
+    <div className="flex flex-col items-center justify-center text-center gap-1.5 px-3 py-6">
+      <div className="w-7 h-7 rounded-md border border-dashed border-cw-bdr bg-cw-bg/60 flex items-center justify-center text-cw-txt3">
         <Icon size={14} />
       </div>
       <div className="text-[13px] font-medium text-cw-txt2">{title}</div>
-      {hint && <div className="text-[12px] text-cw-txt3 max-w-[360px] leading-5">{hint}</div>}
-      {action && <div className="mt-1.5">{action}</div>}
+      {hint && <div className="text-[11px] text-cw-txt3 max-w-[360px] leading-relaxed">{hint}</div>}
+      {action && <div className="mt-1">{action}</div>}
     </div>
   );
 }
@@ -459,20 +472,20 @@ function Metric({
   loading?: boolean; action?: ReactNode; valueClass?: string;
 }) {
   return (
-    <div className="bg-cw-bg2 border-r border-b border-cw-bdr px-4 sm:px-5 py-4 flex flex-col gap-2 min-w-0">
+    <div className="bg-cw-bg2 border-r border-b border-cw-bdr px-3 sm:px-4 py-2.5 flex flex-col gap-1.5 min-w-0">
       <span className={`${MICRO_LABEL} leading-4`}>{label}</span>
       {loading ? (
-        <Skeleton className="h-7 w-20" />
+        <Skeleton className="h-6 w-20" />
       ) : (
         <div className="flex items-baseline gap-1.5 min-w-0">
-          <span className={`text-[26px] leading-none font-semibold tracking-tight tabular-nums truncate ${valueClass}`}>{value}</span>
-          {unit && <span className="text-[12px] text-cw-txt3 font-medium shrink-0">{unit}</span>}
+          <span className={`text-[20px] sm:text-[22px] leading-none font-semibold tracking-tight tabular-nums truncate ${valueClass}`}>{value}</span>
+          {unit && <span className="text-[11px] text-cw-txt3 font-medium shrink-0">{unit}</span>}
         </div>
       )}
       {(hint || action) && (
         <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 min-w-0">
           {hint && (
-            <div className="flex items-center gap-1.5 text-[12px] text-cw-txt3 leading-4 min-w-0">
+            <div className="flex items-center gap-1.5 text-[11px] text-cw-txt3 leading-4 min-w-0">
               {hintTone && <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${TONE_DOT[hintTone]}`} />}
               <span className="truncate">{hint}</span>
             </div>
@@ -817,11 +830,11 @@ export function Dashboard({ onRunClick }: Props) {
 
   return (
     <div className="flex-1 overflow-y-auto overflow-x-hidden bg-cw-bg text-cw-txt">
-      <div className="mx-auto w-full max-w-[1600px] px-4 sm:px-6 lg:px-8 py-5 sm:py-6 flex flex-col gap-5">
+      <div className="mx-auto w-full max-w-[1600px] px-3 sm:px-4 lg:px-6 py-3 sm:py-4 flex flex-col gap-3.5">
 
         {/* ── Context bar: what this page is, plus global filters ───────────── */}
-        <header className="flex flex-col gap-3">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <header className="flex flex-col gap-2.5">
+          <div className="flex flex-col gap-2.5 lg:flex-row lg:items-center lg:justify-between">
             <div className="min-w-0">
               <p className="text-[12px] text-cw-txt2 leading-5">
                 Real-time overview of code health, active agents, and pending approvals across your repositories.
@@ -905,7 +918,7 @@ export function Dashboard({ onRunClick }: Props) {
               hintTone="green"
               action={
                 <button type="button" onClick={() => navigate('/connect')} className={`${BTN_LINK} text-[11px] whitespace-nowrap`}>
-                  <Plus size={11} /> Add repository
+                  <PlusSignIcon size={12} /> Add repository
                 </button>
               }
             />
@@ -1008,7 +1021,7 @@ export function Dashboard({ onRunClick }: Props) {
               <div className="flex flex-col items-end gap-1.5 shrink-0">
                 <span className="text-[12px] text-cw-txt3 tabular-nums">{viewStats?.refactorsApplied ?? 0} refactors applied</span>
                 <button type="button" onClick={() => navigate('/dashboard/diff')} className={BTN_GHOST_SM}>
-                  View diff <ArrowUpRight size={11} />
+                  View diff <ArrowUpRight01Icon size={11} />
                 </button>
               </div>
             </div>
@@ -1067,7 +1080,7 @@ export function Dashboard({ onRunClick }: Props) {
                   ))
                 ) : viewApprovals.length === 0 ? (
                   <EmptyState
-                    icon={GitMerge}
+                    icon={GitMergeIcon}
                     title="No auto-fix PRs awaiting a decision."
                     hint="When an agent opens a pull request that needs a human decision, it will show up here with a one-click merge or reject."
                   />
@@ -1088,7 +1101,7 @@ export function Dashboard({ onRunClick }: Props) {
                           <span className="font-mono shrink-0">PR #{a.pullRequestNumber}</span>
                           <span className="text-cw-txt3 font-normal shrink-0">·</span>
                           <span className="truncate">{a.repoFullName}</span>
-                          <ArrowUpRight size={12} className="shrink-0 text-cw-txt3" />
+                          <ArrowUpRight01Icon size={12} className="shrink-0 text-cw-txt3" />
                         </a>
                         <div className="text-[12px] text-cw-txt2 mt-0.5 truncate">
                           {a.prTitle ?? `${a.agentId} auto-fix`}
@@ -1102,7 +1115,7 @@ export function Dashboard({ onRunClick }: Props) {
                           )}
                           {a.mode === 'auto' && a.deadlineAt && (
                             <span className="inline-flex items-center gap-1 text-[12px] text-cw-amber">
-                              <Timer size={11} /> {deadlineLabel(a.deadlineAt)} unless you act
+                              <Clock01Icon size={11} /> {deadlineLabel(a.deadlineAt)} unless you act
                             </span>
                           )}
                         </div>
@@ -1114,7 +1127,7 @@ export function Dashboard({ onRunClick }: Props) {
                           disabled={acting}
                           className={BTN_SUCCESS}
                         >
-                          {acting ? <LoaderCircle size={12} className="animate-spin" /> : <GitMerge size={12} />} Merge now
+                          {acting ? <Loading03Icon size={12} className="animate-spin" /> : <GitMergeIcon size={12} />} Merge now
                         </button>
                         <button
                           type="button"
@@ -1122,7 +1135,7 @@ export function Dashboard({ onRunClick }: Props) {
                           disabled={acting}
                           className={`${BTN_SECONDARY} hover:text-cw-red hover:border-cw-red/40`}
                         >
-                          <XIcon size={12} /> Reject
+                          <Cancel01Icon size={12} /> Reject
                         </button>
                       </div>
                     </div>
@@ -1152,7 +1165,7 @@ export function Dashboard({ onRunClick }: Props) {
                         <option value="15d">15 days</option>
                         <option value="custom">Custom date</option>
                       </select>
-                      <ChevronDown size={12} className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-cw-txt3" />
+                      <ArrowDown01Icon size={12} className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-cw-txt3" />
                     </div>
                     {alertTimeFilter === 'custom' && (
                       <input
@@ -1164,7 +1177,7 @@ export function Dashboard({ onRunClick }: Props) {
                       />
                     )}
                     <button type="button" onClick={() => navigate('/dashboard/alerts')} className={BTN_LINK}>
-                      View all <ArrowRight size={12} />
+                      View all <ArrowRight01Icon size={12} />
                     </button>
                   </>
                 }
@@ -1179,7 +1192,7 @@ export function Dashboard({ onRunClick }: Props) {
                   ))
                 ) : viewAlerts.length === 0 ? (
                   <EmptyState
-                    icon={ShieldCheck}
+                    icon={Shield02Icon}
                     title="No high priority alerts currently."
                     hint="Critical and high-severity findings, escalated issues and auto-fix PRs will be listed here as agents report them."
                   />
@@ -1198,7 +1211,7 @@ export function Dashboard({ onRunClick }: Props) {
                           onClick={(e) => { e.stopPropagation(); navigate('/dashboard/alerts'); }}
                           className={`${BTN_LINK} ${isCritical ? 'text-cw-red' : ''}`}
                         >
-                          {actionText} <ArrowRight size={11} />
+                          {actionText} <ArrowRight01Icon size={11} />
                         </button>
                       }
                     />
@@ -1218,7 +1231,7 @@ export function Dashboard({ onRunClick }: Props) {
                 description="Latest completed scan avg across connected repos"
                 actions={
                   <button type="button" onClick={() => navigate('/dashboard/cert')} className={BTN_LINK}>
-                    Full cert <ArrowUpRight size={12} />
+                    Full cert <ArrowUpRight01Icon size={12} />
                   </button>
                 }
               />
@@ -1298,7 +1311,7 @@ export function Dashboard({ onRunClick }: Props) {
                     </div>
                   ))
                 ) : viewRuns.length === 0 ? (
-                  <EmptyState icon={Inbox} title="No active or recent runs." hint="Runs start automatically on new pull requests, or on demand from a full audit." />
+                  <EmptyState icon={InboxIcon} title="No active or recent runs." hint="Runs start automatically on new pull requests, or on demand from a full audit." />
                 ) : viewRuns.slice(0, 4).map((run) => {
                   const isRunning = run.status === 'running' || run.status === 'queued';
                   const isFailed = run.status === 'failed' || run.status === 'agent_failed';
@@ -1346,7 +1359,7 @@ export function Dashboard({ onRunClick }: Props) {
             description="Every agent run across connected repositories"
             actions={
               <button type="button" onClick={() => navigate('/dashboard/livefeed')} className={BTN_LINK}>
-                View all <ArrowRight size={12} />
+                View all <ArrowRight01Icon size={12} />
               </button>
             }
           />
@@ -1375,7 +1388,7 @@ export function Dashboard({ onRunClick }: Props) {
                   <tr>
                     <td colSpan={6} className="p-0">
                       <EmptyState
-                        icon={GitPullRequest}
+                        icon={GitPullRequestIcon}
                         title={`No pull request runs found for ${repoFilter === 'All' ? 'connected repositories' : repoFilter}.`}
                         hint="Codeward triggers sandbox analysis on every new pull request. Open a pull request or trigger a baseline scan to see automated reviews."
                       />
@@ -1390,17 +1403,17 @@ export function Dashboard({ onRunClick }: Props) {
                     <td className="px-4 sm:px-5 py-2.5 whitespace-nowrap">
                       {run.prNumber ? (
                         <span className="inline-flex items-center gap-1.5 text-cw-purple font-medium">
-                          <GitPullRequest size={13} className="text-cw-purple shrink-0" />
+                          <GitPullRequestIcon size={13} className="text-cw-purple shrink-0" />
                           PR #{run.prNumber}
                         </span>
                       ) : run.commitSha === 'baseline' ? (
                         <span className="inline-flex items-center gap-1.5 text-cw-green font-medium">
-                          <ShieldCheck size={13} className="text-cw-green shrink-0" />
+                          <Shield02Icon size={13} className="text-cw-green shrink-0" />
                           Baseline audit
                         </span>
                       ) : (
                         <span className="inline-flex items-center gap-1.5 font-mono text-cw-txt2">
-                          <GitCommitHorizontal size={12} className="text-cw-txt3 shrink-0" />
+                          <GitCommitIcon size={12} className="text-cw-txt3 shrink-0" />
                           {run.commitSha.slice(0, 7)}
                         </span>
                       )}
@@ -1424,7 +1437,7 @@ export function Dashboard({ onRunClick }: Props) {
                     <td className="px-4 sm:px-5 py-2.5 text-cw-txt3 whitespace-nowrap tabular-nums">{new Date(run.createdAt).toLocaleString()}</td>
                     <td className="px-4 sm:px-5 py-2.5 text-right whitespace-nowrap">
                       <span className={`${BTN_GHOST_SM} opacity-70 group-hover:opacity-100`}>
-                        View report <ArrowUpRight size={11} />
+                        View report <ArrowUpRight01Icon size={11} />
                       </span>
                     </td>
                   </tr>
@@ -1448,7 +1461,7 @@ export function Dashboard({ onRunClick }: Props) {
                 <span className="relative inline-flex w-1.5 h-1.5 rounded-full bg-cw-green">
                   <span className="absolute inset-0 rounded-full bg-cw-green animate-ping opacity-60" />
                 </span>
-                Live feed <ArrowRight size={12} />
+                Live feed <ArrowRight01Icon size={12} />
               </button>
             }
           />
@@ -1463,13 +1476,13 @@ export function Dashboard({ onRunClick }: Props) {
               ))
             ) : viewFeed.length === 0 ? (
               <EmptyState
-                icon={Activity}
+                icon={Activity01Icon}
                 title="No agent activity yet."
                 hint="As agents scan, review and patch your repositories, each action is streamed here in real time."
               />
             ) : viewFeed.slice(0, feedLimit).map((item) => {
               const agentId = getAgentIdFromText(item.text);
-              const Icon = item.icon ?? Bot;
+              const Icon = item.icon ?? Robot01Icon;
               const openCanvas = () => {
                 sessionStorage.setItem('cw_target_agent_id', agentId);
                 navigate('/dashboard/livefeed');
@@ -1512,7 +1525,7 @@ export function Dashboard({ onRunClick }: Props) {
                       title={`Open ${agentId} in the run timeline`}
                       className={BTN_GHOST_SM}
                     >
-                      Timeline <ArrowRight size={11} />
+                      Timeline <ArrowRight01Icon size={11} />
                     </button>
                     </div>
                   </div>

@@ -6,6 +6,7 @@ import { auth } from '../auth/index.js';
 import { db } from '../db/index.js';
 import { chatSessions, chatMessages, repositories, runs, mergeApprovals, gordonEvents } from '../db/schema.js';
 import { createGordonTools, accessibleRepoIds, assertRepoAccess } from '../agents/definitions/chat/gordon.tools.js';
+import { GordonGuardService } from '../services/gordon-guard.service.js';
 import { z } from 'zod';
 import { validateBody, getValidatedBody } from '../middleware/zod-validator.js';
 
@@ -126,6 +127,13 @@ chatRouter.get('/skills', async (c) => {
   return c.json({ skills: GORDON_SKILLS });
 });
 
+chatRouter.get('/quota', async (c) => {
+  const user = await getSessionUser(c);
+  if (!user) return c.json({ error: 'Unauthorized' }, 401);
+  const status = await GordonGuardService.getQuotaStatus(user.id);
+  return c.json(status);
+});
+
 /**
  * Dynamic suggested prompts — NOT hardcoded. Computed from the user's REAL activity: pending
  * approvals, lowest-health repo, never-scanned repos, most-recent run, and cross-repo compare.
@@ -136,22 +144,41 @@ chatRouter.get('/skills', async (c) => {
 chatRouter.get('/suggestions', async (c) => {
   const user = await getSessionUser(c);
   if (!user) return c.json({ error: 'Unauthorized' }, 401);
+
+  // Check Redis cache first (60s TTL)
+  const cached = await GordonGuardService.getCachedSuggestions(user.id);
+  if (cached) {
+    return c.json({ suggestions: cached });
+  }
+
   const ids = await accessibleRepoIds(user.id);
   if (ids.length === 0) {
-    return c.json({ suggestions: [
+    const emptySuggestions = [
       { id: 'connect', icon: 'connect', title: 'Connect your first repository', subtitle: 'Gordon works from your real repos', prompt: 'How do I connect a repository to Codeward so you can analyze it?' },
       { id: 'what', icon: 'info', title: 'What can you do?', subtitle: 'See Gordon’s real capabilities', prompt: 'What can you actually do for me, and what data do you work from?' },
-    ] });
+    ];
+    await GordonGuardService.setCachedSuggestions(user.id, emptySuggestions);
+    return c.json({ suggestions: emptySuggestions });
   }
 
   const repos = await db.select().from(repositories).where(inArray(repositories.id, ids));
   const byId = new Map(repos.map((r) => [r.id, r]));
 
-  // Latest run per repo (one query, then reduce in JS).
+  // Latest run per repo in a single batched query
+  const recentRuns = await db.select({
+    repoId: runs.repoId,
+    score: runs.score,
+    status: runs.status,
+    createdAt: runs.createdAt,
+  }).from(runs)
+    .where(inArray(runs.repoId, ids))
+    .orderBy(desc(runs.createdAt));
+
   const latestByRepo = new Map<number, { score: number | null; status: string; at: Date | null }>();
-  for (const r of repos) {
-    const [latest] = await db.select().from(runs).where(eq(runs.repoId, r.id)).orderBy(desc(runs.createdAt)).limit(1);
-    if (latest) latestByRepo.set(r.id, { score: latest.score, status: latest.status, at: latest.createdAt });
+  for (const r of recentRuns) {
+    if (r.repoId != null && !latestByRepo.has(r.repoId)) {
+      latestByRepo.set(r.repoId, { score: r.score, status: r.status, at: r.createdAt });
+    }
   }
 
   const pending = await db.select({ id: mergeApprovals.id }).from(mergeApprovals)
@@ -200,7 +227,9 @@ chatRouter.get('/suggestions', async (c) => {
       subtitle: 'Ranked worst to best', prompt: 'Compare the health scores across all my repositories and show them as a table, worst first.' });
   }
 
-  return c.json({ suggestions: suggestions.slice(0, 6) });
+  const result = suggestions.slice(0, 6);
+  await GordonGuardService.setCachedSuggestions(user.id, result);
+  return c.json({ suggestions: result });
 });
 
 /**
@@ -343,6 +372,18 @@ chatRouter.post('/', validateBody(chatRequestSchema), async (c) => {
     const user = await getSessionUser(c);
     if (!user) return c.json({ error: 'Unauthorized' }, 401);
 
+    // 1) Enforce velocity rate limit and daily quota protection
+    const quota = await GordonGuardService.checkQuota(user.id);
+    if (!quota.allowed) {
+      return c.json({
+        error: quota.message,
+        retryAfter: quota.retryAfterSeconds,
+        plan: quota.plan,
+        dailyLimit: quota.dailyLimit,
+        dailyRemaining: quota.dailyRemaining,
+      }, 429);
+    }
+
     const { messages: rawMessages, sessionId, repoId, ref, permissionMode, attachments = [], planMode = false } =
       getValidatedBody<z.infer<typeof chatRequestSchema>>(c);
     const messages = rawMessages as UIMessage[];
@@ -384,17 +425,26 @@ chatRouter.post('/', validateBody(chatRequestSchema), async (c) => {
       : '';
     const planLine = planMode ? '\n\nPLANNING MODE: return an executable, evidence-backed plan before proposing actions. Use tools when facts are required.' : '';
     const fastLane = isFastConversation(lastMessage, safeAttachments.length > 0, planMode);
+
+    // 2) Prune conversation history to stop token ballooning and TTFT slowdowns
+    const prunedMessages = GordonGuardService.pruneContextMessages(messages, 8);
+
     const result = streamText({
       model: getModel(fastLane ? 'analyzer' : 'orchestrator'),
       system: GORDON_SYSTEM + GORDON_HARNESS_SYSTEM + activeRepoLine + permissionLine + attachmentLine + planLine,
-      messages: await convertToModelMessages(messages),
+      messages: await convertToModelMessages(prunedMessages),
       tools: createGordonTools(user.id, session.id, selectedPermissionMode),
       stopWhen: stepCountIs(6), // bounded loop: direct questions should answer after the minimum evidence
     });
 
     const sessionRef = session;
     return result.toUIMessageStreamResponse({
-      headers: { 'X-Chat-Session-Id': session.id },
+      headers: {
+        'X-Chat-Session-Id': session.id,
+        'X-Gordon-Plan': quota.plan,
+        'X-Gordon-Daily-Limit': String(quota.dailyLimit),
+        'X-Gordon-Daily-Remaining': String(quota.dailyRemaining),
+      },
       onError: (error: any) => {
         console.error('[GordonChat] Stream error:', error);
         const msg = error?.message || 'Unable to get response from AI provider';

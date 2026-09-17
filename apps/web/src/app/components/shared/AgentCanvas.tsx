@@ -1,5 +1,13 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { X, Lock, Shield, FileText, Settings2, CheckCircle2, Loader2, Terminal as TerminalIcon, type LucideIcon } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback, ComponentType } from 'react';
+import {
+  LockIcon,
+  Shield01Icon,
+  File01Icon,
+  Settings01Icon,
+  CheckmarkCircle01Icon,
+  Cancel01Icon,
+} from 'hugeicons-react';
+import { Loader2, Terminal as TerminalIcon } from 'lucide-react';
 import { agentCanvasData, AgentData } from './AgentCanvasData';
 import { RepoSelector, RepoOption } from './RepoSelector';
 import { API_URL, WS_URL } from '../../../lib/api';
@@ -86,8 +94,8 @@ const LOG_TONE: Record<string, string> = {
   warn: 'text-cw-amber',
 };
 
-const OP_ICON: Record<string, LucideIcon> = {
-  Lock01Icon: Lock, Shield01Icon: Shield, File01Icon: FileText, Settings01Icon: Settings2,
+const OP_ICON: Record<string, ComponentType<{ size?: number | string; className?: string }>> = {
+  Lock01Icon: LockIcon, Shield01Icon: Shield01Icon, File01Icon: File01Icon, Settings01Icon: Settings01Icon,
 };
 
 const DETAIL_TABS: { key: 'logs' | 'findings' | 'sandbox' | 'config' | 'summary'; label: string }[] = [
@@ -482,29 +490,29 @@ export function AgentCanvas({ repoId, repoFilter, onRepoChange, repoList, viewMo
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden bg-cw-bg text-cw-txt">
       {/* Header */}
-      <div className="px-4 sm:px-6 py-3 border-b border-cw-bdr flex items-center justify-between gap-3 flex-wrap shrink-0">
-        <div className="flex items-center gap-3 min-w-0">
-          <h2 className="text-[16px] font-semibold text-cw-txt tracking-tight">Run timeline</h2>
-          <span className="font-mono text-[12px] text-cw-txt3 tabular-nums">#{runInfo.id}{runInfo.commitSha ? ` · ${runInfo.commitSha}` : ''}</span>
-          <span className={`inline-flex items-center h-6 px-2 rounded border font-mono text-[12px] font-semibold ${TONE_PILL[decisionTone]}`}>
+      <div className="px-3 sm:px-4 py-2 border-b border-cw-bdr flex items-center justify-between gap-2.5 flex-wrap shrink-0">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <h2 className="text-[15px] font-semibold text-cw-txt tracking-tight">Run timeline</h2>
+          <span className="font-mono text-[11px] text-cw-txt3 tabular-nums">#{runInfo.id}{runInfo.commitSha ? ` · ${runInfo.commitSha}` : ''}</span>
+          <span className={`inline-flex items-center h-5 px-1.5 rounded border font-mono text-[11px] font-semibold ${TONE_PILL[decisionTone]}`}>
             {stats.decision === 'BLOCKED' ? 'BLOCK' : stats.decision}
           </span>
           <UnverifiedEvidenceBadge count={runInfo.runPolicy?.unverifiedEvidenceCount} />
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           {onViewModeChange && (
-            <div className="inline-flex h-8 p-0.5 bg-cw-bg2 border border-cw-bdr rounded-md items-center">
+            <div className="inline-flex h-7 p-0.5 bg-cw-bg2 border border-cw-bdr rounded-md items-center">
               <button
                 type="button"
                 onClick={() => onViewModeChange('stream')}
-                className={`h-full px-2.5 rounded text-[13px] font-medium transition-colors cursor-pointer ${viewMode === 'stream' ? 'bg-cw-bg3 text-cw-txt' : 'text-cw-txt3 hover:text-cw-txt'}`}
+                className={`h-full px-2 rounded text-[12px] font-medium transition-colors cursor-pointer ${viewMode === 'stream' ? 'bg-cw-bg3 text-cw-txt' : 'text-cw-txt3 hover:text-cw-txt'}`}
               >
                 Stream
               </button>
               <button
                 type="button"
                 onClick={() => onViewModeChange('canvas')}
-                className={`h-full px-2.5 rounded text-[13px] font-medium transition-colors cursor-pointer ${viewMode === 'canvas' ? 'bg-cw-bg3 text-cw-txt' : 'text-cw-txt3 hover:text-cw-txt'}`}
+                className={`h-full px-2 rounded text-[12px] font-medium transition-colors cursor-pointer ${viewMode === 'canvas' ? 'bg-cw-bg3 text-cw-txt' : 'text-cw-txt3 hover:text-cw-txt'}`}
               >
                 Timeline
               </button>
@@ -528,9 +536,9 @@ export function AgentCanvas({ repoId, repoFilter, onRepoChange, repoList, viewMo
           { label: 'Lines auto-fixed', val: stats.linesFixed, cls: 'text-cw-txt' },
           { label: 'Gate decision', val: stats.decision === 'BLOCKED' ? 'BLOCK' : stats.decision, cls: TONE_TEXT[decisionTone] },
         ].map((k) => (
-          <div key={k.label} className="px-4 sm:px-6 py-3 border-r border-b md:border-b-0 border-cw-bdr last:border-r-0 flex flex-col gap-1 min-w-0">
+          <div key={k.label} className="px-3 sm:px-4 py-1.5 sm:py-2 border-r border-b md:border-b-0 border-cw-bdr last:border-r-0 flex flex-col gap-0.5 min-w-0">
             <span className={EYEBROW}>{k.label}</span>
-            <span className={`text-[20px] leading-7 font-semibold tabular-nums truncate ${k.cls}`}>{k.val}</span>
+            <span className={`text-[16px] sm:text-[18px] leading-snug font-semibold tabular-nums truncate ${k.cls}`}>{k.val}</span>
           </div>
         ))}
       </div>
@@ -547,20 +555,20 @@ export function AgentCanvas({ repoId, repoFilter, onRepoChange, repoList, viewMo
 
         <div className="lg:w-[46%] xl:w-[44%] shrink-0 min-h-[280px] lg:min-h-0 flex flex-col border-t lg:border-t-0 lg:border-l border-cw-bdr bg-cw-log-bg">
           {/* Pane header */}
-          <div className="h-11 px-4 border-b border-cw-bdr flex items-center justify-between gap-3 shrink-0">
+          <div className="h-9 px-3 border-b border-cw-bdr flex items-center justify-between gap-2 shrink-0">
             <div className="flex items-center gap-2 min-w-0">
-              <ActiveIcon size={15} className={activeAgent ? TONE_TEXT[statusTone(activeAgent.status)] : 'text-cw-txt3'} />
-              <span className="text-[13px] font-medium text-cw-txt truncate">{activeAgent ? activeAgent.name : 'All dispatched agents'}</span>
-              {!activeAgent && <span className="text-[12px] text-cw-txt3 hidden sm:inline">· select an agent to inspect</span>}
+              <ActiveIcon size={14} className={activeAgent ? TONE_TEXT[statusTone(activeAgent.status)] : 'text-cw-txt3'} />
+              <span className="text-[12px] font-medium text-cw-txt truncate">{activeAgent ? activeAgent.name : 'All dispatched agents'}</span>
+              {!activeAgent && <span className="text-[11px] text-cw-txt3 hidden sm:inline">· select an agent to inspect</span>}
             </div>
             {activeAgent && (
               <button
                 type="button"
                 onClick={() => setActiveAgentId(null)}
                 aria-label="Back to all agents"
-                className={`w-7 h-7 rounded-md border border-cw-bdr hover:bg-cw-bg3 flex items-center justify-center text-cw-txt3 hover:text-cw-txt cursor-pointer ${FOCUS_RING}`}
+                className={`w-6 h-6 rounded-md border border-cw-bdr hover:bg-cw-bg3 flex items-center justify-center text-cw-txt3 hover:text-cw-txt cursor-pointer ${FOCUS_RING}`}
               >
-                <X size={14} />
+                <Cancel01Icon size={13} />
               </button>
             )}
           </div>
@@ -573,7 +581,7 @@ export function AgentCanvas({ repoId, repoFilter, onRepoChange, repoList, viewMo
                   key={t.key}
                   type="button"
                   onClick={() => setActiveTab(t.key)}
-                  className={`h-9 px-2.5 text-[13px] font-medium border-b-2 -mb-px whitespace-nowrap transition-colors cursor-pointer ${activeTab === t.key ? 'border-cw-purple text-cw-txt' : 'border-transparent text-cw-txt3 hover:text-cw-txt'}`}
+                  className={`h-8 px-2 text-[12px] font-medium border-b-2 -mb-px whitespace-nowrap transition-colors cursor-pointer ${activeTab === t.key ? 'border-cw-purple text-cw-txt' : 'border-transparent text-cw-txt3 hover:text-cw-txt'}`}
                 >
                   {t.label}{t.key === 'findings' ? ` (${activeAgent.findings.length})` : ''}
                 </button>
@@ -637,7 +645,7 @@ export function AgentCanvas({ repoId, repoFilter, onRepoChange, repoList, viewMo
             {activeAgent && activeTab === 'sandbox' && (
               <div className="flex flex-col">
                 {activeAgent.sandbox.map((op, idx) => {
-                  const OpIcon = OP_ICON[op.icon] ?? Settings2;
+                  const OpIcon = OP_ICON[op.icon] ?? Settings01Icon;
                   return (
                     <div key={idx} className="min-h-11 px-4 py-2 border-b border-cw-bdr flex items-center gap-3">
                       <OpIcon size={15} className="text-cw-txt3 shrink-0" />
@@ -646,7 +654,7 @@ export function AgentCanvas({ repoId, repoFilter, onRepoChange, repoList, viewMo
                         <div className="text-[12px] text-cw-txt3 truncate">{op.status}</div>
                       </div>
                       {op.active && <Loader2 size={14} className="animate-spin text-cw-purple shrink-0" />}
-                      {op.done && <CheckCircle2 size={14} className="text-cw-green shrink-0" />}
+                      {op.done && <CheckmarkCircle01Icon size={14} className="text-cw-green shrink-0" />}
                     </div>
                   );
                 })}

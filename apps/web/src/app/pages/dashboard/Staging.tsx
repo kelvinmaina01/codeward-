@@ -3,7 +3,7 @@ import {
   AlertCircle, AlertTriangle, Bot, CheckCircle, ChevronRight, Clock, ExternalLink, FileDiff,
   GitMerge, Loader2, RefreshCw, Settings, ShieldCheck, TerminalSquare, X, XCircle,
 } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '../../lib/toast-bridge';
 import { API_URL } from '../../../lib/api';
 
 interface Props {

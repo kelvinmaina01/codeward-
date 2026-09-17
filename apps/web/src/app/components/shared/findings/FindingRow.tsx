@@ -1,5 +1,9 @@
 import { memo, type ReactNode } from 'react';
-import { ChevronRight, GitPullRequest, AlertCircle, Brain } from 'lucide-react';
+import {
+  ArrowRight01Icon, GitPullRequestIcon, AlertCircleIcon
+} from 'hugeicons-react';
+import { Brain } from 'lucide-react';
+
 import {
   type RealAlert, type Tone, TONE_DOT, TONE_PILL, FOCUS_RING,
   severityTone, timeAgo, isAdvisory, isMemoryDismissed, deriveExposure, locatorOf,
@@ -14,16 +18,26 @@ interface FindingRowProps {
   /** Show the repo name in the meta column (hide when the list is already repo-scoped). */
   showRepo?: boolean;
   className?: string;
+  /** Compact mode: hides secondary details (source, repo, timestamp) when side drawer/pull is open. */
+  compact?: boolean;
 }
 
-/** One-line finding preview. 44px tall; everything past the title is progressive disclosure. */
-function FindingRowImpl({ alert, selected = false, onSelect, action, showRepo = true, className = '' }: FindingRowProps) {
+/** One-line finding preview. Everything past the title is progressive disclosure. */
+function FindingRowImpl({
+  alert,
+  selected = false,
+  onSelect,
+  action,
+  showRepo = true,
+  className = '',
+  compact = false,
+}: FindingRowProps) {
   const advisory = isAdvisory(alert);
   const memoryDismissed = isMemoryDismissed(alert);
   const exposure = alert.kind === 'finding' ? deriveExposure(alert) : null;
   const tone: Tone = advisory ? 'neutral' : severityTone(alert.severity);
   const locator = locatorOf(alert);
-  const KindIcon = alert.kind === 'autofix' ? GitPullRequest : alert.kind === 'escalation' ? AlertCircle : null;
+  const KindIcon = alert.kind === 'autofix' ? GitPullRequestIcon : alert.kind === 'escalation' ? AlertCircleIcon : null;
   const interactive = typeof onSelect === 'function';
 
   return (
@@ -33,8 +47,8 @@ function FindingRowImpl({ alert, selected = false, onSelect, action, showRepo = 
       aria-pressed={interactive ? selected : undefined}
       onClick={onSelect}
       onKeyDown={interactive ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect?.(); } } : undefined}
-      className={`relative grid items-center gap-x-3 min-h-11 pl-4 pr-3 border-b border-cw-bdr last:border-b-0 transition-colors
-        grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[minmax(0,1fr)_auto_auto]
+      className={`relative grid items-center gap-x-2.5 min-h-10 sm:min-h-11 pl-3.5 pr-2.5 border-b border-cw-bdr last:border-b-0 transition-colors
+        grid-cols-[minmax(0,1fr)_auto_auto]
         ${interactive ? `cursor-pointer hover:bg-cw-bg3/60 ${FOCUS_RING} focus-visible:ring-inset` : ''}
         ${selected ? 'bg-cw-bg3/70' : ''} ${className}`}
     >
@@ -42,11 +56,11 @@ function FindingRowImpl({ alert, selected = false, onSelect, action, showRepo = 
       <span aria-hidden="true" className={`absolute left-0 top-2 bottom-2 w-0.5 ${TONE_DOT[tone]}`} />
 
       {/* Title + locator */}
-      <div className="min-w-0 py-2.5 flex flex-col gap-0.5 sm:flex-row sm:items-baseline sm:gap-3">
-        <div className="min-w-0 flex items-center gap-2">
+      <div className="min-w-0 py-2 flex flex-col gap-0.5 sm:flex-row sm:items-baseline sm:gap-2.5 overflow-hidden">
+        <div className="min-w-0 flex items-center gap-1.5 shrink truncate">
           {KindIcon && <KindIcon size={14} className="text-cw-txt3 shrink-0" />}
           {/* Advisory titles read as secondary — the gate is not waiting on them */}
-          <span className={`text-[14px] font-medium truncate ${advisory ? 'text-cw-txt2' : 'text-cw-txt'}`}>{alert.title}</span>
+          <span className={`text-[13px] sm:text-[14px] font-medium truncate ${advisory ? 'text-cw-txt2' : 'text-cw-txt'}`}>{alert.title}</span>
           {/* Autonomous AI suppression is the one thing a developer must be able to see at row level, so it survives the sm: breakpoint */}
           {memoryDismissed && (
             <span
@@ -56,16 +70,17 @@ function FindingRowImpl({ alert, selected = false, onSelect, action, showRepo = 
               <Brain size={11} strokeWidth={1.5} /> AI Memory
             </span>
           )}
+
         </div>
         {locator && (
-          <span className="font-mono text-[12px] text-cw-txt3 truncate shrink-0 sm:max-w-[260px]" title={alert.file ?? undefined}>
+          <span className="font-mono text-[11px] sm:text-[12px] text-cw-txt3 truncate shrink min-w-0" title={alert.file ?? undefined}>
             {locator}
           </span>
         )}
       </div>
 
       {/* Chips + meta */}
-      <div className="hidden sm:flex items-center gap-2 shrink-0 tabular-nums">
+      <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 tabular-nums">
         <span className={`inline-flex items-center h-5 px-1.5 rounded border text-[11px] font-semibold uppercase tracking-wider ${TONE_PILL[severityTone(alert.severity)]}`}>
           {alert.severity}
         </span>
@@ -85,15 +100,21 @@ function FindingRowImpl({ alert, selected = false, onSelect, action, showRepo = 
             Advisory
           </span>
         )}
-        <span className="text-[12px] text-cw-txt3 max-w-[180px] truncate">
-          {alert.source}{showRepo && alert.repo ? ` · ${alert.repo.split('/').pop()}` : ''}
-        </span>
-        {alert.createdAt && <span className="text-[12px] text-cw-txt3 w-[60px] text-right">{timeAgo(alert.createdAt)}</span>}
+        {!compact && (
+          <span className="hidden md:inline text-[12px] text-cw-txt3 max-w-[180px] truncate">
+            {alert.source}{showRepo && alert.repo ? ` · ${alert.repo.split('/').pop()}` : ''}
+          </span>
+        )}
+        {!compact && alert.createdAt && (
+          <span className="hidden lg:inline text-[12px] text-cw-txt3 w-[56px] text-right">
+            {timeAgo(alert.createdAt)}
+          </span>
+        )}
       </div>
 
       {/* Trailing action */}
-      <div className="flex items-center justify-end shrink-0">
-        {action ?? (interactive ? <ChevronRight size={16} className={`transition-colors ${selected ? 'text-cw-txt' : 'text-cw-txt3'}`} /> : null)}
+      <div className="flex items-center justify-end shrink-0 pl-1">
+        {action ?? (interactive ? <ArrowRight01Icon size={15} className={`transition-colors ${selected ? 'text-cw-txt' : 'text-cw-txt3'}`} /> : null)}
       </div>
     </div>
   );
@@ -101,16 +122,13 @@ function FindingRowImpl({ alert, selected = false, onSelect, action, showRepo = 
 
 /**
  * Memoised so paging 25 more rows into a list does not re-render the rows already on screen.
- * The comparator deliberately ignores `onSelect` and `action` identity — pages recreate those
- * closures every render. CONTRACT: `onSelect` must not close over changing state (use a
- * functional setState update, or depend only on the row's own `alert`); `action` must derive
- * only from `alert`. Both are true for every current caller.
  */
 export const FindingRow = memo(FindingRowImpl, (a, b) =>
   a.alert === b.alert &&
   a.selected === b.selected &&
   a.showRepo === b.showRepo &&
   a.className === b.className &&
+  a.compact === b.compact &&
   (a.action == null) === (b.action == null) &&
   (a.onSelect == null) === (b.onSelect == null)
 );

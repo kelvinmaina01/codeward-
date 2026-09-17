@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Shield, Lock, ArrowRight, CheckCircle2, ArrowLeftRight } from 'lucide-react';
 import { authClient } from '../../../lib/auth';
-import { toast } from 'sonner';
+import { toast } from '../../lib/toast-bridge';
 import { FooterTrustBadges } from './FooterTrustBadges';
 
 // Official Crisp GitHub SVG Icon

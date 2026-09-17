@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { RefreshCw, GitMerge, X as XIcon, GitPullRequest, Clock, AlertTriangle, ShieldCheck, ChevronRight, Loader } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '../../lib/toast-bridge';
 import { API_URL } from '../../../lib/api';
 import { GithubIcon } from './GithubLink';
 

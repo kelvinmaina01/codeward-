@@ -7,7 +7,26 @@ import {
   Sun, Moon, Circle, Menu, LogOut, LucideIcon, ChevronDown, Plus, Blocks, Bell, Globe, X,
   LayoutGrid, TerminalSquare, Sparkles, FileText, BadgeCheck, GitPullRequest
 } from 'lucide-react';
+import {
+  DashboardSquare01Icon,
+  Notification02Icon,
+  Radio01Icon,
+  GitCompareIcon,
+  GitPullRequestIcon,
+  AiSecurity01Icon,
+  Analytics01Icon,
+  LaptopIcon,
+  Clock01Icon,
+  GitForkIcon,
+  Award01Icon,
+  Settings01Icon,
+  Menu01Icon,
+  PlusSignIcon,
+  Globe02Icon,
+  Cancel01Icon,
+} from 'hugeicons-react';
 import { Theme, Screen } from './components/types';
+import { ApprovalBannerStrip } from './components/shared/ApprovalBannerStrip';
 
 // Auth Pages (eagerly loaded — needed on first paint)
 import { AuthPage } from './pages/auth/AuthPage';
@@ -24,6 +43,7 @@ import { BlogsPage } from './pages/marketing/BlogsPage';
 import { SingleBlogPage } from './pages/marketing/SingleBlogPage';
 import { ComparePage } from './pages/marketing/ComparePage';
 import { BookDemo } from './pages/marketing/BookDemo';
+import { NotFoundPage } from './pages/NotFoundPage';
 
 // Dashboard Pages — lazy loaded (users are auth-gated; saves ~40% initial bundle)
 const Dashboard     = lazy(() => import('./pages/dashboard/Dashboard').then(m => ({ default: m.Dashboard })));
@@ -159,7 +179,7 @@ const themeIcons: Record<Theme, React.ReactNode> = {
   white: <Sun size={14} />,
 };
 
-interface NavItem { id: Screen; label: string; dot: 'g'|'a'|'r'|'b'|'p'|''; badge?: number; beta?: boolean; icon: LucideIcon; path: string; }
+interface NavItem { id: Screen; label: string; dot: 'g'|'a'|'r'|'b'|'p'|''; badge?: number; beta?: boolean; icon: React.ComponentType<any>; path: string; }
 interface NavGroup { group: string; items: NavItem[] }
 
 
@@ -226,7 +246,15 @@ function DashboardLayout() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [themeIdx, setThemeIdx] = useState(0);
+  const [themeIdx, setThemeIdx] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem('cw_theme');
+      if (saved && themeOrder.includes(saved as Theme)) {
+        return themeOrder.indexOf(saved as Theme);
+      }
+    } catch {}
+    return 0;
+  });
   const [runDetailTarget, setRunDetailTarget] = useState<{ repoId: number; runId: number } | null>(null);
   const [isSidebarPinned, setIsSidebarPinned] = useState(false);
   const [globalOrgs, setGlobalOrgs] = useState<string[]>([]);
@@ -236,7 +264,20 @@ function DashboardLayout() {
   const [userPopoverOpen, setUserPopoverOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [isHelpDrawerOpen, setIsHelpDrawerOpen] = useState(false);
+  const [billingPlan, setBillingPlan] = useState<string>('pro');
   const bellRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!session?.user) return;
+    fetch(`${API_URL}/api/users/me/billing-info`, { credentials: 'include' })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.success && data.plan) {
+          setBillingPlan(data.plan);
+        }
+      })
+      .catch(() => {});
+  }, [session?.user]);
 
   // Sidebar badges = alerts the user has NOT seen yet. The API only knows how many alerts are
   // open, so "seen" is a per-user watermark of ids kept in localStorage (lib/alert-seen): the
@@ -253,18 +294,34 @@ function DashboardLayout() {
     let isMounted = true;
     const fetchBadgeCounts = async () => {
       try {
-        const res = await fetch(`${API_URL}/api/alerts`, { credentials: 'include' });
-        if (!res.ok) return;
-        const data = await res.json();
+        const [resAlerts, resApprovals] = await Promise.all([
+          fetch(`${API_URL}/api/alerts`, { credentials: 'include' }).catch(() => null),
+          fetch(`${API_URL}/api/approvals?status=pending`, { credentials: 'include' }).catch(() => null),
+        ]);
+
+        let alertIds: string[] = [];
+        let securityIds: string[] = [];
+        let activeRuns = 0;
+
+        if (resAlerts?.ok) {
+          const data = await resAlerts.json();
+          const alertsList = Array.isArray(data?.alerts) ? data.alerts : [];
+          alertIds = alertsList.map((a: any) => String(a.id));
+          securityIds = alertsList
+            .filter((a: any) => a.kind === 'finding' && (a.source === 'Security Agent' || a.severity === 'CRITICAL' || a.severity === 'HIGH'))
+            .map((a: any) => String(a.id));
+          activeRuns = alertsList.filter((a: any) => a.kind === 'running' || a.status === 'in_progress').length;
+        }
+
+        if (resApprovals?.ok) {
+          const apprData = await resApprovals.json();
+          if (Array.isArray(apprData?.approvals)) {
+            const approvalIds = apprData.approvals.map((a: any) => `approval-${a.id}`);
+            alertIds = [...alertIds, ...approvalIds];
+          }
+        }
+
         if (!isMounted) return;
-
-        const alertsList = Array.isArray(data?.alerts) ? data.alerts : [];
-        const alertIds: string[] = alertsList.map((a: any) => String(a.id));
-        const securityIds: string[] = alertsList
-          .filter((a: any) => a.kind === 'finding' && (a.source === 'Security Agent' || a.severity === 'CRITICAL' || a.severity === 'HIGH'))
-          .map((a: any) => String(a.id));
-        const activeRuns = alertsList.filter((a: any) => a.kind === 'running' || a.status === 'in_progress').length;
-
         setBadgeIds({ alerts: alertIds, security: securityIds, livefeed: activeRuns });
       } catch {
         // Silently fallback without crashing UI
@@ -298,13 +355,13 @@ function DashboardLayout() {
 
   const nav: NavGroup[] = useMemo(() => [
     { group: 'Overview', items: [
-      { id: 'dashboard', label: 'Dashboard', dot: 'g', icon: LayoutDashboard, path: '/dashboard' },
+      { id: 'dashboard', label: 'Dashboard', dot: 'g', icon: DashboardSquare01Icon, path: '/dashboard' },
       { 
         id: 'alerts', 
         label: 'Alerts', 
         dot: systemBadges.alerts > 0 ? 'r' : '', 
         badge: systemBadges.alerts > 0 ? systemBadges.alerts : undefined, 
-        icon: Bell, 
+        icon: Notification02Icon, 
         path: '/dashboard/alerts' 
       },
       { 
@@ -312,34 +369,34 @@ function DashboardLayout() {
         label: 'Live feed', 
         dot: systemBadges.livefeed > 0 ? 'a' : '', 
         badge: systemBadges.livefeed > 0 ? systemBadges.livefeed : undefined, 
-        icon: Radio, 
+        icon: Radio01Icon, 
         path: '/dashboard/livefeed' 
       },
     ]},
     { group: 'Analysis', items: [
-      { id: 'diff', label: 'Diff viewer', dot: 'b', icon: GitCompare, path: '/dashboard/diff' },
-      { id: 'issuesprs', label: 'Issues & PRs', dot: 'p', icon: GitPullRequest, path: '/dashboard/issues-prs' },
+      { id: 'diff', label: 'Diff viewer', dot: 'b', icon: GitCompareIcon, path: '/dashboard/diff' },
+      { id: 'issuesprs', label: 'Issues & PRs', dot: 'p', icon: GitPullRequestIcon, path: '/dashboard/issues-prs' },
       { 
         id: 'security', 
         label: 'Security', 
         dot: systemBadges.security > 0 ? 'r' : '', 
         badge: systemBadges.security > 0 ? systemBadges.security : undefined, 
-        icon: ShieldAlert, 
+        icon: AiSecurity01Icon, 
         path: '/dashboard/security' 
       },
-      { id: 'debt', label: 'Debt report', dot: 'a', icon: BarChart3, path: '/dashboard/debt' },
+      { id: 'debt', label: 'Debt report', dot: 'a', icon: Analytics01Icon, path: '/dashboard/debt' },
     ]},
     { group: 'AI Agent', items: [
-      { id: 'agent', label: 'Gordon', dot: 'p', beta: true, icon: GordonIcon as unknown as LucideIcon, path: '/dashboard/agent' },
+      { id: 'agent', label: 'Gordon', dot: 'p', beta: true, icon: GordonIcon as any, path: '/dashboard/agent' },
     ]},
     { group: 'Deploy', items: [
-      { id: 'staging', label: 'Staging', dot: 'a', icon: Monitor, path: '/dashboard/staging' },
-      { id: 'history', label: 'Runs', dot: '', icon: Clock, path: '/dashboard/history' },
+      { id: 'staging', label: 'Staging', dot: 'a', icon: LaptopIcon, path: '/dashboard/staging' },
+      { id: 'history', label: 'Runs', dot: '', icon: Clock01Icon, path: '/dashboard/history' },
     ]},
     { group: 'Health', items: [
-      { id: 'repos', label: 'Repositories', dot: '', icon: GitFork, path: '/dashboard/repos' },
-      { id: 'cert', label: 'Certificate', dot: 'g', icon: Award, path: '/dashboard/cert' },
-      { id: 'settings', label: 'Settings', dot: '', icon: SettingsIcon, path: '/dashboard/settings' },
+      { id: 'repos', label: 'Repositories', dot: '', icon: GitForkIcon, path: '/dashboard/repos' },
+      { id: 'cert', label: 'Certificate', dot: 'g', icon: Award01Icon, path: '/dashboard/cert' },
+      { id: 'settings', label: 'Settings', dot: '', icon: Settings01Icon, path: '/dashboard/settings' },
     ]},
   ], [systemBadges]);
 
@@ -441,7 +498,21 @@ function DashboardLayout() {
   }, []);
 
   const theme = themeOrder[themeIdx];
-  const cycleTheme = () => setThemeIdx(i => (i + 1) % themeOrder.length);
+  const cycleTheme = () => {
+    setThemeIdx(i => {
+      const next = (i + 1) % themeOrder.length;
+      try { localStorage.setItem('cw_theme', themeOrder[next]); } catch {}
+      return next;
+    });
+  };
+
+  const setThemeName = (name: Theme) => {
+    const idx = themeOrder.indexOf(name);
+    if (idx !== -1) {
+      setThemeIdx(idx);
+      try { localStorage.setItem('cw_theme', name); } catch {}
+    }
+  };
 
   useEffect(() => {
     const themeClasses = ['theme-dark', 'theme-cream', 'theme-white'];
@@ -449,6 +520,7 @@ function DashboardLayout() {
     document.documentElement.classList.add(`theme-${theme}`);
     document.body.classList.remove(...themeClasses);
     document.body.classList.add(`theme-${theme}`);
+    try { localStorage.setItem('cw_theme', theme); } catch {}
   }, [theme]);
 
   const screen = pathToScreen(location.pathname);
@@ -564,6 +636,8 @@ function DashboardLayout() {
             <UserProfilePopover
               onClose={() => setUserPopoverOpen(false)}
               onOpenThemeModal={cycleTheme}
+              activeTheme={theme}
+              onSelectTheme={setThemeName}
             />
           )}
 
@@ -576,11 +650,25 @@ function DashboardLayout() {
               {session?.user?.image ? <img src={session.user.image} alt="Avatar" referrerPolicy="no-referrer" className="w-full h-full object-cover" /> : displayUser.avatar}
             </div>
             <div className={`flex-1 min-w-0 transition-opacity duration-300 ${isSidebarPinned ? 'opacity-100' : 'opacity-0'}`}>
-              <div className="text-[13px] text-cw-txt font-bold flex items-center justify-between">
-                <span className="truncate">{displayUser.name}</span>
-                <span className="text-[9px] text-cw-txt3 ml-1">⇕</span>
+              <div className="text-[13px] text-cw-txt font-bold flex items-center justify-between gap-1">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <span className="truncate">{displayUser.name}</span>
+                  <span
+                    className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wider shrink-0 select-none ${
+                      billingPlan.toLowerCase() === 'pro'
+                        ? 'bg-gradient-to-r from-purple-500/20 via-fuchsia-500/20 to-purple-500/20 text-purple-300 border border-purple-500/40 shadow-[0_0_8px_rgba(168,85,247,0.25)]'
+                        : billingPlan.toLowerCase() === 'team' || billingPlan.toLowerCase() === 'enterprise'
+                        ? 'bg-gradient-to-r from-blue-500/20 to-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-[0_0_8px_rgba(6,182,212,0.25)]'
+                        : 'bg-cw-bg3 text-cw-txt3 border border-cw-bdr'
+                    }`}
+                  >
+                    {billingPlan.toLowerCase() === 'pro' && <Sparkles size={9} className="text-purple-400 shrink-0 fill-purple-400/40" />}
+                    {billingPlan.toUpperCase()}
+                  </span>
+                </div>
+                <span className="text-[9px] text-cw-txt3 ml-1 shrink-0">⇕</span>
               </div>
-              <div className="text-[10px] text-cw-txt3 font-medium">Personal Workspace</div>
+              <div className="text-[10px] text-cw-txt3 font-medium truncate mt-0.5">Personal Workspace</div>
             </div>
           </div>
 
@@ -601,7 +689,7 @@ function DashboardLayout() {
               }`}
               title="Notifications"
             >
-              <Bell size={15} />
+              <Notification02Icon size={15} />
               <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-cw-red text-white text-[8px] font-bold flex items-center justify-center shadow-sm">
                 1
               </span>
@@ -614,35 +702,35 @@ function DashboardLayout() {
       <div className="flex-1 flex overflow-hidden">
         <div className="flex-1 flex flex-col min-w-0 bg-cw-bg relative">
           {/* Topbar */}
-          <div className={`flex items-center justify-between gap-2 transition-all duration-300 ${screen === 'agent' ? 'absolute top-0 left-0 right-0 z-30 px-4 sm:px-5 h-[52px] pointer-events-none' : 'px-4 sm:px-8 h-[64px] sm:h-[80px] border-b border-cw-bdr bg-cw-bg shrink-0'}`}>
-            <div className="flex items-center gap-2 sm:gap-4 shrink-0 min-w-0">
+          <div className={`flex items-center justify-between gap-2 transition-all duration-300 ${screen === 'agent' ? 'absolute top-0 left-0 right-0 z-30 px-3 sm:px-4 h-[48px] pointer-events-none' : 'px-3 sm:px-5 h-[52px] border-b border-cw-bdr bg-cw-bg shrink-0'}`}>
+            <div className="flex items-center gap-2 sm:gap-3 shrink-0 min-w-0">
               <button
                 onClick={() => setIsSidebarPinned(!isSidebarPinned)}
-                className="w-8 h-8 sm:w-9 sm:h-9 rounded-md border border-cw-bdr bg-cw-bg2 text-cw-txt flex items-center justify-center cursor-pointer hover:bg-cw-bg3 transition-colors shrink-0 pointer-events-auto shadow-sm"
+                className="w-8 h-8 rounded-md border border-cw-bdr bg-cw-bg2 text-cw-txt flex items-center justify-center cursor-pointer hover:bg-cw-bg3 transition-colors shrink-0 pointer-events-auto shadow-sm"
               >
-                <Menu size={18} />
+                <Menu01Icon size={18} />
               </button>
               {screen !== 'agent' && (
                 <div className="shrink-0 min-w-0">
-                  <h1 className="text-[15px] sm:text-[18px] md:text-[20px] font-bold text-cw-txt tracking-tight leading-none flex items-center gap-2 whitespace-nowrap shrink-0">
+                  <h1 className="text-[15px] sm:text-[17px] font-bold text-cw-txt tracking-tight leading-none flex items-center gap-2 whitespace-nowrap shrink-0">
                     {topbar.title}
                   </h1>
                 </div>
               )}
             </div>
 
-            <div className="flex items-center gap-1.5 sm:gap-3 pointer-events-auto relative overflow-x-auto no-scrollbar shrink-0">
+            <div className="flex items-center gap-1.5 sm:gap-2.5 pointer-events-auto relative overflow-x-auto no-scrollbar shrink-0">
               {screen === 'repos' && (
                 <button
                   onClick={() => navigate('/connect')}
-                  className="px-3 sm:px-4 py-1.5 sm:py-2 rounded-md bg-cw-purple hover:brightness-110 text-white text-[12px] sm:text-[13px] font-medium transition-colors flex items-center gap-1.5 shadow-sm whitespace-nowrap shrink-0"
+                  className="px-2.5 sm:px-3.5 py-1.5 rounded-md bg-cw-purple hover:brightness-110 text-white text-[12px] sm:text-[13px] font-medium transition-colors flex items-center gap-1.5 shadow-sm whitespace-nowrap shrink-0"
                 >
-                  <Plus size={14} /> <span className="hidden sm:inline">Connect new repo</span><span className="sm:hidden">Connect</span>
+                  <PlusSignIcon size={13} /> <span className="hidden sm:inline">Connect new repo</span><span className="sm:hidden">Connect</span>
                 </button>
               )}
 
-              <button onClick={() => setIsGlobalFeedOpen(true)} className="px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-md border border-cw-bdr bg-cw-bg2 text-cw-txt text-[12px] sm:text-[13px] font-medium hover:bg-cw-bg3 transition-colors flex items-center gap-1.5 whitespace-nowrap shrink-0">
-                <Globe size={14} /> <span className="hidden sm:inline">Global feed</span>
+              <button onClick={() => setIsGlobalFeedOpen(true)} className="px-2.5 sm:px-3 py-1.5 rounded-md border border-cw-bdr bg-cw-bg2 text-cw-txt text-[12px] sm:text-[13px] font-medium hover:bg-cw-bg3 transition-colors flex items-center gap-1.5 whitespace-nowrap shrink-0">
+                <Globe02Icon size={14} /> <span className="hidden sm:inline">Global feed</span>
               </button>
               
               {/* Community & extras live behind one overflow control — product chrome stays product chrome. */}
@@ -668,6 +756,53 @@ function DashboardLayout() {
                     </a>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator className="bg-cw-bdr" />
+                  <div className="px-2 py-1.5">
+                    <div className="text-[10px] uppercase font-bold text-cw-txt3 tracking-wider mb-1.5">Theme</div>
+                    <div className="grid grid-cols-3 gap-1 bg-cw-bg3/60 p-1 rounded-lg border border-cw-bdr/50">
+                      <button
+                        type="button"
+                        onClick={() => setThemeName('dark')}
+                        className={`py-1 px-1 rounded text-[11px] font-bold flex items-center justify-center gap-1 transition-all cursor-pointer ${
+                          theme === 'dark'
+                            ? 'bg-cw-purple/20 text-cw-purple border border-cw-purple shadow-sm'
+                            : 'bg-cw-bg2 text-cw-txt hover:border-cw-purple border border-transparent'
+                        }`}
+                        title="Dark Mode"
+                      >
+                        <Moon size={11} className="text-cw-purple" />
+                        <span>Dark</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setThemeName('cream')}
+                        className={`py-1 px-1 rounded text-[11px] font-bold flex items-center justify-center gap-1 transition-all cursor-pointer ${
+                          theme === 'cream'
+                            ? 'bg-[#c5a882]/20 text-[#855e34] border border-[#c5a882] shadow-sm'
+                            : 'bg-cw-bg2 text-cw-txt hover:border-cw-purple border border-transparent'
+                        }`}
+                        title="Cream Warm Mode"
+                      >
+                        <Circle size={11} className="text-[#c5a882] fill-[#c5a882]" />
+                        <span>Cream</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setThemeName('white')}
+                        className={`py-1 px-1 rounded text-[11px] font-bold flex items-center justify-center gap-1 transition-all cursor-pointer ${
+                          theme === 'white'
+                            ? 'bg-cw-amber/20 text-cw-amber border border-cw-amber shadow-sm'
+                            : 'bg-cw-bg2 text-cw-txt hover:border-cw-purple border border-transparent'
+                        }`}
+                        title="White Mode"
+                      >
+                        <Sun size={11} className="text-cw-amber" />
+                        <span>White</span>
+                      </button>
+                    </div>
+                  </div>
+                  <DropdownMenuSeparator className="bg-cw-bdr" />
                   <div className="px-1 py-1">
                     <GitHubStarButton variant="dashboard" className="!flex w-full justify-between" />
                   </div>
@@ -685,6 +820,7 @@ function DashboardLayout() {
             </div>
             
           <div className={`flex-1 overflow-hidden flex flex-col ${screen === 'agent' ? 'pt-[52px]' : ''}`}>
+            <ApprovalBannerStrip />
             <Suspense fallback={<PageLoader />}>
               {renderScreen()}
             </Suspense>
@@ -880,8 +1016,8 @@ function DashboardLayout() {
         )}
       </div>
       <GooeyToaster
-        position="top-left"
-        theme={theme === 'dark' ? 'light' : 'dark'}
+        position="bottom-right"
+        theme={theme === 'dark' ? 'dark' : 'light'}
         showProgress
         closeButton="top-right"
       />
@@ -1119,7 +1255,7 @@ export const routes = [
   },
   {
     path: "*",
-    element: <Navigate to="/" replace />
+    element: <NotFoundPage />
   }
 ];
 
