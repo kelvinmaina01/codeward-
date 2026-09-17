@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Navigate } from 'react-router-dom';
 import { useSession } from '../../../lib/auth';
 import { API_URL } from '../../../lib/api';
-import { toast } from 'sonner';
+import { toast } from '../../lib/toast-bridge';
 import { Loader2, CheckCircle, XCircle } from 'lucide-react';
 
 export function InviteAcceptPage() {

@@ -102,8 +102,34 @@ app.on(['POST', 'GET', 'OPTIONS'], '/api/auth/*', async (c) => {
     });
   }
 
+  // Never strand the user on Better Auth's default unstyled error page (e.g. /api/auth/error?error=invalid_code).
+  // Always redirect them gracefully back to the frontend sign-in page with the error parameter.
+  const frontendUrl = (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/+$/, '');
+  if (c.req.path === '/api/auth/error') {
+    const errorParam = c.req.query('error') || 'unknown';
+    return c.redirect(`${frontendUrl}/auth?error=${encodeURIComponent(errorParam)}`);
+  }
+
   try {
     const res = await auth.handler(c.req.raw);
+
+    // If Better Auth returned a redirect pointing to /api/auth/error, rewrite it to frontend /auth
+    if (res.status >= 300 && res.status < 400) {
+      const location = res.headers.get('Location') || '';
+      if (location.includes('/api/auth/error') || location.includes('/error?error=')) {
+        try {
+          const locUrl = new URL(location, c.req.url);
+          const err = locUrl.searchParams.get('error') || 'auth_error';
+          const headers = new Headers(res.headers);
+          if (isAllowed) {
+            headers.set('Access-Control-Allow-Origin', origin);
+            headers.set('Access-Control-Allow-Credentials', 'true');
+          }
+          headers.set('Location', `${frontendUrl}/auth?error=${encodeURIComponent(err)}`);
+          return new Response(null, { status: 302, headers });
+        } catch {}
+      }
+    }
 
     // Rebuild the response with mutable headers and inject CORS headers only if origin is allowed
     const headers = new Headers(res.headers);

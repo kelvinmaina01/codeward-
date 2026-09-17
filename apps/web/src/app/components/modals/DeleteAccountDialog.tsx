@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
-import { toast } from 'sonner';
+import { toast } from '../../lib/toast-bridge';
 import { AlertTriangle, Copy, Trash2, X } from 'lucide-react';
 import { API_URL } from '../../../lib/api';
 

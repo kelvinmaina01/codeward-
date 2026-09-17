@@ -141,15 +141,39 @@ export function createGordonTools(userId: string, sessionId?: string, permission
         const ids = await accessibleRepoIds(userId);
         if (ids.length === 0) return { repositories: [], note: 'This user has no connected repositories yet.' };
         const repos = await db.select().from(repositories).where(inArray(repositories.id, ids));
-        const out = [];
-        for (const r of repos) {
-          const [latest] = await db.select().from(runs).where(eq(runs.repoId, r.id)).orderBy(desc(runs.createdAt)).limit(1);
-          out.push({
-            repoId: r.id, fullName: r.fullName, language: r.language, isPrivate: r.isPrivate,
-            paused: r.paused, autoFixEnabled: r.autoFixEnabled,
-            latestScore: latest?.score ?? null, latestRunStatus: latest?.status ?? null, latestRunAt: latest?.createdAt ?? null,
-          });
+        
+        // Single batched query for recent runs across all accessible repos
+        const recentRuns = await db.select({
+          repoId: runs.repoId,
+          score: runs.score,
+          status: runs.status,
+          createdAt: runs.createdAt,
+        }).from(runs)
+          .where(inArray(runs.repoId, ids))
+          .orderBy(desc(runs.createdAt));
+
+        const latestByRepo = new Map<number, { score: number | null; status: string; createdAt: Date | null }>();
+        for (const run of recentRuns) {
+          if (run.repoId != null && !latestByRepo.has(run.repoId)) {
+            latestByRepo.set(run.repoId, run);
+          }
         }
+
+        const out = repos.map((r) => {
+          const latest = latestByRepo.get(r.id);
+          return {
+            repoId: r.id,
+            fullName: r.fullName,
+            language: r.language,
+            isPrivate: r.isPrivate,
+            paused: r.paused,
+            autoFixEnabled: r.autoFixEnabled,
+            latestScore: latest?.score ?? null,
+            latestRunStatus: latest?.status ?? null,
+            latestRunAt: latest?.createdAt ?? null,
+          };
+        });
+
         return { repositories: out };
       },
     }),
@@ -167,16 +191,37 @@ export function createGordonTools(userId: string, sessionId?: string, permission
         const conditions = [eq(runs.repoId, repoId)];
         if (sinceIso) conditions.push(gte(runs.createdAt, new Date(sinceIso)));
         const runRows = await db.select().from(runs).where(and(...conditions)).orderBy(desc(runs.createdAt)).limit(limit ?? 5);
-        const result = [];
-        for (const run of runRows) {
-          const taskConds = [eq(agentTasks.runId, run.id)];
-          if (agentId) taskConds.push(eq(agentTasks.agentId, agentId));
-          const tasks = await db.select().from(agentTasks).where(and(...taskConds));
-          result.push({
-            runId: run.id, commitSha: run.commitSha, status: run.status, overallScore: run.score, executedAt: run.createdAt,
-            agents: tasks.map((t) => ({ agentId: t.agentId, status: t.status, score: t.score, findingsCount: t.findingsCount ?? (Array.isArray(t.findings) ? (t.findings as unknown[]).length : 0) })),
-          });
+        if (runRows.length === 0) return { runs: [] };
+
+        const runIds = runRows.map((r) => r.id);
+        const taskConds = [inArray(agentTasks.runId, runIds)];
+        if (agentId) taskConds.push(eq(agentTasks.agentId, agentId));
+        const allTasks = await db.select().from(agentTasks).where(and(...taskConds));
+
+        const tasksByRun = new Map<number, typeof allTasks>();
+        for (const t of allTasks) {
+          const list = tasksByRun.get(t.runId) ?? [];
+          list.push(t);
+          tasksByRun.set(t.runId, list);
         }
+
+        const result = runRows.map((run) => {
+          const tasks = tasksByRun.get(run.id) ?? [];
+          return {
+            runId: run.id,
+            commitSha: run.commitSha,
+            status: run.status,
+            overallScore: run.score,
+            executedAt: run.createdAt,
+            agents: tasks.map((t) => ({
+              agentId: t.agentId,
+              status: t.status,
+              score: t.score,
+              findingsCount: t.findingsCount ?? (Array.isArray(t.findings) ? (t.findings as unknown[]).length : 0),
+            })),
+          };
+        });
+
         return { runs: result };
       },
     }),

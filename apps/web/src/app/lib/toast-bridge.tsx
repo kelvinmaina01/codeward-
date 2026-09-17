@@ -25,9 +25,10 @@ export function resolveAutoGooeyTheme(): 'light' | 'dark' {
   if (typeof document === 'undefined') return 'dark';
   const isAppDark =
     document.documentElement.classList.contains('theme-dark') ||
-    document.body.classList.contains('theme-dark');
+    document.body.classList.contains('theme-dark') ||
+    !document.documentElement.classList.contains('theme-light');
 
-  return isAppDark ? 'light' : 'dark';
+  return isAppDark ? 'dark' : 'light';
 }
 
 export interface AppGooeyToasterProps extends Omit<GooeyToasterProps, 'theme'> {
@@ -35,11 +36,11 @@ export interface AppGooeyToasterProps extends Omit<GooeyToasterProps, 'theme'> {
 }
 
 /**
- * GooeyToaster mounted at top-left with dynamic contrast theme,
+ * GooeyToaster mounted at bottom-right with dynamic matching theme,
  * bouncy spring animation, and countdown progress bar.
  */
 export function GooeyToaster({
-  position = 'top-left',
+  position = 'bottom-right',
   theme = 'auto',
   showProgress = true,
   closeButton = 'top-right',

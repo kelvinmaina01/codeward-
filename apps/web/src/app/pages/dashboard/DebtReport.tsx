@@ -5,6 +5,7 @@ import {
   ClipboardList, Wrench, ShieldCheck, Layers, GitPullRequest, GitMerge, 
   ExternalLink, Sparkles, Check, FileCode, ArrowRight 
 } from 'lucide-react';
+import { ArrowUpRight01Icon } from 'hugeicons-react';
 import { API_URL } from '../../../lib/api';
 import { GithubIcon } from '../../components/shared/GithubLink';
 import { RepoSelector } from '../../components/shared/RepoSelector';
@@ -133,6 +134,7 @@ export function DebtReport() {
   const selectedFixed = filteredFixed.find((f) => f.id === selectedFixedId) || null;
 
   // Pure presentation derivations for the open-findings view.
+  const hasOpenDrawer = !!(selected && tab === 'open');
   const { blocking: visibleBlocking, advisory: visibleAdvisory } = groupByExposure<RealAlert>(visible);
   const pageKey = `${repoFilter}|${activeCategory ?? ''}`;
   const pagedBlocking = usePagedList<RealAlert>(visibleBlocking, { resetKey: pageKey });
@@ -149,10 +151,10 @@ export function DebtReport() {
     <div className="flex-1 flex overflow-hidden relative h-full">
       <div className="flex-1 overflow-y-auto bg-cw-bg flex flex-col min-w-0">
         {/* Header */}
-        <div className="px-4 sm:px-6 lg:px-8 py-4 border-b border-cw-bdr bg-cw-bg flex items-center justify-between gap-4 flex-wrap shrink-0">
+        <div className="px-3 sm:px-4 lg:px-6 py-2.5 border-b border-cw-bdr bg-cw-bg flex items-center justify-between gap-3 flex-wrap shrink-0">
           <div className="min-w-0">
-            <h1 className="text-[20px] font-semibold text-cw-txt tracking-tight leading-7">Debt report</h1>
-            <p className="text-[13px] text-cw-txt3 leading-5 mt-0.5">
+            <h1 className="text-[18px] sm:text-[20px] font-semibold text-cw-txt tracking-tight leading-6">Debt report</h1>
+            <p className="text-[12px] sm:text-[13px] text-cw-txt3 leading-4 mt-0.5">
               {tab === 'open'
                 ? `Open high-priority debt across your repos · ${findings.length} finding${findings.length === 1 ? '' : 's'}`
                 : `Automated remediations · ${filteredFixed.length} auto-fix PR${filteredFixed.length === 1 ? '' : 's'} tracked`}
@@ -168,7 +170,7 @@ export function DebtReport() {
                 value={repoFilter}
                 showAllOption
                 allOptionLabel="All repos & orgs"
-                onChange={(val) => setRepoFilter(String(val))}
+                onChange={(val, name) => setRepoFilter(val === 'All' ? 'All' : name)}
               />
             )}
             <button
@@ -182,13 +184,13 @@ export function DebtReport() {
           </div>
         </div>
 
-        <div className="px-4 sm:px-6 lg:px-8 py-5 flex flex-col gap-5">
-          {/* View switch */}
-          <div className="flex gap-1 border-b border-cw-bdr">
+        {/* View toggle strip: Open findings vs Remediation log */}
+        <div className="mx-auto w-full max-w-[1200px] px-3 sm:px-4 lg:px-6 py-3 sm:py-4 pb-16 flex flex-col gap-3.5">
+          <div className="flex items-center gap-2 border-b border-cw-bdr pb-2.5">
             <button
               type="button"
               onClick={() => { setTab('open'); setSelectedFixedId(null); }}
-              className={`h-9 px-3 inline-flex items-center gap-2 text-[13px] font-medium border-b-2 -mb-px whitespace-nowrap transition-colors cursor-pointer ${tab === 'open' ? 'border-cw-purple text-cw-txt' : 'border-transparent text-cw-txt3 hover:text-cw-txt'}`}
+              className={`h-8 px-3 inline-flex items-center gap-2 rounded-md text-[13px] font-medium transition-colors cursor-pointer ${tab === 'open' ? 'bg-cw-bg3 text-cw-txt border border-cw-bdr' : 'text-cw-txt3 hover:text-cw-txt'}`}
             >
               <AlertCircle size={14} /> Open findings
               <span className="font-mono text-[12px] text-cw-txt3 tabular-nums">{findings.length}</span>
@@ -196,7 +198,7 @@ export function DebtReport() {
             <button
               type="button"
               onClick={() => { setTab('fixed'); setSelectedId(null); }}
-              className={`h-9 px-3 inline-flex items-center gap-2 text-[13px] font-medium border-b-2 -mb-px whitespace-nowrap transition-colors cursor-pointer ${tab === 'fixed' ? 'border-cw-purple text-cw-txt' : 'border-transparent text-cw-txt3 hover:text-cw-txt'}`}
+              className={`h-8 px-3 inline-flex items-center gap-2 rounded-md text-[13px] font-medium transition-colors cursor-pointer ${tab === 'fixed' ? 'bg-cw-bg3 text-cw-txt border border-cw-bdr' : 'text-cw-txt3 hover:text-cw-txt'}`}
             >
               <ShieldCheck size={14} /> Fixed & remediated
               <span className="font-mono text-[12px] text-cw-txt3 tabular-nums">{filteredFixed.length}</span>
@@ -287,7 +289,7 @@ export function DebtReport() {
                     <section aria-label="Blocking">
                       <FindingGroupHeader label="Blocking" count={visibleBlocking.length} tone="red" hint="Direct exposure — gates the merge" />
                       {pagedBlocking.visible.map((f) => (
-                        <FindingRow key={f.id} alert={f} selected={selectedId === f.id} onSelect={() => setSelectedId(f.id)} />
+                        <FindingRow key={f.id} alert={f} selected={selectedId === f.id} onSelect={() => setSelectedId(f.id)} compact={hasOpenDrawer} />
                       ))}
                       {pagedBlocking.hasMore && <LoadMoreRow remaining={pagedBlocking.remaining} pageSize={pagedBlocking.pageSize} onClick={pagedBlocking.showMore} />}
                     </section>
@@ -296,7 +298,7 @@ export function DebtReport() {
                     <section aria-label="Advisory">
                       <FindingGroupHeader label="Advisory" count={visibleAdvisory.length} tone="neutral" hint="Transitive — reported, never blocks" />
                       {pagedAdvisory.visible.map((f) => (
-                        <FindingRow key={f.id} alert={f} selected={selectedId === f.id} onSelect={() => setSelectedId(f.id)} />
+                        <FindingRow key={f.id} alert={f} selected={selectedId === f.id} onSelect={() => setSelectedId(f.id)} compact={hasOpenDrawer} />
                       ))}
                       {pagedAdvisory.hasMore && <LoadMoreRow remaining={pagedAdvisory.remaining} pageSize={pagedAdvisory.pageSize} onClick={pagedAdvisory.showMore} />}
                     </section>
@@ -308,65 +310,65 @@ export function DebtReport() {
 
           {/* ==================== VIEW 2: DEBT FIXED & REMEDIATED ==================== */}
           {tab === 'fixed' && (
-            <div className="flex flex-col gap-6">
-              {/* Spacious Hero KPI strip for Debt Fixed */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 w-full gap-4">
-                <div className="bg-cw-bg2 border border-cw-bdr rounded-md p-5 flex flex-col justify-between">
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-[12px] font-semibold text-cw-txt3 uppercase tracking-wider">Remediated PRs</span>
-                    <div className="w-8 h-8 rounded-lg bg-cw-green/10 flex items-center justify-center text-cw-green">
-                      <GitPullRequest size={16} />
+            <div className="flex flex-col gap-3.5">
+              {/* Compact Hero KPI strip for Debt Fixed */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 w-full gap-2.5">
+                <div className="bg-cw-bg2 border border-cw-bdr rounded-md p-3 sm:p-3.5 flex flex-col justify-between">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[11px] font-semibold text-cw-txt3 uppercase tracking-wider">Remediated PRs</span>
+                    <div className="w-7 h-7 rounded-md bg-cw-green/10 flex items-center justify-center text-cw-green">
+                      <GitPullRequest size={14} />
                     </div>
                   </div>
-                  <div className="text-[28px] font-bold text-cw-green">
+                  <div className="text-[22px] sm:text-[24px] font-bold text-cw-green leading-none">
                     {filteredFixed.length}
                   </div>
-                  <div className="text-[12px] text-cw-txt2 mt-1">
+                  <div className="text-[11px] text-cw-txt2 mt-1">
                     Auto-fix pull requests opened
                   </div>
                 </div>
 
-                <div className="bg-cw-bg2 border border-cw-bdr rounded-md p-5 flex flex-col justify-between">
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-[12px] font-semibold text-cw-txt3 uppercase tracking-wider">Merged & Applied</span>
-                    <div className="w-8 h-8 rounded-lg bg-cw-blue/10 flex items-center justify-center text-cw-blue">
-                      <GitMerge size={16} />
+                <div className="bg-cw-bg2 border border-cw-bdr rounded-md p-3 sm:p-3.5 flex flex-col justify-between">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[11px] font-semibold text-cw-txt3 uppercase tracking-wider">Merged & Applied</span>
+                    <div className="w-7 h-7 rounded-md bg-cw-blue/10 flex items-center justify-center text-cw-blue">
+                      <GitMerge size={14} />
                     </div>
                   </div>
-                  <div className="text-[28px] font-bold text-cw-blue">
+                  <div className="text-[22px] sm:text-[24px] font-bold text-cw-blue leading-none">
                     {filteredFixed.filter(f => f.status === 'auto_merged' || f.status === 'approved').length}
                   </div>
-                  <div className="text-[12px] text-cw-txt2 mt-1">
+                  <div className="text-[11px] text-cw-txt2 mt-1">
                     Verified fixes merged to repository
                   </div>
                 </div>
 
-                <div className="bg-cw-bg2 border border-cw-bdr rounded-md p-5 flex flex-col justify-between">
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-[12px] font-semibold text-cw-txt3 uppercase tracking-wider">Files Refactored</span>
-                    <div className="w-8 h-8 rounded-lg bg-cw-purple/10 flex items-center justify-center text-cw-purple">
-                      <FileCode size={16} />
+                <div className="bg-cw-bg2 border border-cw-bdr rounded-md p-3 sm:p-3.5 flex flex-col justify-between">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[11px] font-semibold text-cw-txt3 uppercase tracking-wider">Files Refactored</span>
+                    <div className="w-7 h-7 rounded-md bg-cw-purple/10 flex items-center justify-center text-cw-purple">
+                      <FileCode size={14} />
                     </div>
                   </div>
-                  <div className="text-[28px] font-bold text-cw-purple">
+                  <div className="text-[22px] sm:text-[24px] font-bold text-cw-purple leading-none">
                     {filteredFixed.reduce((sum, f) => sum + f.filesCount, 0)}
                   </div>
-                  <div className="text-[12px] text-cw-txt2 mt-1">
+                  <div className="text-[11px] text-cw-txt2 mt-1">
                     Remediated codebase files
                   </div>
                 </div>
 
-                <div className="bg-cw-bg2 border border-cw-bdr rounded-md p-5 flex flex-col justify-between">
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-[12px] font-semibold text-cw-txt3 uppercase tracking-wider">Guardian Verification</span>
-                    <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400">
-                      <ShieldCheck size={16} />
+                <div className="bg-cw-bg2 border border-cw-bdr rounded-md p-3 sm:p-3.5 flex flex-col justify-between">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[11px] font-semibold text-cw-txt3 uppercase tracking-wider">Guardian Verification</span>
+                    <div className="w-7 h-7 rounded-md bg-emerald-500/10 flex items-center justify-center text-emerald-400">
+                      <ShieldCheck size={14} />
                     </div>
                   </div>
-                  <div className="text-[28px] font-bold text-emerald-400">
+                  <div className="text-[22px] sm:text-[24px] font-bold text-emerald-400 leading-none">
                     100%
                   </div>
-                  <div className="text-[12px] text-cw-txt2 mt-1">
+                  <div className="text-[11px] text-cw-txt2 mt-1">
                     Autonomous safety verified
                   </div>
                 </div>
@@ -575,9 +577,9 @@ export function DebtReport() {
                 href={selectedFixed.prUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="w-full py-2.5 bg-cw-purple hover:brightness-110 text-white rounded-lg text-[13px] font-semibold transition-all flex items-center justify-center gap-2 no-underline"
+                className="w-full py-2 bg-cw-purple hover:brightness-110 text-white rounded-lg text-[13px] font-semibold transition-all flex items-center justify-center gap-1.5 no-underline shadow-sm"
               >
-                <GithubIcon size={16} /> Open Pull Request on GitHub <ExternalLink size={13} />
+                <GithubIcon size={15} /> View PR on GitHub <ArrowUpRight01Icon size={14} />
               </a>
             </div>
           </>

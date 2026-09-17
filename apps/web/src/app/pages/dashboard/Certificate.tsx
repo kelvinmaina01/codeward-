@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { API_URL } from '../../../lib/api';
 import { RepoSelector } from '../../components/shared/RepoSelector';
-import { toast } from 'sonner';
+import { toast } from '../../lib/toast-bridge';
 
 interface Agent {
   id: string;

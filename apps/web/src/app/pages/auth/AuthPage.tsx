@@ -60,13 +60,20 @@ export function AuthPage({ onBack, theme: _theme, onCycleTheme, onNavigate: _onN
     const err = params.get('error');
     if (err) {
       if (err === 'state_mismatch') {
-        toast.error('Sign-in cookie blocked or session expired.', {
-          description: 'If using Brave or a strict privacy extension, please allow cross-site cookies or toggle shields off for sign-in.',
+        toast.error('Sign-in session expired or cookie was blocked.', {
+          description: 'If using Brave or a strict privacy extension, please allow cross-site cookies or try again.',
           duration: 8000,
         });
+      } else if (err === 'invalid_code') {
+        toast.error('Sign-in authorization code expired or already used.', {
+          description: 'Please click the button below to sign in again.',
+          duration: 6000,
+        });
       } else {
-        toast.error(`Authentication error: ${err}`, { duration: 6000 });
+        toast.error(`Sign-in was not completed (${err.replace(/_/g, ' ')}). Please try again.`, { duration: 6000 });
       }
+      // Clean up the URL error query param cleanly without reload
+      window.history.replaceState({}, document.title, window.location.pathname);
     }
   }, []);
 

@@ -3,7 +3,7 @@ import {
   X, MessageSquare, Lightbulb, ChevronRight, 
   ArrowUp, Paperclip, ArrowLeft, Bell, FileText
 } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '../../lib/toast-bridge';
 
 interface HelpDrawerProps {
   isOpen: boolean;

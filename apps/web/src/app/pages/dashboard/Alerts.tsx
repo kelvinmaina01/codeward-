@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { AlertCircle, ShieldCheck, Loader } from 'lucide-react';
+import { AlertCircleIcon, Shield02Icon, Loading03Icon } from 'hugeicons-react';
 import { API_URL } from '../../../lib/api';
 import { RepoSelector } from '../../components/shared/RepoSelector';
 import { FindingRow, FindingGroupHeader } from '../../components/shared/findings/FindingRow';
@@ -41,11 +41,9 @@ export function Alerts() {
       .finally(() => setLoading(false));
   }, []);
 
-  // Real category tabs, derived from the sources actually present in the data (no fake tabs).
-  const sourceTabs = ['All', ...Array.from(new Set(alerts.map((a) => a.source)))];
-  // Real repo + org filters for personalizing reports before viewing/sending.
-  const repoOptions = ['All', ...Array.from(new Set(alerts.map((a) => a.repo)))];
-  const orgOptions = Array.from(new Set(alerts.map((a) => a.repo.split('/')[0])));
+  const repoOptions = Array.from(new Set(alerts.map((a) => a.repo).filter(Boolean)));
+  const orgOptions = Array.from(new Set(repoOptions.map((r) => r.split('/')[0])));
+  const sourceTabs = ['All', ...Array.from(new Set(alerts.map((a) => a.source).filter(Boolean)))];
 
   const filtered = alerts.filter((a) => {
     const matchesSeverity = filter === 'all' ? true : filter === 'autofix' ? a.kind === 'autofix' : a.severity === filter;
@@ -72,10 +70,12 @@ export function Alerts() {
     { key: 'activity', label: 'Agent activity', hint: 'Escalated issues and auto-fix pull requests', tone: 'blue', page: pagedActivity },
   ];
 
+  const hasDrawer = !!selected;
+
   return (
     <div className="flex-1 flex overflow-hidden relative h-full">
       <div className="flex-1 overflow-y-auto w-full min-w-0">
-        <div className="mx-auto w-full max-w-[1200px] px-4 sm:px-6 lg:px-8 py-6 pb-24 flex flex-col gap-5">
+        <div className="mx-auto w-full max-w-[1200px] px-3 sm:px-4 lg:px-6 py-4 pb-20 flex flex-col gap-4">
 
           {/* Header */}
           <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -132,12 +132,12 @@ export function Alerts() {
           )}
 
           {loading ? (
-            <div className="py-20 flex justify-center"><Loader size={20} className="animate-spin text-cw-purple" /></div>
+            <div className="py-20 flex justify-center"><Loading03Icon size={20} className="animate-spin text-cw-purple" /></div>
           ) : error ? (
-            <div className="py-10 text-cw-red text-[14px] flex items-center justify-center gap-2"><AlertCircle size={16} /> {error}</div>
+            <div className="py-10 text-cw-red text-[14px] flex items-center justify-center gap-2"><AlertCircleIcon size={16} /> {error}</div>
           ) : filtered.length === 0 ? (
             <div className="py-16 text-center border border-dashed border-cw-bdr rounded-md">
-              <ShieldCheck size={24} className="mx-auto mb-3 text-cw-green" />
+              <Shield02Icon size={24} className="mx-auto mb-3 text-cw-green" />
               <div className="text-[14px] text-cw-txt">No alerts{filter !== 'all' ? ' for this filter' : ''}.</div>
               <div className="text-[13px] text-cw-txt3 mt-1">High-severity findings, escalations, and auto-fix PRs will appear here as your agents run.</div>
             </div>
@@ -152,6 +152,7 @@ export function Alerts() {
                       alert={alert}
                       selected={selectedId === alert.id}
                       onSelect={() => setSelectedId((prev) => (prev === alert.id ? null : alert.id))}
+                      compact={hasDrawer}
                     />
                   ))}
                   {g.page.hasMore && <LoadMoreRow remaining={g.page.remaining} pageSize={g.page.pageSize} onClick={g.page.showMore} />}
@@ -163,7 +164,7 @@ export function Alerts() {
       </div>
 
       {/* Detail drawer */}
-      <DrawerShell open={!!selected}>
+      <DrawerShell open={hasDrawer}>
         {selected && <FindingDrawer alert={selected} kicker="Alert" onClose={() => setSelectedId(null)} />}
       </DrawerShell>
     </div>
