@@ -110,32 +110,93 @@ export function renderGuardianStatusComment(params: {
   ].join('\n');
 }
 
+export function buildDispatchOutput(params: {
+  runId: number | string;
+  repoFullName?: string;
+}): { title: string; summary: string; text: string } {
+  const runUrl = `${process.env.FRONTEND_URL || 'https://codeward.cloud'}/runs/${params.runId}`;
+  return {
+    title: '🛡️ 5 agents dispatched',
+    summary: 'Codeward is reviewing this PR in isolated sandboxes. Usually done in under 6 minutes.',
+    text: [
+      '### 🛡️ Codeward',
+      '',
+      '5 agents dispatched into ephemeral Firecracker sandboxes:',
+      '- **Security** — spinning up sandbox',
+      '- **Bloat** — spinning up sandbox',
+      '- **Architecture** — spinning up sandbox',
+      '- **Compliance** — spinning up sandbox',
+      '- **Guardian** — spinning up sandbox',
+      '',
+      'Each runs independently — SAST, dependency checks, architecture and compliance review — then reports to the orchestrator for one consolidated verdict.',
+      '',
+      `[Watch it live →](${runUrl})`,
+    ].join('\n'),
+  };
+}
+
+export function buildCompletionOutput(params: {
+  runId: number | string;
+  durationSeconds?: number;
+  findings?: Array<{ severity: string }>;
+}): { title: string; summary: string; text: string; conclusion: 'success' | 'failure' | 'neutral' } {
+  const runUrl = `${process.env.FRONTEND_URL || 'https://codeward.cloud'}/runs/${params.runId}`;
+  const duration = params.durationSeconds ?? 180;
+  const findings = params.findings ?? [];
+  const critical = findings.filter(f => String(f.severity).toUpperCase() === 'CRITICAL').length;
+  const high = findings.filter(f => String(f.severity).toUpperCase() === 'HIGH').length;
+  const medium = findings.filter(f => String(f.severity).toUpperCase() === 'MEDIUM').length;
+  const low = findings.filter(f => String(f.severity).toUpperCase() === 'LOW').length;
+  const total = findings.length;
+
+  if (total === 0) {
+    return {
+      title: '✅ Clean — no issues found',
+      conclusion: 'success',
+      summary: 'All agents reported back clean.',
+      text: [
+        '### 🛡️ Codeward',
+        '',
+        'All agents reported back clean.',
+        '',
+        `Completed in ${duration}s. [Full report on the dashboard →](${runUrl})`,
+      ].join('\n'),
+    };
+  }
+
+  const conclusion: 'failure' | 'neutral' = critical > 0 ? 'failure' : 'neutral';
+  const critText = critical > 0 ? ` (${critical} critical)` : '';
+
+  return {
+    title: `🔍 ${total} finding${total > 1 ? 's' : ''}${critText}`,
+    conclusion,
+    summary: `Review complete — ${total} finding${total > 1 ? 's' : ''} detected across agents.`,
+    text: [
+      '### 🛡️ Codeward',
+      '',
+      "Review complete — here's what the agents found:",
+      '',
+      '| Severity | Count |',
+      '| :--- | :--- |',
+      ...(critical > 0 ? [`| 🔴 Critical | ${critical} |`] : []),
+      ...(high > 0 ? [`| 🟠 High | ${high} |`] : []),
+      ...(medium > 0 ? [`| 🟡 Medium | ${medium} |`] : []),
+      ...(low > 0 ? [`| 🔵 Low | ${low} |`] : []),
+      '',
+      `Completed in ${duration}s. [Full report on the dashboard →](${runUrl})`,
+    ].join('\n'),
+  };
+}
+
 export function renderGuardianInitialCheck(params: {
   repoFullName: string;
   commitSha: string;
   runId?: number | string;
 }): { title: string; summary: string } {
-  const dashboardUrl = `${process.env.FRONTEND_URL || 'https://codeward.cloud'}/livefeed`;
+  const dispatch = buildDispatchOutput({ runId: params.runId ?? 'pending', repoFullName: params.repoFullName });
   return {
-    title: '🛡️ Codeward Agents Dispatched — Sandbox Analysis in Progress',
-    summary: [
-      `### 🛡️ Codeward Autonomous Multi-Agent Review In Progress`,
-      '',
-      `Codeward has provisioned an isolated **Firecracker microVM sandbox** for \`${params.repoFullName}\` at commit \`${shortSha(params.commitSha)}\`.`,
-      '',
-      '#### 🤖 Active Agents on this Pull Request',
-      '- **🛡️ Security & OWASP**: Analyzing injection vectors, secret leaks, and access controls.',
-      '- **🏛️ Architecture**: Inspecting dependency graph and module boundaries.',
-      '- **📦 Bloat & Dead Code**: Scanning for unused dependencies and tree-shaking opportunities.',
-      '- **⚡ Data & DX**: Auditing schema changes and query patterns.',
-      '- **🧠 AI-Era Safety**: Verifying prompt sanitization and RAG vector safety.',
-      '- **🩺 Bug Detection**: Checking runtime error paths and type boundaries.',
-      '- **💂 Guardian Orchestrator**: Will verify automated fixes and publish final recommendations.',
-      '',
-      '> ☕ **Real sandboxed verification underway.** Results will be posted here as soon as analysis completes.',
-      '',
-      `[**Open Live Feed & Logs →**](${dashboardUrl})`,
-    ].join('\n'),
+    title: dispatch.title,
+    summary: `${dispatch.summary}\n\n${dispatch.text}`,
   };
 }
 

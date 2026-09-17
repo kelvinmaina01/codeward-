@@ -2,7 +2,11 @@ import { eq } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { repositories, runs } from '../db/schema.js';
 import { getInstallationOctokit } from '../lib/github.js';
-import { renderGuardianStatusComment, renderGuardianInitialCheck } from '../agents/guardian/github-renderer.js';
+import {
+  renderGuardianStatusComment,
+  buildDispatchOutput,
+  buildCompletionOutput,
+} from '../agents/guardian/github-renderer.js';
 
 /** One idempotent GitHub surface per Codeward run: a Check Run plus an editable status comment. */
 export async function startPrLifecycle(runId: number, estimatedDurationSeconds = 180) {
@@ -14,23 +18,26 @@ export async function startPrLifecycle(runId: number, estimatedDurationSeconds =
   let checkRunId = run.githubCheckRunId;
   let statusCommentId = run.githubStatusCommentId;
 
-  const dashboardUrl = `${process.env.FRONTEND_URL || 'https://codeward.cloud'}/livefeed`;
+  const runUrl = `${process.env.FRONTEND_URL || 'https://codeward.cloud'}/runs/${run.id}`;
 
   if (!checkRunId) {
-    const initialCheck = renderGuardianInitialCheck({
-      repoFullName: repo.fullName,
-      commitSha: run.commitSha,
+    const dispatch = buildDispatchOutput({
       runId: run.id,
+      repoFullName: repo.fullName,
     });
     const check: any = await octokit.request('POST /repos/{owner}/{repo}/check-runs', {
       owner: repo.owner,
       repo: repo.name,
-      name: 'Codeward Autonomous Review',
+      name: '🛡️ Codeward',
       head_sha: run.commitSha,
-      details_url: dashboardUrl,
+      details_url: runUrl,
       status: 'in_progress',
       started_at: new Date().toISOString(),
-      output: initialCheck,
+      output: {
+        title: dispatch.title,
+        summary: dispatch.summary,
+        text: dispatch.text,
+      },
     });
     checkRunId = check.data.id;
   }
@@ -54,14 +61,34 @@ export async function startPrLifecycle(runId: number, estimatedDurationSeconds =
   return { checkRunId, statusCommentId };
 }
 
-export async function completePrLifecycle(runId: number, params: { conclusion: 'success' | 'failure' | 'neutral'; title: string; summary: string }) {
+export async function completePrLifecycle(
+  runId: number,
+  params: {
+    conclusion: 'success' | 'failure' | 'neutral';
+    title: string;
+    summary: string;
+    findings?: Array<{ severity: string }>;
+  }
+) {
   const [run] = await db.select().from(runs).where(eq(runs.id, runId));
   if (!run?.repoId || !run.prNumber) return { skipped: true };
   const [repo] = await db.select().from(repositories).where(eq(repositories.id, run.repoId));
   if (!repo?.installationId) return { skipped: true };
   const octokit = await getInstallationOctokit(repo.installationId);
 
-  const dashboardUrl = `${process.env.FRONTEND_URL || 'https://codeward.cloud'}/livefeed`;
+  const runUrl = `${process.env.FRONTEND_URL || 'https://codeward.cloud'}/runs/${run.id}`;
+  const durationSeconds = Math.max(
+    1,
+    Math.round((Date.now() - new Date(run.createdAt || Date.now()).getTime()) / 1000)
+  );
+
+  const completion = buildCompletionOutput({
+    runId: run.id,
+    durationSeconds,
+    findings: params.findings,
+  });
+
+  const finalConclusion = params.conclusion || completion.conclusion;
 
   if (run.githubCheckRunId) {
     await octokit.request('PATCH /repos/{owner}/{repo}/check-runs/{check_run_id}', {
@@ -69,10 +96,14 @@ export async function completePrLifecycle(runId: number, params: { conclusion: '
       repo: repo.name,
       check_run_id: run.githubCheckRunId,
       status: 'completed',
-      conclusion: params.conclusion,
+      conclusion: finalConclusion,
       completed_at: new Date().toISOString(),
-      details_url: dashboardUrl,
-      output: { title: params.title, summary: params.summary.slice(0, 65000) },
+      details_url: runUrl,
+      output: {
+        title: completion.title || params.title,
+        summary: completion.summary || params.summary,
+        text: completion.text,
+      },
     });
   }
 
@@ -81,7 +112,7 @@ export async function completePrLifecycle(runId: number, params: { conclusion: '
       owner: repo.owner,
       repo: repo.name,
       comment_id: run.githubStatusCommentId,
-      body: `## 🛡️ Codeward Review Complete\n\n${params.summary}\n\n<sub>Run #${run.id} · \`${run.commitSha.slice(0, 7)}\` · [Open Codeward Dashboard](${dashboardUrl})</sub>`,
+      body: completion.text,
     });
   }
   return { completed: true };
