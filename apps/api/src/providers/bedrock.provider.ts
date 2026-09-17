@@ -32,9 +32,30 @@ import { zodToJsonSchema } from 'zod-to-json-schema';
 import type { AgentProvider, AgentRunConfig, AgentResult, AgentTool } from './openai.provider.js';
 
 /**
+ * Cross-region inference profiles are GEO-SCOPED, and this is the whole reason Bedrock worked
+ * locally and failed on Fargate.
+ *
+ * A `us.`-prefixed profile is only resolvable from a US region; calling it from eu-north-1 fails
+ * with "The provided model identifier is invalid." The bedrock client below defaults to
+ * `us-east-1` when AWS_REGION is unset — true on a laptop — but ECS injects AWS_REGION=eu-north-1,
+ * so the same image silently switched regions in production while the model ids stayed `us.`.
+ *
+ * Deriving the prefix from the runtime region is what makes one image correct in every
+ * deployment. Verified with `aws bedrock list-inference-profiles --region eu-north-1`: both
+ * models below exist there, ACTIVE, at the identical version — only the prefix differs.
+ */
+function bedrockGeoPrefix(): string {
+  const region = (process.env.AWS_REGION || process.env.BEDROCK_REGION || 'us-east-1').toLowerCase();
+  if (region.startsWith('eu-')) return 'eu.';
+  if (region.startsWith('ap-')) return 'apac.';
+  // us-*, and anything unrecognised, keeps today's behaviour rather than guessing a new geo.
+  return 'us.';
+}
+
+/**
  * Maps a logical model name used by the agent definitions onto a Bedrock model or inference
- * profile id. Cross-region inference profile ids (the `us.` prefix) are strongly preferred —
- * same price, materially higher throughput and fewer ThrottlingExceptions.
+ * profile id. Cross-region inference profile ids are strongly preferred — same price,
+ * materially higher throughput and fewer ThrottlingExceptions.
  */
 export function resolveBedrockModelId(model: string): string {
   const m = (model || '').toLowerCase();
@@ -47,11 +68,12 @@ export function resolveBedrockModelId(model: string): string {
 
   // Verified against `bedrock list-foundation-models` / `list-inference-profiles`: both of these
   // report inferenceTypesSupported = ["INFERENCE_PROFILE"] ONLY, so the bare `anthropic.*` model
-  // id is rejected at invoke time and the `us.` cross-region profile id is mandatory, not merely
+  // id is rejected at invoke time and the geo-prefixed profile id is mandatory, not merely
   // preferable. (The Claude 3.5 ids these defaults originally used are now end-of-life and
   // return ResourceNotFoundException.) Override per environment with the env vars below.
-  const mechanical = process.env.BEDROCK_MODEL_MECHANICAL || 'us.anthropic.claude-haiku-4-5-20251001-v1:0';
-  const synthesis = process.env.BEDROCK_MODEL_SYNTHESIS || 'us.anthropic.claude-sonnet-4-5-20250929-v1:0';
+  const geo = bedrockGeoPrefix();
+  const mechanical = process.env.BEDROCK_MODEL_MECHANICAL || `${geo}anthropic.claude-haiku-4-5-20251001-v1:0`;
+  const synthesis = process.env.BEDROCK_MODEL_SYNTHESIS || `${geo}anthropic.claude-sonnet-4-5-20250929-v1:0`;
 
   // The cheap tier runs the scanner-driven agents; the frontier tier is reserved for the two
   // paths a human actually reads (guardian's PR prose, Gordon's chat).
