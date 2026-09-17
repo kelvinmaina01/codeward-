@@ -834,6 +834,7 @@ Use these EXACT values for any tool parameter named runId/repoId — never inven
           summary: runPolicy?.reasons.length
             ? `${runPolicy.reasons.slice(0, 5).join('\n')}`
             : (result as any).rationale ?? `Codeward completed its review with decision: ${decision}.`,
+          findings: (runPolicy?.surfacedFindings ?? []) as any,
         });
       } catch (lifecycleError) {
         console.error(`[AgentWorker] Could not complete PR lifecycle for run #${runId}:`, (lifecycleError as Error).message);

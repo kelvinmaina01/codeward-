@@ -77,18 +77,225 @@ function topFindings(findings: GuardianFindingView[]): GuardianFindingView[] {
   }).slice(0, 10);
 }
 
+export const SPECIALIZED_AGENTS: Record<string, { name: string; domain: string; focus: string }> = {
+  security: {
+    name: '🛡️ Runtime Security',
+    domain: 'OWASP & AppSec',
+    focus: 'SQLi, broken auth/RLS, secret leaks & vulnerability vectors',
+  },
+  architecture: {
+    name: '🏛️ Architecture',
+    domain: 'System Design',
+    focus: 'Circular dependencies, architectural drift & module coupling',
+  },
+  bloat: {
+    name: '📦 Bloat & Dead Code',
+    domain: 'Code Health',
+    focus: 'Zombie exports, bundle overhead & unused packages',
+  },
+  data_dx: {
+    name: '⚡ Data & DX',
+    domain: 'Database & Queries',
+    focus: 'Schema migrations, index efficiency & query antipatterns',
+  },
+  ai_era: {
+    name: '🧠 AI-Era Safety',
+    domain: 'LLM & Prompts',
+    focus: 'Prompt injection, model leakage & RAG hygiene',
+  },
+  broken_code: {
+    name: '🩺 Bug Detection',
+    domain: 'Reliability',
+    focus: 'Null dereferences, unhandled promises & runtime bugs',
+  },
+  compliance: {
+    name: '⚖️ Compliance',
+    domain: 'Governance',
+    focus: 'License compatibility, PII handling & audit trails',
+  },
+  guardian: {
+    name: '💂 Guardian',
+    domain: 'Orchestrator',
+    focus: 'Verification in sandbox, auto-fix dry-runs & merge verdict',
+  },
+};
+
+export function resolveDispatchedAgents(agentsConfig?: Record<string, any>, dispatchedAgentIds?: string[]) {
+  if (dispatchedAgentIds && dispatchedAgentIds.length > 0) {
+    const list = dispatchedAgentIds.map(id => ({
+      id,
+      ...(SPECIALIZED_AGENTS[id] || { name: `🤖 ${id}`, domain: 'Specialized', focus: 'Custom checks' }),
+    }));
+    if (!list.some(a => a.id === 'guardian')) {
+      list.push({ id: 'guardian', ...SPECIALIZED_AGENTS.guardian });
+    }
+    return list;
+  }
+
+  if (agentsConfig && typeof agentsConfig === 'object') {
+    const activeKeys = Object.keys(agentsConfig).filter(k => Boolean(agentsConfig[k]));
+    if (activeKeys.length > 0) {
+      const list = activeKeys.map(id => ({
+        id,
+        ...(SPECIALIZED_AGENTS[id] || { name: `🤖 ${id}`, domain: 'Specialized', focus: 'Custom checks' }),
+      }));
+      if (!list.some(a => a.id === 'guardian')) {
+        list.push({ id: 'guardian', ...SPECIALIZED_AGENTS.guardian });
+      }
+      return list;
+    }
+  }
+
+  // Default fleet
+  return Object.entries(SPECIALIZED_AGENTS).map(([id, meta]) => ({ id, ...meta }));
+}
+
 export function renderGuardianStatusComment(params: {
   repoFullName: string;
   commitSha: string;
   estimatedDurationSeconds: number;
+  runId?: number | string;
+  agentsConfig?: Record<string, any>;
+  dispatchedAgentIds?: string[];
 }): string {
+  const runUrl = `${process.env.FRONTEND_URL || 'https://codeward.cloud'}/runs/${params.runId ?? 'pending'}`;
+  const activeAgents = resolveDispatchedAgents(params.agentsConfig, params.dispatchedAgentIds);
+  const count = activeAgents.length;
+  const estMin = Math.max(1, Math.round(params.estimatedDurationSeconds / 60));
+
+  const tableRows = activeAgents.map(a => {
+    const status = a.id === 'guardian' ? '⏳ Waiting for signals' : '🔄 Analyzing in sandbox';
+    return `| **${a.name}** | ${a.domain} | ${a.focus} | ${status} |`;
+  }).join('\n');
+
   return [
-    '## Codeward is working',
+    `### 🛡️ Codeward Autonomous Code Review Dispatched`,
     '',
-    `Analyzing \`${params.repoFullName}@${shortSha(params.commitSha)}\` in an isolated sandbox.`,
+    `Codeward received this pull request and initialized an isolated **Firecracker microVM sandbox** for comprehensive multi-agent analysis on \`${params.repoFullName}@${shortSha(params.commitSha)}\`.`,
     '',
-    `Estimated time: ${params.estimatedDurationSeconds}s.`,
+    `#### 🤖 ${count} Dispatched Specialized Agents`,
+    '| Agent | Domain | Focus Area | Status |',
+    '| :--- | :--- | :--- | :--- |',
+    tableRows,
+    '',
+    '> ☕ **Please be patient while our agents do the heavy lifting.**',
+    `> Unlike traditional superficial linters, Codeward executes real static & dynamic checks and dry-runs potential fixes in an isolated sandbox. Analysis typically takes **~${estMin} minutes**.`,
+    '',
+    `📡 [**Track Live Sandbox Execution & Agent Feed on Codeward Dashboard →**](${runUrl})`,
+    '',
+    `<sub>Run #${params.runId ?? 'pending'} · Commit \`${shortSha(params.commitSha)}\`</sub>`,
   ].join('\n');
+}
+
+export function buildDispatchOutput(params: {
+  runId: number | string;
+  repoFullName?: string;
+  agentsConfig?: Record<string, any>;
+  dispatchedAgentIds?: string[];
+  estimatedDurationSeconds?: number;
+}): { title: string; summary: string; text: string } {
+  const runUrl = `${process.env.FRONTEND_URL || 'https://codeward.cloud'}/runs/${params.runId}`;
+  const activeAgents = resolveDispatchedAgents(params.agentsConfig, params.dispatchedAgentIds);
+  const count = activeAgents.length;
+  const estMin = Math.max(1, Math.round((params.estimatedDurationSeconds ?? 180) / 60));
+
+  const bulletList = activeAgents.map(a => {
+    const simpleName = a.name.replace(/^[^\s]+\s*/, '');
+    return `• **${simpleName}** — spinning up sandbox`;
+  }).join('\n');
+
+  const tableRows = activeAgents.map(a => {
+    const status = a.id === 'guardian' ? '⏳ Waiting for signals' : '🔄 Analyzing in sandbox';
+    return `| **${a.name}** | ${a.domain} | ${a.focus} | ${status} |`;
+  }).join('\n');
+
+  return {
+    title: `🛡️ ${count} agents dispatched`,
+    summary: 'Codeward is reviewing this PR in isolated sandboxes. Usually done in under 6 minutes.',
+    text: [
+      '### 🛡️ Codeward',
+      '',
+      `${count} agents dispatched into ephemeral Firecracker sandboxes:`,
+      bulletList,
+      '',
+      '#### 🤖 Multi-Agent Review Team',
+      '| Agent | Domain | Focus Area | Status |',
+      '| :--- | :--- | :--- | :--- |',
+      tableRows,
+      '',
+      'Each runs independently — SAST, dependency checks, architecture and compliance review — then reports to the orchestrator for one consolidated verdict.',
+      '',
+      '> ☕ **Please be patient while our agents do the heavy lifting.**',
+      `> Unlike traditional superficial linters, Codeward executes real static & dynamic checks and dry-runs potential fixes in an isolated Firecracker microVM sandbox. Analysis typically takes **~${estMin} minutes**.`,
+      '',
+      `[Watch it live →](${runUrl})`,
+    ].join('\n'),
+  };
+}
+
+export function buildCompletionOutput(params: {
+  runId: number | string;
+  durationSeconds?: number;
+  findings?: Array<{ severity: string }>;
+}): { title: string; summary: string; text: string; conclusion: 'success' | 'failure' | 'neutral' } {
+  const runUrl = `${process.env.FRONTEND_URL || 'https://codeward.cloud'}/runs/${params.runId}`;
+  const duration = params.durationSeconds ?? 180;
+  const findings = params.findings ?? [];
+  const critical = findings.filter(f => String(f.severity).toUpperCase() === 'CRITICAL').length;
+  const high = findings.filter(f => String(f.severity).toUpperCase() === 'HIGH').length;
+  const medium = findings.filter(f => String(f.severity).toUpperCase() === 'MEDIUM').length;
+  const low = findings.filter(f => String(f.severity).toUpperCase() === 'LOW').length;
+  const total = findings.length;
+
+  if (total === 0) {
+    return {
+      title: '✅ Clean — no issues found',
+      conclusion: 'success',
+      summary: 'All agents reported back clean.',
+      text: [
+        '### 🛡️ Codeward',
+        '',
+        'All agents reported back clean.',
+        '',
+        `Completed in ${duration}s. [Full report on the dashboard →](${runUrl})`,
+      ].join('\n'),
+    };
+  }
+
+  const conclusion: 'failure' | 'neutral' = critical > 0 ? 'failure' : 'neutral';
+  const critText = critical > 0 ? ` (${critical} critical)` : '';
+
+  return {
+    title: `🔍 ${total} finding${total > 1 ? 's' : ''}${critText}`,
+    conclusion,
+    summary: `Review complete — ${total} finding${total > 1 ? 's' : ''} detected across agents.`,
+    text: [
+      '### 🛡️ Codeward',
+      '',
+      "Review complete — here's what the agents found:",
+      '',
+      '| Severity | Count |',
+      '| :--- | :--- |',
+      ...(critical > 0 ? [`| 🔴 Critical | ${critical} |`] : []),
+      ...(high > 0 ? [`| 🟠 High | ${high} |`] : []),
+      ...(medium > 0 ? [`| 🟡 Medium | ${medium} |`] : []),
+      ...(low > 0 ? [`| 🔵 Low | ${low} |`] : []),
+      '',
+      `Completed in ${duration}s. [Full report on the dashboard →](${runUrl})`,
+    ].join('\n'),
+  };
+}
+
+export function renderGuardianInitialCheck(params: {
+  repoFullName: string;
+  commitSha: string;
+  runId?: number | string;
+}): { title: string; summary: string } {
+  const dispatch = buildDispatchOutput({ runId: params.runId ?? 'pending', repoFullName: params.repoFullName });
+  return {
+    title: dispatch.title,
+    summary: `${dispatch.summary}\n\n${dispatch.text}`,
+  };
 }
 
 export function renderGuardianInlineFindingComment(finding: GuardianFindingView): string {
