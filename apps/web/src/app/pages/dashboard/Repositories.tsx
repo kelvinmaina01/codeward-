@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Search, Loader, AlertCircle, Play, Pause, BarChart2, GitFork, GitPullRequest, Lock, Globe, Wrench, RotateCcw, Clock, ShieldAlert, X, MoreVertical, Settings as SettingsIcon, Trash2 } from 'lucide-react';
+import { Search, Loader, AlertCircle, Play, Pause, BarChart2, GitFork, GitPullRequest, Lock, Globe, Wrench, RotateCcw, Clock, ShieldAlert, X, MoreVertical, Trash2 } from 'lucide-react';
 import { toast } from '../../lib/toast-bridge';
 import { API_URL } from '../../../lib/api';
 
@@ -514,13 +514,6 @@ export function Repositories({ activeOrg }: { activeOrg?: string }) {
                       </button>
                       {openMenuId === repo.id && (
                         <div className="absolute right-0 top-[calc(100%+4px)] z-50 w-48 rounded-xl border border-cw-bdr bg-cw-bg2 shadow-2xl overflow-hidden animate-fade-in">
-                          <button
-                            onClick={() => { setOpenMenuId(null); navigate('/dashboard/settings'); }}
-                            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-[13px] text-cw-txt hover:bg-cw-bg3 transition-colors text-left"
-                          >
-                            <SettingsIcon size={13} className="text-cw-txt3" /> Settings
-                          </button>
-                          <div className="border-t border-cw-bdr" />
                           <button
                             onClick={() => { setOpenMenuId(null); setRemoveModalRepo(repo); }}
                             disabled={repo.status === 'pending_audit'}

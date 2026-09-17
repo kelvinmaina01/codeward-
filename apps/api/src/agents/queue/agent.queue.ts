@@ -1218,7 +1218,34 @@ Use these EXACT values for any tool parameter named runId/repoId — never inven
     if (job?.data && !job.data.agentId.startsWith('orchestrator')) {
       await checkAndTriggerPhase3(job.data.runId, job.data.repoFullName, job.data.commitSHA);
     } else if (job?.data && job.data.agentId.startsWith('orchestrator')) {
-      // Orchestrator phase itself failed terminally — unlock sequential queue so next repo is not deadlocked
+      // An orchestrator phase died terminally (sandbox boot failure, OOM, unhandled throw). The
+      // sequential queue was already released below, but nothing ever closed out the run itself:
+      // `runs` stayed 'running' and the repository stayed locked in 'pending_audit' forever, so the
+      // dashboard showed a permanently spinning run and pushWorker re-queued every later commit
+      // behind a repo that never became active again. Close both out here, before advancing the
+      // queue, so the deadlock cannot survive the crash that caused it.
+      const { runId, repoFullName } = job.data;
+      try {
+        if (runId) {
+          // 'failed' — not 'error' — because that is the vocabulary the rest of the system reads:
+          // the dashboard's status tone map and CommitHistory's "view report" gate both recognise
+          // 'failed', and an unknown status would hide the report for exactly the runs that need it.
+          await db.update(runs)
+            .set({ status: 'failed' })
+            .where(and(eq(runs.id, runId), ne(runs.status, 'completed')));
+        }
+        if (repoFullName) {
+          // Only lift the audit lock; a repo the user paused or that was never activated is left alone.
+          await db.update(repositories)
+            .set({ status: 'active' })
+            .where(and(eq(repositories.fullName, repoFullName), eq(repositories.status, 'pending_audit')));
+        }
+        console.warn(`[AgentQueue] Orchestrator failure cleanup: run #${runId} marked failed, ${repoFullName} unlocked.`);
+      } catch (cleanupErr: any) {
+        console.error(`[AgentQueue] Could not close out run #${runId} after orchestrator failure:`, cleanupErr?.message);
+      }
+
+      // Unlock sequential queue so the next repo is not deadlocked
       try {
         const { advanceSequentialQueue } = await import('./sweeper.service.js');
         await advanceSequentialQueue();
