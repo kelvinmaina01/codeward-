@@ -1,11 +1,11 @@
 import { NotificationService } from './apps/api/src/notifications/NotificationService.js';
 
 async function testEmail() {
-  console.log("Sending test email to kelvin.reallife8@gmail.com...");
+  console.log("Sending test email to test@example.com...");
   
   try {
     const result = await NotificationService.sendRunFailure(
-      'kelvin.reallife8@gmail.com',
+      'test@example.com',
       'acme-corp/codeward-dashboard',
       'Security Agent',
       1001,

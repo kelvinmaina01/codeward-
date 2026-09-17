@@ -47,7 +47,7 @@ async function runTests() {
   assert.ok(process.env.EUSEND_API_KEY, 'EUSEND_API_KEY must be present in environment for live verification');
   
   const liveSend = await sendEmailViaEusend({
-    to: 'kelvin.reallife8@gmail.com',
+    to: 'test@example.com',
     subject: 'Automated Eusend Fallback Verification',
     html: '<div style="font-family:sans-serif;padding:16px;"><h3>Codeward Email Fallback Active</h3><p>This email confirms that the Eusend failover provider is operational and verified.</p></div>',
     text: 'Codeward Email Fallback Active. This email confirms that the Eusend failover provider is operational.',

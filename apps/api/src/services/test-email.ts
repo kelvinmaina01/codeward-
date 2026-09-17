@@ -13,7 +13,7 @@ async function run() {
   console.log('Using RESEND_API_KEY:', process.env.RESEND_API_KEY ? 'Set' : 'NOT SET');
   
   const res = await sendWorkspaceInviteMagicLink({
-    toEmail: 'kelvin202maina@gmail.com',
+    toEmail: 'test@example.com',
     workspaceName: 'Codeward Cloud',
     inviterName: 'Kelvin',
     inviteToken: 'test-magic-token-1234',

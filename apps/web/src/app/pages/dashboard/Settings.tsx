@@ -684,7 +684,7 @@ export function Settings() {
   };
 
   const userId = session?.user?.id || '310519663286786535';
-  const userEmail = session?.user?.email || 'kelvin202maina@gmail.com';
+  const userEmail = session?.user?.email || 'test@example.com';
   const webhookUrl = 'https://6da03ff7-234d-4d3e-ab48df5075fb7.codeward.app/reposeive';
 
   // ── Billing portal & live billing info ─────────────────────────────────────

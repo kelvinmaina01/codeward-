@@ -13,7 +13,7 @@ import { AccountDeletionEmail } from '../src/notifications/templates/AccountDele
 
 dotenv.config();
 
-const targetEmail = process.argv[2] || process.env.TEST_EMAIL || 'kelvin.reallife8@gmail.com';
+const targetEmail = process.argv[2] || process.env.TEST_EMAIL || 'test@example.com';
 const apiKey = process.env.RESEND_API_KEY;
 
 if (!apiKey) {

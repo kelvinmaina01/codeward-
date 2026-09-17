@@ -24,24 +24,26 @@ Parameters:
 
   TargetGroupArn:
     Type: String
-    Default: arn:aws:elasticloadbalancing:eu-north-1:796468524859:targetgroup/codeward-api-tg/e58ede887bd4132c
+    Default: arn:aws:elasticloadbalancing:eu-north-1:<YOUR_AWS_ACCOUNT_ID>:targetgroup/codeward-api-tg/e58ede887bd4132c
 
   ImageUri:
     Type: String
-    Default: 796468524859.dkr.ecr.eu-north-1.amazonaws.com/codeward-api:latest
+    Default: <YOUR_AWS_ACCOUNT_ID>.dkr.ecr.eu-north-1.amazonaws.com/codeward-api:latest
 
   DatabaseUrl:
     Type: String
     NoEcho: true
-    Description: Full PostgreSQL connection URL (e.g. postgresql://postgres:PASSWORD@codeward-postgres.cdg8qa4mglvg.eu-north-1.rds.amazonaws.com:5432/codeward)
+    # TODO(DevOps): These endpoints were scrubbed for Open Source. Inject real values via CI/CD secrets during deployment.
+    Description: Full PostgreSQL connection URL (e.g. postgresql://postgres:PASSWORD@<INJECT_RDS_ENDPOINT_HERE>:5432/codeward)
 
   RedisUrl:
     Type: String
-    Default: rediss://codeward-valkey-grelfc.serverless.eun1.cache.amazonaws.com:6379
+    # TODO(DevOps): These endpoints were scrubbed for Open Source. Inject real values via CI/CD secrets during deployment.
+    Default: rediss://<INJECT_VALKEY_ENDPOINT_HERE>:6379
 
   ApiUrl:
     Type: String
-    Default: http://codeward-alb-1287634675.eu-north-1.elb.amazonaws.com
+    Default: http://<YOUR_ALB_HOSTNAME>
 
   FrontendUrl:
     Type: String

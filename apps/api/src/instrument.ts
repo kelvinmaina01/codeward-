@@ -1,7 +1,11 @@
 import * as Sentry from "@sentry/node";
 
+// No DSN fallback on purpose: the project DSN must never be baked into a public repo.
+// `dsn` is typed `string | undefined`, and Sentry disables itself when it is absent — so a
+// deployment without SENTRY_DSN degrades to a silent no-op rather than reporting to someone
+// else's project or throwing at boot.
 Sentry.init({
-  dsn: process.env.SENTRY_DSN || "https://698b121fce17c5fa06d9c78985380861@o4511559899348992.ingest.us.sentry.io/4511559899611136",
+  dsn: process.env.SENTRY_DSN,
   environment: process.env.NODE_ENV || "production",
   tracesSampleRate: 1.0,
 });

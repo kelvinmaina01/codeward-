@@ -90,7 +90,7 @@ async function runTests() {
   // ─── Test 5: End-to-End NotificationService Dispatch ────────────────────────
   console.log('\nTest 5: NotificationService Methods Dispatch (Mock / Live Safe)...');
   const res1 = await NotificationService.sendReposConnectedInitiated({
-    to: 'kelvin.reallife8@gmail.com',
+    to: 'test@example.com',
     userName: 'Kelvin Maina',
     activeRepo: 'kelvinmaina01/codeward-core',
     queuedRepos: ['kelvinmaina01/codeward-api'],
@@ -99,7 +99,7 @@ async function runTests() {
   assert(res1?.id, 'sendReposConnectedInitiated returned dispatch id');
 
   const res2 = await NotificationService.sendQueuedRepoStarted({
-    to: 'kelvin.reallife8@gmail.com',
+    to: 'test@example.com',
     userName: 'Kelvin Maina',
     previousRepo: 'kelvinmaina01/codeward-core',
     activeRepo: 'kelvinmaina01/codeward-api',
@@ -109,7 +109,7 @@ async function runTests() {
   assert(res2?.id, 'sendQueuedRepoStarted returned dispatch id');
 
   const res3 = await NotificationService.sendRepoConnectedSuccess(
-    'kelvin.reallife8@gmail.com',
+    'test@example.com',
     'kelvinmaina01/codeward-core',
     94,
     'http://localhost:5173/dashboard'

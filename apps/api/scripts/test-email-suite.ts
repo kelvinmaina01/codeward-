@@ -150,7 +150,7 @@ async function runTestSuite() {
   // TEST 7: 3-Tier Dynamic Email Verifier
   // ──────────────────────────────────────────────────────────────────────────
   console.log('\n--- 7. Testing 3-Tier Dynamic Email Verifier ---');
-  const validCheck = await verifyEmailRealTime('kelvin202maina@gmail.com');
+  const validCheck = await verifyEmailRealTime('test@example.com');
   assert(validCheck.isValid === true, `Valid email verified: ${validCheck.message}`);
 
   const invalidSyntax = await verifyEmailRealTime('bad-email-without-at');

@@ -1,9 +1,14 @@
 let posthogClient: any = null;
 let sentryClient: any = null;
 
-const POSTHOG_KEY = import.meta.env.VITE_POSTHOG_KEY || 'phc_mGYo7kQ8SjppUerjFEawikA4DjnKsitzhad5oxrzS4r7';
+// Project-identifying telemetry credentials are env-only — never baked into a public repo.
+// Both are already guarded by `if (SENTRY_DSN)` / `if (POSTHOG_KEY)` below, so a build without
+// them simply skips that SDK and every exported helper stays a safe no-op.
+// POSTHOG_HOST keeps its default: it is PostHog's public SaaS ingest endpoint, not a credential,
+// and dropping it would break api_host for self-hosted-agnostic builds.
+const POSTHOG_KEY = import.meta.env.VITE_POSTHOG_KEY;
 const POSTHOG_HOST = import.meta.env.VITE_POSTHOG_HOST || 'https://us.i.posthog.com';
-const SENTRY_DSN = import.meta.env.VITE_SENTRY_DSN || 'https://698b121fce17c5fa06d9c78985380861@o4511559899348992.ingest.us.sentry.io/4511559899611136';
+const SENTRY_DSN = import.meta.env.VITE_SENTRY_DSN;
 
 let initialized = false;
 
