@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useMemo, lazy, Suspense, startTransition }
 import { useRoutes, Navigate, useNavigate, useLocation, useParams, NavLink } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import {
-  LayoutDashboard, Radio, GitCompare, ShieldAlert, BarChart3,
+  LayoutDashboard, Radio, GitCompare, ShieldAlert, BarChart3, Activity,
   Bot, Monitor, Clock, GitFork, Award, Settings as SettingsIcon,
   Sun, Moon, Circle, Menu, LogOut, LucideIcon, ChevronDown, Plus, Blocks, Bell, Globe, X,
   LayoutGrid, TerminalSquare, Sparkles, FileText, BadgeCheck, GitPullRequest
@@ -10,10 +10,8 @@ import {
 import {
   DashboardSquare01Icon,
   Notification02Icon,
-  Radio01Icon,
   GitCompareIcon,
   GitPullRequestIcon,
-  AiSecurity01Icon,
   Analytics01Icon,
   LaptopIcon,
   Clock01Icon,
@@ -369,8 +367,8 @@ function DashboardLayout() {
         label: 'Live feed', 
         dot: systemBadges.livefeed > 0 ? 'a' : '', 
         badge: systemBadges.livefeed > 0 ? systemBadges.livefeed : undefined, 
-        icon: Radio01Icon, 
-        path: '/dashboard/livefeed' 
+        icon: Activity,
+        path: '/dashboard/livefeed'
       },
     ]},
     { group: 'Analysis', items: [
@@ -381,8 +379,8 @@ function DashboardLayout() {
         label: 'Security', 
         dot: systemBadges.security > 0 ? 'r' : '', 
         badge: systemBadges.security > 0 ? systemBadges.security : undefined, 
-        icon: AiSecurity01Icon, 
-        path: '/dashboard/security' 
+        icon: ShieldAlert,
+        path: '/dashboard/security'
       },
       { id: 'debt', label: 'Debt report', dot: 'a', icon: Analytics01Icon, path: '/dashboard/debt' },
     ]},
