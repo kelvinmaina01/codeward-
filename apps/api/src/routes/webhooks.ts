@@ -145,6 +145,12 @@ webhookRouter.post('/github', async (c) => {
         return c.json({ status: 'ignored', reason: 'repo not connected' });
       }
 
+      // Auto-heal missing installationId from webhook payload if available
+      if (!repo.installationId && data.installation?.id) {
+        repo.installationId = Number(data.installation.id);
+        await db.update(repositories).set({ installationId: repo.installationId }).where(eq(repositories.id, repo.id));
+      }
+
       // Tier 1: Global budget sentinel
       const isBudgetOk = await BudgetService.checkGlobalBudget();
       if (!isBudgetOk) {

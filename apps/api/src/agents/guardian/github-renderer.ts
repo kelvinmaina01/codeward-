@@ -81,14 +81,62 @@ export function renderGuardianStatusComment(params: {
   repoFullName: string;
   commitSha: string;
   estimatedDurationSeconds: number;
+  runId?: number | string;
 }): string {
+  const dashboardUrl = `${process.env.FRONTEND_URL || 'https://codeward.cloud'}/livefeed`;
   return [
-    '## Codeward is working',
+    `### 🛡️ Codeward Autonomous Code Review Dispatched`,
     '',
-    `Analyzing \`${params.repoFullName}@${shortSha(params.commitSha)}\` in an isolated sandbox.`,
+    `Codeward received this pull request and initialized an isolated **Firecracker microVM sandbox** for comprehensive multi-agent analysis on \`${params.repoFullName}@${shortSha(params.commitSha)}\`.`,
     '',
-    `Estimated time: ${params.estimatedDurationSeconds}s.`,
+    '#### 🤖 Dispatched Specialized Agents',
+    '| Agent | Domain | Focus Area | Status |',
+    '| :--- | :--- | :--- | :--- |',
+    '| **🛡️ Runtime Security** | OWASP & AppSec | SQLi, broken auth/RLS, secret leaks & vulnerability vectors | 🔄 Analyzing in sandbox |',
+    '| **🏛️ Architecture** | System Design | Circular dependencies, architectural drift & module coupling | 🔄 Analyzing in sandbox |',
+    '| **📦 Bloat & Dead Code** | Code Health | Zombie exports, bundle overhead & unused packages | 🔄 Analyzing in sandbox |',
+    '| **⚡ Data & DX** | Database & Queries | Schema migrations, index efficiency & query antipatterns | 🔄 Analyzing in sandbox |',
+    '| **🧠 AI-Era Safety** | LLM & Prompts | Prompt injection, model leakage & RAG hygiene | 🔄 Analyzing in sandbox |',
+    '| **🩺 Bug Detection** | Reliability | Null dereferences, unhandled promises & runtime bugs | 🔄 Analyzing in sandbox |',
+    '| **⚖️ Compliance** | Governance | License compatibility, PII handling & audit trails | 🔄 Analyzing in sandbox |',
+    '| **💂 Guardian** | Orchestrator | Verification in sandbox, auto-fix dry-runs & merge verdict | ⏳ Waiting for signals |',
+    '',
+    '> ☕ **Please be patient while our agents do the heavy lifting.**',
+    `> Unlike traditional superficial linters, Codeward executes real static & dynamic checks and dry-runs potential fixes in an isolated sandbox. Analysis typically takes **~${Math.max(1, Math.round(params.estimatedDurationSeconds / 60))} minutes**.`,
+    '',
+    `📡 [**Track Live Sandbox Execution & Agent Feed on Codeward Dashboard →**](${dashboardUrl})`,
+    '',
+    `<sub>Run #${params.runId ?? 'pending'} · Commit \`${shortSha(params.commitSha)}\`</sub>`,
   ].join('\n');
+}
+
+export function renderGuardianInitialCheck(params: {
+  repoFullName: string;
+  commitSha: string;
+  runId?: number | string;
+}): { title: string; summary: string } {
+  const dashboardUrl = `${process.env.FRONTEND_URL || 'https://codeward.cloud'}/livefeed`;
+  return {
+    title: '🛡️ Codeward Agents Dispatched — Sandbox Analysis in Progress',
+    summary: [
+      `### 🛡️ Codeward Autonomous Multi-Agent Review In Progress`,
+      '',
+      `Codeward has provisioned an isolated **Firecracker microVM sandbox** for \`${params.repoFullName}\` at commit \`${shortSha(params.commitSha)}\`.`,
+      '',
+      '#### 🤖 Active Agents on this Pull Request',
+      '- **🛡️ Security & OWASP**: Analyzing injection vectors, secret leaks, and access controls.',
+      '- **🏛️ Architecture**: Inspecting dependency graph and module boundaries.',
+      '- **📦 Bloat & Dead Code**: Scanning for unused dependencies and tree-shaking opportunities.',
+      '- **⚡ Data & DX**: Auditing schema changes and query patterns.',
+      '- **🧠 AI-Era Safety**: Verifying prompt sanitization and RAG vector safety.',
+      '- **🩺 Bug Detection**: Checking runtime error paths and type boundaries.',
+      '- **💂 Guardian Orchestrator**: Will verify automated fixes and publish final recommendations.',
+      '',
+      '> ☕ **Real sandboxed verification underway.** Results will be posted here as soon as analysis completes.',
+      '',
+      `[**Open Live Feed & Logs →**](${dashboardUrl})`,
+    ].join('\n'),
+  };
 }
 
 export function renderGuardianInlineFindingComment(finding: GuardianFindingView): string {
