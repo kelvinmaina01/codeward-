@@ -187,6 +187,8 @@ Resources:
               Value: !Ref 'AWS::Region'
             - Name: BETTER_AUTH_URL
               Value: !Ref ApiUrl
+            - Name: SANDBOX_PROVIDER
+              Value: 'e2b'
           Secrets:
             - Name: GITHUB_APP_ID
               ValueFrom: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/codeward/prod/GITHUB_APP_ID'
@@ -206,6 +208,8 @@ Resources:
               ValueFrom: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/codeward/prod/GOOGLE_CLIENT_SECRET'
             - Name: FLY_API_TOKEN
               ValueFrom: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/codeward/prod/FLY_API_TOKEN'
+            - Name: E2B_API_KEY
+              ValueFrom: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/codeward/prod/E2B_API_KEY'
             - Name: OPENAI_API_KEY
               ValueFrom: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/codeward/prod/OPENAI_API_KEY'
             - Name: AGENTROUTER_API_KEY
@@ -297,6 +301,8 @@ Resources:
               Value: bedrock
             - Name: BEDROCK_REGION
               Value: !Ref 'AWS::Region'
+            - Name: SANDBOX_PROVIDER
+              Value: 'e2b'
           Secrets:
             - Name: GITHUB_APP_ID
               ValueFrom: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/codeward/prod/GITHUB_APP_ID'
@@ -312,6 +318,8 @@ Resources:
               ValueFrom: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/codeward/prod/BETTER_AUTH_SECRET'
             - Name: FLY_API_TOKEN
               ValueFrom: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/codeward/prod/FLY_API_TOKEN'
+            - Name: E2B_API_KEY
+              ValueFrom: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/codeward/prod/E2B_API_KEY'
             - Name: OPENAI_API_KEY
               ValueFrom: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/codeward/prod/OPENAI_API_KEY'
             - Name: AGENTROUTER_API_KEY
