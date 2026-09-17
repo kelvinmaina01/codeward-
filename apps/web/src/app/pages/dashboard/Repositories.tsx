@@ -551,9 +551,8 @@ export function Repositories({ activeOrg }: { activeOrg?: string }) {
                         <div className="absolute right-0 top-[calc(100%+4px)] z-50 w-48 rounded-xl border border-cw-bdr bg-cw-bg2 shadow-2xl overflow-hidden animate-fade-in">
                           <button
                             onClick={() => { setOpenMenuId(null); setRemoveModalRepo(repo); }}
-                            disabled={repo.status === 'pending_audit'}
-                            title={repo.status === 'pending_audit' ? 'Cannot remove while audit is running' : `Remove ${repo.fullName} from Codeward`}
-                            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-[13px] text-cw-red hover:bg-cw-red/10 transition-colors text-left disabled:opacity-40 disabled:cursor-not-allowed"
+                            title={`Remove ${repo.fullName} from Codeward`}
+                            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-[13px] text-cw-red hover:bg-cw-red/10 transition-colors text-left"
                           >
                             <Trash2 size={13} /> Remove from Codeward
                           </button>
@@ -675,7 +674,8 @@ export function Repositories({ activeOrg }: { activeOrg?: string }) {
                   <div>
                     <span className="font-semibold">Audit in progress</span>
                     <p className="text-cw-txt2 mt-0.5 text-[11px]">
-                      This repository is currently being audited. Removal is blocked until the audit completes.
+                      This repository is marked as being audited. If the audit is still running, removal is
+                      blocked and you'll be told how long is left. If it has stalled, removal proceeds.
                     </p>
                   </div>
                 </div>
@@ -711,7 +711,7 @@ export function Repositories({ activeOrg }: { activeOrg?: string }) {
                 <button
                   type="button"
                   onClick={() => removeRepo(removeModalRepo)}
-                  disabled={removingId === removeModalRepo.id || removeModalRepo.status === 'pending_audit'}
+                  disabled={removingId === removeModalRepo.id}
                   className="px-4 py-2 rounded-lg text-[13px] font-semibold bg-cw-red hover:bg-cw-red/90 text-white transition-all flex items-center gap-2 shadow-md shadow-cw-red/20 disabled:opacity-50 cursor-pointer border-none"
                 >
                   {removingId === removeModalRepo.id ? (

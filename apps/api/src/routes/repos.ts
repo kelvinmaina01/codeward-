@@ -740,14 +740,35 @@ reposRouter.delete('/:id', async (c) => {
     if (!membership) return c.json({ error: 'Forbidden' }, 403);
   }
 
-  // Block removal while an audit is actively running
+  // Block removal while an audit is GENUINELY running — but not forever.
+  //
+  // The previous guard rejected any repo in 'pending_audit' unconditionally, which meant a repo
+  // whose orchestrator crashed (sandbox boot failure, OOM) stayed permanently undeletable: the
+  // status is only cleared on a clean finish, so a dead audit locked the row for good and the UI's
+  // Remove button was disabled with no recourse. An audit older than STALE_AUDIT_MS cannot still
+  // be running — a single agent job times out at 15 minutes — so past that point the lock is
+  // treated as debris and removal is allowed.
+  const STALE_AUDIT_MS = 30 * 60 * 1000;
   if (repo.status === 'pending_audit') {
-    return c.json(
-      {
-        error:
-          'Cannot remove a repository that is currently being audited. Wait for the audit to complete, then try again.',
-      },
-      409,
+    const startedAt = repo.auditTriggeredAt ? new Date(repo.auditTriggeredAt).getTime() : null;
+    const ageMs = startedAt != null ? Date.now() - startedAt : null;
+    const auditIsLive = ageMs != null && ageMs < STALE_AUDIT_MS;
+
+    if (auditIsLive) {
+      const minsLeft = Math.ceil((STALE_AUDIT_MS - (ageMs as number)) / 60000);
+      return c.json(
+        {
+          error:
+            'Cannot remove a repository that is currently being audited. Wait for the audit to complete, then try again.' +
+            ` If it appears stuck, it can be force-removed in ${minsLeft} minute(s).`,
+        },
+        409,
+      );
+    }
+
+    console.warn(
+      `[Repos] Force-removing ${repo.fullName} (#${repo.id}) — audit lock is stale ` +
+      `(${startedAt == null ? 'no auditTriggeredAt recorded' : `${Math.round((ageMs as number) / 60000)} min old`}).`
     );
   }
 
