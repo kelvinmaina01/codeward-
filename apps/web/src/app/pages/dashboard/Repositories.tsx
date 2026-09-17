@@ -363,8 +363,8 @@ export function Repositories({ activeOrg }: { activeOrg?: string }) {
           <p className="text-[13px] text-cw-txt2">Try adjusting your search or connect a new repository.</p>
         </div>
       ) : (
-        <div className="border border-cw-bdr rounded-lg bg-cw-bg2 overflow-hidden shadow-sm">
-          <div className="bg-cw-bg3 px-5 py-3 border-b border-cw-bdr flex justify-between items-center">
+        <div className="border border-cw-bdr rounded-lg bg-cw-bg2 shadow-sm">
+          <div className="bg-cw-bg3 px-5 py-3 border-b border-cw-bdr rounded-t-lg flex justify-between items-center">
             <span className="text-[13px] font-semibold text-cw-txt">{filteredRepos.length} Repositories</span>
           </div>
           <div className="flex flex-col">
