@@ -11,8 +11,8 @@ export const API_URL = (rawApiUrl && !rawApiUrl.includes('your-railway-api'))
 
 const rawWsUrl = (import.meta.env.VITE_WS_URL || '').trim();
 export const WS_URL = (rawWsUrl && !rawWsUrl.includes('your-railway-api'))
-  ? rawWsUrl.replace(/\/+$/, '')
-  : `${API_URL.replace(/^http/, 'ws')}/ws/feed`;
+  ? rawWsUrl.replace(/\/+$/, '').replace(/\/ws\/feed\/?$/, '')
+  : API_URL.replace(/^http/, 'ws').replace(/\/+$/, '').replace(/\/ws\/feed\/?$/, '');
 
 
 

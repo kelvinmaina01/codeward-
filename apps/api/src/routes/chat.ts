@@ -21,16 +21,16 @@ const patchSessionSchema = z.object({
 // because it carries the AI SDK's UIMessage shape, which the handler passes through verbatim.
 const chatRequestSchema = z.object({
   messages: z.array(z.any()),
-  sessionId: z.string().optional(),
-  repoId: z.number().optional(),
-  ref: z.string().optional(),
-  permissionMode: z.enum(['default', 'auto_review', 'full_access']).optional(),
+  sessionId: z.string().nullable().optional(),
+  repoId: z.union([z.number(), z.string().regex(/^\d+$/).transform(Number)]).nullable().optional(),
+  ref: z.string().nullable().optional(),
+  permissionMode: z.string().nullable().optional(),
   attachments: z.array(z.object({
     name: z.string().optional(),
     content: z.string().optional(),
     size: z.number().optional(),
-  })).optional().default([]),
-  planMode: z.boolean().optional().default(false),
+  })).nullable().optional().transform(v => v || []),
+  planMode: z.boolean().nullable().optional().transform(v => Boolean(v)),
 });
 
 const GORDON_SYSTEM = `You are Gordon — Codeward's principal-engineer chat agent. You are NOT a generic chatbot: you answer from real data by calling tools, never from guesses.
