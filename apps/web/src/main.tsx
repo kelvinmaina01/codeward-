@@ -1,6 +1,7 @@
 import React, { Component, ErrorInfo } from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
+import { Analytics } from '@vercel/analytics/react';
 import App from './app/App.tsx';
 import './styles/index.css';
 import { initAnalytics, Sentry } from './lib/posthog';
@@ -116,6 +117,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     <ErrorBoundary>
       <BrowserRouter>
         <App />
+        <Analytics />
       </BrowserRouter>
     </ErrorBoundary>
   </React.StrictMode>
