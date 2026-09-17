@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Search, Loader, AlertCircle, Play, Pause, Settings as SettingsIcon, BarChart2, GitFork, GitPullRequest, Lock, Globe, Wrench, RotateCcw, Clock, ShieldAlert, X } from 'lucide-react';
+import { Search, Loader, AlertCircle, Play, Pause, BarChart2, GitFork, GitPullRequest, Lock, Globe, Wrench, RotateCcw, Clock, ShieldAlert, X, MoreVertical, Settings as SettingsIcon, Trash2 } from 'lucide-react';
 import { toast } from '../../lib/toast-bridge';
 import { API_URL } from '../../../lib/api';
 
@@ -177,6 +177,9 @@ export function Repositories({ activeOrg }: { activeOrg?: string }) {
   const [autoFixingId, setAutoFixingId] = useState<number | null>(null);
   const [retryingId, setRetryingId] = useState<number | null>(null);
   const [confirmModalRepo, setConfirmModalRepo] = useState<ConnectedRepo | null>(null);
+  const [openMenuId, setOpenMenuId] = useState<number | null>(null);
+  const [removeModalRepo, setRemoveModalRepo] = useState<ConnectedRepo | null>(null);
+  const [removingId, setRemovingId] = useState<number | null>(null);
   const handledDeepLinkRef = useRef(false);
 
   // Filters
@@ -283,6 +286,25 @@ export function Repositories({ activeOrg }: { activeOrg?: string }) {
       toast.error(err.message || 'Failed to update auto-fix setting');
     } finally {
       setAutoFixingId(null);
+    }
+  };
+
+  const removeRepo = async (repo: ConnectedRepo) => {
+    setRemovingId(repo.id);
+    try {
+      const res = await fetch(`${API_URL}/api/repos/${repo.id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || 'Failed to remove repository');
+      setRepos((prev) => prev.filter((r) => r.id !== repo.id));
+      setRemoveModalRepo(null);
+      toast.success(`${repo.fullName} has been disconnected from Codeward.`);
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to remove repository');
+    } finally {
+      setRemovingId(null);
     }
   };
 
@@ -478,12 +500,38 @@ export function Repositories({ activeOrg }: { activeOrg?: string }) {
                     >
                       <BarChart2 size={14} /> Runs
                     </button>
-                    <button
-                      onClick={() => navigate('/dashboard/settings')}
-                      className="w-8 h-[30px] flex items-center justify-center bg-cw-bg border border-cw-bdr hover:bg-cw-bg2 text-cw-txt rounded-lg transition-colors"
-                    >
-                      <SettingsIcon size={14} />
-                    </button>
+
+                    {/* 3-dot menu */}
+                    <div className="relative">
+                      <button
+                        id={`repo-menu-btn-${repo.id}`}
+                        onClick={() => setOpenMenuId(openMenuId === repo.id ? null : repo.id)}
+                        onBlur={() => setTimeout(() => setOpenMenuId(null), 150)}
+                        title="More options"
+                        className="w-8 h-[30px] flex items-center justify-center bg-cw-bg border border-cw-bdr hover:bg-cw-bg2 text-cw-txt rounded-lg transition-colors"
+                      >
+                        <MoreVertical size={14} />
+                      </button>
+                      {openMenuId === repo.id && (
+                        <div className="absolute right-0 top-[calc(100%+4px)] z-50 w-48 rounded-xl border border-cw-bdr bg-cw-bg2 shadow-2xl overflow-hidden animate-fade-in">
+                          <button
+                            onClick={() => { setOpenMenuId(null); navigate('/dashboard/settings'); }}
+                            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-[13px] text-cw-txt hover:bg-cw-bg3 transition-colors text-left"
+                          >
+                            <SettingsIcon size={13} className="text-cw-txt3" /> Settings
+                          </button>
+                          <div className="border-t border-cw-bdr" />
+                          <button
+                            onClick={() => { setOpenMenuId(null); setRemoveModalRepo(repo); }}
+                            disabled={repo.status === 'pending_audit'}
+                            title={repo.status === 'pending_audit' ? 'Cannot remove while audit is running' : `Remove ${repo.fullName} from Codeward`}
+                            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-[13px] text-cw-red hover:bg-cw-red/10 transition-colors text-left disabled:opacity-40 disabled:cursor-not-allowed"
+                          >
+                            <Trash2 size={13} /> Remove from Codeward
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               );
@@ -564,6 +612,84 @@ export function Repositories({ activeOrg }: { activeOrg?: string }) {
                       <RotateCcw size={14} />
                       Confirm & Start Scan
                     </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Remove Repository Confirmation Modal */}
+      {removeModalRepo && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fade-in">
+          <div className="bg-cw-bg border border-cw-bdr rounded-2xl w-full max-w-md overflow-hidden shadow-2xl animate-scale-up">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-cw-bdr bg-cw-bg2">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-cw-red/10 border border-cw-red/30 flex items-center justify-center text-cw-red">
+                  <Trash2 size={16} />
+                </div>
+                <h3 className="text-[15px] font-semibold text-cw-txt">Remove Repository</h3>
+              </div>
+              <button
+                onClick={() => setRemoveModalRepo(null)}
+                className="w-7 h-7 rounded-lg hover:bg-cw-bg3 flex items-center justify-center text-cw-txt3 hover:text-cw-txt transition-colors border-none bg-transparent cursor-pointer"
+              >
+                <X size={15} />
+              </button>
+            </div>
+
+            <div className="p-6 flex flex-col gap-4">
+              {/* Auditing warning */}
+              {removeModalRepo.status === 'pending_audit' && (
+                <div className="flex items-start gap-2.5 p-3 rounded-lg bg-cw-amber/10 border border-cw-amber/20 text-[12px] text-cw-amber">
+                  <ShieldAlert size={16} className="shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-semibold">Audit in progress</span>
+                    <p className="text-cw-txt2 mt-0.5 text-[11px]">
+                      This repository is currently being audited. Removal is blocked until the audit completes.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              <div className="text-[13px] text-cw-txt leading-relaxed">
+                This will permanently disconnect{' '}
+                <strong className="text-cw-red font-mono">{removeModalRepo.fullName}</strong>{' '}
+                from Codeward. All scan history, reports, and agent data for this repository will be deleted.
+              </div>
+
+              <div className="text-[12px] text-cw-txt3 bg-cw-bg2 p-3.5 rounded-xl border border-cw-bdr flex flex-col gap-1.5">
+                <div className="flex items-center gap-2 text-cw-txt font-medium">
+                  <span className="w-2 h-2 rounded-full bg-cw-red" />
+                  This action cannot be undone
+                </div>
+                <ul className="text-[11px] text-cw-txt2 leading-relaxed list-disc ml-4 flex flex-col gap-0.5">
+                  <li>All runs and scan reports deleted</li>
+                  <li>GitHub App remains installed — uninstall it separately if needed</li>
+                  <li>You can reconnect the repository at any time</li>
+                </ul>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setRemoveModalRepo(null)}
+                  disabled={removingId === removeModalRepo.id}
+                  className="px-4 py-2 rounded-lg text-[13px] font-medium text-cw-txt2 hover:text-cw-txt hover:bg-cw-bg2 transition-colors border-none bg-transparent cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => removeRepo(removeModalRepo)}
+                  disabled={removingId === removeModalRepo.id || removeModalRepo.status === 'pending_audit'}
+                  className="px-4 py-2 rounded-lg text-[13px] font-semibold bg-cw-red hover:bg-cw-red/90 text-white transition-all flex items-center gap-2 shadow-md shadow-cw-red/20 disabled:opacity-50 cursor-pointer border-none"
+                >
+                  {removingId === removeModalRepo.id ? (
+                    <><Loader size={14} className="animate-spin" /> Removing...</>
+                  ) : (
+                    <><Trash2 size={14} /> Remove Repository</>
                   )}
                 </button>
               </div>
