@@ -114,10 +114,15 @@ export function HelpDrawer({ isOpen, onClose }: HelpDrawerProps) {
             <span className="font-medium text-[14px]">Share feedback</span>
             <Lightbulb size={16} className="text-cw-txt2" />
           </button>
-          <div className="w-full flex items-center justify-between p-3 rounded-lg text-cw-txt cursor-pointer">
+          <a
+            href="https://codeward.instatus.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-cw-bg2 transition-colors text-cw-txt cursor-pointer no-underline group"
+          >
             <span className="font-medium text-[14px] text-cw-green">All systems operational</span>
             <div className="w-2 h-2 rounded-full bg-cw-green shrink-0"></div>
-          </div>
+          </a>
         </div>
 
         {/* Quick Actions */}

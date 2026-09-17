@@ -171,10 +171,15 @@ export function AdminLayout() {
                 <Menu size={20} />
               </button>
               <h2 className="text-[16px] font-bold text-cw-txt">{roomName}</h2>
-              <div className="px-3 py-1 rounded-full bg-cw-green/10 text-cw-green text-[12px] font-medium flex items-center gap-2 border border-cw-green/20">
+              <a
+                href="https://codeward.instatus.com/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-3 py-1 rounded-full bg-cw-green/10 hover:bg-cw-green/20 text-cw-green text-[12px] font-medium flex items-center gap-2 border border-cw-green/20 transition-colors"
+              >
                 <div className="w-1.5 h-1.5 rounded-full bg-cw-green animate-pulse" />
                 All systems operational
-              </div>
+              </a>
             </div>
             
             <div className="flex items-center">
