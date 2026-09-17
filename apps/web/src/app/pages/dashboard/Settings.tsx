@@ -5,7 +5,7 @@ import {
   User, CreditCard, Users, Code2, Copy, Check, RefreshCw, KeyRound, Webhook, LogOut,
   Sparkles, Calendar, ExternalLink, Plus, Trash2, Mail, AlertTriangle, ShieldCheck,
   Sliders, Zap, FileText, History, Globe, GitMerge, Inbox, ArrowUpRight, ChevronDown,
-  LoaderCircle, X as XIcon, Send, Activity,
+  LoaderCircle, X as XIcon, Send, Activity, TerminalSquare,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { toast } from '@/app/lib/toast-bridge';
@@ -1593,157 +1593,81 @@ export function Settings() {
             {/* ── TAB 5: DEVELOPERS & API ── */}
             {activeTab === 'developers' && (
               <>
+                {/*
+                  Private Beta: the API-key table and webhook forms that used to live here were
+                  mock functional UI with no backend behind them. Shipping controls that look
+                  live but do nothing is worse than an honest "not yet" — so this tab states
+                  exactly what is coming, with the same chrome every other settings card uses.
+                */}
                 <SectionCard
-                  title="API keys"
-                  icon={KeyRound}
-                  description="Authenticate CLI scripts, CI/CD pipelines, and external automated tools."
+                  title="Developers & API"
+                  icon={Code2}
+                  description="Programmatic access to Codeward — in development for the enterprise tier."
                   flush
-                  actions={
-                    <button type="button" onClick={() => setShowKeyModal(true)} className={BTN_PRIMARY}>
-                      <Plus size={13} /> Generate new key
-                    </button>
-                  }
+                  actions={<Pill tone="purple" dot>Coming soon</Pill>}
                 >
-                  {apiKeys.length === 0 ? (
-                    <EmptyState icon={KeyRound} title="No API keys yet." hint="Generate a key to authenticate the CLI or a CI pipeline." />
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <table className="w-full min-w-[600px] text-left border-collapse">
-                        <thead>
-                          <tr className="text-[10px] uppercase tracking-[0.08em] text-cw-txt3 bg-cw-bg/40">
-                            <th scope="col" className={TH}>Key name</th>
-                            <th scope="col" className={TH}>Token prefix</th>
-                            <th scope="col" className={TH}>Created</th>
-                            <th scope="col" className={TH}>Last used</th>
-                            <th scope="col" className={`${TH} text-right`}><span className="sr-only">Actions</span></th>
-                          </tr>
-                        </thead>
-                        <tbody className="text-[12px] text-cw-txt divide-y divide-cw-bdr">
-                          {apiKeys.map((key) => (
-                            <tr key={key.id} className="hover:bg-cw-bg3/40 transition-colors">
-                              <td className={`${TD} font-medium text-cw-txt`}>{key.name}</td>
-                              <td className={`${TD} font-mono text-[11px] text-cw-purple whitespace-nowrap`}>{key.prefix}</td>
-                              <td className={`${TD} text-cw-txt3 text-[11px] whitespace-nowrap tabular-nums`}>{key.createdAt}</td>
-                              <td className={`${TD} text-cw-txt3 text-[11px] whitespace-nowrap`}>{key.lastUsed}</td>
-                              <td className={`${TD} text-right`}>
-                                <button
-                                  type="button"
-                                  onClick={() => handleRevokeApiKey(key.id)}
-                                  className={`${BTN_GHOST_SM} hover:text-cw-red hover:border-cw-red/40`}
-                                  title="Revoke key"
-                                >
-                                  <Trash2 size={12} /> Revoke
-                                </button>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                  {/* Hero — same dashed-box grammar as EmptyState, scaled up one step */}
+                  <div className="flex flex-col items-center text-center gap-3 px-4 sm:px-5 pt-10 pb-8 border-b border-cw-bdr">
+                    <div className="w-12 h-12 rounded-md border border-dashed border-cw-bdr bg-cw-bg/60 flex items-center justify-center text-cw-txt3">
+                      <TerminalSquare size={20} strokeWidth={1.5} />
                     </div>
-                  )}
-                </SectionCard>
-
-                <SectionCard
-                  title="Incoming webhook"
-                  icon={Webhook}
-                  description="Add this endpoint URL in your GitHub or GitLab repository settings to trigger Codeward scans on push events."
-                >
-                  <div className="py-3 border-b border-cw-bdr">
-                    <div className={`${MICRO_LABEL} mb-1.5`}>Endpoint URL</div>
-                    <div className="flex gap-2">
-                      <code className="flex-1 min-w-0 px-2.5 py-1.5 border border-cw-bdr rounded-md text-[11px] bg-cw-bg text-cw-purple font-mono truncate">
-                        {webhookUrl}
-                      </code>
-                      <button type="button" onClick={() => copyToClipboard(webhookUrl, setCopiedWebhook)} className={`${BTN_SECONDARY} shrink-0`}>
-                        {copiedWebhook ? <Check size={12} className="text-cw-green" /> : <Copy size={12} />}
-                        {copiedWebhook ? 'Copied' : 'Copy'}
-                      </button>
+                    <div className="max-w-[440px]">
+                      <div className="text-[14px] font-semibold text-cw-txt leading-5">The developer surface is being built.</div>
+                      <p className="text-[12px] text-cw-txt3 leading-4 mt-1.5">
+                        Public API access, programmatic CLI tokens and custom webhook integrations are in
+                        development for the enterprise tier. Everything Codeward does today keeps running
+                        through the GitHub App integration — nothing here is required to review pull requests.
+                      </p>
                     </div>
                   </div>
-                  <div className="py-3">
-                    <div className={`${MICRO_LABEL} mb-1.5`}>HMAC webhook secret</div>
-                    <div className="flex gap-2">
-                      <input
-                        type="password"
-                        aria-label="HMAC webhook secret"
-                        value="••••••••••••••••••••••••••••"
-                        readOnly
-                        className={`${INPUT} flex-1 min-w-0 font-mono`}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setRotatedSecret(true);
-                          toast.success('HMAC Secret token rotated');
-                          setTimeout(() => setRotatedSecret(false), 2000);
-                        }}
-                        className={`${BTN_SECONDARY} shrink-0`}
-                      >
-                        <RefreshCw size={12} className={rotatedSecret ? 'animate-spin text-cw-purple' : ''} /> Rotate secret
-                      </button>
-                    </div>
-                  </div>
-                </SectionCard>
 
-                <SectionCard
-                  title="Outgoing webhooks"
-                  icon={ExternalLink}
-                  description="Send live JSON event payloads from Codeward to your internal APIs or Slack endpoints."
-                  flush
-                  actions={
-                    <button type="button" onClick={() => setShowWebhookModal(true)} className={BTN_PRIMARY}>
-                      <Plus size={13} /> Add destination
-                    </button>
-                  }
-                >
-                  {webhooks.length === 0 ? (
-                    <EmptyState icon={ExternalLink} title="No outgoing webhooks configured." hint="Add a destination to receive event payloads." />
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <table className="w-full min-w-[640px] text-left border-collapse">
-                        <thead>
-                          <tr className="text-[10px] uppercase tracking-[0.08em] text-cw-txt3 bg-cw-bg/40">
-                            <th scope="col" className={TH}>Endpoint URL</th>
-                            <th scope="col" className={TH}>Events</th>
-                            <th scope="col" className={TH}>Status</th>
-                            <th scope="col" className={`${TH} text-right`}><span className="sr-only">Actions</span></th>
-                          </tr>
-                        </thead>
-                        <tbody className="text-[12px] text-cw-txt divide-y divide-cw-bdr">
-                          {webhooks.map((wh) => (
-                            <tr key={wh.id} className="hover:bg-cw-bg3/40 transition-colors">
-                              <td className={`${TD} font-mono text-[11px] text-cw-txt max-w-[280px]`}>
-                                <span className="block truncate">{wh.url}</span>
-                              </td>
-                              <td className={TD}>
-                                <div className="flex flex-wrap gap-1">
-                                  {wh.events.map((ev) => <Pill key={ev} tone="neutral" mono>{ev}</Pill>)}
-                                </div>
-                              </td>
-                              <td className={TD}>
-                                <Pill tone={wh.status === 'failing' ? 'red' : 'green'} dot>{wh.status === 'failing' ? 'Failing' : 'Active'}</Pill>
-                              </td>
-                              <td className={`${TD} text-right whitespace-nowrap`}>
-                                <div className="inline-flex items-center gap-2">
-                                  <button type="button" onClick={() => toast.success('Test payload sent to ' + wh.url)} className={BTN_GHOST_SM}>
-                                    <Send size={11} /> Test
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleDeleteWebhook(wh.id)}
-                                    className={`${BTN_GHOST_SM} hover:text-cw-red hover:border-cw-red/40`}
-                                    title="Remove destination"
-                                  >
-                                    <Trash2 size={12} />
-                                  </button>
-                                </div>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
+                  {/* Capability manifest — a table, because that is what this tab will become */}
+                  <div className="overflow-x-auto">
+                    <table className="w-full min-w-[520px] text-left border-collapse">
+                      <thead>
+                        <tr className="text-[10px] uppercase tracking-[0.08em] text-cw-txt3 bg-cw-bg/40">
+                          <th scope="col" className={TH}>Capability</th>
+                          <th scope="col" className={TH}>What it unlocks</th>
+                          <th scope="col" className={`${TH} text-right`}>Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="text-[12px] text-cw-txt divide-y divide-cw-bdr">
+                        <tr>
+                          <td className={`${TD} whitespace-nowrap`}>
+                            <span className="inline-flex items-center gap-2 font-medium text-cw-txt">
+                              <KeyRound size={13} strokeWidth={1.5} className="text-cw-txt3 shrink-0" /> API keys
+                            </span>
+                          </td>
+                          <td className={`${TD} text-cw-txt2`}>Authenticate CLI scripts, CI/CD pipelines and external automation against the Codeward API.</td>
+                          <td className={`${TD} text-right whitespace-nowrap`}><Pill tone="neutral">Planned</Pill></td>
+                        </tr>
+                        <tr>
+                          <td className={`${TD} whitespace-nowrap`}>
+                            <span className="inline-flex items-center gap-2 font-medium text-cw-txt">
+                              <TerminalSquare size={13} strokeWidth={1.5} className="text-cw-txt3 shrink-0" /> CLI tokens
+                            </span>
+                          </td>
+                          <td className={`${TD} text-cw-txt2`}>Trigger scans and pull run results from a terminal or a build step, scoped per repository.</td>
+                          <td className={`${TD} text-right whitespace-nowrap`}><Pill tone="neutral">Planned</Pill></td>
+                        </tr>
+                        <tr>
+                          <td className={`${TD} whitespace-nowrap`}>
+                            <span className="inline-flex items-center gap-2 font-medium text-cw-txt">
+                              <Webhook size={13} strokeWidth={1.5} className="text-cw-txt3 shrink-0" /> Custom webhooks
+                            </span>
+                          </td>
+                          <td className={`${TD} text-cw-txt2`}>Deliver signed JSON event payloads for run, gate and auto-fix events to your own endpoints.</td>
+                          <td className={`${TD} text-right whitespace-nowrap`}><Pill tone="neutral">Planned</Pill></td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Footer — one quiet line, mono, like every other metadata strip in the product */}
+                  <div className="px-4 sm:px-5 py-2.5 border-t border-cw-bdr flex items-center justify-between gap-3 flex-wrap">
+                    <span className="font-mono text-[11px] text-cw-txt3 tabular-nums">tier: enterprise · status: in development</span>
+                    <span className="text-[11px] text-cw-txt3">Interested in early access? Reply to any Codeward email and we'll follow up.</span>
+                  </div>
                 </SectionCard>
               </>
             )}
