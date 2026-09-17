@@ -708,3 +708,50 @@ reposRouter.post('/sweeper/run', async (c) => {
     result,
   });
 });
+
+/**
+ * DELETE /api/repos/:id
+ * Disconnects a repository from Codeward. Cascades to all runs, run_results,
+ * run_logs, agent_tasks, and agent_reports via DB foreign-key constraints.
+ * Blocked while the repo is actively being audited (status = 'pending_audit').
+ */
+reposRouter.delete('/:id', async (c) => {
+  const session = await auth.api.getSession({ headers: c.req.raw.headers });
+  if (!session) return c.json({ error: 'Unauthorized' }, 401);
+
+  const repoId = Number(c.req.param('id'));
+  if (!Number.isFinite(repoId)) return c.json({ error: 'Invalid repo id' }, 400);
+
+  const [repo] = await db.select().from(schema.repositories).where(eq(schema.repositories.id, repoId));
+  if (!repo) return c.json({ error: 'Repository not found' }, 404);
+
+  // Verify ownership or org membership
+  if (repo.userId !== session.user.id) {
+    if (!repo.orgId) return c.json({ error: 'Forbidden' }, 403);
+    const [membership] = await db
+      .select()
+      .from(schema.organizationMember)
+      .where(
+        and(
+          eq(schema.organizationMember.userId, session.user.id),
+          eq(schema.organizationMember.orgId, repo.orgId),
+        ),
+      );
+    if (!membership) return c.json({ error: 'Forbidden' }, 403);
+  }
+
+  // Block removal while an audit is actively running
+  if (repo.status === 'pending_audit') {
+    return c.json(
+      {
+        error:
+          'Cannot remove a repository that is currently being audited. Wait for the audit to complete, then try again.',
+      },
+      409,
+    );
+  }
+
+  await db.delete(schema.repositories).where(eq(schema.repositories.id, repoId));
+
+  return c.json({ success: true, removed: repo.fullName });
+});
