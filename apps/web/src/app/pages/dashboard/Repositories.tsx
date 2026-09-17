@@ -185,6 +185,7 @@ export function Repositories({ activeOrg }: { activeOrg?: string }) {
   // Filters
   const [search, setSearch] = useState('');
   const [filterLang, setFilterLang] = useState('All');
+  const [filterStatus, setFilterStatus] = useState('All');
 
   const fetchConnectedRepos = async () => {
     setLoading(true);
@@ -314,7 +315,21 @@ export function Repositories({ activeOrg }: { activeOrg?: string }) {
     const matchesOrg = true; // TEMP FIX: !activeOrg || r.owner === activeOrg;
     const matchesSearch = !search || r.name.toLowerCase().includes(search.toLowerCase()) || (r.description && r.description.toLowerCase().includes(search.toLowerCase()));
     const matchesLang = filterLang === 'All' || r.language === filterLang;
-    return matchesOrg && matchesSearch && matchesLang;
+
+    let matchesStatus = true;
+    if (filterStatus === 'running') {
+      matchesStatus = r.status === 'pending_audit' || r.status === 'running';
+    } else if (filterStatus === 'completed') {
+      matchesStatus = !r.paused && (r.status === 'active' || r.healthScore != null || r.lastScanAt != null) && r.status !== 'failed_audit' && r.status !== 'pending_audit';
+    } else if (filterStatus === 'failed') {
+      matchesStatus = r.status === 'failed_audit' || r.status === 'failed';
+    } else if (filterStatus === 'paused') {
+      matchesStatus = Boolean(r.paused);
+    } else if (filterStatus === 'queued') {
+      matchesStatus = r.status === 'queued';
+    }
+
+    return matchesOrg && matchesSearch && matchesLang && matchesStatus;
   });
 
   const getHealthColor = (score: number) => {
@@ -327,8 +342,8 @@ export function Repositories({ activeOrg }: { activeOrg?: string }) {
     <div className="flex-1 overflow-y-auto px-8 py-6 bg-cw-bg text-cw-txt">
 
       {/* Filter Bar */}
-      <div className="flex gap-3 mb-6">
-        <div className="relative w-[300px]">
+      <div className="flex flex-wrap items-center gap-3 mb-6">
+        <div className="relative w-full sm:w-[300px]">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-cw-txt3" />
           <input
             value={search}
@@ -340,10 +355,30 @@ export function Repositories({ activeOrg }: { activeOrg?: string }) {
         <select 
           value={filterLang} 
           onChange={e => setFilterLang(e.target.value)}
-          className="bg-cw-bg2 border border-cw-bdr rounded-lg text-[13px] text-cw-txt py-2 px-3 outline-none min-w-[150px]"
+          className="bg-cw-bg2 border border-cw-bdr rounded-lg text-[13px] text-cw-txt py-2 px-3 outline-none min-w-[140px] cursor-pointer"
         >
           {languages.map(l => <option key={l || 'unknown'} value={l || 'Unknown'}>{l === 'All' ? 'All Languages' : l}</option>)}
         </select>
+        <select 
+          value={filterStatus} 
+          onChange={e => setFilterStatus(e.target.value)}
+          className="bg-cw-bg2 border border-cw-bdr rounded-lg text-[13px] text-cw-txt py-2 px-3 outline-none min-w-[150px] cursor-pointer"
+        >
+          <option value="All">All Statuses</option>
+          <option value="running">⚡ Running / Auditing</option>
+          <option value="completed">✅ Completed</option>
+          <option value="failed">❌ Failed</option>
+          <option value="queued">⏳ Queued</option>
+          <option value="paused">⏸️ Paused</option>
+        </select>
+        {(search || filterLang !== 'All' || filterStatus !== 'All') && (
+          <button
+            onClick={() => { setSearch(''); setFilterLang('All'); setFilterStatus('All'); }}
+            className="text-[12px] text-cw-txt3 hover:text-cw-txt px-2 py-1 transition-colors cursor-pointer"
+          >
+            Clear filters
+          </button>
+        )}
       </div>
 
       {/* Content */}

@@ -568,7 +568,7 @@ function DashboardLayout() {
     }
 
     switch (screen) {
-      case 'dashboard':    return <Dashboard onRunClick={(repoId, runId) => startTransition(() => setRunDetailTarget({ repoId, runId }))} />;
+      case 'dashboard':    return <Dashboard onRunClick={(repoId, runId) => startTransition(() => setRunDetailTarget({ repoId, runId }))} hasOpenDrawer={Boolean(runDetailTarget || isGlobalFeedOpen)} />;
       case 'livefeed':     return <LiveFeed viewMode={liveFeedView} onViewModeChange={setLiveFeedView} />;
       case 'diff':         return <DiffViewer />;
       case 'issuesprs':    return <IssuesAndPRs />;
