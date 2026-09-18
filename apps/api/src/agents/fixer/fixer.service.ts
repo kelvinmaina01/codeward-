@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { resolveInferenceEngine } from '../../providers/engine.provider.js';
+import { resolveInferenceEngine, MODEL_TIER } from '../../providers/engine.provider.js';
 import type { SandboxHandle } from '../core/provider.js';
 import { createGuardianTools } from '../definitions/guardian/guardian.tools.js';
 
@@ -162,7 +162,7 @@ export async function generateFix(sandbox: SandboxHandle, finding: FixableFindin
   let result;
   try {
     result = await provider.execute({
-      model: 'gpt-4o-mini',
+      model: MODEL_TIER.mechanical,
       temperature: 0,
       systemPrompt: `You are a precise, conservative code-fixing tool. You are given ONE confirmed, already-reviewed-safe finding about a single file, and the file's exact current content. Your ONLY job is to return the complete new file content with JUST that specific issue resolved. Change NOTHING else: no reformatting, no renaming, no unrelated cleanup, no added comments explaining the change. If you cannot confidently make ONLY this change, set confidence to "low" and return the original content unchanged.${extraInstruction ? `\n${extraInstruction}` : ''}`,
       messages: [{

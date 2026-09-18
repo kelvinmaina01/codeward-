@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { streamText, generateText, convertToModelMessages, stepCountIs, type UIMessage } from 'ai';
 import { eq, and, desc, inArray, count } from 'drizzle-orm';
 import { getModel } from '../providers/model.provider.js';
+import { resolveInferenceEngine, MODEL_TIER } from '../providers/engine.provider.js';
 import { auth } from '../auth/index.js';
 import { db } from '../db/index.js';
 import { chatSessions, chatMessages, repositories, runs, mergeApprovals, gordonEvents } from '../db/schema.js';
@@ -78,9 +79,13 @@ async function ownedSession(userId: string, sessionId: string) {
  */
 function autoTitle(sessionId: string, firstUserText: string) {
   (async () => {
-    const { text } = await generateText({
-      model: getModel(), // gpt-4o-mini — titling is not worth gpt-4o
-      prompt: `Write a 3-6 word title (no quotes, no trailing punctuation) for a developer-tool chat that starts with this message:\n\n"${firstUserText.slice(0, 500)}"`,
+    // Cascade-routed (Bedrock -> OpenAI): titling must not be the one call that still hard-fails
+    // on an OpenAI quota. Mechanical tier — titling is not worth the synthesis tier.
+    const { text } = await resolveInferenceEngine().execute({
+      model: MODEL_TIER.mechanical,
+      temperature: 0,
+      systemPrompt: 'You write short, plain chat titles. Reply with the title only.',
+      messages: [{ role: 'user', content: `Write a 3-6 word title (no quotes, no trailing punctuation) for a developer-tool chat that starts with this message:\n\n"${firstUserText.slice(0, 500)}"` }],
     });
     const title = text.trim().replace(/^["']|["']$/g, '').slice(0, 80);
     if (title) await db.update(chatSessions).set({ title }).where(eq(chatSessions.id, sessionId));

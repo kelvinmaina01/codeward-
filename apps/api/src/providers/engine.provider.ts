@@ -103,6 +103,22 @@ export class CascadingInferenceEngine implements AgentProvider {
   }
 }
 
+/**
+ * Logical model TIERS, not literal model names.
+ *
+ * Every provider in the cascade translates these: resolveBedrockModelCandidates() keys off
+ * `mini|haiku|nano|lite` to pick its mechanical ladder and treats anything else as synthesis,
+ * while NativeOpenAIProvider passes them through as real OpenAI ids. Call sites that hardcoded
+ * 'gpt-4o-mini' were therefore not choosing OpenAI — they were choosing a tier, in a spelling
+ * that reads like a vendor lock-in and silently misleads anyone auditing Bedrock readiness.
+ *
+ * Overridable so a deployment can retune a tier without a code change.
+ */
+export const MODEL_TIER = {
+  mechanical: process.env.CODEWARD_MODEL_MECHANICAL || 'gpt-4o-mini',
+  synthesis: process.env.CODEWARD_MODEL_SYNTHESIS || 'gpt-4o',
+} as const;
+
 /** Builds the engine cascade. `forced` overrides env selection, used by named registry entries. */
 export function resolveInferenceEngine(forced?: EngineName): AgentProvider {
   return new CascadingInferenceEngine(forced);

@@ -57,7 +57,11 @@ async function runGuardianReview(sandbox: SandboxHandle, taskMessage: string): P
     },
   }));
 
-  const model = !guardianAgent.defaultModel.startsWith('claude') ? guardianAgent.defaultModel : 'gpt-4o-mini';
+  // Previously a ternary that swapped any 'claude*' default down to 'gpt-4o-mini'. Under the
+  // Bedrock cascade that silently demoted Guardian from the synthesis tier to the mechanical one
+  // — Haiku or Nova Micro writing PR reviews — for anyone who set a Claude model id. The agent
+  // definition is the single source of truth for which tier Guardian runs on.
+  const model = guardianAgent.defaultModel;
 
   try {
     await runAgentLoop({
