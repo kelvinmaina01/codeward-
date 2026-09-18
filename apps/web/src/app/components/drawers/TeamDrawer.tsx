@@ -204,7 +204,7 @@ export const TeamDrawer: React.FC = () => {
                 </div>
                 <div className="flex items-start gap-2">
                   <span className="font-semibold text-cw-txt min-w-[50px]">Member:</span>
-                  <span className="text-cw-txt2">Can trigger scans, view security reports, and interact with Gordon.</span>
+                  <span className="text-cw-txt2">Can trigger scans and view security reports.</span>
                 </div>
                 <div className="flex items-start gap-2">
                   <span className="font-semibold text-cw-txt3 min-w-[50px]">Viewer:</span>

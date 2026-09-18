@@ -407,19 +407,10 @@ export function LiveFeed({ viewMode = 'canvas', onViewModeChange }: LiveFeedProp
                 <button
                   onClick={handleCopyLog}
                   title="Copy log text to clipboard"
-                  className="flex items-center gap-1.5 h-8 px-3 text-[13px] font-medium text-cw-txt2 hover:text-cw-txt hover:bg-cw-bg3 transition-colors border-r border-cw-bdr cursor-pointer"
+                  className="flex items-center gap-1.5 h-8 px-3 text-[13px] font-medium text-cw-txt2 hover:text-cw-txt hover:bg-cw-bg3 transition-colors cursor-pointer"
                 >
                   {copied ? <Check size={13} className="text-cw-green" /> : <Copy size={13} />}
                   <span>{copied ? 'Copied!' : 'Copy run log'}</span>
-                </button>
-
-                <button
-                  onClick={handleExplainLogs}
-                  title="Ask Gordon AI to analyze sandbox state, memory, and logs"
-                  className="flex items-center gap-1.5 h-8 px-3 text-[13px] font-medium text-cw-purple hover:bg-cw-purple/10 transition-colors cursor-pointer"
-                >
-                  <Sparkles size={13} />
-                  <span>Explain logs</span>
                 </button>
               </div>
             </div>

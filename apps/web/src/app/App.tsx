@@ -385,9 +385,6 @@ function DashboardLayout() {
       },
       { id: 'debt', label: 'Debt report', dot: 'a', icon: Analytics01Icon, path: '/dashboard/debt' },
     ]},
-    { group: 'AI Agent', items: [
-      { id: 'agent', label: 'Gordon', dot: 'p', beta: true, icon: GordonIcon as any, path: '/dashboard/agent' },
-    ]},
     { group: 'Deploy', items: [
       { id: 'staging', label: 'Staging', dot: 'a', icon: LaptopIcon, path: '/dashboard/staging' },
       { id: 'history', label: 'Runs', dot: '', icon: Clock01Icon, path: '/dashboard/history' },
@@ -744,9 +741,6 @@ function DashboardLayout() {
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="min-w-[200px] bg-cw-bg2 border-cw-bdr text-cw-txt p-1">
-                  <DropdownMenuItem onSelect={() => navigate('/dashboard/agent')} className="text-[13px] cursor-pointer focus:bg-cw-bg3 focus:text-cw-txt">
-                    <Sparkles size={14} className="text-cw-txt3" /> Skills
-                  </DropdownMenuItem>
                   <DropdownMenuItem asChild className="text-[13px] cursor-pointer focus:bg-cw-bg3 focus:text-cw-txt">
                     <a href="https://discord.gg/nnMH4URBsK" target="_blank" rel="noreferrer" className="no-underline flex items-center gap-2">
                       <svg width="14" height="14" viewBox="0 0 127.14 96.36" fill="currentColor" className="text-cw-txt3">
