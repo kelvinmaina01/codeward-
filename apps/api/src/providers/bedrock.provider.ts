@@ -98,15 +98,15 @@ export function resolveBedrockModelCandidates(model: string): string[] {
     if (process.env.BEDROCK_MODEL_MECHANICAL) {
       candidates.push(process.env.BEDROCK_MODEL_MECHANICAL);
     }
-    // Active AWS Bedrock Claude 3.5 Haiku and Amazon Nova models
+    // Active AWS Bedrock Amazon Nova models (verified live) and Claude 3.5 Haiku
     candidates.push(
+      'us.amazon.nova-micro-v1:0',
+      'amazon.nova-micro-v1:0',
+      'us.amazon.nova-lite-v1:0',
+      'amazon.nova-lite-v1:0',
       'us.anthropic.claude-3-5-haiku-20241022-v1:0',
       'eu.anthropic.claude-3-5-haiku-20241022-v1:0',
-      'anthropic.claude-3-5-haiku-20241022-v1:0',
-      'us.amazon.nova-micro-v1:0',
-      'us.amazon.nova-lite-v1:0',
-      'amazon.nova-micro-v1:0',
-      'amazon.nova-lite-v1:0'
+      'anthropic.claude-3-5-haiku-20241022-v1:0'
     );
     return Array.from(new Set(candidates));
   }
@@ -116,16 +116,14 @@ export function resolveBedrockModelCandidates(model: string): string[] {
   if (process.env.BEDROCK_MODEL_SYNTHESIS) {
     synthesisCandidates.push(process.env.BEDROCK_MODEL_SYNTHESIS);
   }
-  // Official active AWS Bedrock Claude 3.5 Sonnet and 3.7 Sonnet IDs across US and EU + Nova Pro
+  // Official active AWS Bedrock Amazon Nova Pro and Claude Sonnet IDs
   synthesisCandidates.push(
+    'us.amazon.nova-pro-v1:0',
+    'amazon.nova-pro-v1:0',
     'us.anthropic.claude-3-5-sonnet-20241022-v2:0',
     'eu.anthropic.claude-3-5-sonnet-20241022-v2:0',
     'us.anthropic.claude-3-7-sonnet-20250219-v1:0',
-    'eu.anthropic.claude-3-7-sonnet-20250219-v1:0',
-    'us.anthropic.claude-3-5-sonnet-20240620-v1:0',
-    'anthropic.claude-3-5-sonnet-20241022-v2:0',
-    'us.amazon.nova-pro-v1:0',
-    'amazon.nova-pro-v1:0'
+    'eu.anthropic.claude-3-7-sonnet-20250219-v1:0'
   );
   return Array.from(new Set(synthesisCandidates));
 }
@@ -276,28 +274,8 @@ export class BedrockProvider implements AgentProvider {
     const modelCandidates = resolveBedrockModelCandidates(config.model);
     const converseTools = toConverseTools(config.tools);
 
-    // Two cache points, placed after each static block. The system prompt and the tool schemas
-    // are byte-identical across every step of a run, which is exactly the reuse Bedrock bills at
-    // the cache-read rate; the message history after them changes every step and is not marked.
-    const system: any[] = [{ text: config.systemPrompt }, CACHE_POINT];
+    // Message history translation
     const messages = toConverseMessages(config.messages || []);
-
-    let toolConfig: any;
-    if (converseTools.length > 0) {
-      toolConfig = {
-        tools: [...converseTools, CACHE_POINT],
-        // The agent contract depends on forced tool use: every run must terminate by calling
-        // its submit_* tool. Anthropic models on Bedrock honour `any`; verify before pointing
-        // this provider at a model family that does not.
-        toolChoice: { any: {} },
-      };
-    } else if (historyContainsToolBlocks(messages)) {
-      // No tools offered this turn, but the history references them — Bedrock demands toolConfig
-      // anyway. `auto` (never `any`) so the model is free to answer with text rather than being
-      // forced to invoke the placeholder. No cache point here: a single tiny tool falls under
-      // the minimum cacheable size and marking it would waste a checkpoint.
-      toolConfig = { tools: [NOOP_TOOL], toolChoice: { auto: {} } };
-    }
 
     let res: any = null;
     let modelId = modelCandidates[0];
@@ -307,6 +285,22 @@ export class BedrockProvider implements AgentProvider {
       const candidateId = modelCandidates[i];
       const targetRegion = getRegionForBedrockModel(candidateId);
       const client = this.getClient(targetRegion);
+      const isAnthropic = candidateId.includes('anthropic.');
+
+      // Anthropic models support Bedrock prompt cachePoint. Amazon Nova and others reject extraneous keys.
+      const system: any[] = isAnthropic
+        ? [{ text: config.systemPrompt }, CACHE_POINT]
+        : [{ text: config.systemPrompt }];
+
+      let toolConfig: any;
+      if (converseTools.length > 0) {
+        toolConfig = {
+          tools: isAnthropic ? [...converseTools, CACHE_POINT] : converseTools,
+          toolChoice: isAnthropic ? { any: {} } : { auto: {} },
+        };
+      } else if (historyContainsToolBlocks(messages)) {
+        toolConfig = { tools: [NOOP_TOOL], toolChoice: { auto: {} } };
+      }
 
       const command = new ConverseCommand({
         modelId: candidateId,
@@ -340,6 +334,9 @@ export class BedrockProvider implements AgentProvider {
           msg.includes('deprecated') ||
           msg.includes('retired') ||
           msg.includes('legacy') ||
+          msg.includes('malformed input request') ||
+          msg.includes('extraneous key') ||
+          msg.includes('not permitted') ||
           errName.includes('validationexception') ||
           errName.includes('accessdenied') ||
           errName.includes('resourcenotfound');

@@ -393,11 +393,11 @@ usersRouter.get('/admin/test-bedrock', async (c) => {
 
   const { BedrockRuntimeClient, ConverseCommand } = await import('@aws-sdk/client-bedrock-runtime');
   const testModels = [
-    { id: 'us.anthropic.claude-3-5-haiku-20241022-v1:0', region: 'us-east-1' },
-    { id: 'eu.anthropic.claude-3-5-haiku-20241022-v1:0', region: 'eu-central-1' },
-    { id: 'us.anthropic.claude-3-5-sonnet-20241022-v2:0', region: 'us-east-1' },
     { id: 'us.amazon.nova-micro-v1:0', region: 'us-east-1' },
-    { id: 'amazon.nova-micro-v1:0', region: 'us-east-1' },
+    { id: 'us.amazon.nova-lite-v1:0', region: 'us-east-1' },
+    { id: 'us.amazon.nova-pro-v1:0', region: 'us-east-1' },
+    { id: 'us.anthropic.claude-3-5-haiku-20241022-v1:0', region: 'us-east-1' },
+    { id: 'us.anthropic.claude-3-5-sonnet-20241022-v2:0', region: 'us-east-1' },
   ];
 
   const results: any[] = [];
