@@ -98,15 +98,14 @@ export function resolveBedrockModelCandidates(model: string): string[] {
     if (process.env.BEDROCK_MODEL_MECHANICAL) {
       candidates.push(process.env.BEDROCK_MODEL_MECHANICAL);
     }
-    // Active AWS Bedrock Amazon Nova models (verified live) and Claude 3.5 Haiku
+    // Nova Lite is ideal for multi-tool agent execution, followed by Nova Pro and Nova Micro
     candidates.push(
-      'us.amazon.nova-micro-v1:0',
-      'amazon.nova-micro-v1:0',
       'us.amazon.nova-lite-v1:0',
       'amazon.nova-lite-v1:0',
-      'us.anthropic.claude-3-5-haiku-20241022-v1:0',
-      'eu.anthropic.claude-3-5-haiku-20241022-v1:0',
-      'anthropic.claude-3-5-haiku-20241022-v1:0'
+      'us.amazon.nova-pro-v1:0',
+      'amazon.nova-pro-v1:0',
+      'us.amazon.nova-micro-v1:0',
+      'amazon.nova-micro-v1:0'
     );
     return Array.from(new Set(candidates));
   }
@@ -337,6 +336,8 @@ export class BedrockProvider implements AgentProvider {
           msg.includes('malformed input request') ||
           msg.includes('extraneous key') ||
           msg.includes('not permitted') ||
+          msg.includes('invalid sequence') ||
+          msg.includes('tooluse') ||
           errName.includes('validationexception') ||
           errName.includes('accessdenied') ||
           errName.includes('resourcenotfound');
