@@ -137,7 +137,7 @@ submit_orchestrator_decision — those are Phase 3's job, not yours.
 export const orchestratorPhase3Agent: AgentDefinition = {
   id: 'orchestrator_phase3',
   displayName: 'CEO Orchestrator - Phase 3 (Decision)',
-  defaultModel: 'gpt-4o-mini',
+  defaultModel: 'gpt-4o',
   maxSteps: 8,
   systemPrompt: BASE_SYSTEM_PROMPT + `
 === PHASE 3 PLAYBOOK: DECISION ===
