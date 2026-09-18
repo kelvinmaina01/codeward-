@@ -303,6 +303,10 @@ Resources:
               Value: !Ref 'AWS::Region'
             - Name: SANDBOX_PROVIDER
               Value: 'e2b'
+            - Name: FRONTEND_URL
+              Value: !Ref FrontendUrl
+            - Name: API_URL
+              Value: !Ref ApiUrl
           Secrets:
             - Name: GITHUB_APP_ID
               ValueFrom: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/codeward/prod/GITHUB_APP_ID'

@@ -40,22 +40,37 @@ export class E2BSandbox implements SandboxHandle {
 
     console.log(`[E2BSandbox] Sandbox ready (ID: ${this.sandbox.sandboxId}). Cloning ${repoUrl}...`);
 
-    // Ensure working directory exists
-    await this.sandbox.commands.run(`mkdir -p ${this.workDir}`);
+    // Ensure clean working directory before cloning to prevent git 128 collisions
+    await this.sandbox.commands.run(`rm -rf ${this.workDir} && mkdir -p ${this.workDir}`);
 
     const authedUrl = installationToken
       ? repoUrl.replace('https://', `https://x-access-token:${installationToken}@`)
       : repoUrl;
 
-    const cloneCmd = `GIT_LFS_SKIP_SMUDGE=1 git clone --depth 50 "${authedUrl}" ${this.workDir}`;
-    const cloneRes = await this.sandbox.commands.run(cloneCmd);
+    const runClone = async (url: string) => {
+      const cloneCmd = `GIT_LFS_SKIP_SMUDGE=1 git clone --depth 50 "${url}" ${this.workDir}`;
+      return await this.sandbox!.commands.run(cloneCmd);
+    };
 
-    if (cloneRes.exitCode !== 0) {
-      const sanitized = (cloneRes.stderr || cloneRes.stdout || '').replace(
-        new RegExp(installationToken ?? '(?!)', 'g'),
-        '[REDACTED]'
-      );
-      throw new Error(`Failed to clone repo into E2B sandbox: ${sanitized}`);
+    try {
+      await runClone(authedUrl);
+    } catch (cloneErr: any) {
+      // If authenticated clone fails (e.g. invalid/expired installationToken, status 128),
+      // attempt unauthenticated clone if token was used (handles public repos cleanly)
+      if (installationToken) {
+        console.warn(`[E2BSandbox] Authenticated clone failed (${cloneErr.message}). Retrying unauthenticated clone for ${repoUrl}...`);
+        try {
+          await this.sandbox.commands.run(`rm -rf ${this.workDir} && mkdir -p ${this.workDir}`);
+          await runClone(repoUrl);
+        } catch (fallbackErr: any) {
+          const rawErr = fallbackErr.stderr || fallbackErr.stdout || fallbackErr.message || '';
+          const sanitized = rawErr.replace(new RegExp(installationToken, 'g'), '[REDACTED]');
+          throw new Error(`Failed to clone repository into sandbox (exit ${fallbackErr.exitCode ?? 128}): ${sanitized || fallbackErr.message}`);
+        }
+      } else {
+        const rawErr = cloneErr.stderr || cloneErr.stdout || cloneErr.message || '';
+        throw new Error(`Failed to clone repository into sandbox (exit ${cloneErr.exitCode ?? 128}): ${rawErr || cloneErr.message}`);
+      }
     }
 
     if (commitSHA && commitSHA !== 'baseline') {
@@ -78,13 +93,27 @@ export class E2BSandbox implements SandboxHandle {
 
     // Run command within the repository working directory
     const fullCmd = `cd ${this.workDir} && ${command}`;
-    const res = await this.sandbox.commands.run(fullCmd);
-
-    return {
-      exitCode: res.exitCode ?? 0,
-      stdout: res.stdout,
-      stderr: res.stderr,
-    };
+    try {
+      const res = await this.sandbox.commands.run(fullCmd);
+      return {
+        exitCode: res.exitCode ?? 0,
+        stdout: res.stdout || '',
+        stderr: res.stderr || '',
+      };
+    } catch (err: any) {
+      // E2B commands.run throws CommandExitError on non-zero exit codes.
+      // CLI static analysis tools (like fallow, grep, git diff) legitimately return exitCode 1
+      // when issues/matches are found. Returning the output with the exit code allows agents
+      // to parse the findings instead of treating normal analysis results as a fatal container crash.
+      if (err.exitCode !== undefined || err.name === 'CommandExitError') {
+        return {
+          exitCode: err.exitCode ?? 1,
+          stdout: err.stdout || '',
+          stderr: err.stderr || err.message || '',
+        };
+      }
+      throw err;
+    }
   }
 
   async destroy(): Promise<void> {

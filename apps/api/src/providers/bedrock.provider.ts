@@ -45,7 +45,7 @@ import type { AgentProvider, AgentRunConfig, AgentResult, AgentTool } from './op
  * models below exist there, ACTIVE, at the identical version — only the prefix differs.
  */
 function bedrockGeoPrefix(): string {
-  const region = (process.env.AWS_REGION || process.env.BEDROCK_REGION || 'us-east-1').toLowerCase();
+  const region = (process.env.BEDROCK_REGION || process.env.AWS_REGION || 'us-east-1').toLowerCase();
   if (region.startsWith('eu-')) return 'eu.';
   if (region.startsWith('ap-')) return 'apac.';
   // us-*, and anything unrecognised, keeps today's behaviour rather than guessing a new geo.
@@ -53,32 +53,59 @@ function bedrockGeoPrefix(): string {
 }
 
 /**
- * Maps a logical model name used by the agent definitions onto a Bedrock model or inference
- * profile id. Cross-region inference profile ids are strongly preferred — same price,
- * materially higher throughput and fewer ThrottlingExceptions.
+ * Maps a logical model name onto an ordered list of Bedrock model or inference profile IDs.
+ * Cross-region inference profile IDs are strongly preferred. If the primary candidate fails
+ * with an invalid identifier or unsupported region, BedrockProvider will attempt the next candidate.
  */
-export function resolveBedrockModelId(model: string): string {
+export function resolveBedrockModelCandidates(model: string): string[] {
   const m = (model || '').toLowerCase();
 
-  // An explicit per-run override always wins.
-  if (process.env.BEDROCK_MODEL_ID && !m) return process.env.BEDROCK_MODEL_ID;
+  // Explicit per-run override wins
+  if (process.env.BEDROCK_MODEL_ID && !m) {
+    return [process.env.BEDROCK_MODEL_ID];
+  }
 
-  // Already a Bedrock id / inference profile — pass through untouched.
-  if (m.includes('anthropic.') || m.includes('amazon.nova') || m.includes('meta.llama')) return model;
+  // Already an explicit Bedrock id / inference profile — pass through untouched
+  if (m.includes('anthropic.') || m.includes('amazon.nova') || m.includes('meta.llama')) {
+    return [model];
+  }
 
-  // Verified against `bedrock list-foundation-models` / `list-inference-profiles`: both of these
-  // report inferenceTypesSupported = ["INFERENCE_PROFILE"] ONLY, so the bare `anthropic.*` model
-  // id is rejected at invoke time and the geo-prefixed profile id is mandatory, not merely
-  // preferable. (The Claude 3.5 ids these defaults originally used are now end-of-life and
-  // return ResourceNotFoundException.) Override per environment with the env vars below.
   const geo = bedrockGeoPrefix();
-  const mechanical = process.env.BEDROCK_MODEL_MECHANICAL || `${geo}anthropic.claude-haiku-4-5-20251001-v1:0`;
-  const synthesis = process.env.BEDROCK_MODEL_SYNTHESIS || `${geo}anthropic.claude-sonnet-4-5-20250929-v1:0`;
+  const isMechanical = m.includes('mini') || m.includes('haiku') || m.includes('nano') || m.includes('lite');
 
-  // The cheap tier runs the scanner-driven agents; the frontier tier is reserved for the two
-  // paths a human actually reads (guardian's PR prose, Gordon's chat).
-  if (m.includes('mini') || m.includes('haiku') || m.includes('nano') || m.includes('lite')) return mechanical;
-  return synthesis;
+  if (isMechanical) {
+    const candidates: string[] = [];
+    if (process.env.BEDROCK_MODEL_MECHANICAL) {
+      candidates.push(process.env.BEDROCK_MODEL_MECHANICAL);
+    }
+    // Official active AWS Bedrock Claude 3.5 Haiku and Claude 3 Haiku IDs
+    candidates.push(
+      `${geo}anthropic.claude-3-5-haiku-20241022-v1:0`,
+      `${geo}anthropic.claude-3-haiku-20240307-v1:0`,
+      'us.anthropic.claude-3-5-haiku-20241022-v1:0',
+      'us.anthropic.claude-3-haiku-20240307-v1:0'
+    );
+    return Array.from(new Set(candidates));
+  }
+
+  // Frontier / Synthesis tier
+  const synthesisCandidates: string[] = [];
+  if (process.env.BEDROCK_MODEL_SYNTHESIS) {
+    synthesisCandidates.push(process.env.BEDROCK_MODEL_SYNTHESIS);
+  }
+  // Official active AWS Bedrock Claude 3.5 Sonnet and 3.7 Sonnet IDs
+  synthesisCandidates.push(
+    `${geo}anthropic.claude-3-5-sonnet-20240620-v1:0`,
+    `${geo}anthropic.claude-3-5-sonnet-20241022-v2:0`,
+    'us.anthropic.claude-3-5-sonnet-20241022-v2:0',
+    'us.anthropic.claude-3-5-sonnet-20240620-v1:0',
+    `${geo}anthropic.claude-3-7-sonnet-20250219-v1:0`
+  );
+  return Array.from(new Set(synthesisCandidates));
+}
+
+export function resolveBedrockModelId(model: string): string {
+  return resolveBedrockModelCandidates(model)[0];
 }
 
 const CACHE_POINT = { cachePoint: { type: 'default' } } as unknown as ContentBlock;
@@ -204,13 +231,13 @@ export class BedrockProvider implements AgentProvider {
 
   constructor(region?: string) {
     this.client = new BedrockRuntimeClient({
-      region: region || process.env.AWS_REGION || process.env.BEDROCK_REGION || 'us-east-1',
+      region: region || process.env.BEDROCK_REGION || process.env.AWS_REGION || 'us-east-1',
     });
   }
 
   async execute(config: AgentRunConfig): Promise<AgentResult> {
     const startTime = Date.now();
-    const modelId = resolveBedrockModelId(config.model);
+    const modelCandidates = resolveBedrockModelCandidates(config.model);
     const converseTools = toConverseTools(config.tools);
 
     // Two cache points, placed after each static block. The system prompt and the tool schemas
@@ -236,19 +263,47 @@ export class BedrockProvider implements AgentProvider {
       toolConfig = { tools: [NOOP_TOOL], toolChoice: { auto: {} } };
     }
 
-    const command = new ConverseCommand({
-      modelId,
-      system,
-      messages,
-      inferenceConfig: {
-        maxTokens: config.maxTokens ?? 8192,
-        temperature: config.temperature ?? 0,
-      },
-      ...(toolConfig ? { toolConfig } : {}),
-    });
+    let res: any = null;
+    let modelId = modelCandidates[0];
+    let lastErr: any = null;
 
-    console.log(`-> Calling Bedrock Converse (${modelId})...`);
-    const res = await this.client.send(command);
+    for (let i = 0; i < modelCandidates.length; i++) {
+      const candidateId = modelCandidates[i];
+      const command = new ConverseCommand({
+        modelId: candidateId,
+        system,
+        messages,
+        inferenceConfig: {
+          maxTokens: config.maxTokens ?? 8192,
+          temperature: config.temperature ?? 0,
+        },
+        ...(toolConfig ? { toolConfig } : {}),
+      });
+
+      try {
+        console.log(`-> Calling Bedrock Converse (${candidateId})...`);
+        res = await this.client.send(command);
+        modelId = candidateId;
+        break;
+      } catch (err: any) {
+        lastErr = err;
+        const msg = (err?.message || String(err)).toLowerCase();
+        const isModelIdentifierIssue =
+          msg.includes('model identifier is invalid') ||
+          msg.includes('resourcenotfoundexception') ||
+          msg.includes('validationexception') ||
+          msg.includes('not supported in this region') ||
+          msg.includes('accessdeniedexception');
+
+        if (isModelIdentifierIssue && i < modelCandidates.length - 1) {
+          console.warn(`[BedrockProvider] Candidate model "${candidateId}" failed (${err?.message}). Trying next candidate "${modelCandidates[i + 1]}"...`);
+          continue;
+        }
+        throw err;
+      }
+    }
+
+    if (!res && lastErr) throw lastErr;
 
     const blocks = (res.output as any)?.message?.content ?? [];
     let text = '';
