@@ -928,14 +928,29 @@ Use these EXACT values for any tool parameter named runId/repoId — never inven
     await db.update(agentTasks)
       .set({
         status: result.status === 'error' ? 'failed' : result.status === 'incomplete' ? 'incomplete' : 'completed',
-        score: result.status === 'incomplete' ? null : result.score,
+        // A failed or incomplete agent verified nothing, so its score is UNKNOWN, not a value.
+        // Writing result.score here on an error left stale/default 100s on crashed agents (the
+        // "Data & DX blocked but 100" anomaly). Only a genuinely completed run has a real score.
+        score: (result.status === 'incomplete' || result.status === 'error') ? null : result.score,
         findingsCount: result.findings.length,
         findings: result.findings,
         reportMeta: {
           gateDecision: effectiveGateDecision ?? null,
           modelGateDecision: result.gateDecision ?? null,
           policy: result.policy ?? null,
-          runPolicy: runPolicy ? { decision: runPolicy.decision, suppressedCount: runPolicy.suppressedCount, surfacedCount: runPolicy.surfacedFindings.length } : null,
+          // The single authoritative run verdict, persisted in full on the orchestrator_phase3 row.
+          // This is the SAME object handed to Guardian for the GitHub review (surfacedFindings +
+          // decision), so serving the dashboard from it makes the UI and the GitHub review read
+          // one source instead of each re-deriving a gate from local heuristics.
+          runPolicy: runPolicy
+            ? {
+                decision: runPolicy.decision,
+                reasons: runPolicy.reasons ?? [],
+                surfacedFindings: runPolicy.surfacedFindings,
+                suppressedCount: runPolicy.suppressedCount,
+                surfacedCount: runPolicy.surfacedFindings.length,
+              }
+            : null,
           toolsExecuted: result.toolsExecuted ?? [], summary: result.summary ?? null, autoFixPR, escalation, humanPrReview,
           // The agent's structured report minus findings — makes broken_code's testSuiteResult /
           // migrationRollbackPassed (and every other agent's top-level facts) readable by
@@ -1031,6 +1046,9 @@ Use these EXACT values for any tool parameter named runId/repoId — never inven
       await db.update(agentTasks)
         .set({
           status: 'failed',
+          // A crashed agent has no verified score. Nulling it here stops a stale/default value
+          // (e.g. a prior attempt's 100) from surviving the failure and reading as "clean".
+          score: null,
           error: err.message,
           checkpointState,
           completedAt: new Date(),

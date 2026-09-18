@@ -462,23 +462,32 @@ export function AgentCanvas({ repoId, repoFilter, onRepoChange, repoList, viewMo
     };
   }, [activeFilter, internalRepoList, scheduleReconcile]);
 
-  // Keep top stats synchronized with real-time agent updates
+  // Keep top stats synchronized with real-time agent updates.
   useEffect(() => {
     const runningCount = agents.filter((a) => a.status === 'running').length;
     const completedCount = agents.filter((a) => a.status === 'passed' || a.status === 'blocked').length;
-    // A real critical is a critical finding, or a status line counting one or more criticals.
-    // A plain substring test used to match "PASS — 0 critical issues" and flip the decision to BLOCKED.
-    const hasCritical = agents.some((a) =>
-      /\b[1-9]\d*\s+critical\b/i.test(a.statusText) || a.findings.some((f) => f.sev === 'critical')
-    );
-    const anyBlocked = agents.some((a) => a.status === 'blocked');
 
-    setStats((prev) => ({
-      ...prev,
-      agentsActive: runningCount > 0 ? `${runningCount} active · ${completedCount}/${agents.length}` : `${completedCount} / ${agents.length}`,
-      decision: anyBlocked || hasCritical ? 'BLOCKED' : runningCount > 0 ? 'RUNNING' : 'PASS',
-    }));
-  }, [agents]);
+    setStats((prev) => {
+      // The gate is the backend's authoritative policy verdict (the same one Guardian posts to
+      // GitHub), served in runInfo.runPolicy — never re-derived here from agent statuses or
+      // status-text heuristics, which is what let the badge disagree with the real gate. Only
+      // while a run is still in flight (no verdict yet) do we fall back to a live "any blocked"
+      // signal so the badge isn't stuck on a stale value mid-run.
+      const authoritative = runInfo.runPolicy?.decision;
+      const decision = authoritative
+        ? (authoritative === 'BLOCK' ? 'BLOCKED' : authoritative === 'WARN' ? 'WARN' : 'PASS')
+        : runningCount > 0
+          ? 'RUNNING'
+          : agents.some((a) => a.status === 'blocked')
+            ? 'BLOCKED'
+            : 'PASS';
+      return {
+        ...prev,
+        agentsActive: runningCount > 0 ? `${runningCount} active · ${completedCount}/${agents.length}` : `${completedCount} / ${agents.length}`,
+        decision,
+      };
+    });
+  }, [agents, runInfo.runPolicy]);
 
   // ── Presentation-only derivations ───────────────────────────────────────────
   const decisionTone: Tone = stats.decision === 'BLOCKED' ? 'red' : stats.decision === 'RUNNING' ? 'purple' : 'green';
