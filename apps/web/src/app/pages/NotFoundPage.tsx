@@ -160,7 +160,7 @@ export function NotFoundPage() {
 
             {/* Subtitle with Code Debt flavor */}
             <p className="text-[14px] sm:text-[15px] text-cw-txt2 max-w-lg mb-6 leading-relaxed">
-              Looks like this route accrued too much technical debt and was garbage-collected, or our Autonomous Guardian agent pruned it during a deep branch refactor.
+              Looks like this route accrued too much technical debt and was garbage-collected, or our Autonomous Guardian agent pruned it during a deep branch refactor. 😂
             </p>
 
             {/* Interactive Terminal Mockup */}
