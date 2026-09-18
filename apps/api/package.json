@@ -22,6 +22,7 @@
     "test:bullmq:concurrency": "tsx test/test-bullmq-concurrency.ts",
     "test:bullmq:fairness": "tsx test/test-bullmq-fairness.ts",
     "test:model:dynamic": "tsx test/test-dynamic-model-routing.ts",
+    "test:floor": "tsx test/test-deterministic-floor.ts",
     "test:bedrock": "tsx test/test-bedrock-routing.ts",
     "test:polar": "tsx test/test-polar-billing.ts",
     "test:email:fallback": "tsx test/test-email-fallback.ts",

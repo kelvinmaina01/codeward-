@@ -2,6 +2,7 @@ import { z } from 'zod';
 import type { SandboxHandle } from '../../core/provider.js';
 import { createMemoryTools } from '../../tools/memory.tools.js';
 import { assessFinding } from '../../policy/finding-policy.js';
+import { scanDiff, type FloorResult, type SignatureClass } from './deterministic-floor.js';
 
 export interface AgentRecommendation { agentType: string; recommend: boolean; mandatory: boolean; reason: string }
 
@@ -10,6 +11,8 @@ export interface DiffAnalysis {
     overallRisk: string; touchedDomains: string[]; linesAdded: number; linesRemoved: number;
     isVibeRewrite: boolean; hasNewDependencies: boolean; hasMigrations: boolean; hasEnvChanges: boolean;
     hasSecuritySensitivePatterns: boolean; isDocOrConfigOnly: boolean; changedFilesSummary: string[];
+    /** Routing v2 Layer 0: concrete vulnerability-class signatures found in the diff, if any. */
+    deterministicSignatures?: SignatureClass[];
   };
   agentRecommendations: AgentRecommendation[];
   recommendedAgents: string[];
@@ -38,7 +41,11 @@ export function classifyDiff(rawDiff: string, changedFiles: string[]): DiffAnaly
   const touchedDomains: string[] = DOMAIN_KEYWORDS.filter(domain =>
     changedFiles.some(f => f.toLowerCase().includes(domain))
   );
-  const hasSecuritySensitivePatterns = /password|secret|token|auth|key/i.test(rawDiff);
+  // Routing v2 Layer 0 — deterministic signature floor (design doc §2). Runs before any model.
+  const floor: FloorResult = scanDiff(rawDiff, changedFiles);
+  // The keyword regex is the weak legacy signal; a concrete signature (exec/eval/traversal/AWS key)
+  // is far stronger and must also raise this flag, which the keyword pass alone missed entirely.
+  const hasSecuritySensitivePatterns = floor.hasSecuritySignature || /password|secret|token|auth|key/i.test(rawDiff);
   const hasMigrations = changedFiles.some(f => f.includes('migration') || f.includes('schema.ts'));
   const hasEnvChanges = changedFiles.some(f => f.includes('.env'));
   const hasNewDependencies = changedFiles.some(f => f.includes('package.json') || f.includes('pnpm-lock.yaml'));
@@ -56,7 +63,7 @@ export function classifyDiff(rawDiff: string, changedFiles: string[]): DiffAnaly
   const anyCodeChanged = changedFiles.some(isCodeFile);
 
   let overallRisk = 'LOW';
-  if (hasSecuritySensitivePatterns || hasMigrations || hasEnvChanges) overallRisk = 'HIGH';
+  if (floor.hasSecuritySignature || hasSecuritySensitivePatterns || hasMigrations || hasEnvChanges) overallRisk = 'HIGH';
   else if (linesAdded > 100) overallRisk = 'MEDIUM';
 
   const agentRecommendations: AgentRecommendation[] = [
@@ -121,6 +128,23 @@ export function classifyDiff(rawDiff: string, changedFiles: string[]): DiffAnaly
         : 'No LLM call-site changes detected in the diff.'
     },
   ];
+  // Routing v2 Layer 0: a deterministic signature is a stronger signal than any keyword or
+  // filename heuristic, so it upgrades the matched specialist agent to recommended AND mandatory
+  // — the code-enforced floor that the LLM router cannot remove. A signature can only add agents,
+  // never subtract, preserving the design-doc invariant.
+  for (const forced of floor.forcedAgents) {
+    const rec = agentRecommendations.find(a => a.agentType === forced);
+    const why = floor.matches.filter(m => m.forces.includes(forced)).map(m => `${m.id}:${m.signatureClass}`).join(', ');
+    if (rec) {
+      rec.recommend = true;
+      rec.mandatory = true;
+      rec.reason = `Deterministic floor matched [${why}] — force-dispatched, LLM cannot remove.`;
+    } else {
+      agentRecommendations.push({ agentType: forced, recommend: true, mandatory: true,
+        reason: `Deterministic floor matched [${why}] — force-dispatched, LLM cannot remove.` });
+    }
+  }
+
   const recommendedAgents = agentRecommendations.filter(a => a.recommend).map(a => a.agentType);
   const mandatoryAgents = agentRecommendations.filter(a => a.mandatory).map(a => a.agentType);
 
@@ -129,6 +153,7 @@ export function classifyDiff(rawDiff: string, changedFiles: string[]): DiffAnaly
       overallRisk, touchedDomains, linesAdded, linesRemoved, isVibeRewrite, hasNewDependencies,
       hasMigrations, hasEnvChanges, hasSecuritySensitivePatterns, isDocOrConfigOnly,
       changedFilesSummary: changedFiles.slice(0, 5),
+      deterministicSignatures: floor.signatureClasses,
     },
     agentRecommendations,
     recommendedAgents,
