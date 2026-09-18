@@ -43,6 +43,8 @@ import { chatAgent } from '../definitions/chat.agent.js';
 import { broadcast } from '../../routes/ws.js';
 import { applyFindingPolicy, decideGate } from '../policy/finding-policy.js';
 
+const runRepoCache = new Map<number, { repoId: number; userId?: string }>();
+
 export async function logAndBroadcast(
   type: string,
   payload: {
@@ -58,32 +60,55 @@ export async function logAndBroadcast(
     logType?: 'build' | 'run' | 'system';
     level?: 'ok' | 'err' | 'inf' | 'warn' | 'plain';
     message?: string;
+    userId?: string;
   }
 ) {
   const tsMs = Date.now();
-  // 1. Broadcast live WebSocket update
-  broadcast(type, { ...payload, tsMs });
 
-  // 2. Persist to Postgres run_logs table
+  // Resolve userId if known or in cache
+  let resolvedUserId = payload.userId;
+  if (payload.runId && !resolvedUserId) {
+    const cached = runRepoCache.get(payload.runId);
+    if (cached?.userId) resolvedUserId = cached.userId;
+  }
+
+  // 1. Broadcast live WebSocket update immediately (zero worker lag)
+  broadcast(type, { ...payload, userId: resolvedUserId, tsMs });
+
+  // 2. Persist to Postgres run_logs table asynchronously (non-blocking)
   if (payload.runId) {
-    try {
-      const msg = payload.message || `[${payload.repo}] [${(payload.sha || '').slice(0, 7)}] ${payload.agent}: ${payload.status}`;
-      const [run] = await db.select({ repoId: runs.repoId }).from(runs).where(eq(runs.id, payload.runId));
-      if (run?.repoId) {
-        await db.insert(runLogs).values({
-          runId: payload.runId,
-          repoId: run.repoId,
-          agent: payload.agent,
-          logType: payload.logType ?? 'run',
-          level: payload.level ?? (type === 'agent_failed' ? 'err' : type === 'agent_completed' ? 'ok' : 'plain'),
-          tsMs,
-          message: msg,
-          meta: { step: payload.step, score: payload.score, findingsCount: payload.findingsCount, error: payload.error },
-        });
+    void (async () => {
+      try {
+        const msg = payload.message || `[${payload.repo}] [${(payload.sha || '').slice(0, 7)}] ${payload.agent}: ${payload.status}`;
+        let cached = runRepoCache.get(payload.runId!);
+        if (!cached) {
+          const [run] = await db
+            .select({ repoId: runs.repoId, userId: repositories.userId })
+            .from(runs)
+            .leftJoin(repositories, eq(runs.repoId, repositories.id))
+            .where(eq(runs.id, payload.runId!));
+          if (run?.repoId) {
+            cached = { repoId: run.repoId, userId: run.userId ?? undefined };
+            runRepoCache.set(payload.runId!, cached);
+          }
+        }
+
+        if (cached?.repoId) {
+          await db.insert(runLogs).values({
+            runId: payload.runId!,
+            repoId: cached.repoId,
+            agent: payload.agent,
+            logType: payload.logType ?? 'run',
+            level: payload.level ?? (type === 'agent_failed' ? 'err' : type === 'agent_completed' ? 'ok' : 'plain'),
+            tsMs,
+            message: msg,
+            meta: { step: payload.step, score: payload.score, findingsCount: payload.findingsCount, error: payload.error },
+          });
+        }
+      } catch (e) {
+        console.error('[AgentWorker] Failed to persist runLog:', e);
       }
-    } catch (e) {
-      console.error('[AgentWorker] Failed to persist runLog:', e);
-    }
+    })();
   }
 }
 
@@ -454,6 +479,9 @@ export function startAgentWorker(customOpts?: any): Worker<AgentJobData> {
     // real GitHub App installation (that's how guardian/fixer already authenticate); reuse it.
     let installationToken: string | undefined;
     const [repoForClone] = await db.select().from(repositories).where(eq(repositories.fullName, repoFullName));
+    if (repoForClone?.id) {
+      runRepoCache.set(runId, { repoId: repoForClone.id, userId: repoForClone.userId });
+    }
     if (repoForClone?.installationId) {
       try {
         const { getInstallationToken } = await import('../../lib/github.js');
@@ -463,11 +491,30 @@ export function startAgentWorker(customOpts?: any): Worker<AgentJobData> {
       }
     }
 
-    logAndBroadcast('agent_active', { repo: repoFullName, sha: commitSHA, agent: agentId, status: 'Initializing container...', step: 'init', runId, logType: 'build', level: 'plain', message: `[${repoFullName}] [${(commitSHA || '').slice(0, 7)}] ${agentId}: 📦 Initializing isolated sandbox container...` });
+    logAndBroadcast('agent_active', { repo: repoFullName, sha: commitSHA, agent: agentId, status: 'Initializing container...', step: 'init', runId, userId: repoForClone?.userId, logType: 'build', level: 'plain', message: `[${repoFullName}] [${(commitSHA || '').slice(0, 7)}] ${agentId}: 📦 Initializing isolated sandbox container...` });
 
     sandbox = createSandbox();
-    await sandbox.init(`https://github.com/${repoFullName}.git`, commitSHA, {}, installationToken);
-    logAndBroadcast('agent_active', { repo: repoFullName, sha: commitSHA, agent: agentId, status: 'Cloned & Sandboxed', step: 'cloned', runId, logType: 'build', level: 'plain', message: `  ├─ 📦 Cloned & sandboxed repository workspace` });
+    await (sandbox as any).init(
+      `https://github.com/${repoFullName}.git`,
+      commitSHA,
+      {},
+      installationToken,
+      (progressStatus: string) => {
+        logAndBroadcast('agent_active', {
+          repo: repoFullName,
+          sha: commitSHA,
+          agent: agentId,
+          status: progressStatus,
+          step: 'init',
+          runId,
+          userId: repoForClone?.userId,
+          logType: 'build',
+          level: 'plain',
+          message: `  ├─ ⚙️ ${progressStatus}`,
+        });
+      }
+    );
+    logAndBroadcast('agent_active', { repo: repoFullName, sha: commitSHA, agent: agentId, status: 'Cloned & Sandboxed', step: 'cloned', runId, userId: repoForClone?.userId, logType: 'build', level: 'plain', message: `  ├─ 📦 Cloned & sandboxed repository workspace` });
 
     // -----------------------------------------------------------------------
     // 3. Build the tools

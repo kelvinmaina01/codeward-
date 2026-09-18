@@ -25,12 +25,14 @@ export class E2BSandbox implements SandboxHandle {
     repoUrl: string,
     commitSHA?: string,
     env: Record<string, string> = {},
-    installationToken?: string
+    installationToken?: string,
+    onProgress?: (msg: string) => void
   ): Promise<void> {
     if (this.destroyed) {
       throw new Error('Cannot initialize a destroyed sandbox.');
     }
 
+    onProgress?.('Spawning isolated Firecracker microVM...');
     console.log(`[E2BSandbox] Spawning isolated Firecracker microVM...`);
     this.sandbox = await Sandbox.create({
       apiKey: this.apiKey,
@@ -38,20 +40,19 @@ export class E2BSandbox implements SandboxHandle {
       timeoutMs: 60 * 60 * 1000, // 1 hour session length (Hobby plan limit)
     });
 
+    onProgress?.('Cloning repository workspace...');
     console.log(`[E2BSandbox] Sandbox ready (ID: ${this.sandbox.sandboxId}). Cloning ${repoUrl}...`);
 
-    // `git clone <url> <dir>` fails with exit 128 ("destination path already exists and is not an
-    // empty directory") whenever the target has any content. The previous `mkdir -p` created the
-    // directory up-front, which is harmless while it stays empty but turns a retry — or any base
-    // template that ships something at this path — into a guaranteed 128. Let git create the
-    // directory itself, and clear any leftovers first so init() is idempotent.
+    // Clear any leftovers first so init() is idempotent.
     await this.runRaw(`rm -rf ${this.workDir}`);
 
     const authedUrl = installationToken
       ? repoUrl.replace('https://', `https://x-access-token:${installationToken}@`)
       : repoUrl;
 
-    const cloneCmd = `GIT_LFS_SKIP_SMUDGE=1 git clone --depth 50 "${authedUrl}" ${this.workDir}`;
+    const isBaseline = !commitSHA || commitSHA === 'baseline';
+    const depthArg = isBaseline ? '--depth 1 --single-branch' : '--depth 50';
+    const cloneCmd = `GIT_LFS_SKIP_SMUDGE=1 git clone ${depthArg} "${authedUrl}" ${this.workDir}`;
 
     // The E2B SDK THROWS `CommandExitError` on any non-zero exit — it does not return a result with
     // a non-zero exitCode. The old `if (cloneRes.exitCode !== 0)` branch below was therefore
