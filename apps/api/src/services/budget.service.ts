@@ -47,6 +47,11 @@ const BUDGET_CACHE_KEY = 'budget:monthly_spend_usd';
 // discount it heavily (OpenAI bills cached input at ~50% for the 4o family), and measured runs
 // on this system cache 78-85% of their input, so ignoring it materially over-states spend and
 // trips the kill switch early.
+// Tokens WRITTEN to the prompt cache bill above the standard input rate — 1.25x on Anthropic
+// models for the default 5-minute TTL. Kept as a multiplier rather than a fourth column so the
+// rate table stays a single source of truth per model.
+const CACHE_WRITE_MULTIPLIER = 1.25;
+
 function getModelRates(model: string): { input: number; output: number; cachedInput: number } {
   const m = (model || '').toLowerCase();
   if (m.includes('free') || m.includes('glm') || m.includes('deepseek-r1:free')) {
@@ -61,6 +66,28 @@ function getModelRates(model: string): { input: number; output: number; cachedIn
   }
   if (m.includes('gpt-4o')) {
     return { input: 2.5, output: 10.0, cachedInput: 1.25 };
+  }
+  // Current-generation Claude, matched before the generic `haiku` / `sonnet` catch-alls below.
+  // Those catch-alls were written when the fleet was Claude 3.x and silently mis-price every
+  // model added since: `claude-haiku-4-5` fell into the 3-Haiku branch ($0.25 vs $1.00, a 4x
+  // under-count) and `claude-opus-5` fell all the way through to the Sonnet default ($3 vs $5).
+  // A kill switch that under-counts is a kill switch that fires too late.
+  // Rates are Anthropic's published per-MTok prices; Bedrock is partner-operated and priced
+  // separately, so treat these as the close-but-not-authoritative figures they are.
+  if (m.includes('claude-fable-5') || m.includes('claude-mythos')) {
+    return { input: 10.0, output: 50.0, cachedInput: 1.0 };
+  }
+  if (m.includes('claude-opus-5') || m.includes('claude-opus-4-')) {
+    return { input: 5.0, output: 25.0, cachedInput: 0.5 };
+  }
+  if (m.includes('claude-sonnet-5')) {
+    return { input: 2.0, output: 10.0, cachedInput: 0.2 };
+  }
+  if (m.includes('claude-sonnet-4-')) {
+    return { input: 3.0, output: 15.0, cachedInput: 0.3 };
+  }
+  if (m.includes('claude-haiku-4-5')) {
+    return { input: 1.0, output: 5.0, cachedInput: 0.1 };
   }
   if (m.includes('claude-3-haiku')) {
     return { input: 0.25, output: 1.25, cachedInput: 0.03 };
@@ -100,15 +127,29 @@ async function computeMonthlySpend(): Promise<number> {
     const usage = (t.tokenUsage as any) || {};
     const inputTokens  = Number(usage.input  ?? usage.promptTokens     ?? 0) || 0;
     const outputTokens = Number(usage.output ?? usage.completionTokens ?? 0) || 0;
-    // cachedInput is a SUBSET of input, not an addition to it — bill the cached portion at the
-    // discounted rate and only the remainder at full rate. Clamped so a malformed row can never
-    // produce negative spend and mask real usage from the kill switch.
+    // `input` is the TOTAL input for the step; cachedInput (cache reads) and cacheWriteInput
+    // (cache writes) are both SUBSETS of it, never additions. Bedrock natively reports the three
+    // figures disjointly — its own `inputTokens` excludes the cached portions entirely — so
+    // bedrock.provider.ts sums them back up before handing usage over, precisely so this
+    // subset invariant holds for every provider.
+    //
+    // The three tiers price very differently: reads are ~10% of the input rate, writes are 125%
+    // of it. Folding writes into the uncached remainder under-charged them by a quarter; folding
+    // them into reads under-charged them by an order of magnitude.
+    //
+    // Every term is clamped so a malformed row can never produce negative spend and mask real
+    // usage from the kill switch.
     const cachedTokens = Math.min(Number(usage.cachedInput ?? 0) || 0, inputTokens);
-    const uncachedTokens = inputTokens - cachedTokens;
+    const cacheWriteTokens = Math.min(
+      Number(usage.cacheWriteInput ?? 0) || 0,
+      Math.max(0, inputTokens - cachedTokens),
+    );
+    const uncachedTokens = Math.max(0, inputTokens - cachedTokens - cacheWriteTokens);
     const rates = getModelRates(t.model ?? '');
-    totalCost += (uncachedTokens / 1_000_000) * rates.input
-               + (cachedTokens   / 1_000_000) * rates.cachedInput
-               + (outputTokens   / 1_000_000) * rates.output;
+    totalCost += (uncachedTokens   / 1_000_000) * rates.input
+               + (cachedTokens     / 1_000_000) * rates.cachedInput
+               + (cacheWriteTokens / 1_000_000) * (rates.input * CACHE_WRITE_MULTIPLIER)
+               + (outputTokens     / 1_000_000) * rates.output;
   }
 
   return totalCost;

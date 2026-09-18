@@ -13,11 +13,13 @@
  * `rawContent` out — so the history the loop accumulates stays in one consistent format and
  * nothing upstream needs to know which provider served the call.
  *
- * FinOps: Bedrock prompt caching is opt-in. Unlike OpenAI, which caches long prefixes
- * automatically, Bedrock only caches where an explicit `cachePoint` block is placed. This
- * architecture re-sends a large static prefix (system prompt + ~20 tool schemas) on every step
- * of every run, so without those markers a migration would pay full input rate on all of it.
- * Two cache points are inserted, after each static block, which is where the reuse actually is.
+ * FinOps: Bedrock prompt caching is opt-in AND capability-gated. Unlike OpenAI, which caches long
+ * prefixes automatically, Bedrock only caches where an explicit `cachePoint` block is placed —
+ * and only on models whose per-model request schema actually models that key. This architecture
+ * re-sends a large static prefix (system prompt + tool schemas) on every step of every run, so
+ * without those markers a migration would pay full input rate on all of it. Two cache points are
+ * inserted, after each static block, but only when `modelSupportsExplicitCaching()` says the
+ * candidate accepts them — see that function for why sending them blindly is fatal.
  * ============================================================================
  */
 
@@ -26,7 +28,9 @@ import {
   ConverseCommand,
   type ContentBlock,
   type Message,
+  type SystemContentBlock,
   type Tool,
+  type ToolConfiguration,
 } from '@aws-sdk/client-bedrock-runtime';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 import type { AgentProvider, AgentRunConfig, AgentResult, AgentTool } from './openai.provider.js';
@@ -37,12 +41,13 @@ import type { AgentProvider, AgentRunConfig, AgentResult, AgentTool } from './op
  *
  * A `us.`-prefixed profile is only resolvable from a US region; calling it from eu-north-1 fails
  * with "The provided model identifier is invalid." The bedrock client below defaults to
- * `us-east-1` when AWS_REGION is unset — true on a laptop — but ECS injects AWS_REGION=eu-north-1,
- * so the same image silently switched regions in production while the model ids stayed `us.`.
+ * `us-east-1` when AWS_REGION is unset — true on a laptop — but ECS injects AWS_REGION=eu-north-1
+ * (infra/ecs-services.yaml sets BEDROCK_REGION to the stack's own region), so the same image
+ * silently switched regions in production while the model ids stayed `us.`.
  *
  * Deriving the prefix from the runtime region is what makes one image correct in every
- * deployment. Verified with `aws bedrock list-inference-profiles --region eu-north-1`: both
- * models below exist there, ACTIVE, at the identical version — only the prefix differs.
+ * deployment. Every candidate list below also ends on a `global.` profile, which is resolvable
+ * from any commercial source region and is therefore the backstop when a geo profile is missing.
  */
 function bedrockGeoPrefix(): string {
   const region = (process.env.BEDROCK_REGION || process.env.AWS_REGION || 'us-east-1').toLowerCase();
@@ -53,9 +58,86 @@ function bedrockGeoPrefix(): string {
 }
 
 /**
+ * Whether a model's Bedrock request schema accepts explicit `cachePoint` blocks.
+ *
+ * This is NOT a Converse-API question. The AWS SDK models `cachePoint` in `Tool`,
+ * `SystemContentBlock` and `ContentBlock` unconditionally, so a request carrying one serializes
+ * and ships fine. Bedrock then validates the translated payload against the *target model's* own
+ * schema, which is strict, and a model without prompt-caching support answers:
+ *
+ *   Malformed input request: #/toolConfig/tools/3: extraneous key [cachePoint] is not permitted
+ *
+ * That is a hard failure of the whole call, not a degradation — which is why the marker has to be
+ * gated on the model rather than sent hopefully. The allow-list mirrors AWS's "Supported models,
+ * Regions, and explicit caching limits" table; the deny-list runs first because several
+ * unsupported ids contain substrings the allow-list would otherwise match (`claude-3-5-sonnet`
+ * matches both the unsupported 20240620 v1 and the supported 20241022 v2).
+ */
+export function modelSupportsExplicitCaching(modelId: string): boolean {
+  const m = (modelId || '').toLowerCase().replace(/^(us|eu|apac|global)\./, '');
+
+  // Deny-list first — these are explicitly absent from AWS's supported-caching table.
+  if (m.includes('claude-3-5-sonnet-20240620')) return false; // 3.5 Sonnet v1
+  if (m.includes('claude-3-5-haiku')) return false;
+  if (m.includes('claude-3-haiku') || m.includes('claude-3-sonnet') || m.includes('claude-3-opus')) return false;
+  if (m.includes('claude-opus-4-1') || m.includes('claude-sonnet-4-2025')) return false;
+
+  return (
+    m.includes('claude-fable-5') ||
+    m.includes('claude-mythos') ||
+    m.includes('claude-opus-5') ||
+    m.includes('claude-opus-4-8') ||
+    m.includes('claude-opus-4-7') ||
+    m.includes('claude-opus-4-6') ||
+    m.includes('claude-opus-4-5') ||
+    m.includes('claude-sonnet-5') ||
+    m.includes('claude-sonnet-4-6') ||
+    m.includes('claude-sonnet-4-5') ||
+    m.includes('claude-haiku-4-5') ||
+    m.includes('claude-3-7-sonnet') ||
+    m.includes('claude-3-5-sonnet-20241022')
+  );
+}
+
+/**
  * Maps a logical model name onto an ordered list of Bedrock model or inference profile IDs.
- * Cross-region inference profile IDs are strongly preferred. If the primary candidate fails
- * with an invalid identifier or unsupported region, BedrockProvider will attempt the next candidate.
+ *
+ * Ordering rule: VERIFIED-INVOKABLE first, cache-capable before not, then backstops. Listing a
+ * profile with `list-inference-profiles` is necessary but NOT sufficient — a profile can be
+ * ACTIVE and still refuse every invocation for account reasons, so each id below was probed with
+ * a real one-token ConverseCommand rather than trusted from the listing.
+ *
+ * Probe snapshot, us-east-1, 2026-09-18 — a POINT-IN-TIME observation, not a standing guarantee.
+ * Account entitlement moved underneath this list during the very session that produced it (see
+ * caveat 1), which is itself the argument for keeping the runtime ladder rather than pinning one id:
+ *   INVOKABLE  us.anthropic.claude-sonnet-4-5-20250929-v1:0   cache-capable (1,024-token minimum)
+ *   INVOKABLE  us.anthropic.claude-haiku-4-5-20251001-v1:0    cache-capable (4,096-token minimum)
+ *   INVOKABLE  us.anthropic.claude-opus-4-5-20251101-v1:0     cache-capable (4,096-token minimum)
+ *   INVOKABLE  us.anthropic.claude-sonnet-4-20250514-v1:0     no caching  -> gate turns it off
+ *   INVOKABLE  us.anthropic.claude-3-haiku-20240307-v1:0      no caching  -> gate turns it off
+ *   BLOCKED    us.anthropic.claude-sonnet-5                   AccessDenied: not available for this account
+ *   BLOCKED    us.anthropic.claude-sonnet-4-6                 ResourceNotFound: Anthropic use-case form not submitted
+ *   BLOCKED    every global.* profile                         ResourceNotFound: Anthropic use-case form not submitted
+ *   BLOCKED    us.anthropic.claude-3-sonnet-20240229-v1:0     end of life
+ *
+ * The five ids the previous list hardcoded — `claude-3-5-sonnet-20240620-v1:0` (the synthesis
+ * default), `claude-3-5-sonnet-20241022-v2:0`, `claude-3-7-sonnet-20250219-v1:0` and
+ * `claude-3-5-haiku-20241022-v1:0` — do not resolve in either region at all. Only
+ * `claude-3-haiku-20240307-v1:0` did, which is how a no-caching legacy model came to be the one
+ * that received the cache markers and crashed the run.
+ *
+ * THREE STANDING CAVEATS, all account-level rather than code-level. None is fixable here:
+ *   1. The account is mid-enablement. Within one session the us-east-1 entitlement went from
+ *      "five profiles invokable" to EVERY Anthropic model returning "Model use case details have
+ *      not been submitted for this account" — `claude-3-haiku-20240307` included, which had
+ *      answered a live request minutes earlier. Submit the Anthropic use-case details form in the
+ *      Bedrock console and re-run the probe before trusting any ordering below.
+ *   2. eu-north-1 — the ECS region — refuses every Anthropic model with "Your account is
+ *      currently being verified." Until that clears, production cannot reach Bedrock on any id.
+ *   3. Once entitlement settles, promote `${geo}anthropic.claude-sonnet-5` to the head of the
+ *      synthesis list: it is cache-capable at a 512-token minimum (vs 1,024 for Sonnet 4.5) and
+ *      strictly better than what leads today. It is omitted for now because it fails with a
+ *      distinct "not available for this account" AccessDenied rather than the form gate.
  */
 export function resolveBedrockModelCandidates(model: string): string[] {
   const m = (model || '').toLowerCase();
@@ -78,28 +160,31 @@ export function resolveBedrockModelCandidates(model: string): string[] {
     if (process.env.BEDROCK_MODEL_MECHANICAL) {
       candidates.push(process.env.BEDROCK_MODEL_MECHANICAL);
     }
-    // Official active AWS Bedrock Claude 3.5 Haiku and Claude 3 Haiku IDs
     candidates.push(
-      `${geo}anthropic.claude-3-5-haiku-20241022-v1:0`,
+      // Verified invokable, cache-capable.
+      `${geo}anthropic.claude-haiku-4-5-20251001-v1:0`,
+      // Verified invokable, no caching — kept only as a last-ditch rung. `claude-3-5-haiku`
+      // is deliberately absent: it resolves in neither region.
       `${geo}anthropic.claude-3-haiku-20240307-v1:0`,
-      'us.anthropic.claude-3-5-haiku-20241022-v1:0',
-      'us.anthropic.claude-3-haiku-20240307-v1:0'
+      // Region backstop; blocked until the use-case form is submitted.
+      'global.anthropic.claude-haiku-4-5-20251001-v1:0'
     );
     return Array.from(new Set(candidates));
   }
 
-  // Frontier / Synthesis tier
+  // Frontier / Synthesis tier — stays Sonnet-class, as before, but on current-generation
+  // profiles that actually exist and actually cache.
   const synthesisCandidates: string[] = [];
   if (process.env.BEDROCK_MODEL_SYNTHESIS) {
     synthesisCandidates.push(process.env.BEDROCK_MODEL_SYNTHESIS);
   }
-  // Official active AWS Bedrock Claude 3.5 Sonnet and 3.7 Sonnet IDs
   synthesisCandidates.push(
-    `${geo}anthropic.claude-3-5-sonnet-20240620-v1:0`,
-    `${geo}anthropic.claude-3-5-sonnet-20241022-v2:0`,
-    'us.anthropic.claude-3-5-sonnet-20241022-v2:0',
-    'us.anthropic.claude-3-5-sonnet-20240620-v1:0',
-    `${geo}anthropic.claude-3-7-sonnet-20250219-v1:0`
+    // Verified invokable, cache-capable at a 1,024-token minimum.
+    `${geo}anthropic.claude-sonnet-4-5-20250929-v1:0`,
+    // Verified invokable, no caching — the gate turns markers off rather than crashing.
+    `${geo}anthropic.claude-sonnet-4-20250514-v1:0`,
+    // Region backstop; blocked until the use-case form is submitted.
+    'global.anthropic.claude-sonnet-4-5-20250929-v1:0'
   );
   return Array.from(new Set(synthesisCandidates));
 }
@@ -108,7 +193,15 @@ export function resolveBedrockModelId(model: string): string {
   return resolveBedrockModelCandidates(model)[0];
 }
 
-const CACHE_POINT = { cachePoint: { type: 'default' } } as unknown as ContentBlock;
+/**
+ * One marker per union. These were previously a single constant laundered through
+ * `as unknown as ContentBlock` and spread into `any`-typed arrays, so TypeScript never checked
+ * either injection site — the compiler would happily have accepted a marker in a field that has
+ * no `cachePoint` member. Both unions genuinely carry a `CachePointMember`, so declaring them
+ * properly costs nothing and makes the tools/system distinction explicit.
+ */
+const SYSTEM_CACHE_POINT: SystemContentBlock = { cachePoint: { type: 'default' } };
+const TOOLS_CACHE_POINT: Tool = { cachePoint: { type: 'default' } };
 
 /** Bedrock rejects a toolResult that is not carried on a user turn, hence the role mapping. */
 function toConverseMessages(messages: any[]): Message[] {
@@ -225,6 +318,46 @@ function historyContainsToolBlocks(messages: Message[]): boolean {
   );
 }
 
+/**
+ * The model-side schema rejection described on `modelSupportsExplicitCaching`. Detected
+ * separately from every other failure because the remedy is unique: retry the SAME model with
+ * the markers stripped, rather than moving on to the next candidate. This is the backstop for
+ * the capability table drifting out of date, or for an operator pointing
+ * BEDROCK_MODEL_SYNTHESIS at a model this file has never heard of.
+ */
+function isCachePointRejection(err: any): boolean {
+  const msg = (err?.message || String(err)).toLowerCase();
+  return msg.includes('cachepoint') && (msg.includes('extraneous key') || msg.includes('malformed input'));
+}
+
+/**
+ * Is this failure "wrong model id for this region/account", i.e. worth trying the next candidate?
+ *
+ * The previous version probed `err.message` for 'validationexception' and 'accessdeniedexception',
+ * which are the exception *names* and never appear in the message text — so those two probes were
+ * dead and any ValidationException (the cachePoint crash included) fell straight through to a
+ * rethrow. This reads the structured fields instead.
+ *
+ * Deliberately NOT treating a bare ValidationException as an identifier issue: a genuine
+ * malformed-request bug (bad turn ordering, an empty tools array) would otherwise cycle silently
+ * through every candidate and surface as the last one's error, hiding the real defect.
+ */
+function isModelIdentifierIssue(err: any): boolean {
+  const name = String(err?.name ?? '').toLowerCase();
+  const status = Number(err?.$metadata?.httpStatusCode ?? 0);
+  const msg = (err?.message || String(err)).toLowerCase();
+
+  if (name.includes('resourcenotfound') || name.includes('accessdenied')) return true;
+  if (status === 403 || status === 404) return true;
+
+  return (
+    msg.includes('model identifier is invalid') ||
+    msg.includes("don't have access to the model") ||
+    msg.includes('not supported in this region') ||
+    msg.includes('is not authorized to perform: bedrock:invokemodel')
+  );
+}
+
 export class BedrockProvider implements AgentProvider {
   id = 'bedrock';
   private client: BedrockRuntimeClient;
@@ -239,37 +372,42 @@ export class BedrockProvider implements AgentProvider {
     const startTime = Date.now();
     const modelCandidates = resolveBedrockModelCandidates(config.model);
     const converseTools = toConverseTools(config.tools);
-
-    // Two cache points, placed after each static block. The system prompt and the tool schemas
-    // are byte-identical across every step of a run, which is exactly the reuse Bedrock bills at
-    // the cache-read rate; the message history after them changes every step and is not marked.
-    const system: any[] = [{ text: config.systemPrompt }, CACHE_POINT];
     const messages = toConverseMessages(config.messages || []);
 
-    let toolConfig: any;
-    if (converseTools.length > 0) {
-      toolConfig = {
-        tools: [...converseTools, CACHE_POINT],
-        // The agent contract depends on forced tool use: every run must terminate by calling
-        // its submit_* tool. Anthropic models on Bedrock honour `any`; verify before pointing
-        // this provider at a model family that does not.
-        toolChoice: { any: {} },
-      };
-    } else if (historyContainsToolBlocks(messages)) {
-      // No tools offered this turn, but the history references them — Bedrock demands toolConfig
-      // anyway. `auto` (never `any`) so the model is free to answer with text rather than being
-      // forced to invoke the placeholder. No cache point here: a single tiny tool falls under
-      // the minimum cacheable size and marking it would waste a checkpoint.
-      toolConfig = { tools: [NOOP_TOOL], toolChoice: { auto: {} } };
-    }
+    /**
+     * Built per attempt, not once up front. Whether cache markers belong in the payload is a
+     * property of the candidate being tried, so hoisting this above the loop (as it was) meant
+     * the first candidate's caching decision was silently applied to every later candidate too.
+     *
+     * Cache points are placed after each static block: the system prompt and the tool schemas are
+     * byte-identical across every step of a run, which is exactly the reuse Bedrock bills at the
+     * cache-read rate; the message history after them changes every step and is not marked.
+     * Checkpoints are evaluated `tools` -> `system` -> `messages` against the cumulative prefix,
+     * so a step with only a handful of small tools may fall under the model's minimum — per AWS
+     * that is not an error, the prefix simply isn't cached.
+     */
+    const buildCommand = (candidateId: string, withCaching: boolean) => {
+      const system: SystemContentBlock[] = [{ text: config.systemPrompt }];
+      if (withCaching) system.push(SYSTEM_CACHE_POINT);
 
-    let res: any = null;
-    let modelId = modelCandidates[0];
-    let lastErr: any = null;
+      let toolConfig: ToolConfiguration | undefined;
+      if (converseTools.length > 0) {
+        toolConfig = {
+          tools: withCaching ? [...converseTools, TOOLS_CACHE_POINT] : [...converseTools],
+          // The agent contract depends on forced tool use: every run must terminate by calling
+          // its submit_* tool. Anthropic models on Bedrock honour `any`; verify before pointing
+          // this provider at a model family that does not.
+          toolChoice: { any: {} },
+        };
+      } else if (historyContainsToolBlocks(messages)) {
+        // No tools offered this turn, but the history references them — Bedrock demands toolConfig
+        // anyway. `auto` (never `any`) so the model is free to answer with text rather than being
+        // forced to invoke the placeholder. No cache point here: a single tiny tool falls under
+        // the minimum cacheable size and marking it would waste a checkpoint.
+        toolConfig = { tools: [NOOP_TOOL], toolChoice: { auto: {} } };
+      }
 
-    for (let i = 0; i < modelCandidates.length; i++) {
-      const candidateId = modelCandidates[i];
-      const command = new ConverseCommand({
+      return new ConverseCommand({
         modelId: candidateId,
         system,
         messages,
@@ -279,27 +417,43 @@ export class BedrockProvider implements AgentProvider {
         },
         ...(toolConfig ? { toolConfig } : {}),
       });
+    };
 
-      try {
-        console.log(`-> Calling Bedrock Converse (${candidateId})...`);
-        res = await this.client.send(command);
-        modelId = candidateId;
-        break;
-      } catch (err: any) {
-        lastErr = err;
-        const msg = (err?.message || String(err)).toLowerCase();
-        const isModelIdentifierIssue =
-          msg.includes('model identifier is invalid') ||
-          msg.includes('resourcenotfoundexception') ||
-          msg.includes('validationexception') ||
-          msg.includes('not supported in this region') ||
-          msg.includes('accessdeniedexception');
+    let res: any = null;
+    let modelId = modelCandidates[0];
+    let lastErr: any = null;
 
-        if (isModelIdentifierIssue && i < modelCandidates.length - 1) {
-          console.warn(`[BedrockProvider] Candidate model "${candidateId}" failed (${err?.message}). Trying next candidate "${modelCandidates[i + 1]}"...`);
-          continue;
+    outer:
+    for (let i = 0; i < modelCandidates.length; i++) {
+      const candidateId = modelCandidates[i];
+      let withCaching = modelSupportsExplicitCaching(candidateId);
+
+      // At most two attempts per candidate: as configured, then once more with cache markers
+      // stripped if the model turns out not to accept them.
+      for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+          console.log(`-> Calling Bedrock Converse (${candidateId}, caching=${withCaching ? 'on' : 'off'})...`);
+          res = await this.client.send(buildCommand(candidateId, withCaching));
+          modelId = candidateId;
+          break outer;
+        } catch (err: any) {
+          lastErr = err;
+
+          if (withCaching && isCachePointRejection(err)) {
+            console.warn(
+              `[BedrockProvider] "${candidateId}" rejected explicit cache points (${err?.message}). ` +
+              `Retrying the same model without them — update modelSupportsExplicitCaching() to stop paying for this round-trip.`
+            );
+            withCaching = false;
+            continue;
+          }
+
+          if (isModelIdentifierIssue(err) && i < modelCandidates.length - 1) {
+            console.warn(`[BedrockProvider] Candidate model "${candidateId}" failed (${err?.message}). Trying next candidate "${modelCandidates[i + 1]}"...`);
+            break;
+          }
+          throw err;
         }
-        throw err;
       }
     }
 
@@ -324,11 +478,25 @@ export class BedrockProvider implements AgentProvider {
     }
 
     const u: any = res.usage ?? null;
-    const input = typeof u?.inputTokens === 'number' ? u.inputTokens : null;
+    const reportedInput = typeof u?.inputTokens === 'number' ? u.inputTokens : null;
     const output = typeof u?.outputTokens === 'number' ? u.outputTokens : null;
-    // cacheReadInputTokens is the discounted portion. BudgetService treats cachedInput as a
-    // SUBSET of input and prices the remainder at full rate, so it is reported as-is here.
+
+    /**
+     * Bedrock's accounting differs from every other provider this codebase talks to, and getting
+     * it wrong is silent. Per AWS: "When prompt caching is enabled, the `inputTokens` field
+     * represents only the non-cached input tokens... total input tokens = inputTokens +
+     * cacheReadInputTokens + cacheWriteInputTokens."
+     *
+     * BudgetService treats `cachedInput` as a SUBSET of `input` (it clamps with Math.min), which
+     * is the OpenAI/Anthropic convention. Reporting Bedrock's raw `inputTokens` as `input` would
+     * therefore clamp the cache-read figure down to the small uncached remainder and drop the
+     * write tokens entirely — under-stating spend by most of the prefix on exactly the runs where
+     * caching is working. Summing here restores the subset invariant the billing layer assumes.
+     */
     const cachedInput = Number(u?.cacheReadInputTokens ?? 0) || 0;
+    const cacheWriteInput = Number(u?.cacheWriteInputTokens ?? 0) || 0;
+    const input = (reportedInput ?? 0) + cachedInput + cacheWriteInput;
+    const reportedTotal = Number(u?.totalTokens ?? 0) || 0;
 
     return {
       text,
@@ -337,11 +505,14 @@ export class BedrockProvider implements AgentProvider {
       rawContent: { role: 'assistant', content: text || null, tool_calls: rawToolCalls.length > 0 ? rawToolCalls : undefined },
       toolCalls,
       usage: {
-        input: input ?? 0,
+        input,
         output: output ?? 0,
-        total: typeof u?.totalTokens === 'number' ? u.totalTokens : (input ?? 0) + (output ?? 0),
+        // `totalTokens` follows the same exclusion rule as `inputTokens`, so take whichever is
+        // larger rather than trusting a figure that may omit the cached prefix.
+        total: Math.max(reportedTotal, input + (output ?? 0)),
         cachedInput,
-        reported: input !== null || output !== null,
+        cacheWriteInput,
+        reported: reportedInput !== null || output !== null,
       },
       servedBy: {
         provider: 'bedrock',
