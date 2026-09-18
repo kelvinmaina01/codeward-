@@ -72,12 +72,12 @@ export function initAnalytics() {
 
 export const posthog = {
   capture: (event: string, properties?: Record<string, any>) => {
-    try { posthogClient?.capture?.(event, properties); } catch (e) {}
+    try { posthogClient?.capture?.(event, properties); } catch (e) { console.error('[PostHog] Capture error:', e); }
   }
 };
 
 export const Sentry = {
   captureException: (error: any, context?: any) => {
-    try { sentryClient?.captureException?.(error, context); } catch (e) {}
+    try { sentryClient?.captureException?.(error, context); } catch (e) { console.error('[Sentry] Capture error:', e); }
   }
 };
