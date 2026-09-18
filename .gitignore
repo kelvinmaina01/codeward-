@@ -43,8 +43,3 @@ lerna-debug.log*
 # Scratch / temporary artifacts
 scratch/
 
-
-# Enforce pnpm as the single package manager for this workspace.
-# npm/yarn lockfiles desynchronise from pnpm-lock.yaml and break --frozen-lockfile in CI.
-package-lock.json
-yarn.lock
