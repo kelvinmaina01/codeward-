@@ -887,9 +887,6 @@ export function Dashboard({ onRunClick, hasOpenDrawer = false }: Props) {
             <button type="button" onClick={() => navigate('/dashboard/repos')} className={BTN_SECONDARY}>
               <Add01Icon size={14} className="text-cw-green" /> Connect new repo
             </button>
-            <button type="button" onClick={() => navigate('/dashboard/agent?agent=chat')} className={BTN_SECONDARY}>
-              <img src="/gordon.png" alt="" className="w-4 h-4 rounded-full border border-cw-bdr" /> Ask Codeward AI (Gordon)
-            </button>
             <button type="button" onClick={() => navigate('/dashboard/debt')} className={BTN_SECONDARY}>
               <File01Icon size={14} className="text-cw-txt2" /> View debt report
             </button>
