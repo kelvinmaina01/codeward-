@@ -98,15 +98,15 @@ export function resolveBedrockModelCandidates(model: string): string[] {
     if (process.env.BEDROCK_MODEL_MECHANICAL) {
       candidates.push(process.env.BEDROCK_MODEL_MECHANICAL);
     }
-    // Official active AWS Bedrock Claude 3.5 Haiku and Claude 3 Haiku IDs across US and EU
+    // Active AWS Bedrock Claude 3.5 Haiku and Amazon Nova models
     candidates.push(
-      `${primaryGeo}anthropic.claude-3-5-haiku-20241022-v1:0`,
-      `${secondaryGeo}anthropic.claude-3-5-haiku-20241022-v1:0`,
-      `${primaryGeo}anthropic.claude-3-haiku-20240307-v1:0`,
-      `${secondaryGeo}anthropic.claude-3-haiku-20240307-v1:0`,
       'us.anthropic.claude-3-5-haiku-20241022-v1:0',
+      'eu.anthropic.claude-3-5-haiku-20241022-v1:0',
       'anthropic.claude-3-5-haiku-20241022-v1:0',
-      'anthropic.claude-3-haiku-20240307-v1:0'
+      'us.amazon.nova-micro-v1:0',
+      'us.amazon.nova-lite-v1:0',
+      'amazon.nova-micro-v1:0',
+      'amazon.nova-lite-v1:0'
     );
     return Array.from(new Set(candidates));
   }
@@ -116,15 +116,16 @@ export function resolveBedrockModelCandidates(model: string): string[] {
   if (process.env.BEDROCK_MODEL_SYNTHESIS) {
     synthesisCandidates.push(process.env.BEDROCK_MODEL_SYNTHESIS);
   }
-  // Official active AWS Bedrock Claude 3.5 Sonnet and 3.7 Sonnet IDs across US and EU
+  // Official active AWS Bedrock Claude 3.5 Sonnet and 3.7 Sonnet IDs across US and EU + Nova Pro
   synthesisCandidates.push(
-    `${primaryGeo}anthropic.claude-3-5-sonnet-20241022-v2:0`,
-    `${secondaryGeo}anthropic.claude-3-5-sonnet-20241022-v2:0`,
-    `${primaryGeo}anthropic.claude-3-5-sonnet-20240620-v1:0`,
-    `${secondaryGeo}anthropic.claude-3-5-sonnet-20240620-v1:0`,
-    `${primaryGeo}anthropic.claude-3-7-sonnet-20250219-v1:0`,
-    `${secondaryGeo}anthropic.claude-3-7-sonnet-20250219-v1:0`,
-    'anthropic.claude-3-5-sonnet-20240620-v1:0'
+    'us.anthropic.claude-3-5-sonnet-20241022-v2:0',
+    'eu.anthropic.claude-3-5-sonnet-20241022-v2:0',
+    'us.anthropic.claude-3-7-sonnet-20250219-v1:0',
+    'eu.anthropic.claude-3-7-sonnet-20250219-v1:0',
+    'us.anthropic.claude-3-5-sonnet-20240620-v1:0',
+    'anthropic.claude-3-5-sonnet-20241022-v2:0',
+    'us.amazon.nova-pro-v1:0',
+    'amazon.nova-pro-v1:0'
   );
   return Array.from(new Set(synthesisCandidates));
 }
@@ -326,6 +327,7 @@ export class BedrockProvider implements AgentProvider {
       } catch (err: any) {
         lastErr = err;
         const msg = (err?.message || String(err)).toLowerCase();
+        const errName = (err?.name || '').toLowerCase();
         const isCandidateIssue =
           msg.includes('model identifier is invalid') ||
           msg.includes('resourcenotfoundexception') ||
@@ -333,10 +335,17 @@ export class BedrockProvider implements AgentProvider {
           msg.includes('not supported in this region') ||
           msg.includes('accessdeniedexception') ||
           msg.includes('throttlingexception') ||
-          msg.includes('model not found');
+          msg.includes('model not found') ||
+          msg.includes('end of its life') ||
+          msg.includes('deprecated') ||
+          msg.includes('retired') ||
+          msg.includes('legacy') ||
+          errName.includes('validationexception') ||
+          errName.includes('accessdenied') ||
+          errName.includes('resourcenotfound');
 
         if (isCandidateIssue && i < modelCandidates.length - 1) {
-          console.warn(`[BedrockProvider] Candidate model "${candidateId}" in [${targetRegion}] failed (${err?.message}). Trying next candidate "${modelCandidates[i + 1]}"...`);
+          console.warn(`[BedrockProvider] Candidate model "${candidateId}" in [${targetRegion}] failed (${err?.name || 'Error'}: ${err?.message}). Trying next candidate "${modelCandidates[i + 1]}"...`);
           continue;
         }
         throw err;

@@ -381,4 +381,51 @@ usersRouter.get('/admin/diagnostics', async (c) => {
   return c.json({ envInfo, latestRuns, latestTasks, latestLogs });
 });
 
+/**
+ * Administrative endpoint to directly test AWS Bedrock model invocations live from ECS.
+ */
+usersRouter.get('/admin/test-bedrock', async (c) => {
+  const adminKey = c.req.header('x-admin-key') || c.req.query('key');
+  const validSecret = process.env.BETTER_AUTH_SECRET || process.env.GITHUB_WEBHOOK_SECRET;
+  if (!adminKey || !validSecret || adminKey !== validSecret) {
+    return c.json({ error: 'Forbidden: invalid admin key' }, 403);
+  }
+
+  const { BedrockRuntimeClient, ConverseCommand } = await import('@aws-sdk/client-bedrock-runtime');
+  const testModels = [
+    { id: 'us.anthropic.claude-3-5-haiku-20241022-v1:0', region: 'us-east-1' },
+    { id: 'eu.anthropic.claude-3-5-haiku-20241022-v1:0', region: 'eu-central-1' },
+    { id: 'us.anthropic.claude-3-5-sonnet-20241022-v2:0', region: 'us-east-1' },
+    { id: 'us.amazon.nova-micro-v1:0', region: 'us-east-1' },
+    { id: 'amazon.nova-micro-v1:0', region: 'us-east-1' },
+  ];
+
+  const results: any[] = [];
+  for (const m of testModels) {
+    try {
+      const client = new BedrockRuntimeClient({ region: m.region });
+      const cmd = new ConverseCommand({
+        modelId: m.id,
+        messages: [{ role: 'user', content: [{ text: 'Ping. Say Pong.' }] }],
+        inferenceConfig: { maxTokens: 20 },
+      });
+      const res = await client.send(cmd);
+      const text = (res.output as any)?.message?.content?.[0]?.text;
+      results.push({ model: m.id, region: m.region, status: 'ok', response: text });
+    } catch (err: any) {
+      results.push({
+        model: m.id,
+        region: m.region,
+        status: 'error',
+        name: err.name,
+        message: err.message,
+        code: err.$metadata?.httpStatusCode,
+      });
+    }
+  }
+
+  return c.json({ results });
+});
+
+
 
