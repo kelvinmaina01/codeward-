@@ -38,10 +38,6 @@ export function NotFoundPage() {
       </Helmet>
 
       <div className="min-h-screen bg-cw-bg text-cw-txt flex flex-col justify-between selection:bg-cw-purple/30 selection:text-white relative overflow-hidden">
-        {/* Background ambient lighting */}
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[350px] bg-gradient-to-tr from-cw-purple/10 via-indigo-500/10 to-transparent blur-3xl pointer-events-none rounded-full" />
-        <div className="absolute bottom-10 right-10 w-[300px] h-[250px] bg-cw-amber/5 blur-3xl pointer-events-none rounded-full" />
-
         {/* Minimal Header */}
         <header className="px-6 py-4 border-b border-cw-bdr/60 flex items-center justify-between z-10 backdrop-blur-md bg-cw-bg/80">
           <Link to="/" className="flex items-center gap-2.5 no-underline group">
@@ -77,7 +73,7 @@ export function NotFoundPage() {
                 viewBox="0 0 280 160"
                 fill="none"
                 xmlns="http://www.w3.org/2000/svg"
-                className="mx-auto filter drop-shadow-[0_0_20px_rgba(139,92,246,0.2)]"
+                className="mx-auto shadow-sm"
               >
                 {/* Terminal Background */}
                 <rect
