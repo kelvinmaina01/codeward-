@@ -462,10 +462,12 @@ ${promptText}
     lines.push(coachingPromptSection.trim(), '', '---', '');
   }
 
+  const appSlug = process.env.GITHUB_APP_SLUG || 'codeward-code-review-agent';
+
   lines.push(
     '_Escalated by Codeward because the automated pipeline could not safely resolve this finding._',
     '',
-    `<sub>🤖 Opened by [Codeward](https://github.com/apps/codeward-guardian) · Run #${params.runId}</sub>`
+    `<sub>🤖 Opened by [Codeward](https://github.com/apps/${appSlug}) · Run #${params.runId}</sub>`
   );
 
   return lines.join('\n');

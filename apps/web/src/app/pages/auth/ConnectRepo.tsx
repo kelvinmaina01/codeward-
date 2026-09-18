@@ -440,7 +440,7 @@ export function ConnectRepo({ user, onConnect, onSkip, activeOrg, setActiveOrg, 
                   {/* Configure GitHub App & Refresh buttons bar (matching user screenshot) */}
                   <div className="flex items-center gap-2 shrink-0">
                     <a
-                      href="https://github.com/apps/codeward-guardian/installations/new"
+                      href={import.meta.env.VITE_GITHUB_APP_INSTALL_URL || "https://github.com/apps/codeward-code-review-agent/installations/new"}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-cw-bg border border-cw-bdr hover:border-cw-purple/60 text-cw-txt hover:text-cw-purple rounded-lg text-xs font-medium transition cursor-pointer shadow-xs"
