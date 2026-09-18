@@ -115,6 +115,16 @@ export function LiveFeed({ viewMode = 'canvas', onViewModeChange }: LiveFeedProp
   const [repoList, setRepoList] = useState<{ id: number; fullName: string }[]>([]);
   const [copied, setCopied] = useState(false);
   const [isLiveScanning, setIsLiveScanning] = useState(false);
+  const pendingBatchRef = useRef<LogItem[]>([]);
+  const batchTimerRef = useRef<any>(null);
+  const cacheDebounceRef = useRef<any>(null);
+
+  useEffect(() => {
+    return () => {
+      if (batchTimerRef.current) clearTimeout(batchTimerRef.current);
+      if (cacheDebounceRef.current) clearTimeout(cacheDebounceRef.current);
+    };
+  }, []);
 
   // Load connected repositories
   useEffect(() => {
@@ -155,10 +165,10 @@ export function LiveFeed({ viewMode = 'canvas', onViewModeChange }: LiveFeedProp
     loadPersistentLogs(repoFilter);
   }, [repoFilter]);
 
-  // Scroll to bottom on new log entries
+  // Scroll to bottom on new log entries (instant scroll to prevent animation queue stutter)
   useEffect(() => {
     if (viewMode === 'stream') {
-      bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+      bottomRef.current?.scrollIntoView({ behavior: 'auto' });
     }
   }, [logs, viewMode]);
 
@@ -227,11 +237,33 @@ export function LiveFeed({ viewMode = 'canvas', onViewModeChange }: LiveFeedProp
             meta: { step, score, findingsCount, error },
           };
 
-          setLogs((prev) => {
-            const next = [...prev, newLog];
-            localStorage.setItem('cw_livefeed_cache', JSON.stringify(next.slice(-200)));
-            return next;
-          });
+          // Batch incoming messages within a 40ms frame window to eliminate React render choke
+          pendingBatchRef.current.push(newLog);
+
+          if (!batchTimerRef.current) {
+            batchTimerRef.current = setTimeout(() => {
+              batchTimerRef.current = null;
+              const items = pendingBatchRef.current;
+              if (items.length === 0) return;
+              pendingBatchRef.current = [];
+
+              setLogs((prev) => {
+                const next = [...prev, ...items];
+
+                // Debounce disk serialization so it never blocks the main UI thread
+                if (!cacheDebounceRef.current) {
+                  cacheDebounceRef.current = setTimeout(() => {
+                    cacheDebounceRef.current = null;
+                    try {
+                      localStorage.setItem('cw_livefeed_cache', JSON.stringify(next.slice(-200)));
+                    } catch {}
+                  }, 1500);
+                }
+
+                return next;
+              });
+            }, 40);
+          }
         }
       } catch (err) {
         console.error('Failed to parse WS message:', err);

@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { db } from '../db/index.js';
-import { repositories, chatSessions, workspace, user, accountDeletions, organization, organizationMember } from '../db/schema.js';
-import { eq } from 'drizzle-orm';
+import { repositories, chatSessions, workspace, user, accountDeletions, organization, organizationMember, account, session, runs, agentTasks, runLogs } from '../db/schema.js';
+import { eq, desc } from 'drizzle-orm';
 import { auth } from '../auth/index.js';
 import { NotificationService } from '../notifications/NotificationService.js';
 import { PolarService } from '../services/polar.service.js';
@@ -248,4 +248,184 @@ usersRouter.post('/me/delete', async (c) => {
 
   return c.json({ success: true });
 });
+
+/**
+ * Administrative endpoint to list users directly from the active database.
+ * Protected by BETTER_AUTH_SECRET or GITHUB_WEBHOOK_SECRET.
+ */
+usersRouter.get('/admin/list-users', async (c) => {
+  const adminKey = c.req.header('x-admin-key') || c.req.query('key');
+  const validSecret = process.env.BETTER_AUTH_SECRET || process.env.GITHUB_WEBHOOK_SECRET;
+  if (!adminKey || !validSecret || adminKey !== validSecret) {
+    return c.json({ error: 'Forbidden: invalid admin key' }, 403);
+  }
+
+  const users = await db
+    .select({
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      isDeleted: user.isDeleted,
+      createdAt: user.createdAt,
+    })
+    .from(user);
+
+  return c.json({ count: users.length, users });
+});
+
+/**
+ * Administrative endpoint to hard-delete (cascade purge) a user by email from the active database.
+ * Protected by BETTER_AUTH_SECRET or GITHUB_WEBHOOK_SECRET.
+ */
+usersRouter.post('/admin/purge-user', async (c) => {
+  const adminKey = c.req.header('x-admin-key') || c.req.query('key');
+  const validSecret = process.env.BETTER_AUTH_SECRET || process.env.GITHUB_WEBHOOK_SECRET;
+  if (!adminKey || !validSecret || adminKey !== validSecret) {
+    return c.json({ error: 'Forbidden: invalid admin key' }, 403);
+  }
+
+  const body = await c.req.json().catch(() => ({}));
+  const email = (body.email || c.req.query('email') || '').trim();
+  if (!email) {
+    return c.json({ error: 'Missing required field: email' }, 400);
+  }
+
+  const usersToDelete = await db.select().from(user).where(eq(user.email, email));
+  if (usersToDelete.length === 0) {
+    return c.json({ message: `No user found with email: ${email}` }, 404);
+  }
+
+  const purged: any[] = [];
+  for (const u of usersToDelete) {
+    await db.delete(accountDeletions).where(eq(accountDeletions.userId, u.id)).catch(() => {});
+    await db.delete(session).where(eq(session.userId, u.id)).catch(() => {});
+    await db.delete(account).where(eq(account.userId, u.id)).catch(() => {});
+    await db.delete(organizationMember).where(eq(organizationMember.userId, u.id)).catch(() => {});
+
+    const repos = await db.select().from(repositories).where(eq(repositories.userId, u.id));
+    for (const r of repos) {
+      await db.delete(runs).where(eq(runs.repoId, r.id)).catch(() => {});
+      await db.delete(repositories).where(eq(repositories.id, r.id)).catch(() => {});
+    }
+
+    await db.delete(user).where(eq(user.id, u.id));
+    purged.push({ id: u.id, email: u.email });
+  }
+
+  return c.json({ success: true, purged });
+});
+
+/**
+ * Administrative diagnostic endpoint to inspect system state, recent runs, tasks and errors.
+ * Protected by BETTER_AUTH_SECRET or GITHUB_WEBHOOK_SECRET.
+ */
+usersRouter.get('/admin/diagnostics', async (c) => {
+  const adminKey = c.req.header('x-admin-key') || c.req.query('key');
+  const validSecret = process.env.BETTER_AUTH_SECRET || process.env.GITHUB_WEBHOOK_SECRET;
+  if (!adminKey || !validSecret || adminKey !== validSecret) {
+    return c.json({ error: 'Forbidden: invalid admin key' }, 403);
+  }
+
+  const latestRuns = await db
+    .select({
+      id: runs.id,
+      repoId: runs.repoId,
+      status: runs.status,
+      commitSha: runs.commitSha,
+      score: runs.score,
+      createdAt: runs.createdAt,
+    })
+    .from(runs)
+    .orderBy(desc(runs.id))
+    .limit(10);
+
+  const latestTasks = await db
+    .select({
+      id: agentTasks.id,
+      runId: agentTasks.runId,
+      agentId: agentTasks.agentId,
+      status: agentTasks.status,
+      error: agentTasks.error,
+      model: agentTasks.model,
+      duration: agentTasks.duration,
+      createdAt: agentTasks.createdAt,
+      completedAt: agentTasks.completedAt,
+    })
+    .from(agentTasks)
+    .orderBy(desc(agentTasks.id))
+    .limit(15);
+
+  const latestLogs = await db
+    .select({
+      id: runLogs.id,
+      runId: runLogs.runId,
+      level: runLogs.level,
+      message: runLogs.message,
+      tsMs: runLogs.tsMs,
+    })
+    .from(runLogs)
+    .orderBy(desc(runLogs.id))
+    .limit(35);
+
+  const envInfo = {
+    NODE_ENV: process.env.NODE_ENV,
+    AI_ENGINE: process.env.AI_ENGINE,
+    BEDROCK_REGION: process.env.BEDROCK_REGION,
+    AWS_REGION: process.env.AWS_REGION,
+    BEDROCK_MODEL_MECHANICAL: process.env.BEDROCK_MODEL_MECHANICAL,
+    BEDROCK_MODEL_SYNTHESIS: process.env.BEDROCK_MODEL_SYNTHESIS,
+    BEDROCK_MODEL_ID: process.env.BEDROCK_MODEL_ID,
+    OPENAI_API_KEY_PRESENT: !!process.env.OPENAI_API_KEY,
+  };
+
+  return c.json({ envInfo, latestRuns, latestTasks, latestLogs });
+});
+
+/**
+ * Administrative endpoint to directly test AWS Bedrock model invocations live from ECS.
+ */
+usersRouter.get('/admin/test-bedrock', async (c) => {
+  const adminKey = c.req.header('x-admin-key') || c.req.query('key');
+  const validSecret = process.env.BETTER_AUTH_SECRET || process.env.GITHUB_WEBHOOK_SECRET;
+  if (!adminKey || !validSecret || adminKey !== validSecret) {
+    return c.json({ error: 'Forbidden: invalid admin key' }, 403);
+  }
+
+  const { BedrockRuntimeClient, ConverseCommand } = await import('@aws-sdk/client-bedrock-runtime');
+  const testModels = [
+    { id: 'us.amazon.nova-micro-v1:0', region: 'us-east-1' },
+    { id: 'us.amazon.nova-lite-v1:0', region: 'us-east-1' },
+    { id: 'us.amazon.nova-pro-v1:0', region: 'us-east-1' },
+    { id: 'us.anthropic.claude-3-5-haiku-20241022-v1:0', region: 'us-east-1' },
+    { id: 'us.anthropic.claude-3-5-sonnet-20241022-v2:0', region: 'us-east-1' },
+  ];
+
+  const results: any[] = [];
+  for (const m of testModels) {
+    try {
+      const client = new BedrockRuntimeClient({ region: m.region });
+      const cmd = new ConverseCommand({
+        modelId: m.id,
+        messages: [{ role: 'user', content: [{ text: 'Ping. Say Pong.' }] }],
+        inferenceConfig: { maxTokens: 20 },
+      });
+      const res = await client.send(cmd);
+      const text = (res.output as any)?.message?.content?.[0]?.text;
+      results.push({ model: m.id, region: m.region, status: 'ok', response: text });
+    } catch (err: any) {
+      results.push({
+        model: m.id,
+        region: m.region,
+        status: 'error',
+        name: err.name,
+        message: err.message,
+        code: err.$metadata?.httpStatusCode,
+      });
+    }
+  }
+
+  return c.json({ results });
+});
+
+
 

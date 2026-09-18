@@ -239,7 +239,18 @@ function deliverLocally(type: string, payload: any) {
     if (client.clientMeta) {
       const { repoNames, repoIds, userId } = client.clientMeta as ClientMeta;
 
-      // Filter by user ID if payload is user-scoped
+      // Direct match: if payload specifies a matching userId, deliver directly to that user's socket
+      // (crucial for newly connected repos whose fullName is not yet in this socket's static repoNames snapshot)
+      if (payload.userId && payload.userId === userId) {
+        try {
+          client.send(message);
+        } catch (e) {
+          console.error('[WebSocket] Error sending message to client:', e);
+        }
+        continue;
+      }
+
+      // Filter by user ID if payload is user-scoped and doesn't match
       if (payload.userId && payload.userId !== userId) {
         continue;
       }

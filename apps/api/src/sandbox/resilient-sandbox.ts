@@ -26,7 +26,8 @@ export class ResilientSandbox implements SandboxHandle {
     repoUrl: string,
     commitSHA?: string,
     env: Record<string, string> = {},
-    installationToken?: string
+    installationToken?: string,
+    onProgress?: (msg: string) => void
   ): Promise<void> {
     const provider = this.config.preferredProvider || (process.env.SANDBOX_PROVIDER as any) || 'fly';
 
@@ -34,7 +35,7 @@ export class ResilientSandbox implements SandboxHandle {
     if (provider === 'e2b' && process.env.E2B_API_KEY) {
       console.log('[ResilientSandbox] 🚀 Initializing primary sandbox via E2B Cloud...');
       const e2b = new E2BSandbox();
-      await e2b.init(repoUrl, commitSHA, env, installationToken);
+      await e2b.init(repoUrl, commitSHA, env, installationToken, onProgress);
       this.activeHandle = e2b;
       this.workDir = e2b.workDir;
       return;
@@ -58,9 +59,9 @@ export class ResilientSandbox implements SandboxHandle {
 
         // Failover to E2B if key is available
         if (process.env.E2B_API_KEY) {
-          console.log('[ResilientSandbox] 🔄 Engaging Failover Sandbox Provider: E2B Cloud MicroVM...');
+          console.log('[ResilientSandbox] 🔄 Failing over to E2B Cloud Sandbox...');
           const e2b = new E2BSandbox();
-          await e2b.init(repoUrl, commitSHA, env, installationToken);
+          await e2b.init(repoUrl, commitSHA, env, installationToken, onProgress);
           this.activeHandle = e2b;
           this.workDir = e2b.workDir;
           console.log('[ResilientSandbox] ✅ Failover to E2B successful!');
