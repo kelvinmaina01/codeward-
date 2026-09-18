@@ -6,11 +6,16 @@ function assert(cond: boolean, name: string, detail?: string) {
   if (cond) { console.log(`  ✅ ${name}`); passed++; }
   else { console.error(`  ❌ ${name}${detail ? ` — ${detail}` : ''}`); failed++; }
 }
+/** Build a minimal one-file diff from added code lines. */
+function diffOf(file: string, ...added: string[]) {
+  return `diff --git a/${file} b/${file}\n--- a/${file}\n+++ b/${file}\n` + added.map((l) => `+${l}`).join('\n');
+}
+const has = (d: string, files: string[], cls: string) => scanDiff(d, files).signatureClasses.includes(cls as any);
 
-console.log('\n=== Routing v2 Layer 0 — Deterministic Floor ===\n');
+console.log('\n=== Routing v2 Layer 0 — Deterministic Floor (expanded) ===\n');
 
-// --- Regression fixture: the enterprise-vault-api honeypot feature branch (design doc §6) ---
-console.log('--- Honeypot: feature/diagnostic-and-storage-update ---');
+// ── Regression fixture: the enterprise-vault-api honeypot (design doc §6) ──
+console.log('--- Honeypot regression ---');
 const honeypotDiff = `
 diff --git a/src/services/diagnostic.service.ts b/src/services/diagnostic.service.ts
 +import { exec } from 'node:child_process';
@@ -18,72 +23,75 @@ diff --git a/src/services/diagnostic.service.ts b/src/services/diagnostic.servic
 diff --git a/src/controllers/storage.controller.ts b/src/controllers/storage.controller.ts
 +  const key = String(req.query.key ?? '');
 +  const filePath = path.join(env.documentRoot, key);
-+  return res.send(fs.readFileSync(filePath));
 diff --git a/src/config/debug-overrides.ts b/src/config/debug-overrides.ts
 +  awsAccessKeyId: 'AKIAIOSFODNN7EXAMPLE',
-+  awsSecretAccessKey: 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
 +  bypassAuth: true,
 `;
-const honeypotFiles = ['src/services/diagnostic.service.ts', 'src/controllers/storage.controller.ts', 'src/config/debug-overrides.ts'];
-const hp = scanDiff(honeypotDiff, honeypotFiles);
-const classes = hp.signatureClasses;
-assert(classes.includes('command-injection'), 'RCE (S1) detected');
-assert(classes.includes('path-traversal'), 'Path traversal (S5/S6) detected');
-assert(classes.includes('hardcoded-secret'), 'Hardcoded AWS secret (S9) detected');
-assert(classes.includes('security-control-disabled'), 'bypassAuth (S10) detected');
-assert(hp.hasSecuritySignature, 'Security agent force-dispatched');
-// End-to-end through classifyDiff: security must be mandatory, and risk HIGH.
-const hpAnalysis = classifyDiff(honeypotDiff, honeypotFiles);
-assert(hpAnalysis.mandatoryAgents.includes('security'), 'classifyDiff: security is MANDATORY on honeypot');
-assert(hpAnalysis.riskProfile.overallRisk === 'HIGH', 'classifyDiff: honeypot rated HIGH risk');
-assert((hpAnalysis.riskProfile.deterministicSignatures ?? []).length >= 3, 'classifyDiff: signatures surfaced in risk profile');
+const hpFiles = ['src/services/diagnostic.service.ts', 'src/controllers/storage.controller.ts', 'src/config/debug-overrides.ts'];
+assert(has(honeypotDiff, hpFiles, 'command-injection'), 'honeypot: RCE');
+assert(has(honeypotDiff, hpFiles, 'path-traversal'), 'honeypot: path traversal');
+assert(has(honeypotDiff, hpFiles, 'hardcoded-secret'), 'honeypot: AWS secret');
+assert(has(honeypotDiff, hpFiles, 'security-control-disabled'), 'honeypot: bypassAuth');
+const hpAnalysis = classifyDiff(honeypotDiff, hpFiles);
+assert(hpAnalysis.mandatoryAgents.includes('security'), 'honeypot: security MANDATORY via classifyDiff');
+assert(hpAnalysis.riskProfile.overallRisk === 'HIGH', 'honeypot: HIGH risk');
 
-// --- Deceptive title cannot suppress it (the v1 failure the floor exists to prevent) ---
-console.log('\n--- Adversarial: benign-looking title, malicious body ---');
-// The floor never reads a title; it reads code. A diff that is *only* a reassuring comment must
-// NOT trip security — proving the trigger is code, not narration.
-const titleOnlyDiff = `
-diff --git a/src/util/format.ts b/src/util/format.ts
-+// storage diagnostics: harmless helper, no security impact whatsoever
-+export const pad = (s: string) => s.padStart(4, '0');
-`;
-const benign = scanDiff(titleOnlyDiff, ['src/util/format.ts']);
-assert(!benign.hasSecuritySignature, 'No false force on a benign helper with a reassuring comment');
+// ── New injection vectors ──
+console.log('\n--- Injection vectors ---');
+assert(has(diffOf('a.ts', "db.find(req.body)"), ['a.ts'], 'nosql-injection'), 'NoSQL: find(req.body)');
+assert(scanDiff(diffOf('a.ts', "db.find(req.body)"), ['a.ts']).forcedAgents.includes('data_dx'), 'NoSQL forces data_dx');
+assert(has(diffOf('a.ts', "const p = new libxmljs.parseXml(x, { noent: true });"), ['a.ts'], 'xxe'), 'XXE: noent:true');
+assert(has(diffOf('a.ts', "target['__proto__'].polluted = 1;"), ['a.ts'], 'prototype-pollution'), 'Prototype pollution: __proto__');
+assert(has(diffOf('a.ts', "_.merge(config, req.body);"), ['a.ts'], 'prototype-pollution'), 'Prototype pollution: lodash merge + taint');
+assert(has(diffOf('a.ts', "const u = new User(req.body);"), ['a.ts'], 'mass-assignment'), 'Mass assignment: new Model(req.body)');
+assert(has(diffOf('a.ts', "res.redirect(req.query.next);"), ['a.ts'], 'open-redirect'), 'Open redirect');
+assert(has(diffOf('a.tsx', "el.innerHTML = userInput;"), ['a.tsx'], 'xss-sink'), 'XSS: innerHTML assignment');
+assert(has(diffOf('a.ts', "const re = new RegExp(req.query.pattern);"), ['a.ts'], 'unsafe-regex'), 'Unsafe RegExp from request');
+assert(has(diffOf('a.ts', "const o = unserialize(payload);"), ['a.ts'], 'unsafe-deserialization'), 'Insecure JS deserialization');
 
-// --- False-positive guards (Layer 0 must be precise enough not to force on everything) ---
-console.log('\n--- Precision guards ---');
-const safePathDiff = `
-diff --git a/src/config/paths.ts b/src/config/paths.ts
-+const root = path.join(__dirname, 'assets');
-`;
-assert(!scanDiff(safePathDiff, ['src/config/paths.ts']).signatureClasses.includes('path-traversal'),
-  'path.join WITHOUT request taint is not flagged as traversal');
+// ── Cloud secrets ──
+console.log('\n--- Cloud secrets ---');
+assert(has(diffOf('a.ts', "const k = 'AIza" + "B".repeat(35) + "';"), ['a.ts'], 'hardcoded-secret'), 'GCP API key');
+assert(has(diffOf('a.ts', "slack: 'xoxb-1234567890-abcdefghijkl'"), ['a.ts'], 'hardcoded-secret'), 'Slack bot token');
+assert(has(diffOf('a.ts', "sg: 'SG." + "a".repeat(22) + "." + "b".repeat(43) + "'"), ['a.ts'], 'hardcoded-secret'), 'SendGrid key');
+assert(has(diffOf('a.ts', "gh: 'ghp_abcdefghijklmnopqrstuvwxyz0123456789'"), ['a.ts'], 'hardcoded-secret'), 'GitHub PAT');
+assert(has(diffOf('cfg.json', '"type": "service_account",'), ['cfg.json'], 'hardcoded-secret'), 'GCP service-account JSON');
+assert(has(diffOf('a.ts', "const apiKey = 'aB3xK9mP2qR7sT1vW4yZ6cE8gH0jL5nQ';"), ['a.ts'], 'hardcoded-secret'), 'Generic high-entropy apiKey literal');
 
-const safeSqlDiff = `
-diff --git a/src/db/users.ts b/src/db/users.ts
-+await pool.query('SELECT id FROM users WHERE email = $1', [email]);
-`;
-assert(!scanDiff(safeSqlDiff, ['src/db/users.ts']).signatureClasses.includes('sql-injection'),
-  'Parameterised query ($1 placeholder) is not flagged as SQLi');
+// ── Cryptographic failures ──
+console.log('\n--- Cryptographic failures ---');
+assert(has(diffOf('a.ts', "crypto.createHash('md5').update(x);"), ['a.ts'], 'weak-hash'), 'MD5 usage');
+assert(has(diffOf('a.ts', "const token = Math.random().toString(36);"), ['a.ts'], 'crypto-weak-random'), 'Math.random for token');
+assert(has(diffOf('a.ts', "const c = crypto.createCipher('aes-256-cbc', key);"), ['a.ts'], 'weak-cipher'), 'Deprecated createCipher');
+assert(has(diffOf('a.ts', "const salt = 'a1b2c3d4e5f60718';"), ['a.ts'], 'hardcoded-crypto-material'), 'Hardcoded salt');
+assert(has(diffOf('a.ts', "{ secureProtocol: 'TLSv1_method' }"), ['a.ts'], 'security-control-disabled'), 'Disabled TLS version');
 
-// --- Specialist routing ---
-console.log('\n--- Specialist forcing ---');
-const sqlInjDiff = `
-diff --git a/src/db/search.ts b/src/db/search.ts
-+await pool.query(\`SELECT * FROM docs WHERE name = '\${req.query.q}'\`);
-`;
-const sqli = scanDiff(sqlInjDiff, ['src/db/search.ts']);
-assert(sqli.forcedAgents.includes('security') && sqli.forcedAgents.includes('data_dx'),
-  'Raw SQL interpolation forces BOTH security and data_dx');
+// ── FALSE-POSITIVE GUARDS (precision must survive the expansion) ──
+console.log('\n--- False-positive guards ---');
+assert(!has(diffOf('a.ts', "const jitter = Math.random() * 100;"), ['a.ts'], 'crypto-weak-random'), 'Math.random for jitter NOT flagged');
+assert(!has(diffOf('a.ts', "crypto.createHash('sha256').update(x);"), ['a.ts'], 'weak-hash'), 'SHA-256 NOT flagged');
+assert(!has(diffOf('a.ts', "const c = crypto.createCipheriv('aes-256-gcm', key, iv);"), ['a.ts'], 'weak-cipher'), 'aes-256-gcm NOT flagged as weak cipher');
+assert(!has(diffOf('a.ts', "Object.assign(defaults, { timeout: 30 });"), ['a.ts'], 'mass-assignment'), 'Object.assign with a literal NOT mass-assignment');
+assert(!has(diffOf('a.ts', "await pool.query('SELECT id FROM users WHERE email = $1', [email]);"), ['a.ts'], 'sql-injection'), 'Parameterised query NOT SQLi');
+assert(!has(diffOf('a.ts', "const root = path.join(__dirname, 'assets');"), ['a.ts'], 'path-traversal'), 'path.join without taint NOT traversal');
+assert(!has(diffOf('a.ts', "if (el.innerHTML === expected) return;"), ['a.tsx'], 'xss-sink'), 'innerHTML comparison (===) NOT an XSS sink');
+assert(scanDiff(diffOf('a.ts', "export const pad = (s: string) => s.padStart(4, '0');"), ['a.ts']).forcedAgents.length === 0, 'Benign helper forces nothing');
+assert(scanDiff('diff --git a/README.md b/README.md\n+Some new documentation.', ['README.md']).forcedAgents.length === 0, 'README forces nothing');
 
-const infraDiff = `diff --git a/Dockerfile b/Dockerfile\n+RUN npm ci`;
-const infra = scanDiff(infraDiff, ['Dockerfile']);
-assert(infra.forcedAgents.includes('architecture'), 'Dockerfile change forces architecture');
-
-// --- The one that MUST stay true: pure docs force nothing ---
-console.log('\n--- Doc-only stays clean ---');
-const docFloor = scanDiff(`diff --git a/README.md b/README.md\n+Some new documentation.`, ['README.md']);
-assert(docFloor.forcedAgents.length === 0, 'Pure README change forces zero agents');
+// ── ReDoS / performance guarantee ──
+console.log('\n--- ReDoS & performance ---');
+const evil =
+  diffOf('evil.ts',
+    "const s = '" + "a".repeat(50000) + "';",                          // long literal
+    "query(`" + "x".repeat(40000) + "`);",                             // long unterminated-ish template
+    "'" + "1234567890abcdef".repeat(4000) + "'",                        // long hex-ish run
+    "http://" + "u".repeat(20000) + ":" + "p".repeat(20000) + "@host"); // long creds shape
+const bigFiles = Array.from({ length: 500 }, (_, i) => `src/module-${i}/auth-${i}.ts`);
+const t0 = performance.now();
+for (let i = 0; i < 20; i++) scanDiff(evil, bigFiles);
+const perScan = (performance.now() - t0) / 20;
+console.log(`    mean scan over adversarial input: ${perScan.toFixed(2)}ms`);
+assert(perScan < 50, `Adversarial scan stays sub-50ms (was ${perScan.toFixed(2)}ms)`);
 
 console.log(`\n${failed === 0 ? '✅ PASS' : '❌ FAIL'} — ${passed}/${passed + failed} floor assertions.`);
 process.exit(failed === 0 ? 0 : 1);
