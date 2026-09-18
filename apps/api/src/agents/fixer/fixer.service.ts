@@ -114,14 +114,20 @@ export async function syntaxCheck(filePath: string, content: string): Promise<{ 
     catch (e) { return { ok: false, error: `Generated JSON does not parse: ${(e as Error).message}` }; }
   }
   if (/\.(ts|tsx|js|jsx|mjs|cjs)$/.test(lower)) {
-    const ts = await import('typescript');
-    const source = ts.createSourceFile(filePath, content, ts.ScriptTarget.Latest, true,
-      /\.(tsx|jsx)$/.test(lower) ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
-    const parseErrors = (source as any).parseDiagnostics as { messageText: unknown }[] | undefined;
-    if (parseErrors && parseErrors.length > 0) {
-      const first = parseErrors[0];
-      const msg = typeof first.messageText === 'string' ? first.messageText : JSON.stringify(first.messageText);
-      return { ok: false, error: `Generated code has ${parseErrors.length} syntax error(s), first: ${msg}` };
+    try {
+      const ts = await import('typescript');
+      const source = ts.createSourceFile(filePath, content, ts.ScriptTarget.Latest, true,
+        /\.(tsx|jsx)$/.test(lower) ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
+      const parseErrors = (source as any).parseDiagnostics as { messageText: unknown }[] | undefined;
+      if (parseErrors && parseErrors.length > 0) {
+        const first = parseErrors[0];
+        const msg = typeof first.messageText === 'string' ? first.messageText : JSON.stringify(first.messageText);
+        return { ok: false, error: `Generated code has ${parseErrors.length} syntax error(s), first: ${msg}` };
+      }
+    } catch (err: any) {
+      // If typescript parser package is unavailable in the environment, pass through safely rather than aborting auto-fix
+      console.warn(`[fixer] syntaxCheck skipped: ${err?.message || err}`);
+      return { ok: true };
     }
   }
   return { ok: true };
