@@ -1,5 +1,5 @@
 import { guardianAgent } from '../definitions/guardian.agent.js';
-import { NativeOpenAIProvider } from '../../providers/openai.provider.js';
+import { resolveInferenceEngine } from '../../providers/engine.provider.js';
 import { runAgentLoop } from '../agent-loop.js';
 import type { SandboxHandle } from '../core/provider.js';
 import { renderGuardianFinalReview } from './github-renderer.js';
@@ -66,7 +66,7 @@ async function runGuardianReview(sandbox: SandboxHandle, taskMessage: string): P
       maxSteps: 10,
       tools: toolArray,
       messages: [{ role: 'user', content: taskMessage }],
-    }, new NativeOpenAIProvider());
+    }, resolveInferenceEngine());
   } catch (e) {
     return { reviewed: false, reason: `Guardian review run threw: ${(e as Error).message}` };
   }

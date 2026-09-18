@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { NativeOpenAIProvider } from '../../providers/openai.provider.js';
+import { resolveInferenceEngine } from '../../providers/engine.provider.js';
 import type { SandboxHandle } from '../core/provider.js';
 import { createGuardianTools } from '../definitions/guardian/guardian.tools.js';
 
@@ -158,7 +158,7 @@ export async function generateFix(sandbox: SandboxHandle, finding: FixableFindin
   const originalLineCount = originalContent.split('\n').length;
   const extraInstruction = AGENT_FIX_POLICIES[agentId]?.extraInstruction ?? '';
 
-  const provider = new NativeOpenAIProvider();
+  const provider = resolveInferenceEngine();
   let result;
   try {
     result = await provider.execute({
