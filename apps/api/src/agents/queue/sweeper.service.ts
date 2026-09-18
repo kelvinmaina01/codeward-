@@ -60,7 +60,7 @@ export async function advanceSequentialQueue(userId?: string): Promise<{ advance
     try {
       const [repoOwner] = await db.select().from(user).where(eq(user.id, nextQueued.userId));
       if (repoOwner?.email) {
-        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+        const frontendUrl = process.env.FRONTEND_URL || 'https://www.codeward.cloud';
         const streamUrl = `${frontendUrl}/dashboard/livefeed?view=stream`;
 
         const remaining = await db.select().from(repositories)

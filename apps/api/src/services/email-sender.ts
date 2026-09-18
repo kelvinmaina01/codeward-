@@ -19,7 +19,7 @@ export async function sendWorkspaceInviteMagicLink({
   existingMembers?: { name: string; role: string; image: string | null }[];
 }): Promise<{ success: boolean; id?: string; error?: string }> {
   const apiKey = process.env.RESEND_API_KEY;
-  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+  const frontendUrl = process.env.FRONTEND_URL || 'https://www.codeward.cloud';
   const magicLink = `${frontendUrl}/invite/${inviteToken}`;
 
   const htmlContent = await render(
@@ -118,7 +118,7 @@ export async function sendWorkspaceRemovalNotification({
   memberRole?: string;
 }): Promise<{ success: boolean; id?: string; error?: string }> {
   const apiKey = process.env.RESEND_API_KEY;
-  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+  const frontendUrl = process.env.FRONTEND_URL || 'https://www.codeward.cloud';
   const dashboardUrl = `${frontendUrl}/dashboard`;
 
   const htmlContent = await render(

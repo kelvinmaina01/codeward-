@@ -989,14 +989,13 @@ Use these EXACT values for any tool parameter named runId/repoId — never inven
         })
         .where(eq(agentTasks.id, taskId));
       
-      // Since it's a final failure, trigger the email notification here with precision deep link
+      // Since it's a final failure, trigger the email notification here with precision deep link.
+      // Deduplicate per runId and throttle per repository to prevent inbox spam.
       try {
-        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+        const frontendUrl = process.env.FRONTEND_URL || 'https://www.codeward.cloud';
         const retryUrl = `${frontendUrl}/dashboard/repositories?retryRepo=${encodeURIComponent(repoFullName)}&runId=${runId}`;
         const logTail = err.message + '\n' + (err.stack || '');
         
-        // We look up the organization owner's email. For now, since we have repoFullName,
-        // we can fetch the user associated with the repo.
         const [runRowCatch] = await db.select().from(runs).where(eq(runs.id, runId));
         if (runRowCatch?.repoId) {
           const [repoOwner] = await db
@@ -1006,17 +1005,43 @@ Use these EXACT values for any tool parameter named runId/repoId — never inven
             .where(eq(repositories.id, runRowCatch.repoId));
 
           if (repoOwner?.email) {
-            const { NotificationService } = await import('../../notifications/NotificationService.js');
-            await NotificationService.sendRunFailure(
-              repoOwner.email,
-              repoFullName,
-              agentId,
-              runId,
-              commitSHA,
-              err.message,
-              retryUrl,
-              logTail.substring(0, 2000)
-            );
+            // Deduplication checks
+            const dedupeKey = `failure_email_sent:run:${runId}`;
+            const throttleKey = `failure_email_throttle:repo:${repoFullName}`;
+            let shouldSend = true;
+
+            try {
+              const { redis } = await import('../../lib/redis.js');
+              if (redis) {
+                const alreadySent = await redis.get(dedupeKey);
+                const throttled = await redis.get(throttleKey);
+                if (alreadySent || throttled) {
+                  shouldSend = false;
+                  console.log(`[AgentWorker] Suppressing duplicate/throttled failure email for ${repoFullName} (run #${runId})`);
+                } else {
+                  // Cache for 24h per run, and 15 mins per repo
+                  await redis.set(dedupeKey, '1', 'EX', 86400);
+                  await redis.set(throttleKey, '1', 'EX', 900);
+                }
+              }
+            } catch (redisErr) {
+              // Non-fatal redis check
+            }
+
+            if (shouldSend) {
+              const { NotificationService } = await import('../../notifications/NotificationService.js');
+              await NotificationService.sendRunFailure(
+                repoOwner.email,
+                repoFullName,
+                agentId,
+                runId,
+                commitSHA,
+                err.message,
+                retryUrl,
+                logTail.substring(0, 2000)
+              );
+              console.log(`[AgentWorker] Dispatched failure notification email for ${repoFullName} (run #${runId}) to ${repoOwner.email}`);
+            }
           }
         }
       } catch (emailErr) {
@@ -1158,7 +1183,7 @@ Use these EXACT values for any tool parameter named runId/repoId — never inven
           // Send baseline completion success email
           const [repoOwner] = await db.select().from(user).where(eq(user.id, currentRepo.userId));
           if (repoOwner?.email) {
-            const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+            const frontendUrl = process.env.FRONTEND_URL || 'https://www.codeward.cloud';
             const dashboardUrl = `${frontendUrl}/dashboard`;
             await NotificationService.sendRepoConnectedSuccess(
               repoOwner.email,
@@ -1187,7 +1212,7 @@ Use these EXACT values for any tool parameter named runId/repoId — never inven
             await triggerComprehensiveAudit(nextQueued.id, nextQueued.fullName);
 
             if (repoOwner?.email) {
-              const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+              const frontendUrl = process.env.FRONTEND_URL || 'https://www.codeward.cloud';
               const streamUrl = `${frontendUrl}/dashboard/livefeed?view=stream`;
               const remaining = await db.select().from(repositories)
                 .where(and(

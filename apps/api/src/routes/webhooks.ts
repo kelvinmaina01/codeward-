@@ -159,22 +159,70 @@ webhookRouter.post('/github', async (c) => {
 
       let runRecord: any;
 
-      if (repo.orgId) {
+      let effectiveOrgId = repo.orgId;
+      if (!effectiveOrgId && repo.userId) {
+        const [member] = await db
+          .select({ orgId: organizationMember.orgId })
+          .from(organizationMember)
+          .where(eq(organizationMember.userId, repo.userId))
+          .limit(1);
+        if (member?.orgId) {
+          effectiveOrgId = member.orgId;
+          repo.orgId = effectiveOrgId;
+          await db.update(repositories).set({ orgId: effectiveOrgId }).where(eq(repositories.id, repo.id));
+        }
+      }
+
+      if (effectiveOrgId) {
         // Tier 2: Per-org PR quota (atomic gate)
-        const reservation = await BudgetService.reserveOrgPrRun(repo.orgId, {
+        const reservation = await BudgetService.reserveOrgPrRun(effectiveOrgId, {
           repoId: repo.id,
           commitSha: commitSHA,
           prNumber,
         });
 
         if (!reservation.allowed) {
+          const upgradeUrl = `${appConfig.app.frontendUrl}/webhooks/upgrade?team=${encodeURIComponent(repo.owner)}&source=check_run`;
+
+          // Post a neutral Check Run to GitHub Checks panel so developers see the upgrade link
+          if (repo.installationId) {
+            try {
+              const octokit = await getInstallationOctokit(repo.installationId);
+              await octokit.request('POST /repos/{owner}/{repo}/check-runs', {
+                owner: repo.owner,
+                repo: repo.name,
+                name: '🛡️ Codeward',
+                head_sha: commitSHA,
+                status: 'completed',
+                conclusion: 'neutral',
+                completed_at: new Date().toISOString(),
+                details_url: upgradeUrl,
+                output: {
+                  title: '⏸️ Review limit reached — upgrade to resume',
+                  summary: `Codeward reviews are paused for ${repo.owner} because the ${reservation.reason === 'pro_plan_pr_limit_exceeded' ? 'Pro plan monthly quota' : 'free trial'} limit has been reached.`,
+                  text: [
+                    '### 🛡️ Codeward Reviews Paused',
+                    '',
+                    `Your account has reached its PR review limit (${reservation.reason === 'pro_plan_pr_limit_exceeded' ? '100 PRs/month on Pro' : '10 PR lifetime trial'}).`,
+                    '',
+                    'Upgrade your plan to resume instant multi-agent analysis on your very next push.',
+                    '',
+                    `[**Upgrade to Pro to resume reviews →**](${upgradeUrl})`,
+                  ].join('\n'),
+                },
+              });
+            } catch (checkErr: any) {
+              console.warn('[Webhook] Could not post quota check-run to GitHub:', checkErr?.message);
+            }
+          }
+
           // Post a friendly "trial exhausted" comment on the PR
           await postTrialExhaustedComment({
             installationId: repo.installationId,
             owner: repo.owner,
             repoName: repo.name,
             prNumber,
-            orgId: repo.orgId,
+            orgId: effectiveOrgId,
             githubLogin: repo.owner,
             reason: reservation.reason,
           });
@@ -184,9 +232,9 @@ webhookRouter.post('/github', async (c) => {
             const { emailQueue } = await import('../queue/email.queue.js');
             await emailQueue.add(
               'trial-limit-reached',
-              { type: 'trial-limit-reached', orgId: repo.orgId },
+              { type: 'trial-limit-reached', orgId: effectiveOrgId },
               // ':' is reserved in BullMQ custom job ids and throws, silently dropping the email.
-              { jobId: `trial-limit-${repo.orgId}` }
+              { jobId: `trial-limit-${effectiveOrgId}` }
             );
           } catch (emailErr) {
             console.warn('[Webhook] Failed to enqueue trial limit email:', emailErr);
