@@ -181,10 +181,18 @@ export function modelSupportsForcedToolChoice(modelId: string): boolean {
  * Nova accepts neither explicit cache points in `tools` nor forced tool use, and both gates
  * already return false for it, so it is driven uncached and on `toolChoice: auto`.
  */
-function novaFallbackTier(geo: string, order: 'cheapest-first' | 'most-capable-first'): string[] {
-  const tiers = ['micro', 'lite', 'pro'];
-  const ordered = order === 'cheapest-first' ? tiers : [...tiers].reverse();
-  return ordered.flatMap((t) => [`${geo}amazon.nova-${t}-v1:0`, `amazon.nova-${t}-v1:0`]);
+function novaFallbackTier(geo: string, order: 'mechanical-safe' | 'most-capable-first'): string[] {
+  // Use lite and pro for robust multi-tool execution. Micro is excluded from multi-tool agents to prevent sequence errors.
+  const tiers = order === 'mechanical-safe' ? ['lite', 'pro'] : ['pro', 'lite'];
+  const candidates = [
+    // Direct verified cross-region profiles in us-east-1
+    ...tiers.map((t) => `us.amazon.nova-${t}-v1:0`),
+    // Target geo profile
+    ...tiers.map((t) => `${geo}amazon.nova-${t}-v1:0`),
+    // Bare in-region IDs
+    ...tiers.map((t) => `amazon.nova-${t}-v1:0`),
+  ];
+  return Array.from(new Set(candidates));
 }
 
 export function resolveBedrockModelCandidates(model: string): string[] {
@@ -211,14 +219,11 @@ export function resolveBedrockModelCandidates(model: string): string[] {
     candidates.push(
       // Verified invokable, cache-capable.
       `${geo}anthropic.claude-haiku-4-5-20251001-v1:0`,
-      // Verified invokable, no caching — kept only as a last-ditch rung. `claude-3-5-haiku`
-      // is deliberately absent: it resolves in neither region.
-      `${geo}anthropic.claude-3-haiku-20240307-v1:0`,
-      // Region backstop; blocked until the use-case form is submitted.
+      // Non-Anthropic safety net, robust multi-tool Nova models (Lite, then Pro)
+      ...novaFallbackTier(geo, 'mechanical-safe'),
+      // Region backstop
       'global.anthropic.claude-haiku-4-5-20251001-v1:0'
     );
-    // Final tier: non-Anthropic safety net, cheapest first for the mechanical workload.
-    candidates.push(...novaFallbackTier(geo, 'cheapest-first'));
     return Array.from(new Set(candidates));
   }
 
@@ -231,13 +236,11 @@ export function resolveBedrockModelCandidates(model: string): string[] {
   synthesisCandidates.push(
     // Verified invokable, cache-capable at a 1,024-token minimum.
     `${geo}anthropic.claude-sonnet-4-5-20250929-v1:0`,
-    // Verified invokable, no caching — the gate turns markers off rather than crashing.
-    `${geo}anthropic.claude-sonnet-4-20250514-v1:0`,
-    // Region backstop; blocked until the use-case form is submitted.
+    // Verified non-Anthropic safety net, flagship Pro first
+    ...novaFallbackTier(geo, 'most-capable-first'),
+    // Region backstop
     'global.anthropic.claude-sonnet-4-5-20250929-v1:0'
   );
-  // Final tier: non-Anthropic safety net, most capable first for the synthesis workload.
-  synthesisCandidates.push(...novaFallbackTier(geo, 'most-capable-first'));
   return Array.from(new Set(synthesisCandidates));
 }
 

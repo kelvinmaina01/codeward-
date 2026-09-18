@@ -391,15 +391,20 @@ usersRouter.get('/admin/test-bedrock', async (c) => {
     return c.json({ error: 'Forbidden: invalid admin key' }, 403);
   }
 
-  const { BedrockRuntimeClient, ConverseCommand } = await import('@aws-sdk/client-bedrock-runtime');
-  const testModels = [
-    { id: 'us.amazon.nova-micro-v1:0', region: 'us-east-1' },
-    { id: 'us.amazon.nova-lite-v1:0', region: 'us-east-1' },
-    { id: 'us.amazon.nova-pro-v1:0', region: 'us-east-1' },
-    { id: 'us.anthropic.claude-3-5-haiku-20241022-v1:0', region: 'us-east-1' },
-    { id: 'us.anthropic.claude-3-5-sonnet-20241022-v2:0', region: 'us-east-1' },
-  ];
+  const specificModel = c.req.query('model');
+  const specificRegion = c.req.query('region') || 'us-east-1';
 
+  const testModels = specificModel
+    ? [{ id: specificModel, region: specificRegion }]
+    : [
+        { id: 'us.amazon.nova-pro-v1:0', region: 'us-east-1' },
+        { id: 'us.amazon.nova-lite-v1:0', region: 'us-east-1' },
+        { id: 'us.anthropic.claude-sonnet-4-5-20250929-v1:0', region: 'us-east-1' },
+        { id: 'us.anthropic.claude-haiku-4-5-20251001-v1:0', region: 'us-east-1' },
+        { id: 'us.anthropic.claude-3-5-sonnet-20241022-v2:0', region: 'us-east-1' },
+      ];
+
+  const { BedrockRuntimeClient, ConverseCommand } = await import('@aws-sdk/client-bedrock-runtime');
   const results: any[] = [];
   for (const m of testModels) {
     try {
