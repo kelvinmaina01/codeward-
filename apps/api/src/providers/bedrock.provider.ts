@@ -100,6 +100,31 @@ export function modelSupportsExplicitCaching(modelId: string): boolean {
 }
 
 /**
+ * Whether a model honours `toolChoice: { any: {} }` (forced tool use).
+ *
+ * The agent contract leans on this: every run is supposed to terminate by calling its `submit_*`
+ * tool. Anthropic models on Bedrock honour `any`. Amazon Nova does NOT — every Nova variant
+ * probed (micro, lite, pro, bare and geo-prefixed) fails `any` with
+ * `ModelErrorException: Model produced invalid sequence as part of ToolUse`, while the identical
+ * request with `toolChoice: { auto: {} }` succeeds.
+ *
+ * This is the same class of defect as the cachePoint crash — a per-model capability hardcoded
+ * into the payload — so it gets the same treatment: a gate up front, plus a runtime self-heal for
+ * when the gate is wrong.
+ *
+ * CONSEQUENCE, and it is a real one: under `auto` the model is free to answer with prose instead
+ * of calling `submit_*`. Nova is therefore an AVAILABILITY tier, not a quality-equivalent one —
+ * runs served by it are likelier to come back as text and be marked `truncated` by the agent
+ * loop. That is the intended trade when the alternative is total downtime.
+ */
+export function modelSupportsForcedToolChoice(modelId: string): boolean {
+  const m = (modelId || '').toLowerCase();
+  if (m.includes('amazon.nova') || m.includes('amazon.titan')) return false;
+  if (m.includes('meta.llama') || m.includes('mistral.')) return false;
+  return m.includes('anthropic.');
+}
+
+/**
  * Maps a logical model name onto an ordered list of Bedrock model or inference profile IDs.
  *
  * Ordering rule: VERIFIED-INVOKABLE first, cache-capable before not, then backstops. Listing a
@@ -139,6 +164,29 @@ export function modelSupportsExplicitCaching(modelId: string): boolean {
  *      strictly better than what leads today. It is omitted for now because it fails with a
  *      distinct "not available for this account" AccessDenied rather than the form gate.
  */
+/**
+ * Amazon Nova — the non-Anthropic safety net, appended beneath every Anthropic candidate.
+ *
+ * Reason it exists: with the account's Anthropic entitlement pending, EVERY Claude profile
+ * returns "Model use case details have not been submitted" in us-east-1 and "Your account is
+ * currently being verified" in eu-north-1. Nova is Amazon's own family and is unaffected —
+ * probed live and answering in BOTH regions — so it is the difference between a degraded run
+ * and total downtime.
+ *
+ * Geo profile first, then the bare in-region id. That order is load-bearing rather than
+ * decorative: from eu-north-1, `eu.amazon.nova-*` all answer, while bare `amazon.nova-micro-v1:0`
+ * and `amazon.nova-pro-v1:0` fail with "Invocation ... with on-demand throughput isn't supported"
+ * (only nova-lite has a bare on-demand path there). From us-east-1 both forms answer.
+ *
+ * Nova accepts neither explicit cache points in `tools` nor forced tool use, and both gates
+ * already return false for it, so it is driven uncached and on `toolChoice: auto`.
+ */
+function novaFallbackTier(geo: string, order: 'cheapest-first' | 'most-capable-first'): string[] {
+  const tiers = ['micro', 'lite', 'pro'];
+  const ordered = order === 'cheapest-first' ? tiers : [...tiers].reverse();
+  return ordered.flatMap((t) => [`${geo}amazon.nova-${t}-v1:0`, `amazon.nova-${t}-v1:0`]);
+}
+
 export function resolveBedrockModelCandidates(model: string): string[] {
   const m = (model || '').toLowerCase();
 
@@ -169,6 +217,8 @@ export function resolveBedrockModelCandidates(model: string): string[] {
       // Region backstop; blocked until the use-case form is submitted.
       'global.anthropic.claude-haiku-4-5-20251001-v1:0'
     );
+    // Final tier: non-Anthropic safety net, cheapest first for the mechanical workload.
+    candidates.push(...novaFallbackTier(geo, 'cheapest-first'));
     return Array.from(new Set(candidates));
   }
 
@@ -186,6 +236,8 @@ export function resolveBedrockModelCandidates(model: string): string[] {
     // Region backstop; blocked until the use-case form is submitted.
     'global.anthropic.claude-sonnet-4-5-20250929-v1:0'
   );
+  // Final tier: non-Anthropic safety net, most capable first for the synthesis workload.
+  synthesisCandidates.push(...novaFallbackTier(geo, 'most-capable-first'));
   return Array.from(new Set(synthesisCandidates));
 }
 
@@ -331,6 +383,18 @@ function isCachePointRejection(err: any): boolean {
 }
 
 /**
+ * The forced-tool-use rejection described on `modelSupportsForcedToolChoice`. Like the cachePoint
+ * rejection, the remedy is to retry the SAME model degraded rather than move to the next one.
+ */
+function isForcedToolChoiceRejection(err: any): boolean {
+  const msg = (err?.message || String(err)).toLowerCase();
+  return (
+    msg.includes('invalid sequence as part of tooluse') ||
+    (msg.includes('toolchoice') && (msg.includes('not supported') || msg.includes('extraneous key')))
+  );
+}
+
+/**
  * Is this failure "wrong model id for this region/account", i.e. worth trying the next candidate?
  *
  * The previous version probed `err.message` for 'validationexception' and 'accessdeniedexception',
@@ -386,7 +450,7 @@ export class BedrockProvider implements AgentProvider {
      * so a step with only a handful of small tools may fall under the model's minimum — per AWS
      * that is not an error, the prefix simply isn't cached.
      */
-    const buildCommand = (candidateId: string, withCaching: boolean) => {
+    const buildCommand = (candidateId: string, withCaching: boolean, forceToolUse: boolean) => {
       const system: SystemContentBlock[] = [{ text: config.systemPrompt }];
       if (withCaching) system.push(SYSTEM_CACHE_POINT);
 
@@ -394,10 +458,10 @@ export class BedrockProvider implements AgentProvider {
       if (converseTools.length > 0) {
         toolConfig = {
           tools: withCaching ? [...converseTools, TOOLS_CACHE_POINT] : [...converseTools],
-          // The agent contract depends on forced tool use: every run must terminate by calling
-          // its submit_* tool. Anthropic models on Bedrock honour `any`; verify before pointing
-          // this provider at a model family that does not.
-          toolChoice: { any: {} },
+          // `any` forces the agent to terminate through its submit_* tool, which is what the
+          // agent contract wants. Gated because Amazon Nova rejects `any` outright — see
+          // modelSupportsForcedToolChoice.
+          toolChoice: forceToolUse ? { any: {} } : { auto: {} },
         };
       } else if (historyContainsToolBlocks(messages)) {
         // No tools offered this turn, but the history references them — Bedrock demands toolConfig
@@ -427,13 +491,15 @@ export class BedrockProvider implements AgentProvider {
     for (let i = 0; i < modelCandidates.length; i++) {
       const candidateId = modelCandidates[i];
       let withCaching = modelSupportsExplicitCaching(candidateId);
+      let forceToolUse = modelSupportsForcedToolChoice(candidateId);
 
-      // At most two attempts per candidate: as configured, then once more with cache markers
-      // stripped if the model turns out not to accept them.
-      for (let attempt = 0; attempt < 2; attempt++) {
+      // Up to three attempts per candidate: as configured, then once per capability the model
+      // turns out not to have. Each degradation retries the SAME model — moving to the next
+      // candidate would discard a model that is merely fussy, not unavailable.
+      for (let attempt = 0; attempt < 3; attempt++) {
         try {
-          console.log(`-> Calling Bedrock Converse (${candidateId}, caching=${withCaching ? 'on' : 'off'})...`);
-          res = await this.client.send(buildCommand(candidateId, withCaching));
+          console.log(`-> Calling Bedrock Converse (${candidateId}, caching=${withCaching ? 'on' : 'off'}, toolChoice=${forceToolUse ? 'any' : 'auto'})...`);
+          res = await this.client.send(buildCommand(candidateId, withCaching, forceToolUse));
           modelId = candidateId;
           break outer;
         } catch (err: any) {
@@ -445,6 +511,15 @@ export class BedrockProvider implements AgentProvider {
               `Retrying the same model without them — update modelSupportsExplicitCaching() to stop paying for this round-trip.`
             );
             withCaching = false;
+            continue;
+          }
+
+          if (forceToolUse && isForcedToolChoiceRejection(err)) {
+            console.warn(
+              `[BedrockProvider] "${candidateId}" rejected forced tool use (${err?.message}). ` +
+              `Retrying the same model with toolChoice=auto — the run may return prose instead of a submit_* call.`
+            );
+            forceToolUse = false;
             continue;
           }
 

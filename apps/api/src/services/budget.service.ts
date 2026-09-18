@@ -57,6 +57,18 @@ function getModelRates(model: string): { input: number; output: number; cachedIn
   if (m.includes('free') || m.includes('glm') || m.includes('deepseek-r1:free')) {
     return { input: 0, output: 0, cachedInput: 0 };
   }
+  // Amazon Nova — the Bedrock availability fallback. Without these branches every Nova run fell
+  // through to the default Sonnet rate ($3/$15), over-stating a nova-micro call by ~85x and
+  // tripping the monthly kill switch on traffic that is nearly free. Bedrock on-demand rates.
+  if (m.includes('nova-micro')) {
+    return { input: 0.035, output: 0.14, cachedInput: 0.0035 };
+  }
+  if (m.includes('nova-lite')) {
+    return { input: 0.06, output: 0.24, cachedInput: 0.006 };
+  }
+  if (m.includes('nova-pro')) {
+    return { input: 0.8, output: 3.2, cachedInput: 0.08 };
+  }
   if (m.includes('gemini-flash') || m.includes('gemini-1.5-flash')) {
     return { input: 0.075, output: 0.3, cachedInput: 0.01875 };
   }
