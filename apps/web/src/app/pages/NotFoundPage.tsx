@@ -45,10 +45,12 @@ export function NotFoundPage() {
         {/* Minimal Header */}
         <header className="px-6 py-4 border-b border-cw-bdr/60 flex items-center justify-between z-10 backdrop-blur-md bg-cw-bg/80">
           <Link to="/" className="flex items-center gap-2.5 no-underline group">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cw-purple to-indigo-600 flex items-center justify-center text-white font-bold text-base shadow-[0_0_15px_rgba(139,92,246,0.3)]">
-              C
-            </div>
-            <span className="font-bold tracking-tight text-[15px] text-cw-txt group-hover:text-cw-purple transition-colors">
+            <img
+              src="/codeward-logo.png"
+              alt="Codeward Logo"
+              className="h-7 sm:h-8 w-auto object-contain transition-transform group-hover:scale-105"
+            />
+            <span className="font-bold tracking-tight text-[16px] text-cw-txt group-hover:text-cw-purple transition-colors">
               Codeward
             </span>
           </Link>
