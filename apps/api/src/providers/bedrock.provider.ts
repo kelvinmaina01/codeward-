@@ -422,15 +422,37 @@ function isModelIdentifierIssue(err: any): boolean {
   );
 }
 
+/**
+ * Maps a Bedrock model or inference profile ID to the appropriate AWS Region endpoint.
+ * Stockholm (eu-north-1) has no Bedrock service, so requests from Fargate must route to us-east-1 or eu-central-1.
+ */
+export function getRegionForBedrockModel(modelId: string): string {
+  const m = (modelId || '').toLowerCase().trim();
+  if (m.startsWith('us.')) return 'us-east-1';
+  if (m.startsWith('eu.')) return 'eu-central-1';
+  if (m.startsWith('apac.')) return 'ap-southeast-1';
+  if (m.startsWith('global.')) return 'us-east-1';
+
+  const configured = (process.env.BEDROCK_REGION || '').toLowerCase().trim();
+  if (configured && configured !== 'eu-north-1') {
+    return configured;
+  }
+  return 'us-east-1';
+}
+
 export class BedrockProvider implements AgentProvider {
   id = 'bedrock';
-  private client: BedrockRuntimeClient;
+  private clients: Map<string, BedrockRuntimeClient> = new Map();
 
-  constructor(region?: string) {
-    this.client = new BedrockRuntimeClient({
-      region: region || process.env.BEDROCK_REGION || process.env.AWS_REGION || 'us-east-1',
-    });
+  private getClient(region: string): BedrockRuntimeClient {
+    let client = this.clients.get(region);
+    if (!client) {
+      client = new BedrockRuntimeClient({ region });
+      this.clients.set(region, client);
+    }
+    return client;
   }
+
 
   async execute(config: AgentRunConfig): Promise<AgentResult> {
     const startTime = Date.now();
@@ -498,8 +520,10 @@ export class BedrockProvider implements AgentProvider {
       // candidate would discard a model that is merely fussy, not unavailable.
       for (let attempt = 0; attempt < 3; attempt++) {
         try {
-          console.log(`-> Calling Bedrock Converse (${candidateId}, caching=${withCaching ? 'on' : 'off'}, toolChoice=${forceToolUse ? 'any' : 'auto'})...`);
-          res = await this.client.send(buildCommand(candidateId, withCaching, forceToolUse));
+          const targetRegion = getRegionForBedrockModel(candidateId);
+          const client = this.getClient(targetRegion);
+          console.log(`-> Calling Bedrock Converse (${candidateId}) in region [${targetRegion}] (caching=${withCaching ? 'on' : 'off'}, toolChoice=${forceToolUse ? 'any' : 'auto'})...`);
+          res = await client.send(buildCommand(candidateId, withCaching, forceToolUse));
           modelId = candidateId;
           break outer;
         } catch (err: any) {
