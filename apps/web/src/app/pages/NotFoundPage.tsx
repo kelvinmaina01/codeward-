@@ -219,9 +219,6 @@ export function NotFoundPage() {
               <Link to="/dashboard/repos" className="hover:text-cw-txt transition-colors no-underline flex items-center gap-1">
                 <GitForkIcon size={13} className="text-cw-blue" /> Repositories
               </Link>
-              <Link to="/dashboard/agent" className="hover:text-cw-txt transition-colors no-underline flex items-center gap-1">
-                <SparklesIcon size={13} className="text-cw-amber" /> Gordon Agent
-              </Link>
             </div>
           </div>
         </main>
