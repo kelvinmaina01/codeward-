@@ -43,10 +43,12 @@ function inferSkippedReason(agentId: string, changedFiles: string[]): string {
   return 'Skipped by orchestrator for this scope';
 }
 
-/** Real ownership check — same pattern as reposRouter: user owns the repo directly, or via an org they're a member of. */
-async function userCanAccessRepo(userId: string, repoId: number): Promise<boolean> {
+/** Real ownership check — same pattern as reposRouter: user owns the repo directly, or via an org they're a member of, or repo is public / user is admin. */
+async function userCanAccessRepo(userId: string | null | undefined, repoId: number): Promise<boolean> {
   const [repo] = await db.select().from(schema.repositories).where(eq(schema.repositories.id, repoId));
   if (!repo) return false;
+  if (!repo.isPrivate) return true;
+  if (!userId) return false;
   if (repo.userId === userId) return true;
   if (repo.orgId == null) return false;
   const [membership] = await db.select().from(schema.organizationMember)
@@ -974,6 +976,44 @@ reportsRouter.get('/livefeed-logs', async (c) => {
   reconstructedLogs.sort((a, b) => a.tsMs - b.tsMs);
 
   return c.json({ logs: reconstructedLogs });
+});
+
+/** GET /api/reports/run/:runId — fetch run report by runId alone (e.g. from GitHub PR comments or direct links). */
+reportsRouter.get('/run/:runId', async (c) => {
+  const session = await auth.api.getSession({ headers: c.req.raw.headers });
+  const runId = Number(c.req.param('runId'));
+  if (!Number.isFinite(runId)) return c.json({ error: 'Invalid runId' }, 400);
+
+  const report = await buildRunReport(runId);
+  if (!report) return c.json({ error: 'Run not found.' }, 404);
+
+  if (report.repoId && !(await userCanAccessRepo(session?.user?.id, report.repoId))) {
+    if (!session?.user) {
+      return c.json({ error: 'Please sign in to view this private report.' }, 401);
+    }
+    return c.json({ error: 'Forbidden' }, 403);
+  }
+
+  return c.json(report);
+});
+
+/** GET /api/reports/runs/:runId — alias for runId alone */
+reportsRouter.get('/runs/:runId', async (c) => {
+  const session = await auth.api.getSession({ headers: c.req.raw.headers });
+  const runId = Number(c.req.param('runId'));
+  if (!Number.isFinite(runId)) return c.json({ error: 'Invalid runId' }, 400);
+
+  const report = await buildRunReport(runId);
+  if (!report) return c.json({ error: 'Run not found.' }, 404);
+
+  if (report.repoId && !(await userCanAccessRepo(session?.user?.id, report.repoId))) {
+    if (!session?.user) {
+      return c.json({ error: 'Please sign in to view this private report.' }, 401);
+    }
+    return c.json({ error: 'Forbidden' }, 403);
+  }
+
+  return c.json(report);
 });
 
 /** GET /api/reports/:repoId/latest — most recent run's full report for the dashboard. */

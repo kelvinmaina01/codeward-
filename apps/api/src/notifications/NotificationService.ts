@@ -10,6 +10,7 @@ import { AccountDeletionEmail } from './templates/AccountDeletionEmail.js';
 import { PlanUpgradedEmail } from './templates/PlanUpgradedEmail.js';
 import { TrialLimitEmail } from './templates/TrialLimitEmail.js';
 import { RunCompletedEmail } from './templates/RunCompletedEmail.js';
+import { AutoFixPrOpenedEmail } from './templates/AutoFixPrOpenedEmail.js';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -360,6 +361,48 @@ export class NotificationService {
       React.createElement(TrialLimitEmail, { userName, orgName, trialPrLimit, upgradeUrl }),
       {
         fromAddress: 'Codeward <notifications@codeward.cloud>',
+        replyTo: 'support@codeward.cloud',
+      }
+    );
+  }
+
+  /** Sent immediately when an auto-fix pull request is opened and awaiting review / merge decision */
+  static async sendAutoFixPrOpened(payload: {
+    to: string;
+    userName?: string;
+    repoName: string;
+    prNumber: number;
+    prTitle: string;
+    prUrl: string;
+    agentId: string;
+    runId: string | number;
+    maxSeverity?: string | null;
+    mode: 'auto' | 'manual';
+    deadlineMinutes?: number;
+    dashboardUrl?: string;
+  }) {
+    const isAuto = payload.mode === 'auto';
+    const statusText = isAuto ? `auto-merge scheduled in ${payload.deadlineMinutes ?? 10}m` : 'manual approval required';
+    const subject = `[Action Required] Auto-Fix PR #${payload.prNumber} opened on ${payload.repoName} (${statusText})`;
+
+    return this.sendEmail(
+      payload.to,
+      subject,
+      React.createElement(AutoFixPrOpenedEmail, {
+        recipientName: payload.userName,
+        repoName: payload.repoName,
+        prNumber: payload.prNumber,
+        prTitle: payload.prTitle,
+        prUrl: payload.prUrl,
+        agentId: payload.agentId,
+        runId: payload.runId,
+        maxSeverity: payload.maxSeverity,
+        mode: payload.mode,
+        deadlineMinutes: payload.deadlineMinutes,
+        dashboardUrl: payload.dashboardUrl,
+      }),
+      {
+        fromAddress: 'Codeward Guardian <alerts@codeward.cloud>',
         replyTo: 'support@codeward.cloud',
       }
     );

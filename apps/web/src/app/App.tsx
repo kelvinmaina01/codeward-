@@ -198,10 +198,12 @@ const topbarConfig: Partial<Record<string, { title: string; sub: string }>> = {
   alerts:    { title: 'Alerts center', sub: 'Active incidents & notifications' },
   issuesprs: { title: 'Issues & PRs (Codeward Agent)', sub: 'Real escalated GitHub issues and pull requests opened by Codeward agents' },
   commits:   { title: 'Commit History', sub: 'Agent activity per commit' },
+  rundetail: { title: 'Run Details', sub: 'Autonomous multi-agent execution report' },
 };
 
 // Map URL paths to screen IDs
 const pathToScreen = (pathname: string): string => {
+  if (pathname.match(/^\/(?:dashboard\/)?runs\/\d+/)) return 'rundetail';
   if (pathname.match(/^\/dashboard\/repos\/\d+\/commits/)) return 'commits';
   if (pathname === '/dashboard/commits') return 'commits';
   const exact: Record<string, string> = {
@@ -557,6 +559,19 @@ function DashboardLayout() {
   const topbar = topbarConfig[screen] ?? { title: 'Codeward', sub: '' };
 
   const renderScreen = () => {
+    // Run details page — accessible from direct link (/runs/:runId or /dashboard/runs/:runId)
+    const runsMatch = location.pathname.match(/^\/(?:dashboard\/)?runs\/(\d+)/);
+    if (runsMatch || screen === 'rundetail') {
+      const runId = runsMatch ? Number(runsMatch[1]) : undefined;
+      if (runId && Number.isFinite(runId)) {
+        return (
+          <div className="flex-1 h-full overflow-hidden bg-cw-bg2 flex flex-col">
+            <RunDetail runId={runId} onBack={() => navigate('/dashboard/history')} />
+          </div>
+        );
+      }
+    }
+
     // Commits page — accessible from sidebar (/dashboard/commits) or per-repo (/dashboard/repos/:id/commits)
     const commitsMatch = location.pathname.match(/^\/dashboard\/repos\/(\d+)\/commits/);
     if (commitsMatch || screen === 'commits') {
@@ -1199,6 +1214,14 @@ export const routes = [
         <DashboardLayout />
       </RequireAuth>
     )
+  },
+  {
+    path: "/runs/:runId",
+    element: <DashboardLayout />
+  },
+  {
+    path: "/dashboard/runs/:runId",
+    element: <DashboardLayout />
   },
   {
     path: "/admin",

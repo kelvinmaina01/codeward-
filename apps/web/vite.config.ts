@@ -32,6 +32,8 @@ export default defineConfig({
       { find: '@better-auth/core/context', replacement: path.resolve(__dirname, './node_modules/@better-auth/core/dist/context/index.mjs') },
       { find: '@better-auth/core/api', replacement: path.resolve(__dirname, './node_modules/@better-auth/core/dist/api/index.mjs') },
       { find: '@better-auth/core', replacement: path.resolve(__dirname, './node_modules/@better-auth/core/dist/index.mjs') },
+      { find: 'better-auth/react', replacement: path.resolve(__dirname, '../api/node_modules/better-auth/dist/client/react/index.mjs') },
+      { find: 'better-auth/client', replacement: path.resolve(__dirname, '../api/node_modules/better-auth/dist/client/index.mjs') },
       { find: '@', replacement: path.resolve(__dirname, './src') },
     ]
   },
