@@ -1183,7 +1183,7 @@ Use these EXACT values for any tool parameter named runId/repoId — never inven
           // Send baseline completion success email
           const [repoOwner] = await db.select().from(user).where(eq(user.id, currentRepo.userId));
           if (repoOwner?.email) {
-            const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+            const frontendUrl = process.env.FRONTEND_URL || 'https://www.codeward.cloud';
             const dashboardUrl = `${frontendUrl}/dashboard`;
             await NotificationService.sendRepoConnectedSuccess(
               repoOwner.email,
@@ -1212,7 +1212,7 @@ Use these EXACT values for any tool parameter named runId/repoId — never inven
             await triggerComprehensiveAudit(nextQueued.id, nextQueued.fullName);
 
             if (repoOwner?.email) {
-              const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+              const frontendUrl = process.env.FRONTEND_URL || 'https://www.codeward.cloud';
               const streamUrl = `${frontendUrl}/dashboard/livefeed?view=stream`;
               const remaining = await db.select().from(repositories)
                 .where(and(

@@ -616,7 +616,7 @@ reposRouter.post('/connect', validateBody(connectSchema), async (c) => {
   // 7. Dispatch Dynamic Initiation Email to the User
   if (connected.length > 0 && session.user.email) {
     try {
-      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+      const frontendUrl = process.env.FRONTEND_URL || 'https://www.codeward.cloud';
       const streamUrl = `${frontendUrl}/dashboard/livefeed?view=stream`;
       const activeRepo = connected[0];
       const queuedRepos = connected.slice(1);
