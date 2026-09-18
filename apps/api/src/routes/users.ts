@@ -244,7 +244,9 @@ usersRouter.post('/me/delete', async (c) => {
   try {
      // BetterAuth doesn't have a direct revoke by session object easily accessible via `api`, 
      // but client will call signOut() anyway.
-  } catch(e) {}
+  } catch(e) {
+    console.error('Failed to revoke user session during account deletion:', e);
+  }
 
   return c.json({ success: true });
 });
@@ -431,6 +433,3 @@ usersRouter.get('/admin/test-bedrock', async (c) => {
 
   return c.json({ results });
 });
-
-
-
