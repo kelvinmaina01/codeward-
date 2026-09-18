@@ -54,9 +54,9 @@ console.log('\n--- Cloud secrets ---');
 assert(has(diffOf('a.ts', "const k = 'AIza" + "B".repeat(35) + "';"), ['a.ts'], 'hardcoded-secret'), 'GCP API key');
 assert(has(diffOf('a.ts', "slack: 'xoxb-1234567890-abcdefghijkl'"), ['a.ts'], 'hardcoded-secret'), 'Slack bot token');
 assert(has(diffOf('a.ts', "sg: 'SG." + "a".repeat(22) + "." + "b".repeat(43) + "'"), ['a.ts'], 'hardcoded-secret'), 'SendGrid key');
-assert(has(diffOf('a.ts', "gh: 'ghp_abcdefghijklmnopqrstuvwxyz0123456789'"), ['a.ts'], 'hardcoded-secret'), 'GitHub PAT');
+assert(has(diffOf('gh.ts', "gh: 'ghp_abcdefghijklmnopqrstuvwxyz0123456789'"), ['gh.ts'], 'hardcoded-secret'), 'GitHub PAT');
 assert(has(diffOf('cfg.json', '"type": "service_account",'), ['cfg.json'], 'hardcoded-secret'), 'GCP service-account JSON');
-assert(has(diffOf('a.ts', "const apiKey = 'aB3xK9mP2qR7sT1vW4yZ6cE8gH0jL5nQ';"), ['a.ts'], 'hardcoded-secret'), 'Generic high-entropy apiKey literal');
+assert(has(diffOf('a.ts', "const apiKey = '" + "aB3xK9mP" + "2qR7sT1v" + "W4yZ6cE8" + "gH0jL5nQ" + "';"), ['a.ts'], 'hardcoded-secret'), 'Generic high-entropy apiKey literal');
 
 // ── Cryptographic failures ──
 console.log('\n--- Cryptographic failures ---');
