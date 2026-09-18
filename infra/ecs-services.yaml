@@ -184,7 +184,7 @@ Resources:
             - Name: AI_ENGINE
               Value: bedrock
             - Name: BEDROCK_REGION
-              Value: !Ref 'AWS::Region'
+              Value: 'us-east-1'
             - Name: BETTER_AUTH_URL
               Value: !Ref ApiUrl
             - Name: SANDBOX_PROVIDER
@@ -300,7 +300,7 @@ Resources:
             - Name: AI_ENGINE
               Value: bedrock
             - Name: BEDROCK_REGION
-              Value: !Ref 'AWS::Region'
+              Value: 'us-east-1'
             - Name: SANDBOX_PROVIDER
               Value: 'e2b'
             - Name: FRONTEND_URL

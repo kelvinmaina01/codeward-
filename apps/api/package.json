@@ -22,6 +22,7 @@
     "test:bullmq:concurrency": "tsx test/test-bullmq-concurrency.ts",
     "test:bullmq:fairness": "tsx test/test-bullmq-fairness.ts",
     "test:model:dynamic": "tsx test/test-dynamic-model-routing.ts",
+    "test:bedrock": "tsx test/test-bedrock-routing.ts",
     "test:polar": "tsx test/test-polar-billing.ts",
     "test:email:fallback": "tsx test/test-email-fallback.ts",
     "benchmark:fly": "tsx test/benchmark-fly-concurrent-boot.ts",
@@ -30,7 +31,7 @@
   },
   "dependencies": {
     "@ai-sdk/openai": "^3.0.71",
-    "@aws-sdk/client-bedrock-runtime": "^3.1133.0",
+    "@aws-sdk/client-bedrock-runtime": "^3.1135.0",
     "@e2b/code-interpreter": "^2.8.0",
     "@hono/node-server": "^1.11.1",
     "@hono/node-ws": "^1.3.1",

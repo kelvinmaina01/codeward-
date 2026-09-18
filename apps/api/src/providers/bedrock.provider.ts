@@ -32,23 +32,42 @@ import { zodToJsonSchema } from 'zod-to-json-schema';
 import type { AgentProvider, AgentRunConfig, AgentResult, AgentTool } from './openai.provider.js';
 
 /**
- * Cross-region inference profiles are GEO-SCOPED, and this is the whole reason Bedrock worked
- * locally and failed on Fargate.
+ * Maps a Bedrock model or inference profile ID to the appropriate AWS Region endpoint.
  *
- * A `us.`-prefixed profile is only resolvable from a US region; calling it from eu-north-1 fails
- * with "The provided model identifier is invalid." The bedrock client below defaults to
- * `us-east-1` when AWS_REGION is unset — true on a laptop — but ECS injects AWS_REGION=eu-north-1,
- * so the same image silently switched regions in production while the model ids stayed `us.`.
- *
- * Deriving the prefix from the runtime region is what makes one image correct in every
- * deployment. Verified with `aws bedrock list-inference-profiles --region eu-north-1`: both
- * models below exist there, ACTIVE, at the identical version — only the prefix differs.
+ * AWS Bedrock rule:
+ * - Cross-region profiles prefixed with `us.` MUST be called in a US region (us-east-1).
+ * - Cross-region profiles prefixed with `eu.` MUST be called in an EU region (eu-central-1).
+ * - Cross-region profiles prefixed with `apac.` MUST be called in an APAC region (ap-southeast-1).
+ * - Foundation models without a prefix must be called in a region hosting that foundation model.
+ * - Note: eu-north-1 (Stockholm) has NO Bedrock foundation models, so requests from Fargate in
+ *   Stockholm must cross-region route to eu-central-1 or us-east-1.
+ */
+export function getRegionForBedrockModel(modelId: string): string {
+  const m = (modelId || '').toLowerCase().trim();
+  if (m.startsWith('us.')) return 'us-east-1';
+  if (m.startsWith('eu.')) return 'eu-central-1';
+  if (m.startsWith('apac.')) return 'ap-southeast-1';
+
+  // For non-prefixed models (e.g. anthropic.claude-3-5-haiku...):
+  const configured = (process.env.BEDROCK_REGION || process.env.AWS_REGION || '').toLowerCase().trim();
+  if (configured && configured !== 'eu-north-1') {
+    return configured;
+  }
+  // Default to us-east-1 (where all Anthropic foundation models reside)
+  return 'us-east-1';
+}
+
+/**
+ * Cross-region inference profiles are GEO-SCOPED.
+ * If running on ECS in eu-north-1 (Stockholm), Bedrock is not available in that region,
+ * so we default preferred geo to 'us.' (or 'eu.' fallback), both supported via cross-region routing.
  */
 function bedrockGeoPrefix(): string {
-  const region = (process.env.BEDROCK_REGION || process.env.AWS_REGION || 'us-east-1').toLowerCase();
+  const region = (process.env.BEDROCK_REGION || process.env.AWS_REGION || 'us-east-1').toLowerCase().trim();
+  // eu-north-1 has no Bedrock at all — use us. by default as standard Bedrock geo
+  if (region === 'eu-north-1' || !region) return 'us.';
   if (region.startsWith('eu-')) return 'eu.';
   if (region.startsWith('ap-')) return 'apac.';
-  // us-*, and anything unrecognised, keeps today's behaviour rather than guessing a new geo.
   return 'us.';
 }
 
@@ -70,7 +89,8 @@ export function resolveBedrockModelCandidates(model: string): string[] {
     return [model];
   }
 
-  const geo = bedrockGeoPrefix();
+  const primaryGeo = bedrockGeoPrefix();
+  const secondaryGeo = primaryGeo === 'us.' ? 'eu.' : 'us.';
   const isMechanical = m.includes('mini') || m.includes('haiku') || m.includes('nano') || m.includes('lite');
 
   if (isMechanical) {
@@ -78,12 +98,15 @@ export function resolveBedrockModelCandidates(model: string): string[] {
     if (process.env.BEDROCK_MODEL_MECHANICAL) {
       candidates.push(process.env.BEDROCK_MODEL_MECHANICAL);
     }
-    // Official active AWS Bedrock Claude 3.5 Haiku and Claude 3 Haiku IDs
+    // Official active AWS Bedrock Claude 3.5 Haiku and Claude 3 Haiku IDs across US and EU
     candidates.push(
-      `${geo}anthropic.claude-3-5-haiku-20241022-v1:0`,
-      `${geo}anthropic.claude-3-haiku-20240307-v1:0`,
+      `${primaryGeo}anthropic.claude-3-5-haiku-20241022-v1:0`,
+      `${secondaryGeo}anthropic.claude-3-5-haiku-20241022-v1:0`,
+      `${primaryGeo}anthropic.claude-3-haiku-20240307-v1:0`,
+      `${secondaryGeo}anthropic.claude-3-haiku-20240307-v1:0`,
       'us.anthropic.claude-3-5-haiku-20241022-v1:0',
-      'us.anthropic.claude-3-haiku-20240307-v1:0'
+      'anthropic.claude-3-5-haiku-20241022-v1:0',
+      'anthropic.claude-3-haiku-20240307-v1:0'
     );
     return Array.from(new Set(candidates));
   }
@@ -93,13 +116,15 @@ export function resolveBedrockModelCandidates(model: string): string[] {
   if (process.env.BEDROCK_MODEL_SYNTHESIS) {
     synthesisCandidates.push(process.env.BEDROCK_MODEL_SYNTHESIS);
   }
-  // Official active AWS Bedrock Claude 3.5 Sonnet and 3.7 Sonnet IDs
+  // Official active AWS Bedrock Claude 3.5 Sonnet and 3.7 Sonnet IDs across US and EU
   synthesisCandidates.push(
-    `${geo}anthropic.claude-3-5-sonnet-20240620-v1:0`,
-    `${geo}anthropic.claude-3-5-sonnet-20241022-v2:0`,
-    'us.anthropic.claude-3-5-sonnet-20241022-v2:0',
-    'us.anthropic.claude-3-5-sonnet-20240620-v1:0',
-    `${geo}anthropic.claude-3-7-sonnet-20250219-v1:0`
+    `${primaryGeo}anthropic.claude-3-5-sonnet-20241022-v2:0`,
+    `${secondaryGeo}anthropic.claude-3-5-sonnet-20241022-v2:0`,
+    `${primaryGeo}anthropic.claude-3-5-sonnet-20240620-v1:0`,
+    `${secondaryGeo}anthropic.claude-3-5-sonnet-20240620-v1:0`,
+    `${primaryGeo}anthropic.claude-3-7-sonnet-20250219-v1:0`,
+    `${secondaryGeo}anthropic.claude-3-7-sonnet-20250219-v1:0`,
+    'anthropic.claude-3-5-sonnet-20240620-v1:0'
   );
   return Array.from(new Set(synthesisCandidates));
 }
@@ -227,12 +252,22 @@ function historyContainsToolBlocks(messages: Message[]): boolean {
 
 export class BedrockProvider implements AgentProvider {
   id = 'bedrock';
-  private client: BedrockRuntimeClient;
+  private clients: Map<string, BedrockRuntimeClient> = new Map();
+  private defaultRegion: string;
 
   constructor(region?: string) {
-    this.client = new BedrockRuntimeClient({
-      region: region || process.env.BEDROCK_REGION || process.env.AWS_REGION || 'us-east-1',
-    });
+    const rawRegion = region || process.env.BEDROCK_REGION || process.env.AWS_REGION || 'us-east-1';
+    // If running in Stockholm (eu-north-1) where Bedrock is absent, default to us-east-1
+    this.defaultRegion = rawRegion === 'eu-north-1' ? 'us-east-1' : rawRegion;
+  }
+
+  private getClient(region: string): BedrockRuntimeClient {
+    let client = this.clients.get(region);
+    if (!client) {
+      client = new BedrockRuntimeClient({ region });
+      this.clients.set(region, client);
+    }
+    return client;
   }
 
   async execute(config: AgentRunConfig): Promise<AgentResult> {
@@ -269,6 +304,9 @@ export class BedrockProvider implements AgentProvider {
 
     for (let i = 0; i < modelCandidates.length; i++) {
       const candidateId = modelCandidates[i];
+      const targetRegion = getRegionForBedrockModel(candidateId);
+      const client = this.getClient(targetRegion);
+
       const command = new ConverseCommand({
         modelId: candidateId,
         system,
@@ -281,22 +319,24 @@ export class BedrockProvider implements AgentProvider {
       });
 
       try {
-        console.log(`-> Calling Bedrock Converse (${candidateId})...`);
-        res = await this.client.send(command);
+        console.log(`-> Calling Bedrock Converse (${candidateId}) in region [${targetRegion}]...`);
+        res = await client.send(command);
         modelId = candidateId;
         break;
       } catch (err: any) {
         lastErr = err;
         const msg = (err?.message || String(err)).toLowerCase();
-        const isModelIdentifierIssue =
+        const isCandidateIssue =
           msg.includes('model identifier is invalid') ||
           msg.includes('resourcenotfoundexception') ||
           msg.includes('validationexception') ||
           msg.includes('not supported in this region') ||
-          msg.includes('accessdeniedexception');
+          msg.includes('accessdeniedexception') ||
+          msg.includes('throttlingexception') ||
+          msg.includes('model not found');
 
-        if (isModelIdentifierIssue && i < modelCandidates.length - 1) {
-          console.warn(`[BedrockProvider] Candidate model "${candidateId}" failed (${err?.message}). Trying next candidate "${modelCandidates[i + 1]}"...`);
+        if (isCandidateIssue && i < modelCandidates.length - 1) {
+          console.warn(`[BedrockProvider] Candidate model "${candidateId}" in [${targetRegion}] failed (${err?.message}). Trying next candidate "${modelCandidates[i + 1]}"...`);
           continue;
         }
         throw err;
