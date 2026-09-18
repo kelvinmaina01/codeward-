@@ -1011,21 +1011,25 @@ Use these EXACT values for any tool parameter named runId/repoId — never inven
             let shouldSend = true;
 
             try {
-              const { redis } = await import('../../lib/redis.js');
-              if (redis) {
-                const alreadySent = await redis.get(dedupeKey);
-                const throttled = await redis.get(throttleKey);
-                if (alreadySent || throttled) {
-                  shouldSend = false;
-                  console.log(`[AgentWorker] Suppressing duplicate/throttled failure email for ${repoFullName} (run #${runId})`);
-                } else {
-                  // Cache for 24h per run, and 15 mins per repo
-                  await redis.set(dedupeKey, '1', 'EX', 86400);
-                  await redis.set(throttleKey, '1', 'EX', 900);
-                }
+              // Reuse the BullMQ ioredis client created at module load. `redis.js` exports no
+              // `redis` singleton — only createRedisConnection/BULLMQ_PREFIX/isRedisQuotaExceeded —
+              // so the previous destructured import resolved to undefined and broke the build.
+              // Opening a second connection here would also be wrong: every extra client counts
+              // against the Upstash connection cap for what is two key reads and two writes.
+              const alreadySent = await connection.get(dedupeKey);
+              const throttled = await connection.get(throttleKey);
+              if (alreadySent || throttled) {
+                shouldSend = false;
+                console.log(`[AgentWorker] Suppressing duplicate/throttled failure email for ${repoFullName} (run #${runId})`);
+              } else {
+                // Cache for 24h per run, and 15 mins per repo
+                await connection.set(dedupeKey, '1', 'EX', 86400);
+                await connection.set(throttleKey, '1', 'EX', 900);
               }
             } catch (redisErr) {
-              // Non-fatal redis check
+              // Non-fatal: if Redis is unreachable the email still goes out. Better a possible
+              // duplicate than a silently swallowed failure notification.
+              console.warn(`[AgentWorker] Failure-email dedupe check skipped (redis unavailable):`, (redisErr as Error)?.message);
             }
 
             if (shouldSend) {
