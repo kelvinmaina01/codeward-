@@ -34,6 +34,13 @@ export interface AgentResult {
     /** Portion of `input` served from the provider's prompt cache, when reported. */
     cachedInput: number;
     /**
+     * Portion of `input` WRITTEN to the provider's prompt cache. Bedrock reports this separately
+     * and bills it above the standard input rate (~1.25x), so it cannot be folded into
+     * `cachedInput` — that field is the discounted read. Providers without explicit cache writes
+     * simply omit it.
+     */
+    cacheWriteInput?: number;
+    /**
      * False when the response carried no usage block at all. Without this a proxy that omits
      * usage is indistinguishable from a genuine zero, which is how every token_usage row in
      * the database came to read {"input":0,"output":0}.

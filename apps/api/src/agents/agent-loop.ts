@@ -8,6 +8,8 @@ export interface AgentLoopResult {
     total: number;
     /** Portion of `input` served from the provider's prompt cache. */
     cachedInput: number;
+    /** Portion of `input` written to the provider's prompt cache, billed above the input rate. */
+    cacheWriteInput: number;
     /** Steps whose response carried a usage block, and steps that did not. */
     reportedSteps: number;
     unreportedSteps: number;
@@ -23,16 +25,17 @@ export interface AgentLoopResult {
 export async function runAgentLoop(config: AgentRunConfig, provider: AgentProvider): Promise<AgentLoopResult> {
   let currentMessages = [...(config.messages || [])];
   const maxSteps = config.maxSteps || 15;
-  const tokenUsage = { input: 0, output: 0, total: 0, cachedInput: 0, reportedSteps: 0, unreportedSteps: 0 };
+  const tokenUsage = { input: 0, output: 0, total: 0, cachedInput: 0, cacheWriteInput: 0, reportedSteps: 0, unreportedSteps: 0 };
   const toolsExecuted: Array<{ toolName: string; calledAt: string; durationMs: number; resultSummary: string }> = [];
   let servedBy: AgentLoopResult['servedBy'];
 
-  const addUsage = (usage?: { input: number; output: number; total: number; cachedInput?: number; reported?: boolean }) => {
+  const addUsage = (usage?: { input: number; output: number; total: number; cachedInput?: number; cacheWriteInput?: number; reported?: boolean }) => {
     if (!usage) { tokenUsage.unreportedSteps++; return; }
     tokenUsage.input += usage.input ?? 0;
     tokenUsage.output += usage.output ?? 0;
     tokenUsage.total += usage.total ?? ((usage.input ?? 0) + (usage.output ?? 0));
     tokenUsage.cachedInput += usage.cachedInput ?? 0;
+    tokenUsage.cacheWriteInput += usage.cacheWriteInput ?? 0;
     if (usage.reported === false) tokenUsage.unreportedSteps++;
     else tokenUsage.reportedSteps++;
   };

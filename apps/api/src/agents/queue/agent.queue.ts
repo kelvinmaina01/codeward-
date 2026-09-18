@@ -905,6 +905,7 @@ Use these EXACT values for any tool parameter named runId/repoId — never inven
           output: result.tokenUsage?.output ?? 0,
           total: result.tokenUsage?.total ?? ((result.tokenUsage?.input ?? 0) + (result.tokenUsage?.output ?? 0)),
           cachedInput: result.tokenUsage?.cachedInput ?? 0,
+          cacheWriteInput: result.tokenUsage?.cacheWriteInput ?? 0,
           reportedSteps: result.tokenUsage?.reportedSteps ?? 0,
           unreportedSteps: result.tokenUsage?.unreportedSteps ?? 0,
           // Distinguishes "this run was free" from "nobody told us what it cost".

@@ -80,6 +80,8 @@ export interface AgentResult {
     total?: number;
     /** Portion of `input` billed at the provider's cached-input rate. */
     cachedInput?: number;
+    /** Portion of `input` billed at the provider's cache-WRITE rate (above the input rate). */
+    cacheWriteInput?: number;
     /**
      * Steps that reported usage vs. steps that did not. When unreportedSteps > 0 the recorded
      * counts are a floor, not the real cost — the served provider omitted its usage block.
