@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { db } from '../db/index.js';
-import { repositories, chatSessions, workspace, user, accountDeletions, organization, organizationMember, account, session, runs } from '../db/schema.js';
-import { eq } from 'drizzle-orm';
+import { repositories, chatSessions, workspace, user, accountDeletions, organization, organizationMember, account, session, runs, agentTasks, runLogs } from '../db/schema.js';
+import { eq, desc } from 'drizzle-orm';
 import { auth } from '../auth/index.js';
 import { NotificationService } from '../notifications/NotificationService.js';
 import { PolarService } from '../services/polar.service.js';
@@ -313,6 +313,72 @@ usersRouter.post('/admin/purge-user', async (c) => {
   }
 
   return c.json({ success: true, purged });
+});
+
+/**
+ * Administrative diagnostic endpoint to inspect system state, recent runs, tasks and errors.
+ * Protected by BETTER_AUTH_SECRET or GITHUB_WEBHOOK_SECRET.
+ */
+usersRouter.get('/admin/diagnostics', async (c) => {
+  const adminKey = c.req.header('x-admin-key') || c.req.query('key');
+  const validSecret = process.env.BETTER_AUTH_SECRET || process.env.GITHUB_WEBHOOK_SECRET;
+  if (!adminKey || !validSecret || adminKey !== validSecret) {
+    return c.json({ error: 'Forbidden: invalid admin key' }, 403);
+  }
+
+  const latestRuns = await db
+    .select({
+      id: runs.id,
+      repoId: runs.repoId,
+      status: runs.status,
+      commitSha: runs.commitSha,
+      score: runs.score,
+      createdAt: runs.createdAt,
+    })
+    .from(runs)
+    .orderBy(desc(runs.id))
+    .limit(10);
+
+  const latestTasks = await db
+    .select({
+      id: agentTasks.id,
+      runId: agentTasks.runId,
+      agentId: agentTasks.agentId,
+      status: agentTasks.status,
+      error: agentTasks.error,
+      model: agentTasks.model,
+      duration: agentTasks.duration,
+      createdAt: agentTasks.createdAt,
+      completedAt: agentTasks.completedAt,
+    })
+    .from(agentTasks)
+    .orderBy(desc(agentTasks.id))
+    .limit(15);
+
+  const latestLogs = await db
+    .select({
+      id: runLogs.id,
+      runId: runLogs.runId,
+      level: runLogs.level,
+      message: runLogs.message,
+      tsMs: runLogs.tsMs,
+    })
+    .from(runLogs)
+    .orderBy(desc(runLogs.id))
+    .limit(35);
+
+  const envInfo = {
+    NODE_ENV: process.env.NODE_ENV,
+    AI_ENGINE: process.env.AI_ENGINE,
+    BEDROCK_REGION: process.env.BEDROCK_REGION,
+    AWS_REGION: process.env.AWS_REGION,
+    BEDROCK_MODEL_MECHANICAL: process.env.BEDROCK_MODEL_MECHANICAL,
+    BEDROCK_MODEL_SYNTHESIS: process.env.BEDROCK_MODEL_SYNTHESIS,
+    BEDROCK_MODEL_ID: process.env.BEDROCK_MODEL_ID,
+    OPENAI_API_KEY_PRESENT: !!process.env.OPENAI_API_KEY,
+  };
+
+  return c.json({ envInfo, latestRuns, latestTasks, latestLogs });
 });
 
 
