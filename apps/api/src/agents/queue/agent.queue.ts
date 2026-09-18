@@ -1246,6 +1246,31 @@ Use these EXACT values for any tool parameter named runId/repoId — never inven
         console.error(`[AgentQueue] Could not close out run #${runId} after orchestrator failure:`, cleanupErr?.message);
       }
 
+      // Close the GitHub Check Run too. The happy path completes it from Phase 3, but a run that
+      // dies in Phase 1 (sandbox boot / clone failure) never reaches Phase 3 — so the check the
+      // webhook opened stayed "in progress" forever and the developer's PR spun indefinitely with
+      // no way to tell a crashed review from a slow one. This is the only place that failure is
+      // observed, so GitHub has to be told here.
+      try {
+        if (runId) {
+          const { completePrLifecycle } = await import('../../services/github-pr-lifecycle.service.js');
+          await completePrLifecycle(runId, {
+            conclusion: 'failure',
+            title: 'Codeward review · FAILED',
+            summary:
+              `Codeward could not complete this review: the \`${job.data.agentId}\` phase crashed during initialization.\n\n` +
+              `\`\`\`\n${String(err?.message ?? 'Unknown error').slice(0, 800)}\n\`\`\`\n\n` +
+              `This is an infrastructure failure on Codeward's side, not a finding about your code. ` +
+              `Push a new commit or re-run the audit to try again.`,
+          });
+          console.warn(`[AgentQueue] GitHub check run closed as 'failure' for run #${runId}.`);
+        }
+      } catch (lifecycleErr: any) {
+        // completePrLifecycle no-ops when the run has no prNumber/installation, so a throw here
+        // is a real GitHub API problem — log it, but never let it mask the original failure.
+        console.error(`[AgentQueue] Could not complete PR lifecycle after orchestrator failure for run #${runId}:`, lifecycleErr?.message);
+      }
+
       // Unlock sequential queue so the next repo is not deadlocked
       try {
         const { advanceSequentialQueue } = await import('./sweeper.service.js');
