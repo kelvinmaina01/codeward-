@@ -94,9 +94,14 @@ diff --git a/src/db/schema.ts b/src/db/schema.ts
   const migrationFiles = ['src/db/schema.ts'];
   const migrationAnalysis = classifyDiff(migrationDiff, migrationFiles);
 
-  assert(migrationAnalysis.recommendedAgents.includes('architecture'), 'Architecture recommended for schema.ts');
-  assert(migrationAnalysis.recommendedAgents.includes('data_dx'), 'Data DX recommended for schema.ts');
-  assert(migrationAnalysis.recommendedAgents.includes('security'), 'Security recommended for schema.ts');
+  // Routing v2: a schema/migration touch is a DATA-LAYER concern (data_dx), not automatically an
+  // architecture one. Architecture is now summoned by structural/coupling/infra CONTENT or a large
+  // diff — not by the fact that a file is named schema.ts. This small schema add correctly routes
+  // to data_dx (+ mandatory security), and NOT to architecture. This asserts the new content-driven
+  // contract that replaced the old filename heuristic.
+  assert(!migrationAnalysis.recommendedAgents.includes('architecture'), 'Architecture NOT summoned by schema.ts filename alone (small, non-structural change)');
+  assert(migrationAnalysis.recommendedAgents.includes('data_dx'), 'Data DX recommended for a schema/migration change (content-detected)');
+  assert(migrationAnalysis.recommendedAgents.includes('security'), 'Security mandatory on the schema change');
 
   // Test 5: LLM / AI Call Sites
   console.log('\n--- Test Group 5: AI / LLM Client Call Sites ---');
