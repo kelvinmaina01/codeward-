@@ -78,6 +78,6 @@ export const posthog = {
 
 export const Sentry = {
   captureException: (error: any, context?: any) => {
-    try { sentryClient?.captureException?.(error, context); } catch (e) { console.error('[Analytics] Sentry captureException error:', e); }
+    try { sentryClient?.captureException?.(error, context); } catch (e) { console.error('[Analytics] Sentry captureException error:', e); console.error('[Analytics] Sentry initialization or configuration issue detected:', e); }
   }
 };
