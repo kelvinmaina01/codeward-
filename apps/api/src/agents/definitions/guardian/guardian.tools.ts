@@ -73,7 +73,19 @@ export const createGuardianTools = (sandbox: SandboxHandle) => {
         pullRequestNumber: z.number(),
         event: z.enum(["APPROVE", "REQUEST_CHANGES", "COMMENT"]),
         body: z.string(),
-        comments: z.array(z.object({ path: z.string(), line: z.number(), body: z.string() })).optional().default([])
+        comments: z.array(z.object({ path: z.string(), line: z.number(), body: z.string() })).optional().default([]),
+        // Structured record of every issue this review asserts — machine-readable alongside the
+        // human-facing `body`/`comments`. This is what lets a finding Guardian raises from the
+        // live diff be persisted to the database and shown on the dashboard, instead of living
+        // only as prose on GitHub. Populate it whenever event is REQUEST_CHANGES.
+        findings: z.array(z.object({
+          severity: z.enum(["CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO"]),
+          title: z.string(),
+          file: z.string().nullable().optional(),
+          line: z.number().nullable().optional(),
+          category: z.string().nullable().optional(),
+          description: z.string().nullable().optional(),
+        })).optional().default([]),
       }),
       execute: async (args: any) => {
         const ctx = await getGuardianOctokitContext(args.repoId);

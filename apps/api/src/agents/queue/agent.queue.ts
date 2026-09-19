@@ -862,6 +862,53 @@ Use these EXACT values for any tool parameter named runId/repoId — never inven
         });
         humanPrReview = review;
         console.log(`[AgentWorker] guardian human-PR review of #${runRow.prNumber}: ${review.reviewed ? review.event : `did not complete (${review.reason})`}`);
+
+        // Split-brain cure: persist any NET-NEW findings Guardian raised from the live diff (ones
+        // no sub-agent already surfaced) into a dedicated `guardian` agentTasks row, so reports.ts
+        // serves them to the dashboard — buildRunReport iterates every non-orchestrator task, and
+        // the canvas endpoint's allFindings/criticalIssues read every task's findings. Without this
+        // a finding Guardian posts to GitHub is invisible in the product UI.
+        if (review.reviewed && Array.isArray(review.findings) && review.findings.length > 0) {
+          const fkey = (f: any) => `${String(f.file ?? '').toLowerCase()}::${f.line ?? ''}::${String(f.title ?? '').toLowerCase().slice(0, 80)}`;
+          const known = new Set((findings as any[]).map(fkey));
+          const netNew = review.findings.filter((f: any) => !known.has(fkey(f)));
+          if (netNew.length > 0) {
+            const guardianFindings = netNew.map((f: any, i: number) => ({
+              id: `guardian-${runId}-${i}`,
+              agentId: 'guardian',
+              severity: String(f.severity ?? 'INFO').toUpperCase(),
+              title: f.title,
+              description: f.description ?? null,
+              category: f.category ?? 'SECURITY',
+              file: f.file ?? null,
+              line: f.line ?? null,
+              toolName: 'get_pull_request_files',
+              rawEvidence: 'Identified by Guardian from the live PR diff (not surfaced by a sub-agent).',
+              source: 'guardian_diff_review',
+            }));
+            const [existingGuardian] = await db.select().from(agentTasks).where(and(eq(agentTasks.runId, runId), eq(agentTasks.agentId, 'guardian')));
+            const guardianMeta = {
+              source: 'guardian_diff_review',
+              summary: `Guardian surfaced ${guardianFindings.length} net-new finding(s) by inspecting the live PR diff.`,
+              servedBy: (result as any).servedBy ?? null,
+            };
+            if (existingGuardian) {
+              await db.update(agentTasks).set({
+                status: 'completed', findings: guardianFindings, findingsCount: guardianFindings.length,
+                completedAt: new Date(), reportMeta: guardianMeta,
+              }).where(eq(agentTasks.id, existingGuardian.id));
+            } else {
+              await db.insert(agentTasks).values({
+                runId, agentId: 'guardian', provider: 'guardian', status: 'completed',
+                // No numeric score: Guardian is a reviewer, not a scored scanner — null renders as
+                // "no score" rather than a fabricated value.
+                score: null, findings: guardianFindings, findingsCount: guardianFindings.length,
+                startedAt: new Date(), completedAt: new Date(), reportMeta: guardianMeta,
+              });
+            }
+            console.log(`[AgentWorker] Persisted ${guardianFindings.length} net-new Guardian finding(s) to the guardian task row for run #${runId} (dashboard now matches GitHub).`);
+          }
+        }
       } catch (reviewError) {
         console.error(`[AgentWorker] human-PR review step threw (non-fatal):`, (reviewError as Error).message);
         humanPrReview = { reviewed: false, reason: `Review step crashed: ${(reviewError as Error).message}` };

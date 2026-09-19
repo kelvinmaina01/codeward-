@@ -31,8 +31,19 @@ export type ReviewResult =
       htmlUrl: string;
       body: string;
       comments?: Array<{ path: string; line: number; body: string }>;
+      /** Structured findings Guardian asserted in this review — persisted to the DB by the caller. */
+      findings?: GuardianReviewFinding[];
     }
   | { reviewed: false; reason: string };
+
+export interface GuardianReviewFinding {
+  severity: string;
+  title: string;
+  file?: string | null;
+  line?: number | null;
+  category?: string | null;
+  description?: string | null;
+}
 
 async function runGuardianReview(sandbox: SandboxHandle, taskMessage: string): Promise<ReviewResult> {
   const tools = guardianAgent.createTools(sandbox);
@@ -88,6 +99,7 @@ async function runGuardianReview(sandbox: SandboxHandle, taskMessage: string): P
     htmlUrl: reviewResult.htmlUrl,
     body: String(reviewArgs.body ?? ''),
     comments: Array.isArray(reviewArgs.comments) ? reviewArgs.comments : [],
+    findings: Array.isArray(reviewArgs.findings) ? reviewArgs.findings : [],
   };
 }
 
@@ -156,6 +168,8 @@ export async function reviewHumanPR(params: ReviewHumanPRParams): Promise<Review
     findingsSummary,
     '',
     'Use get_pull_request_files to read the real diff. Post inline comments via submit_pr_review only when the exact line is present in the GitHub diff and corresponds to real evidence. If a finding is outside the current diff, keep it in the review body instead of forcing an invalid inline comment.',
+    '',
+    'CRITICAL: For EVERY issue you assert in this review — including any you identify yourself from the diff that the agent findings above did not list — you MUST also record it in the structured `findings` array of submit_pr_review (severity, title, file, line). This array is the machine-readable record persisted to the dashboard; an issue that appears only in your prose body or an inline comment, but not in `findings`, will be posted to GitHub yet invisible on the dashboard. Do not restate an agent finding already listed above unless your diff inspection adds a materially stronger file/line/severity for it.',
     '',
     'Use this GitHub review structure for your body, updating the details after you inspect the real diff:',
     reviewTemplate,
