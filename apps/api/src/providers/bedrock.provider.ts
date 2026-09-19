@@ -258,6 +258,31 @@ export function resolveBedrockModelId(model: string): string {
 const SYSTEM_CACHE_POINT: SystemContentBlock = { cachePoint: { type: 'default' } };
 const TOOLS_CACHE_POINT: Tool = { cachePoint: { type: 'default' } };
 
+/**
+ * Coerce a tool name to AWS Bedrock's `toolUse.name` constraint: it must match
+ * `[a-zA-Z0-9_-]+` and be at most 64 characters. When Sonnet is shown a raw malicious payload it
+ * sometimes hallucinates an "illegal" tool name — a fragment of the payload itself, with spaces,
+ * punctuation, or well over 64 chars. That name is captured into the OpenAI-shaped history, and
+ * on the NEXT loop step, when the history is re-serialized to Converse and sent back, Bedrock
+ * rejects the whole request with a 400 ValidationException:
+ *   "messages.N.member.content.M.member.toolUse.name failed to satisfy constraint ..."
+ * which then falls into the fallback cascade and, when that is out of quota, crashes the run.
+ *
+ * Sanitizing here — at the point the OpenAI shape is translated to Bedrock's — fixes it at the
+ * source without touching the cascade: invalid characters become `_`, the name is truncated to
+ * 64, and an empty/absent name gets a safe placeholder. A valid name (a real tool such as
+ * `submit_security_report`) is returned unchanged. Only the Bedrock-bound payload is affected;
+ * the OpenAI-shaped history other providers see is left as-is.
+ *
+ * The toolUseId is deliberately NOT rewritten: it must stay identical between the assistant
+ * `toolUse` and its matching user `toolResult`, and provider-generated ids are already conformant;
+ * the reported and observed constraint failure is on `name` only.
+ */
+function sanitizeBedrockToolName(name: unknown): string {
+  const cleaned = String(name ?? '').replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 64);
+  return cleaned.length > 0 ? cleaned : 'invalid_tool_name';
+}
+
 /** Bedrock rejects a toolResult that is not carried on a user turn, hence the role mapping. */
 function toConverseMessages(messages: any[]): Message[] {
   const out: Message[] = [];
@@ -301,7 +326,7 @@ function toConverseMessages(messages: any[]): Message[] {
           input = {};
         }
         pushBlock('assistant', {
-          toolUse: { toolUseId: String(call.id), name: call.function?.name, input },
+          toolUse: { toolUseId: String(call.id), name: sanitizeBedrockToolName(call.function?.name), input },
         } as unknown as ContentBlock);
       }
       continue;
