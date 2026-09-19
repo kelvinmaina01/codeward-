@@ -36,6 +36,7 @@ const routes = [
   'dashboard/security',
   'dashboard/settings',
   'dashboard/integrations',
+  'runs',
   'admin',
   'admin/feed',
   'admin/runs',

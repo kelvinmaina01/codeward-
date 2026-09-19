@@ -241,6 +241,11 @@ function RequireUnauth({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+function RedirectToLiveFeed() {
+  const { runId } = useParams();
+  return <Navigate to={runId ? `/dashboard/livefeed?runId=${runId}` : '/dashboard/livefeed'} replace />;
+}
+
 // ─── Dashboard Layout ─────────────────────────────────────────────────────────
 function DashboardLayout() {
   const { data: session } = useSession();
@@ -1216,12 +1221,16 @@ export const routes = [
     )
   },
   {
+    path: "/runs",
+    element: <Navigate to="/dashboard/livefeed" replace />
+  },
+  {
     path: "/runs/:runId",
-    element: <DashboardLayout />
+    element: <RedirectToLiveFeed />
   },
   {
     path: "/dashboard/runs/:runId",
-    element: <DashboardLayout />
+    element: <RedirectToLiveFeed />
   },
   {
     path: "/admin",

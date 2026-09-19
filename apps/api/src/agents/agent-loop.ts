@@ -22,6 +22,17 @@ export interface AgentLoopResult {
   truncated?: boolean;
 }
 
+function normalizeToolName(name: string): string {
+  if (!name || typeof name !== 'string') return 'unknown_tool';
+  // Strip common prefixes like "tools." or "Step X: "
+  let clean = name.replace(/^(?:step\s*\d+[:.]\s*|tools[.:]\s*)/i, '').trim();
+  // Strip argument signatures like read_file(...) -> read_file and anything following
+  clean = clean.replace(/\(.*?\).*$/, '').trim();
+  // Take the first token
+  clean = clean.split(/\s+/)[0] || '';
+  return clean;
+}
+
 export async function runAgentLoop(config: AgentRunConfig, provider: AgentProvider): Promise<AgentLoopResult> {
   let currentMessages = [...(config.messages || [])];
   const maxSteps = config.maxSteps || 15;
@@ -78,8 +89,18 @@ export async function runAgentLoop(config: AgentRunConfig, provider: AgentProvid
       throw error;
     }
     
-    // Push the raw assistant message which contains the proper tool_calls field
+    // Push the raw assistant message with sanitized tool names
     if (result.rawContent) {
+      if (Array.isArray(result.rawContent.tool_calls)) {
+        for (const tc of result.rawContent.tool_calls) {
+          if (tc?.function?.name) {
+            const rawName = String(tc.function.name);
+            const norm = normalizeToolName(rawName);
+            const matched = config.tools?.find(t => t.name === norm || t.name === norm.toLowerCase());
+            tc.function.name = matched ? matched.name : norm.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 64);
+          }
+        }
+      }
       currentMessages.push(result.rawContent);
     } else {
       currentMessages.push({ role: "assistant", content: result.text || "" });
@@ -96,10 +117,22 @@ export async function runAgentLoop(config: AgentRunConfig, provider: AgentProvid
     // Execute each tool call
     const toolResults = await Promise.all(
       result.toolCalls.map(async (call) => {
-        const tool = config.tools?.find(t => t.name === call.name);
+        let tool = config.tools?.find(t => t.name === call.name);
+        let resolvedName = call.name;
+        if (!tool) {
+          const norm = normalizeToolName(call.name);
+          const candidate = config.tools?.find(t => t.name === norm || t.name === norm.toLowerCase());
+          if (candidate) {
+            tool = candidate;
+            resolvedName = candidate.name;
+            call.name = candidate.name;
+          }
+        }
+
         if (!tool) {
           console.warn(`[AgentLoop] Unknown tool called: ${call.name}`);
-          return { id: call.id, name: call.name, content: `Unknown tool: ${call.name}` };
+          const safeName = resolvedName.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 64);
+          return { id: call.id, name: safeName, content: `Unknown tool: ${call.name}` };
         }
         const toolStartTime = Date.now();
         const calledAt = new Date(toolStartTime).toISOString();
@@ -114,13 +147,13 @@ export async function runAgentLoop(config: AgentRunConfig, provider: AgentProvid
               resultSummary = String(res).slice(0, 100);
             }
           }
-          toolsExecuted.push({ toolName: call.name, calledAt, durationMs, resultSummary: String(resultSummary).slice(0, 200) });
-          return { id: call.id, name: call.name, content: JSON.stringify(res) };
+          toolsExecuted.push({ toolName: resolvedName, calledAt, durationMs, resultSummary: String(resultSummary).slice(0, 200) });
+          return { id: call.id, name: resolvedName, content: JSON.stringify(res) };
         } catch (e: any) {
           const durationMs = Date.now() - toolStartTime;
-          toolsExecuted.push({ toolName: call.name, calledAt, durationMs, resultSummary: `Error: ${e.message}`.slice(0, 200) });
-          console.error(`[AgentLoop] Tool "${call.name}" error:`, e.message);
-          return { id: call.id, name: call.name, content: `Error: ${e.message}` };
+          toolsExecuted.push({ toolName: resolvedName, calledAt, durationMs, resultSummary: `Error: ${e.message}`.slice(0, 200) });
+          console.error(`[AgentLoop] Tool "${resolvedName}" error:`, e.message);
+          return { id: call.id, name: resolvedName, content: `Error: ${e.message}` };
         }
       })
     );
