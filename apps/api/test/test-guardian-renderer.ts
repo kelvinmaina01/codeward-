@@ -16,13 +16,13 @@ async function main() {
     commitSha: 'abcdef1234567890',
     estimatedDurationSeconds: 90,
   });
-  assert.equal(status, [
-    '## Codeward is working',
-    '',
-    'Analyzing `acme/widget@abcdef1` in an isolated sandbox.',
-    '',
-    'Estimated time: 90s.',
-  ].join('\n'));
+  includesAll(status, [
+    '### 🛡️ Codeward Autonomous Code Review Dispatched',
+    'acme/widget@abcdef1',
+    'Dispatched Specialized Agents',
+    'Track Live Sandbox Execution & Agent Feed on Codeward Dashboard',
+    'dashboard/livefeed',
+  ]);
 
   const inline = renderGuardianInlineFindingComment({
     agentId: 'security',

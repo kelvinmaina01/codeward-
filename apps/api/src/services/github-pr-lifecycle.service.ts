@@ -18,7 +18,8 @@ export async function startPrLifecycle(runId: number, estimatedDurationSeconds =
   let checkRunId = run.githubCheckRunId;
   let statusCommentId = run.githubStatusCommentId;
 
-  const runUrl = `${process.env.FRONTEND_URL || 'https://codeward.cloud'}/runs/${run.id}`;
+  const baseUrl = (process.env.FRONTEND_URL || 'https://www.codeward.cloud').replace(/\/+$/, '');
+  const runUrl = `${baseUrl}/dashboard/livefeed?runId=${run.id}`;
   const agentsConfig = (repo?.config as any)?.agents;
   const dispatchedAgentIds = (run?.scope as any)?.dispatchedAgents;
 
@@ -83,7 +84,8 @@ export async function completePrLifecycle(
   if (!repo?.installationId) return { skipped: true };
   const octokit = await getInstallationOctokit(repo.installationId);
 
-  const runUrl = `${process.env.FRONTEND_URL || 'https://codeward.cloud'}/runs/${run.id}`;
+  const baseUrl = (process.env.FRONTEND_URL || 'https://www.codeward.cloud').replace(/\/+$/, '');
+  const runUrl = `${baseUrl}/dashboard/livefeed?runId=${run.id}`;
   const durationSeconds = Math.max(
     1,
     Math.round((Date.now() - new Date(run.createdAt || Date.now()).getTime()) / 1000)
