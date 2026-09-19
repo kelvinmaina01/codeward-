@@ -23,8 +23,8 @@ export const EscalationEmail: React.FC<EscalationEmailProps> = ({
   runId,
   dashboardUrl: customDashboardUrl,
 }) => {
-  const baseUrl = process.env.FRONTEND_URL || 'https://codeward.cloud';
-  const dashboardUrl = customDashboardUrl || `${baseUrl}/dashboard/runs/${runId}`;
+  const baseUrl = (process.env.FRONTEND_URL || 'https://www.codeward.cloud').replace(/^https?:\/\/codeward\.cloud/, 'https://www.codeward.cloud');
+  const dashboardUrl = customDashboardUrl || `${baseUrl}/dashboard/livefeed?runId=${runId}`;
 
   return (
     <BrandEmailLayout previewText={`Urgent: Manual review required for PR #${prNumber} on ${repoName}`}>

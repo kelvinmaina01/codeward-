@@ -36,7 +36,8 @@ export interface ResolvedRunCompletedData {
 
 export class EmailPayloadResolver {
   private static getFrontendUrl(): string {
-    return process.env.FRONTEND_URL || 'https://codeward.cloud';
+    const raw = process.env.FRONTEND_URL || 'https://www.codeward.cloud';
+    return raw.replace(/^https?:\/\/codeward\.cloud/, 'https://www.codeward.cloud');
   }
 
   /**
@@ -193,7 +194,7 @@ export class EmailPayloadResolver {
       criticalFindings,
       autoFixPrUrl: approval?.prUrl ?? null,
       logTail,
-      dashboardUrl: `${frontendUrl}/dashboard/runs/${runId}`,
+      dashboardUrl: `${frontendUrl}/dashboard/livefeed?runId=${runId}`,
       prGithubUrl: runRow.prNumber ? `https://github.com/${repoRow.fullName}/pull/${runRow.prNumber}` : undefined,
     };
   }
