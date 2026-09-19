@@ -150,6 +150,14 @@ export function resolveDispatchedAgents(agentsConfig?: Record<string, any>, disp
   return Object.entries(SPECIALIZED_AGENTS).map(([id, meta]) => ({ id, ...meta }));
 }
 
+function buildLiveFeedUrl(runId?: number | string): string {
+  const base = (process.env.FRONTEND_URL || 'https://www.codeward.cloud').replace(/\/+$/, '');
+  if (runId && runId !== 'pending') {
+    return `${base}/dashboard/livefeed?runId=${runId}`;
+  }
+  return `${base}/dashboard/livefeed`;
+}
+
 export function renderGuardianStatusComment(params: {
   repoFullName: string;
   commitSha: string;
@@ -158,7 +166,7 @@ export function renderGuardianStatusComment(params: {
   agentsConfig?: Record<string, any>;
   dispatchedAgentIds?: string[];
 }): string {
-  const runUrl = `${process.env.FRONTEND_URL || 'https://codeward.cloud'}/runs/${params.runId ?? 'pending'}`;
+  const runUrl = buildLiveFeedUrl(params.runId);
   const activeAgents = resolveDispatchedAgents(params.agentsConfig, params.dispatchedAgentIds);
   const count = activeAgents.length;
   const estMin = Math.max(1, Math.round(params.estimatedDurationSeconds / 60));
@@ -194,7 +202,7 @@ export function buildDispatchOutput(params: {
   dispatchedAgentIds?: string[];
   estimatedDurationSeconds?: number;
 }): { title: string; summary: string; text: string } {
-  const runUrl = `${process.env.FRONTEND_URL || 'https://codeward.cloud'}/runs/${params.runId}`;
+  const runUrl = buildLiveFeedUrl(params.runId);
   const activeAgents = resolveDispatchedAgents(params.agentsConfig, params.dispatchedAgentIds);
   const count = activeAgents.length;
   const estMin = Math.max(1, Math.round((params.estimatedDurationSeconds ?? 180) / 60));
@@ -238,7 +246,7 @@ export function buildCompletionOutput(params: {
   durationSeconds?: number;
   findings?: Array<{ severity: string }>;
 }): { title: string; summary: string; text: string; conclusion: 'success' | 'failure' | 'neutral' } {
-  const runUrl = `${process.env.FRONTEND_URL || 'https://codeward.cloud'}/runs/${params.runId}`;
+  const runUrl = buildLiveFeedUrl(params.runId);
   const duration = params.durationSeconds ?? 180;
   const findings = params.findings ?? [];
   const critical = findings.filter(f => String(f.severity).toUpperCase() === 'CRITICAL').length;
@@ -474,6 +482,7 @@ ${promptText}
 }
 
 export function renderGuardianFinalReview(view: GuardianRunView): string {
+  const runUrl = buildLiveFeedUrl(view.runId);
   const counts = view.findings.reduce<Record<string, number>>((acc, f) => {
     const sev = String(f.severity || 'INFO').toUpperCase();
     acc[sev] = (acc[sev] ?? 0) + 1;
@@ -488,6 +497,8 @@ export function renderGuardianFinalReview(view: GuardianRunView): string {
     `## Codeward Guardian Review - ${view.gateDecision}`,
     '',
     `Run #${view.runId} on \`${view.repoFullName}@${shortSha(view.commitSha)}\`.`,
+    '',
+    `📡 [**Track Live Sandbox Execution & Agent Feed on Codeward Dashboard →**](${runUrl})`,
     '',
     view.summary,
     '',

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { API_URL, WS_URL } from '../../../lib/api';
 import { mockLiveFeedLogs } from '../../../lib/mockAgentData';
 import { AgentCanvas } from '../../components/shared/AgentCanvas';
@@ -77,6 +77,7 @@ export type LogItem = {
 interface LiveFeedProps {
   viewMode?: 'stream' | 'canvas';
   onViewModeChange?: (mode: 'stream' | 'canvas') => void;
+  runId?: string | number;
 }
 
 function formatMillisTimestamp(tsMs: number): string {
@@ -106,8 +107,10 @@ const getInitialLogs = (): LogItem[] => {
   }));
 };
 
-export function LiveFeed({ viewMode = 'canvas', onViewModeChange }: LiveFeedProps) {
+export function LiveFeed({ viewMode = 'canvas', onViewModeChange, runId }: LiveFeedProps) {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const effectiveRunId = runId || searchParams.get('runId') || undefined;
   const bottomRef = useRef<HTMLDivElement>(null);
   const [logs, setLogs] = useState<LogItem[]>(getInitialLogs);
   const [loading, setLoading] = useState(true);
@@ -332,6 +335,7 @@ export function LiveFeed({ viewMode = 'canvas', onViewModeChange }: LiveFeedProp
         <AgentCanvas
           repoId={repoFilter !== 'All' ? repoFilter : undefined}
           repoFilter={repoFilter}
+          runId={effectiveRunId}
           onRepoChange={(val) => setRepoFilter(String(val))}
           repoList={repoList}
           viewMode={viewMode}

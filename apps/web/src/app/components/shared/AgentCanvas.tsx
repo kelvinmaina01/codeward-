@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, ComponentType } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   LockIcon,
   Shield01Icon,
@@ -40,6 +41,7 @@ function CanvasLoader() {
 export interface AgentCanvasProps {
   repoId?: string;
   repoFilter?: string;
+  runId?: string | number;
   onRepoChange?: (repoId: string) => void;
   repoList?: RepoOption[];
   viewMode?: 'stream' | 'canvas';
@@ -121,7 +123,11 @@ function mergeAgents(prev: AgentData[], next: AgentData[]): AgentData[] {
 const RECONCILE_DEBOUNCE_MS = 800;
 const RUNNING_HEARTBEAT_MS = 10_000;
 
-export function AgentCanvas({ repoId, repoFilter, onRepoChange, repoList, viewMode = 'canvas', onViewModeChange }: AgentCanvasProps = {}) {
+export function AgentCanvas({ repoId, repoFilter, runId, onRepoChange, repoList, viewMode = 'canvas', onViewModeChange }: AgentCanvasProps = {}) {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const effectiveRunId = runId || searchParams.get('runId') || undefined;
+  const effectiveRunIdRef = useRef(effectiveRunId);
+  effectiveRunIdRef.current = effectiveRunId;
   const [internalRepoList, setInternalRepoList] = useState<RepoOption[]>(repoList || []);
   const [activeFilter, setActiveFilter] = useState<string>(repoFilter || repoId || 'All');
   const [agents, setAgents] = useState<AgentData[]>(agentCanvasData);
@@ -184,10 +190,14 @@ export function AgentCanvas({ repoId, repoFilter, onRepoChange, repoList, viewMo
   const activeFilterRef = useRef(activeFilter);
   activeFilterRef.current = activeFilter;
 
-  const loadCanvas = useCallback((filter: string, silent: boolean) => {
+  const loadCanvas = useCallback((filter: string, silent: boolean, runOverride?: string | number) => {
     const seq = ++requestSeq.current;
     const targetId = filter !== 'All' ? filter : undefined;
-    const query = targetId ? `?repoId=${targetId}` : '';
+    const currentRun = runOverride !== undefined ? runOverride : effectiveRunIdRef.current;
+    const params = new URLSearchParams();
+    if (targetId) params.set('repoId', targetId);
+    if (currentRun) params.set('runId', String(currentRun));
+    const query = params.toString() ? `?${params.toString()}` : '';
     if (!silent) setCanvasLoading(true);
     return fetch(`${API_URL}/api/reports/canvas${query}`, { credentials: 'include' })
       .then((res) => {
@@ -227,8 +237,8 @@ export function AgentCanvas({ repoId, repoFilter, onRepoChange, repoList, viewMo
 
   // Initial + filter-change load (visible loader)
   useEffect(() => {
-    loadCanvas(activeFilter, false);
-  }, [activeFilter, loadCanvas]);
+    loadCanvas(activeFilter, false, effectiveRunId);
+  }, [activeFilter, effectiveRunId, loadCanvas]);
 
   // Safety net: while anything is running, poll so a frame lost during a socket gap
   // can never strand the UI in a loading state.
@@ -507,6 +517,20 @@ export function AgentCanvas({ repoId, repoFilter, onRepoChange, repoList, viewMo
             {stats.decision === 'BLOCKED' ? 'BLOCK' : stats.decision}
           </span>
           <UnverifiedEvidenceBadge count={runInfo.runPolicy?.unverifiedEvidenceCount} />
+          {effectiveRunId && (
+            <button
+              type="button"
+              onClick={() => {
+                const newParams = new URLSearchParams(searchParams);
+                newParams.delete('runId');
+                setSearchParams(newParams);
+              }}
+              title="Reset filter to view latest live runs"
+              className="text-[11px] text-cw-purple hover:underline px-1.5 py-0.5 rounded bg-cw-purple/10 border border-cw-purple/20 cursor-pointer"
+            >
+              Viewing Run #{effectiveRunId} ✕
+            </button>
+          )}
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           {onViewModeChange && (

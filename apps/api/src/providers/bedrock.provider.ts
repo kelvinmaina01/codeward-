@@ -249,6 +249,37 @@ export function resolveBedrockModelId(model: string): string {
 }
 
 /**
+ * AWS Bedrock Converse API enforces strict constraints on tool names:
+ * - Pattern: ^[a-zA-Z0-9_-]+$
+ * - Maximum length: 64 characters
+ *
+ * If an LLM hallucinates an argument signature (e.g. "read_file(candidate)"), spaces,
+ * or extraneous characters, this normalizes it into a valid Bedrock identifier.
+ */
+export function sanitizeBedrockToolName(name: string | undefined | null): string {
+  if (!name || typeof name !== 'string') return 'unknown_tool';
+  // Strip common prefixes like "tools." or "Step X: " or "Step 12: "
+  let clean = name.replace(/^(?:step\s*\d+[:.]\s*|tools[.:]\s*)/i, '').trim();
+  // Strip argument signatures like `read_file(...)` and anything following it
+  clean = clean.replace(/\(.*?\).*$/, '').trim();
+  // Replace any non-alphanumeric/underscore/hyphen character with an underscore
+  clean = clean.replace(/[^a-zA-Z0-9_-]/g, '_');
+  // Collapse consecutive underscores and trim leading/trailing underscores
+  clean = clean.replace(/_+/g, '_').replace(/^_+|_+$/g, '');
+  if (!clean) return 'unknown_tool';
+  return clean.slice(0, 64);
+}
+
+/**
+ * AWS Bedrock Converse API requires toolUseId to match ^[a-zA-Z0-9_-]+$ and length <= 64.
+ */
+export function sanitizeBedrockToolUseId(id: string | undefined | null): string {
+  if (!id || typeof id !== 'string') return `tool_${Date.now()}`;
+  const clean = id.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 64);
+  return clean || `tool_${Date.now()}`;
+}
+
+/**
  * One marker per union. These were previously a single constant laundered through
  * `as unknown as ContentBlock` and spread into `any`-typed arrays, so TypeScript never checked
  * either injection site — the compiler would happily have accepted a marker in a field that has
@@ -258,33 +289,13 @@ export function resolveBedrockModelId(model: string): string {
 const SYSTEM_CACHE_POINT: SystemContentBlock = { cachePoint: { type: 'default' } };
 const TOOLS_CACHE_POINT: Tool = { cachePoint: { type: 'default' } };
 
-/**
- * Coerce a tool name to AWS Bedrock's `toolUse.name` constraint: it must match
- * `[a-zA-Z0-9_-]+` and be at most 64 characters. When Sonnet is shown a raw malicious payload it
- * sometimes hallucinates an "illegal" tool name — a fragment of the payload itself, with spaces,
- * punctuation, or well over 64 chars. That name is captured into the OpenAI-shaped history, and
- * on the NEXT loop step, when the history is re-serialized to Converse and sent back, Bedrock
- * rejects the whole request with a 400 ValidationException:
- *   "messages.N.member.content.M.member.toolUse.name failed to satisfy constraint ..."
- * which then falls into the fallback cascade and, when that is out of quota, crashes the run.
- *
- * Sanitizing here — at the point the OpenAI shape is translated to Bedrock's — fixes it at the
- * source without touching the cascade: invalid characters become `_`, the name is truncated to
- * 64, and an empty/absent name gets a safe placeholder. A valid name (a real tool such as
- * `submit_security_report`) is returned unchanged. Only the Bedrock-bound payload is affected;
- * the OpenAI-shaped history other providers see is left as-is.
- *
- * The toolUseId is deliberately NOT rewritten: it must stay identical between the assistant
- * `toolUse` and its matching user `toolResult`, and provider-generated ids are already conformant;
- * the reported and observed constraint failure is on `name` only.
- */
-function sanitizeBedrockToolName(name: unknown): string {
-  const cleaned = String(name ?? '').replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 64);
-  return cleaned.length > 0 ? cleaned : 'invalid_tool_name';
-}
+// NOTE: tool-name / toolUseId sanitization is defined above (sanitizeBedrockToolName,
+// sanitizeBedrockToolUseId — the more thorough remote implementation, which also sanitizes the
+// toolUseId and strips "step N:"/"tools:" prefixes and parenthetical suffixes). My earlier
+// name-only sanitizer was superseded by it during the merge and removed to avoid a duplicate.
 
 /** Bedrock rejects a toolResult that is not carried on a user turn, hence the role mapping. */
-function toConverseMessages(messages: any[]): Message[] {
+export function toConverseMessages(messages: any[]): Message[] {
   const out: Message[] = [];
 
   const pushBlock = (role: 'user' | 'assistant', block: ContentBlock) => {
@@ -305,7 +316,7 @@ function toConverseMessages(messages: any[]): Message[] {
     if (msg.role === 'tool') {
       pushBlock('user', {
         toolResult: {
-          toolUseId: String(msg.tool_call_id ?? msg.id ?? ''),
+          toolUseId: sanitizeBedrockToolUseId(msg.tool_call_id ?? msg.id),
           content: [{ text: typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content ?? '') }],
         },
       } as unknown as ContentBlock);
@@ -326,7 +337,11 @@ function toConverseMessages(messages: any[]): Message[] {
           input = {};
         }
         pushBlock('assistant', {
-          toolUse: { toolUseId: String(call.id), name: sanitizeBedrockToolName(call.function?.name), input },
+          toolUse: {
+            toolUseId: sanitizeBedrockToolUseId(call.id),
+            name: sanitizeBedrockToolName(call.function?.name),
+            input,
+          },
         } as unknown as ContentBlock);
       }
       continue;
@@ -362,7 +377,7 @@ function toJsonSchema(parameters: any): any {
 function toConverseTools(tools: AgentTool[] | undefined): Tool[] {
   return (tools ?? []).map((t) => ({
     toolSpec: {
-      name: t.name,
+      name: sanitizeBedrockToolName(t.name),
       description: t.description,
       inputSchema: { json: toJsonSchema(t.parameters) },
     },
@@ -594,12 +609,13 @@ export class BedrockProvider implements AgentProvider {
     for (const block of blocks as any[]) {
       if (block?.text) text += block.text;
       if (block?.toolUse) {
-        const id = String(block.toolUse.toolUseId);
-        toolCalls.push({ id, name: block.toolUse.name, input: block.toolUse.input ?? {} });
+        const id = sanitizeBedrockToolUseId(block.toolUse.toolUseId);
+        const name = sanitizeBedrockToolName(block.toolUse.name);
+        toolCalls.push({ id, name, input: block.toolUse.input ?? {} });
         rawToolCalls.push({
           id,
           type: 'function',
-          function: { name: block.toolUse.name, arguments: JSON.stringify(block.toolUse.input ?? {}) },
+          function: { name, arguments: JSON.stringify(block.toolUse.input ?? {}) },
         });
       }
     }
