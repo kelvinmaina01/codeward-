@@ -249,6 +249,37 @@ export function resolveBedrockModelId(model: string): string {
 }
 
 /**
+ * AWS Bedrock Converse API enforces strict constraints on tool names:
+ * - Pattern: ^[a-zA-Z0-9_-]+$
+ * - Maximum length: 64 characters
+ *
+ * If an LLM hallucinates an argument signature (e.g. "read_file(candidate)"), spaces,
+ * or extraneous characters, this normalizes it into a valid Bedrock identifier.
+ */
+export function sanitizeBedrockToolName(name: string | undefined | null): string {
+  if (!name || typeof name !== 'string') return 'unknown_tool';
+  // Strip common prefixes like "tools." or "Step X: " or "Step 12: "
+  let clean = name.replace(/^(?:step\s*\d+[:.]\s*|tools[.:]\s*)/i, '').trim();
+  // Strip argument signatures like `read_file(...)` and anything following it
+  clean = clean.replace(/\(.*?\).*$/, '').trim();
+  // Replace any non-alphanumeric/underscore/hyphen character with an underscore
+  clean = clean.replace(/[^a-zA-Z0-9_-]/g, '_');
+  // Collapse consecutive underscores and trim leading/trailing underscores
+  clean = clean.replace(/_+/g, '_').replace(/^_+|_+$/g, '');
+  if (!clean) return 'unknown_tool';
+  return clean.slice(0, 64);
+}
+
+/**
+ * AWS Bedrock Converse API requires toolUseId to match ^[a-zA-Z0-9_-]+$ and length <= 64.
+ */
+export function sanitizeBedrockToolUseId(id: string | undefined | null): string {
+  if (!id || typeof id !== 'string') return `tool_${Date.now()}`;
+  const clean = id.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 64);
+  return clean || `tool_${Date.now()}`;
+}
+
+/**
  * One marker per union. These were previously a single constant laundered through
  * `as unknown as ContentBlock` and spread into `any`-typed arrays, so TypeScript never checked
  * either injection site — the compiler would happily have accepted a marker in a field that has
@@ -259,7 +290,7 @@ const SYSTEM_CACHE_POINT: SystemContentBlock = { cachePoint: { type: 'default' }
 const TOOLS_CACHE_POINT: Tool = { cachePoint: { type: 'default' } };
 
 /** Bedrock rejects a toolResult that is not carried on a user turn, hence the role mapping. */
-function toConverseMessages(messages: any[]): Message[] {
+export function toConverseMessages(messages: any[]): Message[] {
   const out: Message[] = [];
 
   const pushBlock = (role: 'user' | 'assistant', block: ContentBlock) => {
@@ -280,7 +311,7 @@ function toConverseMessages(messages: any[]): Message[] {
     if (msg.role === 'tool') {
       pushBlock('user', {
         toolResult: {
-          toolUseId: String(msg.tool_call_id ?? msg.id ?? ''),
+          toolUseId: sanitizeBedrockToolUseId(msg.tool_call_id ?? msg.id),
           content: [{ text: typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content ?? '') }],
         },
       } as unknown as ContentBlock);
@@ -301,7 +332,11 @@ function toConverseMessages(messages: any[]): Message[] {
           input = {};
         }
         pushBlock('assistant', {
-          toolUse: { toolUseId: String(call.id), name: call.function?.name, input },
+          toolUse: { 
+            toolUseId: sanitizeBedrockToolUseId(call.id), 
+            name: sanitizeBedrockToolName(call.function?.name), 
+            input 
+          },
         } as unknown as ContentBlock);
       }
       continue;
@@ -337,7 +372,7 @@ function toJsonSchema(parameters: any): any {
 function toConverseTools(tools: AgentTool[] | undefined): Tool[] {
   return (tools ?? []).map((t) => ({
     toolSpec: {
-      name: t.name,
+      name: sanitizeBedrockToolName(t.name),
       description: t.description,
       inputSchema: { json: toJsonSchema(t.parameters) },
     },
@@ -569,12 +604,13 @@ export class BedrockProvider implements AgentProvider {
     for (const block of blocks as any[]) {
       if (block?.text) text += block.text;
       if (block?.toolUse) {
-        const id = String(block.toolUse.toolUseId);
-        toolCalls.push({ id, name: block.toolUse.name, input: block.toolUse.input ?? {} });
+        const id = sanitizeBedrockToolUseId(block.toolUse.toolUseId);
+        const name = sanitizeBedrockToolName(block.toolUse.name);
+        toolCalls.push({ id, name, input: block.toolUse.input ?? {} });
         rawToolCalls.push({
           id,
           type: 'function',
-          function: { name: block.toolUse.name, arguments: JSON.stringify(block.toolUse.input ?? {}) },
+          function: { name, arguments: JSON.stringify(block.toolUse.input ?? {}) },
         });
       }
     }

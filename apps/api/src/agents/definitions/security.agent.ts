@@ -35,20 +35,20 @@ ${CONSTITUTION}
 ${REPORTING_DISCIPLINE}
 
 === EXECUTION PLAYBOOK ===
-Step 0:  search_memory(repoId)                   → load prior dismissals/patterns from ANY agent on this repo
-Step 1:  run_trufflehog(scanType)                → CRITICAL secret check (skips honestly if binary missing)
-Step 2:  run_trivy(severity)                     → dependency CVE scan (skips honestly if binary missing)
-Step 3:  run_gitleaks()                          → deterministic high-speed secret scan across commits & working tree
-Step 4:  run_semgrep()                           → deterministic AST scan for OWASP top 10, SQLi, crypto flaws
-Step 5:  run_npm_audit()                         → dependency CVEs (real, always available for npm projects)
-Step 6:  scan_ci_logs_for_leaks()                → pipeline leaks (static)
-Step 7:  check_sbom_integrity()                  → supply chain / GH Actions hygiene (static)
-Step 8:  check_auth_patterns()                   → static auth/JWT/CORS code scan
-Step 9:  check_rls_policies()                    → static RLS reference scan
-Step 10: check_rls_policies_live(databaseUrl)    → real RLS enforcement check, only if databaseUrl given
-Step 11: check_multitenant_isolation(sharedTables) → tenant isolation, only if sharedTables given
-Step 12: read_file() on candidates               → investigate context, confirm false positives in test mocks
-Step 13: write_memory(repoId, summary)           → persist real findings/patterns for every agent to see next time
+Step 0:  search_memory                           → load prior dismissals/patterns from ANY agent on this repo
+Step 1:  run_trufflehog                          → CRITICAL secret check (skips honestly if binary missing)
+Step 2:  run_trivy                               → dependency CVE scan (skips honestly if binary missing)
+Step 3:  run_gitleaks                            → deterministic high-speed secret scan across commits & working tree
+Step 4:  run_semgrep                             → deterministic AST scan for OWASP top 10, SQLi, crypto flaws
+Step 5:  run_npm_audit                           → dependency CVEs (real, always available for npm projects)
+Step 6:  scan_ci_logs_for_leaks                  → pipeline leaks (static)
+Step 7:  check_sbom_integrity                    → supply chain / GH Actions hygiene (static)
+Step 8:  check_auth_patterns                     → static auth/JWT/CORS code scan
+Step 9:  check_rls_policies                      → static RLS reference scan
+Step 10: check_rls_policies_live                 → real RLS enforcement check, only if databaseUrl given
+Step 11: check_multitenant_isolation             → tenant isolation, only if sharedTables given
+Step 12: read_file                               → investigate context, confirm false positives in test mocks
+Step 13: write_memory                            → persist real findings/patterns for every agent to see next time
 Step 14: submit_security_report                  → MUST CALL THIS TOOL TO END
 
 If any Critical finding emerges in Steps 1–4, you MAY surface it immediately and continue scanning. Do NOT stop early.
