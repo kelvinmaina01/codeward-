@@ -1,8 +1,26 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Search, Loader, AlertCircle, Play, Pause, BarChart2, GitFork, GitPullRequest, Lock, Globe, Wrench, RotateCcw, Clock, ShieldAlert, X, MoreVertical, Trash2 } from 'lucide-react';
+import {
+  FlashIcon,
+  CheckmarkCircle01Icon,
+  CancelCircleIcon,
+  HourglassIcon,
+  PauseCircleIcon,
+  FilterIcon,
+  ArrowDown01Icon,
+} from 'hugeicons-react';
 import { toast } from '../../lib/toast-bridge';
 import { API_URL } from '../../../lib/api';
+
+const STATUS_OPTIONS = [
+  { value: 'All', label: 'All Statuses', icon: FilterIcon, iconColor: 'text-cw-txt3' },
+  { value: 'running', label: 'Running / Auditing', icon: FlashIcon, iconColor: 'text-amber-500' },
+  { value: 'completed', label: 'Completed', icon: CheckmarkCircle01Icon, iconColor: 'text-emerald-500' },
+  { value: 'failed', label: 'Failed', icon: CancelCircleIcon, iconColor: 'text-rose-500' },
+  { value: 'queued', label: 'Queued', icon: HourglassIcon, iconColor: 'text-blue-400' },
+  { value: 'paused', label: 'Paused', icon: PauseCircleIcon, iconColor: 'text-slate-400' },
+] as const;
 
 interface RepoConfig {
   agents: Record<string, boolean>;
@@ -186,6 +204,18 @@ export function Repositories({ activeOrg }: { activeOrg?: string }) {
   const [search, setSearch] = useState('');
   const [filterLang, setFilterLang] = useState('All');
   const [filterStatus, setFilterStatus] = useState('All');
+  const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
+  const statusDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (statusDropdownRef.current && !statusDropdownRef.current.contains(event.target as Node)) {
+        setStatusDropdownOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const fetchConnectedRepos = async () => {
     setLoading(true);
@@ -359,18 +389,58 @@ export function Repositories({ activeOrg }: { activeOrg?: string }) {
         >
           {languages.map(l => <option key={l || 'unknown'} value={l || 'Unknown'}>{l === 'All' ? 'All Languages' : l}</option>)}
         </select>
-        <select 
-          value={filterStatus} 
-          onChange={e => setFilterStatus(e.target.value)}
-          className="bg-cw-bg2 border border-cw-bdr rounded-lg text-[13px] text-cw-txt py-2 px-3 outline-none min-w-[150px] cursor-pointer"
-        >
-          <option value="All">All Statuses</option>
-          <option value="running">⚡ Running / Auditing</option>
-          <option value="completed">✅ Completed</option>
-          <option value="failed">❌ Failed</option>
-          <option value="queued">⏳ Queued</option>
-          <option value="paused">⏸️ Paused</option>
-        </select>
+        {/* Status Dropdown with real Hugeicons */}
+        <div className="relative" ref={statusDropdownRef}>
+          <button
+            type="button"
+            onClick={() => setStatusDropdownOpen(prev => !prev)}
+            className="bg-cw-bg2 border border-cw-bdr hover:border-cw-bdr2 rounded-lg text-[13px] text-cw-txt py-2 px-3 flex items-center justify-between gap-2.5 min-w-[185px] cursor-pointer transition-all shadow-sm focus:outline-none focus:border-cw-purple"
+          >
+            <div className="flex items-center gap-2">
+              {(() => {
+                const current = STATUS_OPTIONS.find(o => o.value === filterStatus) || STATUS_OPTIONS[0];
+                const CurrentIcon = current.icon;
+                return (
+                  <>
+                    <CurrentIcon size={16} className={`shrink-0 ${current.iconColor}`} />
+                    <span className="font-medium">{current.label}</span>
+                  </>
+                );
+              })()}
+            </div>
+            <ArrowDown01Icon size={14} className={`text-cw-txt3 transition-transform duration-200 ${statusDropdownOpen ? 'rotate-180' : ''}`} />
+          </button>
+
+          {statusDropdownOpen && (
+            <div className="absolute left-0 top-full mt-1.5 z-50 min-w-[215px] bg-cw-bg2 border border-cw-bdr rounded-xl shadow-2xl overflow-hidden py-1.5 backdrop-blur-md">
+              {STATUS_OPTIONS.map((opt) => {
+                const OptionIcon = opt.icon;
+                const isSelected = filterStatus === opt.value;
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => {
+                      setFilterStatus(opt.value);
+                      setStatusDropdownOpen(false);
+                    }}
+                    className={`w-full px-3 py-2 text-[13px] flex items-center justify-between gap-3 text-left transition-colors cursor-pointer ${
+                      isSelected ? 'bg-cw-purple/10 text-cw-purple font-semibold' : 'text-cw-txt hover:bg-cw-bg'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <OptionIcon size={16} className={`shrink-0 ${opt.iconColor}`} />
+                      <span>{opt.label}</span>
+                    </div>
+                    {isSelected && (
+                      <CheckmarkCircle01Icon size={14} className="text-cw-purple shrink-0" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
         {(search || filterLang !== 'All' || filterStatus !== 'All') && (
           <button
             onClick={() => { setSearch(''); setFilterLang('All'); setFilterStatus('All'); }}
