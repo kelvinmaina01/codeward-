@@ -179,6 +179,7 @@ export class NotificationService {
       line?: number;
     }>;
     autoFixPrUrl?: string | null;
+    escalation?: { count: number; issues: Array<{ title: string; issueNumber: number | null; url: string | null; agentId: string | null }> } | null;
     logTail?: string;
     dashboardUrl: string;
     prGithubUrl?: string;

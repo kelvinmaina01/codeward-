@@ -1117,27 +1117,29 @@ Use these EXACT values for any tool parameter named runId/repoId — never inven
             .innerJoin(user, eq(repositories.userId, user.id))
             .where(eq(repositories.id, runRowCatch.repoId));
 
-          if (repoOwner?.email) {
+          // "One PR, one email": individual agent crashes are NOT emailed — they are recorded on
+          // the agentTasks row (status: failed) and rendered in the final PR digest's agent table.
+          // This failure email is now only a run-level FALLBACK, sent when the pipeline dies before
+          // it can produce a digest — i.e. when the terminal orchestrator agent itself fails, so
+          // submit_orchestrator_decision never enqueues the digest. Gating on orchestrator_phase3
+          // is what collapses a 4-agent cascade crash from 4 emails to at most one.
+          if (repoOwner?.email && agentId === 'orchestrator_phase3') {
             // Deduplication checks
             const dedupeKey = `failure_email_sent:run:${runId}`;
             const throttleKey = `failure_email_throttle:repo:${repoFullName}`;
             let shouldSend = true;
 
             try {
-              // Reuse the BullMQ ioredis client created at module load. `redis.js` exports no
-              // `redis` singleton — only createRedisConnection/BULLMQ_PREFIX/isRedisQuotaExceeded —
-              // so the previous destructured import resolved to undefined and broke the build.
-              // Opening a second connection here would also be wrong: every extra client counts
-              // against the Upstash connection cap for what is two key reads and two writes.
-              const alreadySent = await connection.get(dedupeKey);
-              const throttled = await connection.get(throttleKey);
-              if (alreadySent || throttled) {
+              // ATOMIC claim (SET ... NX EX). The previous get-then-set was a race: when several
+              // agents failed in the same millisecond they all read the key as null before any
+              // write landed, so all of them sent. `NX` makes the first caller the sole winner —
+              // it returns 'OK'; every other caller gets null and suppresses. Reuses the BullMQ
+              // ioredis client (no extra connection against the Upstash cap).
+              const claimedRun = await connection.set(dedupeKey, '1', 'EX', 86400, 'NX'); // 'OK' | null
+              const claimedThrottle = await connection.set(throttleKey, '1', 'EX', 900, 'NX');
+              if (!claimedRun || !claimedThrottle) {
                 shouldSend = false;
                 console.log(`[AgentWorker] Suppressing duplicate/throttled failure email for ${repoFullName} (run #${runId})`);
-              } else {
-                // Cache for 24h per run, and 15 mins per repo
-                await connection.set(dedupeKey, '1', 'EX', 86400);
-                await connection.set(throttleKey, '1', 'EX', 900);
               }
             } catch (redisErr) {
               // Non-fatal: if Redis is unreachable the email still goes out. Better a possible

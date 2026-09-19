@@ -864,13 +864,19 @@ export const createOrchestratorTools = (sandbox: SandboxHandle) => ({
       // Enqueue the flagship Run Completed report email with idempotency guard
       try {
         const { emailQueue } = await import('../../../queue/email.queue.js');
+        // On a BLOCK, the escalation job runs in parallel and posts GitHub issues, then persists
+        // them onto reportMeta for the digest's escalation section. Delay the (single) digest so
+        // that write lands first; a non-blocking run has no escalation and sends immediately. If
+        // escalation is slow or crashes, the digest still fires after the delay with whatever is
+        // persisted — degraded, never dropped, and never a second email.
+        const isBlock = String(args.gateDecision ?? '').toUpperCase() === 'BLOCK';
         await emailQueue.add(
           'run-completed',
           { type: 'run-completed', runId: Number(args.runId) },
           // BullMQ rejects ':' in a custom job id ("Custom Id cannot contain :") because it is
           // the delimiter in its own Redis key scheme, so this threw on every completed run and
           // the run-completed email was never actually enqueued.
-          { jobId: `run-completed-${args.runId}` }
+          { jobId: `run-completed-${args.runId}`, delay: isBlock ? 45000 : 0 }
         );
       } catch (queueErr) {
         console.warn(`[Orchestrator] Failed to enqueue run-completed email:`, queueErr);

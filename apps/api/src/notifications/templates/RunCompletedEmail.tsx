@@ -27,6 +27,7 @@ interface RunCompletedEmailProps {
   tasks: AgentTaskItem[];
   criticalFindings?: CriticalFindingItem[];
   autoFixPrUrl?: string | null;
+  escalation?: { count: number; issues: Array<{ title: string; issueNumber: number | null; url: string | null; agentId: string | null }> } | null;
   logTail?: string;
   dashboardUrl: string;
   prGithubUrl?: string;
@@ -45,6 +46,7 @@ export const RunCompletedEmail: React.FC<RunCompletedEmailProps> = ({
   tasks,
   criticalFindings = [],
   autoFixPrUrl,
+  escalation,
   logTail,
   dashboardUrl,
   prGithubUrl,
@@ -131,6 +133,29 @@ export const RunCompletedEmail: React.FC<RunCompletedEmailProps> = ({
           <a href={autoFixPrUrl} style={autoFixLink}>
             Review Auto-Fix PR on GitHub →
           </a>
+        </div>
+      )}
+
+      {/* 5b. Escalated issues (folded in from the former standalone escalation email) */}
+      {escalation && escalation.count > 0 && (
+        <div style={autoFixCard}>
+          <div style={autoFixTitle}>
+            {escalation.count} finding{escalation.count === 1 ? '' : 's'} escalated to GitHub Issues — manual review required
+          </div>
+          <p style={autoFixBody}>
+            Codeward opened tracking issues for unresolved Critical/High findings that could not be auto-fixed:
+          </p>
+          {escalation.issues.map((iss, i) => (
+            <div key={i} style={autoFixBody}>
+              {iss.url ? (
+                <a href={iss.url} style={autoFixLink}>
+                  {iss.issueNumber ? `#${iss.issueNumber} ` : ''}{iss.title} →
+                </a>
+              ) : (
+                <span style={{ color: brandColors.textPrimary }}>{iss.title}</span>
+              )}
+            </div>
+          ))}
         </div>
       )}
 

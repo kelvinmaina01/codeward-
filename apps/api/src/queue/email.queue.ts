@@ -145,19 +145,10 @@ export const emailWorker = new Worker<EmailJobData>(
       }
 
       // ── Escalation (Manual review required) ──────────────────────────────
-      case 'escalation': {
-        const recipient = data.recipientEmail || 'support@codeward.cloud';
-        await NotificationService.sendEscalation(
-          recipient,
-          data.repoName,
-          data.prNumber,
-          data.prTitle,
-          data.failingTestName,
-          data.runId
-        );
-        console.log(`[EmailQueue] escalation email sent for PR #${data.prNumber}`);
-        break;
-      }
+      // NOTE: the 'escalation' email job type is intentionally removed. Escalation is no longer a
+      // standalone email — it is folded into the single "PR Analysis Complete" digest (see
+      // escalation.queue.ts, which now persists escalated issues to reportMeta for the digest).
+      // Nothing enqueues an 'escalation' email job; this handler was dead code.
 
       default: {
         console.warn(`[EmailQueue] Unknown job type: ${(data as any).type}`);
