@@ -19,7 +19,16 @@ const CONSTITUTION = `
 export const securityAgent: AgentDefinition = {
   id: 'security',
   displayName: 'Security Agent',
-  defaultModel: 'gpt-4o-mini',
+  // SYNTHESIS tier, deliberately. Forensics on run #140 showed the mechanical tier (Haiku 4.5 /
+  // Nova Lite) running the full security toolchain against a blatant `execAsync(`ping ${host}`)`
+  // command injection, plus hardcoded AWS keys and a path traversal, and reporting 0 findings /
+  // score 100 — while Guardian, reading the same diff on the synthesis tier, flagged all four.
+  // The security scanner is the product; running it on the cheapest model to save tokens makes it
+  // a scanner that cannot see. It is one agent per run, and the deterministic floor already forces
+  // it on essentially every code change, so the cost is bounded and the reliability is not
+  // negotiable. Dispatch additionally re-escalates it to synthesis when Layer 0 flags a signature
+  // (see dispatch_recommended_agents) so a reverted default cannot silently downgrade it.
+  defaultModel: 'gpt-4o', // synthesis (MODEL_TIER.synthesis)
   // The playbook is exactly 15 steps and step 14 IS the submit, so at maxSteps 15 a single tool
   // error or one extra read_file — which step 12 explicitly asks for, plural — forced the
   // last-step tool lockout and truncated the mandatory security scan.

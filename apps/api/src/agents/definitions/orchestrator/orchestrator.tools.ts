@@ -3,6 +3,7 @@ import type { SandboxHandle } from '../../core/provider.js';
 import { createMemoryTools } from '../../tools/memory.tools.js';
 import { assessFinding } from '../../policy/finding-policy.js';
 import { scanDiff, type FloorResult, type SignatureClass } from './deterministic-floor.js';
+import { MODEL_TIER } from '../../../providers/engine.provider.js';
 
 export interface AgentRecommendation { agentType: string; recommend: boolean; mandatory: boolean; reason: string }
 
@@ -360,14 +361,36 @@ export const createOrchestratorTools = (sandbox: SandboxHandle) => ({
       for (const a of removeSet) finalSet.delete(a as string);
       for (const a of analysis.mandatoryAgents) finalSet.add(a); // real backstop, redundant with agent.queue.ts's own but cheap to double-guarantee here
 
+      // Model-tier escalation. The security agent already defaults to the synthesis tier
+      // (security.agent.ts) because a scanner on the mechanical tier misses blatant vulns — run
+      // #140 had Haiku 4.5 report 0 findings on two RCEs, hardcoded AWS keys and a path traversal.
+      // This re-forces security onto synthesis at dispatch whenever Layer 0's deterministic floor
+      // flagged a signature or rated the diff HIGH, so a reverted default (or an operator override)
+      // cannot silently downgrade the one agent that must not run blind. The worker reads this
+      // `model` from the job payload (agent.queue.ts).
+      const floorFlagged =
+        (analysis.riskProfile.deterministicSignatures?.length ?? 0) > 0 ||
+        analysis.riskProfile.overallRisk === 'HIGH';
+      const escalateToSynthesis = new Set<string>();
+      if (floorFlagged) escalateToSynthesis.add('security');
+
       const dispatched: string[] = [];
+      const escalated: string[] = [];
       const skipped: Array<{ agentType: string; reason: string }> = [];
       for (const agentType of finalSet) {
         const [existing] = await db.select().from(agentTasks).where(and(eq(agentTasks.runId, Number(args.runId)), eq(agentTasks.agentId, agentType)));
         if (existing) { skipped.push({ agentType, reason: `Already dispatched (status: ${existing.status}).` }); continue; }
+        const modelOverride = escalateToSynthesis.has(agentType) ? MODEL_TIER.synthesis : undefined;
         await db.insert(agentTasks).values({ runId: Number(args.runId), agentId: agentType, status: 'queued', provider: 'openai' });
-        await agentQueue.add(`agent-${agentType}`, { agentId: agentType, commitSHA: args.commitSha, repoFullName: args.repoFullName, runId: Number(args.runId) });
+        await agentQueue.add(`agent-${agentType}`, {
+          agentId: agentType, commitSHA: args.commitSha, repoFullName: args.repoFullName, runId: Number(args.runId),
+          ...(modelOverride ? { model: modelOverride } : {}),
+        });
         dispatched.push(agentType);
+        if (modelOverride) escalated.push(agentType);
+      }
+      if (escalated.length > 0) {
+        console.log(`[Orchestrator] Layer-0 floor flagged high-risk signatures — escalated to synthesis tier: [${escalated.join(', ')}]`);
       }
 
       // Persist the diff analysis and risk profile onto runs.scope so downstream queue handlers
