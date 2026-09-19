@@ -5,7 +5,7 @@ import { API_URL } from '../../../lib/api';
 import { GithubIcon } from '../../components/shared/GithubLink';
 
 interface Props {
-  repoId: number;
+  repoId?: number;
   runId: number;
   onBack: () => void;
 }
@@ -253,7 +253,10 @@ export function RunDetail({ repoId, runId, onBack }: Props) {
   const fetchReport = useCallback(() => {
     setLoading(true);
     setError(null);
-    fetch(`${API_URL}/api/reports/${repoId}/runs/${runId}`, { credentials: 'include' })
+    const endpoint = repoId
+      ? `${API_URL}/api/reports/${repoId}/runs/${runId}`
+      : `${API_URL}/api/reports/run/${runId}`;
+    fetch(endpoint, { credentials: 'include' })
       .then(async (res) => {
         const data = await res.json();
         if (!res.ok) throw new Error(data?.error || `Request failed (${res.status})`);

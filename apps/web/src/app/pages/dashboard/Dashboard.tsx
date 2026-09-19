@@ -563,6 +563,7 @@ export function Dashboard({ onRunClick, hasOpenDrawer = false }: Props) {
   const [customAlertDate, setCustomAlertDate] = useState('');
   const [dashboardTimeFilter, setDashboardTimeFilter] = useState('30d');
   const [customDashboardDate, setCustomDashboardDate] = useState('');
+  const [dashboardSevFilter, setDashboardSevFilter] = useState<'all' | 'CRITICAL' | 'HIGH'>('all');
   const [integrations, setIntegrations] = useState<{provider: string, status: string, updatedAt: string}[]>([]);
 
   const loadApprovals = () => {
@@ -808,7 +809,18 @@ export function Dashboard({ onRunClick, hasOpenDrawer = false }: Props) {
   const viewApprovals = previewFallback && approvals.length === 0 ? PREVIEW_APPROVALS : approvals;
   const approvalsPending = forceLoading || (previewFallback ? false : (loadingApprovals && approvals.length === 0));
 
-  const viewAlerts = previewFallback && alerts.length === 0 ? PREVIEW_ALERTS : alerts;
+  const rawAlerts = previewFallback && alerts.length === 0 ? PREVIEW_ALERTS : alerts;
+  // Sort newest-first and apply severity filter
+  const viewAlerts = useMemo(() => {
+    const sevFiltered = dashboardSevFilter === 'all'
+      ? rawAlerts
+      : rawAlerts.filter((a: any) => a.severity === dashboardSevFilter);
+    return [...sevFiltered].sort((a: any, b: any) => {
+      const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return tb - ta;
+    });
+  }, [rawAlerts, dashboardSevFilter]);
   const alertsPending = forceLoading || (previewFallback ? false : loadingAlerts);
 
   const viewFeed = previewFallback && activityFeed.length === 0 ? DEFAULT_MOCK_ACTIVITIES : activityFeed;
@@ -1150,6 +1162,23 @@ export function Dashboard({ onRunClick, hasOpenDrawer = false }: Props) {
                 count={alertsPending ? undefined : viewAlerts.length}
                 actions={
                   <>
+                    {/* Severity filter pills */}
+                    <div role="group" aria-label="Severity filter" className="inline-flex items-center rounded-md border border-cw-bdr bg-cw-bg2 p-0.5">
+                      {([['all', 'All'], ['CRITICAL', 'Critical'], ['HIGH', 'High']] as const).map(([val, label]) => {
+                        const active = dashboardSevFilter === val;
+                        return (
+                          <button
+                            key={val}
+                            type="button"
+                            aria-pressed={active}
+                            onClick={() => setDashboardSevFilter(val as any)}
+                            className={`px-2.5 py-1 rounded-[5px] text-[12px] font-medium transition-colors cursor-pointer ${FOCUS_RING} ${active ? 'bg-cw-bg3 text-cw-txt' : 'text-cw-txt3 hover:text-cw-txt'}`}
+                          >
+                            {label}
+                          </button>
+                        );
+                      })}
+                    </div>
                     <div className="relative">
                       <select
                         value={alertTimeFilter}

@@ -1,7 +1,7 @@
 import { Queue, Worker, Job } from 'bullmq';
 import { createRedisConnection, BULLMQ_PREFIX } from '../../lib/redis.js';
 import { db } from '../../db/index.js';
-import { mergeApprovals, repositories } from '../../db/schema.js';
+import { mergeApprovals, repositories, user } from '../../db/schema.js';
 import { eq } from 'drizzle-orm';
 import { executeMerge, readMergeSettings, isAutoMergeEligible } from './merge.service.js';
 
@@ -105,6 +105,32 @@ export async function createApprovalAndMaybeSchedule(params: CreateApprovalParam
     console.log(`[MergeQueue] Approval #${row.id} scheduled for real auto-merge at ${deadlineAt.toISOString()} (${settings.timeoutMinutes}min).`);
   } else {
     console.log(`[MergeQueue] Approval #${row.id} created as manual (mode=${settings.mode}, verdict=${params.guardianVerdict}, severity=${params.maxSeverity}).`);
+  }
+
+  // Send real-time notification email to repository owner
+  try {
+    if (repo?.userId) {
+      const [owner] = await db.select().from(user).where(eq(user.id, repo.userId));
+      if (owner?.email) {
+        const { NotificationService } = await import('../../notifications/NotificationService.js');
+        await NotificationService.sendAutoFixPrOpened({
+          to: owner.email,
+          userName: owner.name || 'Developer',
+          repoName: repo.fullName,
+          prNumber: params.pullRequestNumber,
+          prTitle: params.prTitle,
+          prUrl: params.prUrl,
+          agentId: params.agentId,
+          runId: params.runId,
+          maxSeverity: params.maxSeverity,
+          mode: row.mode as 'auto' | 'manual',
+          deadlineMinutes: autoEligible ? settings.timeoutMinutes : undefined,
+        });
+        console.log(`[MergeQueue] Sent auto-fix PR notification email to ${owner.email} for PR #${params.pullRequestNumber}`);
+      }
+    }
+  } catch (emailErr: any) {
+    console.warn(`[MergeQueue] Non-fatal: failed to send auto-fix PR notification email:`, emailErr?.message);
   }
 
   return row;
