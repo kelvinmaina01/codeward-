@@ -22,6 +22,23 @@ export interface AgentLoopResult {
   truncated?: boolean;
 }
 
+/** JSON.stringify that never throws — tolerates circular refs and BigInt in a tool result. */
+function safeStringify(value: unknown): string {
+  try {
+    const seen = new WeakSet();
+    return JSON.stringify(value, (_k, v) => {
+      if (typeof v === 'bigint') return v.toString();
+      if (v && typeof v === 'object') {
+        if (seen.has(v as object)) return '[Circular]';
+        seen.add(v as object);
+      }
+      return v;
+    }) ?? String(value);
+  } catch {
+    try { return String(value); } catch { return '[unserializable tool result]'; }
+  }
+}
+
 function normalizeToolName(name: string): string {
   if (!name || typeof name !== 'string') return 'unknown_tool';
   // Strip common prefixes like "tools." or "Step X: "
@@ -39,6 +56,12 @@ export async function runAgentLoop(config: AgentRunConfig, provider: AgentProvid
   const tokenUsage = { input: 0, output: 0, total: 0, cachedInput: 0, cacheWriteInput: 0, reportedSteps: 0, unreportedSteps: 0 };
   const toolsExecuted: Array<{ toolName: string; calledAt: string; durationMs: number; resultSummary: string }> = [];
   let servedBy: AgentLoopResult['servedBy'];
+  // Circuit breaker for a wedged tool-calling loop: if every tool call errors on N consecutive
+  // steps, the model is stuck (e.g. hammering a tool that always throws). The maxSteps ceiling
+  // already bounds this — it can never be an infinite loop — but breaking early stops the run from
+  // burning its whole step budget and N more LLM calls on a state that will not recover.
+  let consecutiveAllErrorSteps = 0;
+  const MAX_CONSECUTIVE_ALL_ERROR_STEPS = 4;
 
   const addUsage = (usage?: { input: number; output: number; total: number; cachedInput?: number; cacheWriteInput?: number; reported?: boolean }) => {
     if (!usage) { tokenUsage.unreportedSteps++; return; }
@@ -69,7 +92,9 @@ export async function runAgentLoop(config: AgentRunConfig, provider: AgentProvid
     // On the very last step, inject a system nudge and restrict tools to terminal submission only
     const stepConfig = { ...config, messages: currentMessages };
     if (isLastStep) {
-      const terminalTools = config.tools?.filter(t => t.name.startsWith("submit_"));
+      // Guard against a tool definition with a missing/non-string name — `.startsWith` on
+      // undefined would crash the loop before the mandatory terminal step could run.
+      const terminalTools = config.tools?.filter(t => typeof t?.name === 'string' && t.name.startsWith("submit_"));
       stepConfig.tools = terminalTools ?? [];
       currentMessages.push({
         role: "user",
@@ -106,17 +131,24 @@ export async function runAgentLoop(config: AgentRunConfig, provider: AgentProvid
       currentMessages.push({ role: "assistant", content: result.text || "" });
     }
 
-    if (result.toolCalls.length === 0) {
+    // Defensive: a provider is contracted to return a toolCalls array of {id,name,input}, but the
+    // loop must not crash if a malformed/empty response slips through. Normalize to a safe array of
+    // string-named calls before any .length / .some / .map touches it.
+    const safeToolCalls = (Array.isArray(result.toolCalls) ? result.toolCalls : [])
+      .filter((c: any) => c && typeof c === 'object')
+      .map((c: any) => ({ ...c, name: String(c.name ?? ''), id: String(c.id ?? '') }));
+
+    if (safeToolCalls.length === 0) {
       warnIfUsageMissing();
       return { text: result.text, tokenUsage, servedBy, toolsExecuted };
     }
-    
+
     // Dynamic terminal detection: any tool starting with "submit_" is terminal
-    const isTerminal = result.toolCalls.some(call => call.name.startsWith("submit_"));
+    const isTerminal = safeToolCalls.some(call => call.name.startsWith("submit_"));
     
     // Execute each tool call
     const toolResults = await Promise.all(
-      result.toolCalls.map(async (call) => {
+      safeToolCalls.map(async (call) => {
         let tool = config.tools?.find(t => t.name === call.name);
         let resolvedName = call.name;
         if (!tool) {
@@ -132,7 +164,7 @@ export async function runAgentLoop(config: AgentRunConfig, provider: AgentProvid
         if (!tool) {
           console.warn(`[AgentLoop] Unknown tool called: ${call.name}`);
           const safeName = resolvedName.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 64);
-          return { id: call.id, name: safeName, content: `Unknown tool: ${call.name}` };
+          return { id: call.id, name: safeName, content: `Unknown tool: ${call.name}`, isError: true };
         }
         const toolStartTime = Date.now();
         const calledAt = new Date(toolStartTime).toISOString();
@@ -148,12 +180,16 @@ export async function runAgentLoop(config: AgentRunConfig, provider: AgentProvid
             }
           }
           toolsExecuted.push({ toolName: resolvedName, calledAt, durationMs, resultSummary: String(resultSummary).slice(0, 200) });
-          return { id: call.id, name: resolvedName, content: JSON.stringify(res) };
+          // safeStringify: a tool returning a circular structure or a BigInt would make a plain
+          // JSON.stringify throw. That throw is caught below, but it would discard an otherwise-
+          // valid result and mark the call errored — so serialize defensively and preserve the data.
+          return { id: call.id, name: resolvedName, content: safeStringify(res), isError: false };
         } catch (e: any) {
           const durationMs = Date.now() - toolStartTime;
-          toolsExecuted.push({ toolName: resolvedName, calledAt, durationMs, resultSummary: `Error: ${e.message}`.slice(0, 200) });
-          console.error(`[AgentLoop] Tool "${resolvedName}" error:`, e.message);
-          return { id: call.id, name: resolvedName, content: `Error: ${e.message}` };
+          const msg = e?.message ?? String(e);
+          toolsExecuted.push({ toolName: resolvedName, calledAt, durationMs, resultSummary: `Error: ${msg}`.slice(0, 200) });
+          console.error(`[AgentLoop] Tool "${resolvedName}" error:`, msg);
+          return { id: call.id, name: resolvedName, content: `Error: ${msg}`, isError: true };
         }
       })
     );
@@ -162,6 +198,20 @@ export async function runAgentLoop(config: AgentRunConfig, provider: AgentProvid
       console.log(`[AgentLoop] Terminal tool called at step ${step + 1}/${maxSteps}. Exiting.`);
       warnIfUsageMissing();
       return { text: result.text, tokenUsage, servedBy, toolsExecuted, truncated: false };
+    }
+
+    // Circuit breaker: if every tool call this step errored, the run may be wedged. Count
+    // consecutive such steps and bail out early (as truncated) once the threshold is hit, rather
+    // than spending the rest of the step budget — and that many more LLM calls — on a stuck state.
+    if (toolResults.length > 0 && toolResults.every((r: any) => r.isError)) {
+      consecutiveAllErrorSteps++;
+      if (consecutiveAllErrorSteps >= MAX_CONSECUTIVE_ALL_ERROR_STEPS) {
+        console.warn(`[AgentLoop] ${consecutiveAllErrorSteps} consecutive steps where every tool call errored — breaking out to avoid a wedged loop.`);
+        warnIfUsageMissing();
+        return { text: result.text, tokenUsage, servedBy, toolsExecuted, truncated: true };
+      }
+    } else {
+      consecutiveAllErrorSteps = 0;
     }
 
     // Format tool results as proper role: 'tool' messages
