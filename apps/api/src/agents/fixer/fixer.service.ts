@@ -220,6 +220,7 @@ export interface OpenFixPRParams {
   repoFullName: string;
   runId: number;
   agentId: string;
+  targetPrNumber?: number | null;
   findings: FixableFinding[];
   onProgress?: (message: string, level?: 'ok' | 'err' | 'inf' | 'warn' | 'plain') => Promise<void> | void;
 }
@@ -293,16 +294,20 @@ export async function openFixPR(params: OpenFixPRParams): Promise<OpenFixPRResul
   const head: any = await guardianTools.get_repo_head.execute({ repoId: params.repoId });
   if ('error' in head) return { opened: false, reason: `Could not read repo head: ${head.error}`, skipped };
 
-  const branchName = `codeward/auto-fix-${params.agentId}-run${params.runId}-${Date.now()}`;
-  const branchRes: any = await guardianTools.create_branch.execute({ repoId: params.repoId, branchName, fromSha: head.headSha });
-  if (!branchRes.success) return { opened: false, reason: `Could not create branch: ${branchRes.error ?? 'unknown error'}`, skipped };
-  await params.onProgress?.(`  ├─ 🌿 Switched to new branch '${branchName}' from head ${(head.headSha || '').slice(0, 7)}`, 'inf');
+  // Deterministic living branch: reuse existing branch per PR/agent instead of scattering timestamps
+  const branchName = params.targetPrNumber
+    ? `codeward/fix-pr-${params.targetPrNumber}`
+    : `codeward/auto-fix-${params.agentId}`;
+
+  const branchRes: any = await guardianTools.get_or_create_branch.execute({ repoId: params.repoId, branchName, fromSha: head.headSha });
+  if (!branchRes.success) return { opened: false, reason: `Could not prepare branch: ${branchRes.error ?? 'unknown error'}`, skipped };
+  await params.onProgress?.(`  ├─ 🌿 Switched to branch '${branchName}' (${branchRes.exists ? 'reusing living branch' : 'created from head ' + (head.headSha || '').slice(0, 7)})`, 'inf');
 
   const committed: GeneratedFix[] = [];
   for (const { fix } of applied) {
     const existing: any = await guardianTools.get_file_contents.execute({ repoId: params.repoId, filePath: fix.filePath, ref: branchName });
     if ('error' in existing) {
-      skipped.push({ ok: false, file: fix.filePath, error: `Could not read current sha on new branch: ${existing.error}` });
+      skipped.push({ ok: false, file: fix.filePath, error: `Could not read current sha on branch: ${existing.error}` });
       continue;
     }
     const commitRes: any = await guardianTools.create_or_update_file.execute({
@@ -318,11 +323,20 @@ export async function openFixPR(params: OpenFixPRParams): Promise<OpenFixPRResul
   }
 
   if (committed.length === 0) {
-    return { opened: false, reason: 'Branch was created but every commit failed — see skipped[] for why. Leaving the empty branch for manual inspection rather than silently deleting it.', skipped };
+    if (!branchRes.exists) {
+      // Clean up freshly created empty branch so we don't leave dead refs on GitHub
+      await guardianTools.delete_branch.execute({ repoId: params.repoId, branchName });
+    }
+    return { opened: false, reason: 'Branch was prepared but every commit failed — see skipped[] for why. Cleaned up empty branch.', skipped };
   }
+
+  const prTitle = params.targetPrNumber
+    ? `[Codeward] Remediation for PR #${params.targetPrNumber}: ${committed.length} verified ${params.agentId} fix${committed.length === 1 ? '' : 'es'}`
+    : `[Codeward] Auto-fix: ${committed.length} ${params.agentId} finding${committed.length === 1 ? '' : 's'} on run #${params.runId}`;
 
   const prBody = [
     `Codeward auto-generated this fix from real findings on run #${params.runId} (${params.agentId} agent).`,
+    ...(params.targetPrNumber ? [`This remediation addresses findings detected on Pull Request #${params.targetPrNumber}.`] : []),
     '',
     '### Changes',
     ...committed.map((f) => `- **${f.filePath}** — ${f.rationale} (${f.originalLineCount} -> ${f.newLineCount} lines)\n  - _Verified: ${f.verificationMethod ?? 'syntax check'}_`),
@@ -331,10 +345,25 @@ export async function openFixPR(params: OpenFixPRParams): Promise<OpenFixPRResul
     '_This PR was opened automatically. It still requires review before merging — nothing here auto-merges._',
   ].join('\n');
 
+  // Idempotent pull request handling: check if an open PR already exists for this branch
+  const existingPr: any = await guardianTools.find_open_pull_request.execute({ repoId: params.repoId, headBranch: branchName });
+  if (existingPr?.exists) {
+    await params.onProgress?.(`  ├─ 🔄 Updating existing Pull Request #${existingPr.pullRequestNumber}...`, 'inf');
+    await guardianTools.update_pull_request.execute({
+      repoId: params.repoId,
+      pullRequestNumber: existingPr.pullRequestNumber,
+      title: prTitle,
+      body: prBody,
+    });
+    const prUrl = existingPr.htmlUrl ?? `https://github.com/${params.repoFullName}/pull/${existingPr.pullRequestNumber}`;
+    await params.onProgress?.(`  ├─ 🚀 Updated Auto-Fix Pull Request #${existingPr.pullRequestNumber}: ${prUrl}`, 'ok');
+    return { opened: true, pullRequestNumber: existingPr.pullRequestNumber, htmlUrl: prUrl, branchName, appliedFixes: committed, skipped };
+  }
+
   await params.onProgress?.(`  ├─ 📤 Creating pull request on GitHub (${committed.length} verified fixes)...`, 'inf');
   const prRes: any = await guardianTools.create_pull_request.execute({
     repoId: params.repoId,
-    title: `[Codeward] Auto-fix: ${committed.length} ${params.agentId} finding${committed.length === 1 ? '' : 's'} on run #${params.runId}`,
+    title: prTitle,
     body: prBody,
     head: branchName,
     base: head.defaultBranch,

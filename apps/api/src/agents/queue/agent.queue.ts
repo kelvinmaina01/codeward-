@@ -606,6 +606,7 @@ Use these EXACT values for any tool parameter named runId/repoId — never inven
           repoFullName,
           runId,
           agentId,
+          targetPrNumber: runRow.prNumber ?? null,
           findings: result.findings as any[],
           onProgress: async (message, level) => {
             await logAndBroadcast('agent_active', {
