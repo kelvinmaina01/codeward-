@@ -63,24 +63,32 @@ export function startEscalationWorker(customOpts?: any): Worker<EscalationJobDat
         if (outcome.escalated.length > 0) {
           try {
             const { db } = await import('../../db/index.js');
-            const { repositories, user } = await import('../../db/schema.js');
+            const { repositories, user, runs } = await import('../../db/schema.js');
             const { eq } = await import('drizzle-orm');
-            const [repo] = await db.select().from(repositories).where(eq(repositories.id, repoId));
-            const [owner] = repo ? await db.select().from(user).where(eq(user.id, repo.userId)) : [];
 
-            if (owner?.email) {
-              const { NotificationService } = await import('../../notifications/NotificationService.js');
-              const first = outcome.escalated[0];
-              await NotificationService.sendEscalation(
-                owner.email,
-                repoFullName,
-                first.issueNumber,
-                first.title,
-                `${outcome.escalated.length} unresolved finding(s) across ${new Set(outcome.escalated.map((e) => e.agentId)).size} agent(s)`,
-                String(runId)
-              );
-              const redactedEmail = owner.email.replace(/(.{1,2})(.*)(?=@)/, (_, a, b) => a + '*'.repeat(Math.max(b.length, 3)));
-              console.log(`[EscalationWorker] Real escalation alert email sent to ${redactedEmail}`);
+            // For pull requests, Guardian already posts checks/reviews and RunCompletedEmail is dispatched.
+            // Suppress duplicate escalation email to prevent multi-email spam per PR.
+            const [runRow] = await db.select({ prNumber: runs.prNumber }).from(runs).where(eq(runs.id, runId));
+            if (runRow?.prNumber != null) {
+              console.log(`[EscalationWorker] Suppressing duplicate escalation email for PR #${runRow.prNumber} (run #${runId}) — developer receives PR review and RunCompletedEmail.`);
+            } else {
+              const [repo] = await db.select().from(repositories).where(eq(repositories.id, repoId));
+              const [owner] = repo ? await db.select().from(user).where(eq(user.id, repo.userId)) : [];
+
+              if (owner?.email) {
+                const { NotificationService } = await import('../../notifications/NotificationService.js');
+                const first = outcome.escalated[0];
+                await NotificationService.sendEscalation(
+                  owner.email,
+                  repoFullName,
+                  first.issueNumber,
+                  first.title,
+                  `${outcome.escalated.length} unresolved finding(s) across ${new Set(outcome.escalated.map((e) => e.agentId)).size} agent(s)`,
+                  String(runId)
+                );
+                const redactedEmail = owner.email.replace(/(.{1,2})(.*)(?=@)/, (_, a, b) => a + '*'.repeat(Math.max(b.length, 3)));
+                console.log(`[EscalationWorker] Real escalation alert email sent to ${redactedEmail}`);
+              }
             }
           } catch (emailErr) {
             console.error(`[EscalationWorker] Failed to send escalation email:`, (emailErr as Error).message);

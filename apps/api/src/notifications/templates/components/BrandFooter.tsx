@@ -18,7 +18,7 @@ export const BrandFooter: React.FC<BrandFooterProps> = ({
   purposeText,
   isMandatoryTransactional = false,
   unsubscribeUrl,
-  appUrl = 'https://codeward.cloud',
+  appUrl = 'https://www.codeward.cloud',
   isNoReply = true,
 }) => {
   return (

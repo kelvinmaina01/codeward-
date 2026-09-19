@@ -1058,6 +1058,14 @@ Use these EXACT values for any tool parameter named runId/repoId — never inven
             const throttleKey = `failure_email_throttle:repo:${repoFullName}`;
             let shouldSend = true;
 
+            // If this run is for a Pull Request, the unified RunCompletedEmail already includes
+            // the full Agent Review Matrix (showing this agent as FAILED) and the sandbox error log.
+            // Suppress separate individual agent failure emails to avoid spamming the developer's inbox.
+            if (runRowCatch?.prNumber != null) {
+              shouldSend = false;
+              console.log(`[AgentWorker] Suppressing individual agent failure email for PR #${runRowCatch.prNumber} (run #${runId}) — consolidated in RunCompletedEmail.`);
+            }
+
             try {
               // Reuse the BullMQ ioredis client created at module load. `redis.js` exports no
               // `redis` singleton — only createRedisConnection/BULLMQ_PREFIX/isRedisQuotaExceeded —
