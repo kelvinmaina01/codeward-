@@ -31,8 +31,8 @@ export const AutoFixPrOpenedEmail: React.FC<AutoFixPrOpenedEmailProps> = ({
   deadlineMinutes,
   dashboardUrl: customDashboardUrl,
 }) => {
-  const baseUrl = process.env.FRONTEND_URL || 'https://codeward.cloud';
-  const dashboardUrl = customDashboardUrl || `${baseUrl}/runs/${runId}`;
+  const baseUrl = (process.env.FRONTEND_URL || 'https://www.codeward.cloud').replace(/^https?:\/\/codeward\.cloud/, 'https://www.codeward.cloud');
+  const dashboardUrl = customDashboardUrl || `${baseUrl}/dashboard/livefeed?runId=${runId}`;
   const isAuto = mode === 'auto';
 
   return (

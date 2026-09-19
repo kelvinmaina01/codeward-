@@ -606,6 +606,7 @@ Use these EXACT values for any tool parameter named runId/repoId — never inven
           repoFullName,
           runId,
           agentId,
+          targetPrNumber: runRow.prNumber ?? null,
           findings: result.findings as any[],
           onProgress: async (message, level) => {
             await logAndBroadcast('agent_active', {
@@ -1128,6 +1129,14 @@ Use these EXACT values for any tool parameter named runId/repoId — never inven
             const dedupeKey = `failure_email_sent:run:${runId}`;
             const throttleKey = `failure_email_throttle:repo:${repoFullName}`;
             let shouldSend = true;
+
+            // If this run is for a Pull Request, the unified RunCompletedEmail already includes
+            // the full Agent Review Matrix (showing this agent as FAILED) and the sandbox error log.
+            // Suppress separate individual agent failure emails to avoid spamming the developer's inbox.
+            if (runRowCatch?.prNumber != null) {
+              shouldSend = false;
+              console.log(`[AgentWorker] Suppressing individual agent failure email for PR #${runRowCatch.prNumber} (run #${runId}) — consolidated in RunCompletedEmail.`);
+            }
 
             try {
               // ATOMIC claim (SET ... NX EX). The previous get-then-set was a race: when several

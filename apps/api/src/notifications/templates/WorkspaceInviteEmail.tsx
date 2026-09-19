@@ -136,7 +136,7 @@ export const WorkspaceInviteEmail: React.FC<WorkspaceInviteEmailProps> = ({
         recipientName={toEmail}
         purposeText={`You received this invitation because ${inviterName} added you to ${workspaceName} on Codeward.`}
         isMandatoryTransactional={true}
-        appUrl="https://codeward.cloud"
+        appUrl="https://www.codeward.cloud"
       />
     </BrandEmailLayout>
   );

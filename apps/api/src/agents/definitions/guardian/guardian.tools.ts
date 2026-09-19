@@ -258,6 +258,90 @@ export const createGuardianTools = (sandbox: SandboxHandle) => {
       }
     },
 
+    get_or_create_branch: {
+      description: 'Idempotently get existing branch or create a new branch from a given SHA. Real GitHub API call.',
+      parameters: z.object({ repoId: z.string(), branchName: z.string(), fromSha: z.string() }),
+      execute: async (args: any) => {
+        const ctx = await getGuardianOctokitContext(args.repoId);
+        if ('error' in ctx) return ctx;
+        try {
+          const existing = await ctx.octokit.request('GET /repos/{owner}/{repo}/git/ref/{ref}', {
+            owner: ctx.owner, repo: ctx.repo, ref: `heads/${args.branchName}`
+          });
+          return { success: true, branchName: args.branchName, exists: true, sha: existing.data.object.sha };
+        } catch (err: any) {
+          if (err.status === 404) {
+            try {
+              await ctx.octokit.request('POST /repos/{owner}/{repo}/git/refs', {
+                owner: ctx.owner, repo: ctx.repo, ref: `refs/heads/${args.branchName}`, sha: args.fromSha
+              });
+              return { success: true, branchName: args.branchName, exists: false, sha: args.fromSha };
+            } catch (createErr: any) {
+              return { success: false, error: createErr.message };
+            }
+          }
+          return { success: false, error: err.message };
+        }
+      }
+    },
+
+    delete_branch: {
+      description: 'Delete a branch from remote (e.g. after PR merge or cleanup). Real GitHub API call.',
+      parameters: z.object({ repoId: z.string(), branchName: z.string() }),
+      execute: async (args: any) => {
+        const ctx = await getGuardianOctokitContext(args.repoId);
+        if ('error' in ctx) return ctx;
+        try {
+          await ctx.octokit.request('DELETE /repos/{owner}/{repo}/git/refs/{ref}', {
+            owner: ctx.owner, repo: ctx.repo, ref: `heads/${args.branchName}`
+          });
+          return { success: true, branchName: args.branchName };
+        } catch (err: any) {
+          if (err.status === 404) return { success: true, branchName: args.branchName, alreadyDeleted: true };
+          return { success: false, error: err.message };
+        }
+      }
+    },
+
+    find_open_pull_request: {
+      description: 'Find if an open pull request already exists for a head branch. Real GitHub API call.',
+      parameters: z.object({ repoId: z.string(), headBranch: z.string() }),
+      execute: async (args: any) => {
+        const ctx = await getGuardianOctokitContext(args.repoId);
+        if ('error' in ctx) return ctx;
+        try {
+          const res = await ctx.octokit.request('GET /repos/{owner}/{repo}/pulls', {
+            owner: ctx.owner, repo: ctx.repo, state: 'open', head: `${ctx.owner}:${args.headBranch}`
+          });
+          if (Array.isArray(res.data) && res.data.length > 0) {
+            const pr = res.data[0];
+            return { exists: true, pullRequestNumber: pr.number, htmlUrl: pr.html_url, title: pr.title };
+          }
+          return { exists: false };
+        } catch (err: any) {
+          return { exists: false, error: err.message };
+        }
+      }
+    },
+
+    update_pull_request: {
+      description: 'Update the title or body of an existing pull request. Real GitHub API call.',
+      parameters: z.object({ repoId: z.string(), pullRequestNumber: z.number(), title: z.string().optional(), body: z.string().optional() }),
+      execute: async (args: any) => {
+        const ctx = await getGuardianOctokitContext(args.repoId);
+        if ('error' in ctx) return ctx;
+        try {
+          const res = await ctx.octokit.request('PATCH /repos/{owner}/{repo}/pulls/{pull_number}', {
+            owner: ctx.owner, repo: ctx.repo, pull_number: args.pullRequestNumber,
+            title: args.title, body: args.body
+          });
+          return { success: true, pullRequestNumber: res.data.number, htmlUrl: res.data.html_url };
+        } catch (err: any) {
+          return { success: false, error: err.message };
+        }
+      }
+    },
+
     create_pull_request: {
       description: 'Open a PR for an audit branch. Real GitHub API call.',
       parameters: z.object({ repoId: z.string(), title: z.string(), body: z.string(), head: z.string(), base: z.string(), draft: z.boolean().optional().default(false) }),

@@ -23,19 +23,19 @@ export const EscalationEmail: React.FC<EscalationEmailProps> = ({
   runId,
   dashboardUrl: customDashboardUrl,
 }) => {
-  const baseUrl = process.env.FRONTEND_URL || 'https://codeward.cloud';
-  const dashboardUrl = customDashboardUrl || `${baseUrl}/dashboard/runs/${runId}`;
+  const baseUrl = (process.env.FRONTEND_URL || 'https://www.codeward.cloud').replace(/^https?:\/\/codeward\.cloud/, 'https://www.codeward.cloud');
+  const dashboardUrl = customDashboardUrl || `${baseUrl}/dashboard/livefeed?runId=${runId}`;
 
   return (
-    <BrandEmailLayout previewText={`Urgent: Manual review required for PR #${prNumber} on ${repoName}`}>
+    <BrandEmailLayout previewText={`Merge Gate Safeguard: Review required for PR #${prNumber} on ${repoName}`}>
       {/* 1. Header with Logo, #020203 Headline, and Blocker Stat */}
       <BrandHeader
-        headline="Manual Review Required"
+        headline="Merge Gate Safeguard"
         subtitle={`${repoName} · PR #${prNumber}`}
         heroStat={{
-          value: 'BLOCKED',
-          label: 'Auto-Fix Retries Exhausted',
-          valueColor: brandColors.dangerRed,
+          value: 'SAFEGUARDED',
+          label: 'Requires Developer Review',
+          valueColor: brandColors.warningYellow,
           labelColor: brandColors.textSecondary,
         }}
       />
@@ -46,7 +46,7 @@ export const EscalationEmail: React.FC<EscalationEmailProps> = ({
           Hi <strong style={{ color: brandColors.textPrimary }}>{recipientName}</strong>,
         </p>
         <p style={bodyText}>
-          Codeward intercepted a pull request introducing breaking changes. The AI agent exhausted its sandbox auto-fix retries without achieving a passing test suite.
+          Codeward guarded your repository against breaking changes on PR #{prNumber}. Autonomous auto-fix held back to prevent committing potentially risky changes without passing all strict sandbox checks.
         </p>
       </div>
 
@@ -56,7 +56,10 @@ export const EscalationEmail: React.FC<EscalationEmailProps> = ({
           <strong style={{ color: brandColors.textPrimary }}>Pull Request:</strong> #{prNumber} — {prTitle}
         </p>
         <p style={alertLine}>
-          <strong style={{ color: brandColors.dangerRed }}>Blocking Failure:</strong> {failingTestName}
+          <strong style={{ color: brandColors.dangerRed }}>Blocking Issue:</strong> {failingTestName}
+        </p>
+        <p style={{ ...alertLine, marginBottom: 0 }}>
+          <strong style={{ color: brandColors.textPrimary }}>Handoff:</strong> Inspect sandbox diagnostics or copy the pre-built fix prompt into your IDE agent (Cursor, Claude Code, Copilot).
         </p>
       </div>
 

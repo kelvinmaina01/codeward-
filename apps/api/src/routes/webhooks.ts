@@ -282,6 +282,54 @@ webhookRouter.post('/github', async (c) => {
         });
 
       return c.json({ status: 'queued', type: 'orchestrator', commitSHA, runId: runRecord.id, prNumber });
+    } else if (event === 'pull_request' && data.action === 'closed') {
+      const prNumber = data.pull_request?.number;
+      const repoName = data.repository?.full_name;
+      const headRef = data.pull_request?.head?.ref ?? '';
+      const isMerged = Boolean(data.pull_request?.merged);
+      console.log(`[Webhook] PR #${prNumber} closed on ${repoName} (merged: ${isMerged}, headRef: ${headRef})`);
+
+      const [repo] = await db.select().from(repositories).where(eq(repositories.fullName, repoName));
+      if (repo && repo.installationId) {
+        try {
+          const octokit = await getInstallationOctokit(repo.installationId);
+
+          // 1. If this closed PR itself was a Codeward auto-fix branch, delete it
+          if (headRef.startsWith('codeward/')) {
+            try {
+              await octokit.request('DELETE /repos/{owner}/{repo}/git/refs/{ref}', {
+                owner: repo.owner,
+                repo: repo.name,
+                ref: `heads/${headRef}`,
+              });
+              console.log(`[Webhook] Auto-deleted merged/closed Codeward branch '${headRef}' for ${repoName}`);
+            } catch (delErr: any) {
+              if (delErr.status !== 404) {
+                console.warn(`[Webhook] Failed to delete Codeward branch '${headRef}':`, delErr?.message);
+              }
+            }
+          }
+
+          // 2. If this was a user PR that was closed/merged, also delete its associated remediation branch 'codeward/fix-pr-${prNumber}'
+          if (prNumber) {
+            const remediationBranch = `codeward/fix-pr-${prNumber}`;
+            try {
+              await octokit.request('DELETE /repos/{owner}/{repo}/git/refs/{ref}', {
+                owner: repo.owner,
+                repo: repo.name,
+                ref: `heads/${remediationBranch}`,
+              });
+              console.log(`[Webhook] Auto-deleted associated remediation branch '${remediationBranch}' for PR #${prNumber}`);
+            } catch {
+              // 404 expected if no remediation branch was opened
+            }
+          }
+        } catch (err: any) {
+          console.warn(`[Webhook] Error in PR closed branch cleanup for ${repoName}:`, err?.message);
+        }
+      }
+
+      return c.json({ status: 'ok', type: 'pull_request_closed', prNumber, headRef, merged: isMerged });
     } else if ((event === 'issue_comment' || event === 'pull_request_review_comment') && data.action === 'created') {
       const body = String(data.comment?.body ?? '');
       const isPullRequest = event === 'pull_request_review_comment' || Boolean(data.issue?.pull_request);

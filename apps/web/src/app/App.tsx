@@ -1197,15 +1197,19 @@ export const routes = [
     element: <LegalPage type="trust" onBack={() => {}} theme="dark" onCycleTheme={() => {}} themeIcon={<Moon size={14} />} />
   },
   {
-    path: "/dashboard/commits",
-    element: (
-      <RequireAuth>
-        <DashboardLayout />
-      </RequireAuth>
-    )
+    path: "/runs",
+    element: <Navigate to="/dashboard/livefeed" replace />
   },
   {
-    path: "/dashboard/*",
+    path: "/runs/:runId",
+    element: <RedirectToLiveFeed />
+  },
+  {
+    path: "/dashboard/runs/:runId",
+    element: <RedirectToLiveFeed />
+  },
+  {
+    path: "/dashboard/commits",
     element: (
       <RequireAuth>
         <DashboardLayout />
@@ -1221,16 +1225,12 @@ export const routes = [
     )
   },
   {
-    path: "/runs",
-    element: <Navigate to="/dashboard/livefeed" replace />
-  },
-  {
-    path: "/runs/:runId",
-    element: <RedirectToLiveFeed />
-  },
-  {
-    path: "/dashboard/runs/:runId",
-    element: <RedirectToLiveFeed />
+    path: "/dashboard/*",
+    element: (
+      <RequireAuth>
+        <DashboardLayout />
+      </RequireAuth>
+    )
   },
   {
     path: "/admin",

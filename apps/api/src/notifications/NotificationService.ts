@@ -333,7 +333,7 @@ export class NotificationService {
     planType: 'pro' | 'team'
   ) {
     const label = planType === 'team' ? 'Team' : 'Pro';
-    const frontendUrl = process.env.FRONTEND_URL || 'https://codeward.cloud';
+    const frontendUrl = (process.env.FRONTEND_URL || 'https://www.codeward.cloud').replace(/^https?:\/\/codeward\.cloud/, 'https://www.codeward.cloud');
     const dashboardUrl = `${frontendUrl}/dashboard`;
 
     return this.sendEmail(

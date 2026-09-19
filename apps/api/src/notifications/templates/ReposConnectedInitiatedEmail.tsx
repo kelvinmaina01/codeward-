@@ -18,7 +18,7 @@ export function ReposConnectedInitiatedEmail({
   activeRepo,
   queuedRepos = [],
   streamUrl,
-  dashboardUrl = 'https://codeward.cloud/dashboard',
+  dashboardUrl = 'https://www.codeward.cloud/dashboard',
   supportEmail: _supportEmail = 'support@codeward.cloud',
 }: ReposConnectedInitiatedEmailProps) {
   const hasQueued = queuedRepos.length > 0;
