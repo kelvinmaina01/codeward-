@@ -289,6 +289,11 @@ export function sanitizeBedrockToolUseId(id: string | undefined | null): string 
 const SYSTEM_CACHE_POINT: SystemContentBlock = { cachePoint: { type: 'default' } };
 const TOOLS_CACHE_POINT: Tool = { cachePoint: { type: 'default' } };
 
+// NOTE: tool-name / toolUseId sanitization is defined above (sanitizeBedrockToolName,
+// sanitizeBedrockToolUseId — the more thorough remote implementation, which also sanitizes the
+// toolUseId and strips "step N:"/"tools:" prefixes and parenthetical suffixes). My earlier
+// name-only sanitizer was superseded by it during the merge and removed to avoid a duplicate.
+
 /** Bedrock rejects a toolResult that is not carried on a user turn, hence the role mapping. */
 export function toConverseMessages(messages: any[]): Message[] {
   const out: Message[] = [];
@@ -332,10 +337,10 @@ export function toConverseMessages(messages: any[]): Message[] {
           input = {};
         }
         pushBlock('assistant', {
-          toolUse: { 
-            toolUseId: sanitizeBedrockToolUseId(call.id), 
-            name: sanitizeBedrockToolName(call.function?.name), 
-            input 
+          toolUse: {
+            toolUseId: sanitizeBedrockToolUseId(call.id),
+            name: sanitizeBedrockToolName(call.function?.name),
+            input,
           },
         } as unknown as ContentBlock);
       }
@@ -433,6 +438,36 @@ function isForcedToolChoiceRejection(err: any): boolean {
 }
 
 /**
+ * Is this a TRANSIENT Bedrock failure worth waiting out — throttling / rate limit (429),
+ * a 5xx server error, or a network timeout — as opposed to a hard, deterministic rejection?
+ *
+ * Deliberately excludes 400 (a validation error that slipped past sanitization — retrying it
+ * would loop forever on the same bad payload) and 403 (access denied — a permission/entitlement
+ * problem no amount of waiting fixes). Those must fail fast so the cascade can fall through.
+ * cachePoint / forced-tool ValidationExceptions are also non-transient here; they are handled by
+ * their own degrade-and-retry paths in the execute loop, not by backoff.
+ */
+function isTransientBedrockError(err: any): boolean {
+  const name = String(err?.name ?? '').toLowerCase();
+  const status = Number(err?.$metadata?.httpStatusCode ?? 0);
+  const msg = (err?.message || String(err)).toLowerCase();
+
+  if (status === 429 || (status >= 500 && status <= 599)) return true;
+  if (err?.$retryable?.throttling === true) return true; // AWS SDK marks throttles retryable
+  if (
+    name.includes('throttl') || name.includes('toomanyrequests') || name.includes('serviceunavailable') ||
+    name.includes('internalserver') || name.includes('internalfailure') || name.includes('modeltimeout') ||
+    name.includes('timeout')
+  ) return true;
+  return /throttl|rate exceeded|too many requests|timed out|\btimeout\b|econnreset|etimedout|socket hang up|service unavailable|internal server error/.test(msg);
+}
+
+/** Exponential backoff schedule for transient errors: 2s, 4s, 8s, 16s, 32s (5 retries). */
+const BEDROCK_TRANSIENT_MAX_RETRIES = 5;
+const BEDROCK_BACKOFF_BASE_MS = 2000;
+const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+
+/**
  * Is this failure "wrong model id for this region/account", i.e. worth trying the next candidate?
  *
  * The previous version probed `err.message` for 'validationexception' and 'accessdeniedexception',
@@ -489,6 +524,44 @@ export class BedrockProvider implements AgentProvider {
       this.clients.set(region, client);
     }
     return client;
+  }
+
+  /**
+   * Sends a Converse command, absorbing TRANSIENT failures (throttling / 429, 5xx, timeouts) with
+   * exponential backoff (2s, 4s, 8s, 16s, 32s) before giving up. Heavy concurrent agents running
+   * long tool chains hit Bedrock's per-account request-rate limit; without this, a single
+   * ThrottlingException surfaced immediately and (once the cascade is exhausted) failed the run.
+   *
+   * Non-transient errors — a 400 validation that bypassed the sanitizer, a 403 access-denied, or a
+   * cachePoint/forced-tool ValidationException — are re-thrown IMMEDIATELY so the execute loop's
+   * fast-fail and degrade paths handle them (no infinite loops, no hanging). If throttling persists
+   * past the last retry, the error is finally re-thrown so the outer cascade can fall through to
+   * OpenAI rather than the process hanging forever.
+   */
+  private async sendConverseWithBackoff(
+    client: BedrockRuntimeClient,
+    command: ConverseCommand,
+    candidateId: string,
+  ): Promise<any> {
+    let delayMs = BEDROCK_BACKOFF_BASE_MS;
+    for (let attempt = 0; ; attempt++) {
+      try {
+        return await client.send(command);
+      } catch (err: any) {
+        if (attempt < BEDROCK_TRANSIENT_MAX_RETRIES && isTransientBedrockError(err)) {
+          const jitter = Math.floor(Math.random() * 250); // decorrelate concurrent agents' retries
+          console.warn(
+            `[BedrockProvider] Transient error on "${candidateId}" (${err?.name ?? 'error'}: ${String(err?.message).slice(0, 120)}). ` +
+            `Backing off ${delayMs}ms then retry ${attempt + 1}/${BEDROCK_TRANSIENT_MAX_RETRIES}.`
+          );
+          await sleep(delayMs + jitter);
+          delayMs *= 2;
+          continue;
+        }
+        // Non-transient, or transient retries exhausted: hand it to the execute loop / cascade.
+        throw err;
+      }
+    }
   }
 
 
@@ -561,7 +634,7 @@ export class BedrockProvider implements AgentProvider {
           const targetRegion = getRegionForBedrockModel(candidateId);
           const client = this.getClient(targetRegion);
           console.log(`-> Calling Bedrock Converse (${candidateId}) in region [${targetRegion}] (caching=${withCaching ? 'on' : 'off'}, toolChoice=${forceToolUse ? 'any' : 'auto'})...`);
-          res = await client.send(buildCommand(candidateId, withCaching, forceToolUse));
+          res = await this.sendConverseWithBackoff(client, buildCommand(candidateId, withCaching, forceToolUse), candidateId);
           modelId = candidateId;
           break outer;
         } catch (err: any) {

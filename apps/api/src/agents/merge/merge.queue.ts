@@ -107,31 +107,10 @@ export async function createApprovalAndMaybeSchedule(params: CreateApprovalParam
     console.log(`[MergeQueue] Approval #${row.id} created as manual (mode=${settings.mode}, verdict=${params.guardianVerdict}, severity=${params.maxSeverity}).`);
   }
 
-  // Send real-time notification email to repository owner
-  try {
-    if (repo?.userId) {
-      const [owner] = await db.select().from(user).where(eq(user.id, repo.userId));
-      if (owner?.email) {
-        const { NotificationService } = await import('../../notifications/NotificationService.js');
-        await NotificationService.sendAutoFixPrOpened({
-          to: owner.email,
-          userName: owner.name || 'Developer',
-          repoName: repo.fullName,
-          prNumber: params.pullRequestNumber,
-          prTitle: params.prTitle,
-          prUrl: params.prUrl,
-          agentId: params.agentId,
-          runId: params.runId,
-          maxSeverity: params.maxSeverity,
-          mode: row.mode as 'auto' | 'manual',
-          deadlineMinutes: autoEligible ? settings.timeoutMinutes : undefined,
-        });
-        console.log(`[MergeQueue] Sent auto-fix PR notification email to ${owner.email} for PR #${params.pullRequestNumber}`);
-      }
-    }
-  } catch (emailErr: any) {
-    console.warn(`[MergeQueue] Non-fatal: failed to send auto-fix PR notification email:`, emailErr?.message);
-  }
+  // "One PR, one email": the standalone auto-fix-PR-opened email is intentionally removed. The
+  // auto-fix PR is featured as a prominent section (with a "Review Auto-Fix PR on GitHub" link) in
+  // the single "PR Analysis Complete" digest instead — resolved from mergeApprovals.prUrl by
+  // EmailPayloadResolver.resolveRunCompleted and rendered by RunCompletedEmail. No real-time send.
 
   return row;
 }

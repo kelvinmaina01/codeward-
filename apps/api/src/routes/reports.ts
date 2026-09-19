@@ -464,7 +464,16 @@ reportsRouter.get('/canvas', async (c) => {
     return sum + (meta.linesRemoved ?? 0);
   }, 0);
 
-  const gateDecision = criticalCount > 0 ? 'BLOCK' : (targetRun?.score != null && targetRun.score < 60 ? 'BLOCK' : 'PASS');
+  // Authoritative gate: the run policy verdict persisted on the orchestrator_phase3 row — the
+  // exact same decision Guardian posts to GitHub. We only fall back to the local critical/score
+  // heuristic for legacy runs recorded before runPolicy was persisted, so old rows still render.
+  const orchTask = tasks.find((t) => t.agentId === 'orchestrator_phase3');
+  const runPolicyMeta = (orchTask?.reportMeta as any)?.runPolicy ?? null;
+  const runPolicyReasons: string[] = Array.isArray(runPolicyMeta?.reasons) ? runPolicyMeta.reasons : [];
+  const authoritativeGate: 'PASS' | 'WARN' | 'BLOCK' =
+    (runPolicyMeta?.decision as 'PASS' | 'WARN' | 'BLOCK' | undefined)
+    ?? (criticalCount > 0 ? 'BLOCK' : (targetRun?.score != null && targetRun.score < 60 ? 'BLOCK' : 'PASS'));
+  const gateDecision = authoritativeGate;
   const commitShaShort = (targetRun?.commitSha || 'main').slice(0, 7);
   const runIdDisplay = targetRun?.id ?? 1;
 
@@ -573,12 +582,18 @@ reportsRouter.get('/canvas', async (c) => {
 
     let statusText = 'Ready · Standby';
     if (isOrch) {
+      // Text derived from the SAME authoritative gate as the badge, with the policy's own reason
+      // when it blocked/warned — never a separate criticalCount-only string that could read
+      // "PASS — 0 critical" next to a BLOCK badge (the gate-schizophrenia anomaly).
+      const gateReason = runPolicyReasons[0] ?? null;
       statusText = targetRun
-        ? gateDecision === 'BLOCK'
-          ? `Gate decision: BLOCK — ${criticalCount} critical issue${criticalCount === 1 ? '' : 's'}`
-          : targetRun.status === 'running'
-            ? 'Gate evaluation in progress...'
-            : 'Gate decision: PASS — 0 critical issues'
+        ? targetRun.status === 'running'
+          ? 'Gate evaluation in progress...'
+          : gateDecision === 'BLOCK'
+            ? `Gate decision: BLOCK${gateReason ? ` — ${gateReason}` : ` — ${criticalCount} critical issue${criticalCount === 1 ? '' : 's'}`}`
+            : gateDecision === 'WARN'
+              ? `Gate decision: WARN${gateReason ? ` — ${gateReason}` : ''}`
+              : 'Gate decision: PASS — no blocking findings'
         : 'Ready · Standby';
     } else if (task) {
       if (critCount > 0) {
@@ -596,7 +611,7 @@ reportsRouter.get('/canvas', async (c) => {
       ? [
           { t: critCount > 0 ? `${critCount} critical` : (task.score != null ? `Score: ${task.score}` : 'Clean'), c: critCount > 0 ? 'red' : 'green' },
           { t: hiCount > 0 ? `${hiCount} high` : `${findings.length} findings`, c: hiCount > 0 ? 'amber' : '' },
-          { t: durationStr !== '0s' ? durationStr : (task.model || defaultModel), c: 'purple' },
+          { t: durationStr !== '0s' ? durationStr : ((task.reportMeta as any)?.servedBy?.model || task.model || defaultModel), c: 'purple' },
         ]
       : [
           { t: 'Standby', c: '' },
@@ -607,9 +622,13 @@ reportsRouter.get('/canvas', async (c) => {
       id,
       name,
       icon,
-      model: task?.model ?? defaultModel,
+      // Show the model that ACTUALLY served the run (Bedrock/Nova cascade), recorded in
+      // reportMeta.servedBy — the requested tier (task.model) is only a fallback for legacy rows.
+      model: (task?.reportMeta as any)?.servedBy?.model ?? task?.model ?? defaultModel,
       status,
-      score: task?.score ?? (task ? (critCount > 0 ? 45 : 100) : null),
+      // Never invent a score. A completed agent has task.score; a failed/incomplete one is null
+      // (unknown) and must render as such rather than a fabricated 100/45.
+      score: task?.score ?? null,
       label: task ? (findings.length > 0 ? `${findings.length} findings` : 'Clean') : defaultLabel,
       statusText,
       progress: task ? (task.status === 'running' ? 50 : 100) : (isOrch && targetRun ? (targetRun.status === 'running' ? 50 : 100) : 0),
@@ -744,6 +763,11 @@ reportsRouter.get('/canvas', async (c) => {
       status: targetRun?.status ?? 'completed',
       score: targetRun?.score ?? null,
       gateDecision,
+      // The authoritative policy verdict + the exact findings Guardian posted to GitHub, so the
+      // dashboard renders the same reality as the PR review rather than re-deriving its own.
+      runPolicy: runPolicyMeta
+        ? { decision: authoritativeGate, reasons: runPolicyReasons, surfacedFindings: runPolicyMeta.surfacedFindings ?? [] }
+        : null,
     },
     stats: {
       agentsActive: `${tasks.filter((t) => t.status === 'completed' || t.status === 'running').length} / ${agents.length}`,

@@ -29,6 +29,7 @@ export interface ResolvedRunCompletedData {
     line?: number;
   }>;
   autoFixPrUrl?: string | null;
+  escalation?: { count: number; issues: Array<{ title: string; issueNumber: number | null; url: string | null; agentId: string | null }> } | null;
   logTail?: string;
   dashboardUrl: string;
   prGithubUrl?: string;
@@ -122,6 +123,7 @@ export class EmailPayloadResolver {
         durationMs: agentTasks.duration,
         findings: agentTasks.findings,
         error: agentTasks.error,
+        reportMeta: agentTasks.reportMeta,
       })
       .from(agentTasks)
       .where(eq(agentTasks.runId, runId))
@@ -163,14 +165,39 @@ export class EmailPayloadResolver {
       .where(eq(mergeApprovals.runId, runId))
       .limit(1);
 
-    // 8. Gate decision heuristic
+    // 8. Gate decision — the AUTHORITATIVE policy verdict, read from the orchestrator_phase3 row's
+    // reportMeta.runPolicy.decision (the same value the dashboard and the GitHub review use). The
+    // old score heuristic below is only a fallback for legacy runs with no persisted runPolicy: it
+    // silently claimed PASS on a [Security Fail-Closed] BLOCK, because a fail-closed block carries
+    // no critical finding and often a high score (89), so the digest header said "GATE PASSED"
+    // while its agent table showed FAILED.
+    const orchTask = tasks.find(t => t.agentId === 'orchestrator_phase3');
+    const orchMeta = (orchTask?.reportMeta as any) ?? {};
     const score = runRow.score ?? 0;
-    let gateDecision: 'PASS' | 'WARN' | 'BLOCK' = 'PASS';
-    if (score < 60 || criticalFindings.some(f => f.severity === 'critical')) {
-      gateDecision = 'BLOCK';
-    } else if (score < 85 || criticalFindings.length > 0) {
-      gateDecision = 'WARN';
+    let gateDecision: 'PASS' | 'WARN' | 'BLOCK';
+    const authoritative = orchMeta.runPolicy?.decision as 'PASS' | 'WARN' | 'BLOCK' | undefined;
+    if (authoritative) {
+      gateDecision = authoritative;
+    } else {
+      gateDecision = 'PASS';
+      if (score < 60 || criticalFindings.some(f => f.severity === 'critical')) gateDecision = 'BLOCK';
+      else if (score < 85 || criticalFindings.length > 0) gateDecision = 'WARN';
     }
+
+    // Escalation — folded into this one digest instead of a separate email. Read the escalated
+    // GitHub issues the escalation job persisted onto reportMeta.escalation.escalated.
+    const escalatedRaw = Array.isArray(orchMeta.escalation?.escalated) ? orchMeta.escalation.escalated : [];
+    const escalation = escalatedRaw.length > 0
+      ? {
+          count: escalatedRaw.length,
+          issues: escalatedRaw.slice(0, 10).map((e: any) => ({
+            title: String(e.title ?? 'Unresolved finding'),
+            issueNumber: e.issueNumber ?? null,
+            url: e.htmlUrl ?? null,
+            agentId: e.agentId ?? null,
+          })),
+        }
+      : null;
 
     // 9. Sanitize log tail
     const logTail = sanitizeTerminalLogs(runRow.rawLogs || tasks.find(t => t.error)?.error || '', 14);
@@ -193,6 +220,7 @@ export class EmailPayloadResolver {
       })),
       criticalFindings,
       autoFixPrUrl: approval?.prUrl ?? null,
+      escalation,
       logTail,
       dashboardUrl: `${frontendUrl}/dashboard/livefeed?runId=${runId}`,
       prGithubUrl: runRow.prNumber ? `https://github.com/${repoRow.fullName}/pull/${runRow.prNumber}` : undefined,

@@ -59,39 +59,34 @@ export function startEscalationWorker(customOpts?: any): Worker<EscalationJobDat
 
         console.log(`[EscalationWorker] run #${runId}: ${outcome.escalated.length} real issue(s) created, ${outcome.skipped.length} skipped, ${outcome.resolved?.length ?? 0} resolved.`);
 
-        // Send escalation notification email to owner if new issues were created
+        // "One PR, one email": no standalone escalation email. Instead, PERSIST the escalated
+        // issues onto the orchestrator_phase3 row's reportMeta.escalation, so the single
+        // "PR Analysis Complete" digest can render them as a section (and the dashboard can read
+        // them too). The digest for a BLOCK run is enqueued with a short delay precisely so this
+        // write lands first. Best-effort: a failure here must never fail the escalation job.
         if (outcome.escalated.length > 0) {
           try {
             const { db } = await import('../../db/index.js');
-            const { repositories, user, runs } = await import('../../db/schema.js');
-            const { eq } = await import('drizzle-orm');
-
-            // For pull requests, Guardian already posts checks/reviews and RunCompletedEmail is dispatched.
-            // Suppress duplicate escalation email to prevent multi-email spam per PR.
-            const [runRow] = await db.select({ prNumber: runs.prNumber }).from(runs).where(eq(runs.id, runId));
-            if (runRow?.prNumber != null) {
-              console.log(`[EscalationWorker] Suppressing duplicate escalation email for PR #${runRow.prNumber} (run #${runId}) — developer receives PR review and RunCompletedEmail.`);
-            } else {
-              const [repo] = await db.select().from(repositories).where(eq(repositories.id, repoId));
-              const [owner] = repo ? await db.select().from(user).where(eq(user.id, repo.userId)) : [];
-
-              if (owner?.email) {
-                const { NotificationService } = await import('../../notifications/NotificationService.js');
-                const first = outcome.escalated[0];
-                await NotificationService.sendEscalation(
-                  owner.email,
-                  repoFullName,
-                  first.issueNumber,
-                  first.title,
-                  `${outcome.escalated.length} unresolved finding(s) across ${new Set(outcome.escalated.map((e) => e.agentId)).size} agent(s)`,
-                  String(runId)
-                );
-                const redactedEmail = owner.email.replace(/(.{1,2})(.*)(?=@)/, (_, a, b) => a + '*'.repeat(Math.max(b.length, 3)));
-                console.log(`[EscalationWorker] Real escalation alert email sent to ${redactedEmail}`);
-              }
+            const { agentTasks } = await import('../../db/schema.js');
+            const { eq, and } = await import('drizzle-orm');
+            const [orch] = await db.select().from(agentTasks)
+              .where(and(eq(agentTasks.runId, runId), eq(agentTasks.agentId, 'orchestrator_phase3')));
+            if (orch) {
+              const meta = (orch.reportMeta as any) ?? {};
+              await db.update(agentTasks).set({
+                reportMeta: {
+                  ...meta,
+                  escalation: {
+                    ...(meta.escalation ?? {}),
+                    escalated: outcome.escalated,
+                    skipped: outcome.skipped?.length ?? 0,
+                  },
+                },
+              }).where(eq(agentTasks.id, orch.id));
+              console.log(`[EscalationWorker] Persisted ${outcome.escalated.length} escalated issue(s) to run #${runId} digest payload.`);
             }
-          } catch (emailErr) {
-            console.error(`[EscalationWorker] Failed to send escalation email:`, (emailErr as Error).message);
+          } catch (persistErr) {
+            console.error(`[EscalationWorker] Failed to persist escalation results for the digest:`, (persistErr as Error).message);
           }
         }
 

@@ -863,6 +863,53 @@ Use these EXACT values for any tool parameter named runId/repoId — never inven
         });
         humanPrReview = review;
         console.log(`[AgentWorker] guardian human-PR review of #${runRow.prNumber}: ${review.reviewed ? review.event : `did not complete (${review.reason})`}`);
+
+        // Split-brain cure: persist any NET-NEW findings Guardian raised from the live diff (ones
+        // no sub-agent already surfaced) into a dedicated `guardian` agentTasks row, so reports.ts
+        // serves them to the dashboard — buildRunReport iterates every non-orchestrator task, and
+        // the canvas endpoint's allFindings/criticalIssues read every task's findings. Without this
+        // a finding Guardian posts to GitHub is invisible in the product UI.
+        if (review.reviewed && Array.isArray(review.findings) && review.findings.length > 0) {
+          const fkey = (f: any) => `${String(f.file ?? '').toLowerCase()}::${f.line ?? ''}::${String(f.title ?? '').toLowerCase().slice(0, 80)}`;
+          const known = new Set((findings as any[]).map(fkey));
+          const netNew = review.findings.filter((f: any) => !known.has(fkey(f)));
+          if (netNew.length > 0) {
+            const guardianFindings = netNew.map((f: any, i: number) => ({
+              id: `guardian-${runId}-${i}`,
+              agentId: 'guardian',
+              severity: String(f.severity ?? 'INFO').toUpperCase(),
+              title: f.title,
+              description: f.description ?? null,
+              category: f.category ?? 'SECURITY',
+              file: f.file ?? null,
+              line: f.line ?? null,
+              toolName: 'get_pull_request_files',
+              rawEvidence: 'Identified by Guardian from the live PR diff (not surfaced by a sub-agent).',
+              source: 'guardian_diff_review',
+            }));
+            const [existingGuardian] = await db.select().from(agentTasks).where(and(eq(agentTasks.runId, runId), eq(agentTasks.agentId, 'guardian')));
+            const guardianMeta = {
+              source: 'guardian_diff_review',
+              summary: `Guardian surfaced ${guardianFindings.length} net-new finding(s) by inspecting the live PR diff.`,
+              servedBy: (result as any).servedBy ?? null,
+            };
+            if (existingGuardian) {
+              await db.update(agentTasks).set({
+                status: 'completed', findings: guardianFindings, findingsCount: guardianFindings.length,
+                completedAt: new Date(), reportMeta: guardianMeta,
+              }).where(eq(agentTasks.id, existingGuardian.id));
+            } else {
+              await db.insert(agentTasks).values({
+                runId, agentId: 'guardian', provider: 'guardian', status: 'completed',
+                // No numeric score: Guardian is a reviewer, not a scored scanner — null renders as
+                // "no score" rather than a fabricated value.
+                score: null, findings: guardianFindings, findingsCount: guardianFindings.length,
+                startedAt: new Date(), completedAt: new Date(), reportMeta: guardianMeta,
+              });
+            }
+            console.log(`[AgentWorker] Persisted ${guardianFindings.length} net-new Guardian finding(s) to the guardian task row for run #${runId} (dashboard now matches GitHub).`);
+          }
+        }
       } catch (reviewError) {
         console.error(`[AgentWorker] human-PR review step threw (non-fatal):`, (reviewError as Error).message);
         humanPrReview = { reviewed: false, reason: `Review step crashed: ${(reviewError as Error).message}` };
@@ -929,14 +976,29 @@ Use these EXACT values for any tool parameter named runId/repoId — never inven
     await db.update(agentTasks)
       .set({
         status: result.status === 'error' ? 'failed' : result.status === 'incomplete' ? 'incomplete' : 'completed',
-        score: result.status === 'incomplete' ? null : result.score,
+        // A failed or incomplete agent verified nothing, so its score is UNKNOWN, not a value.
+        // Writing result.score here on an error left stale/default 100s on crashed agents (the
+        // "Data & DX blocked but 100" anomaly). Only a genuinely completed run has a real score.
+        score: (result.status === 'incomplete' || result.status === 'error') ? null : result.score,
         findingsCount: result.findings.length,
         findings: result.findings,
         reportMeta: {
           gateDecision: effectiveGateDecision ?? null,
           modelGateDecision: result.gateDecision ?? null,
           policy: result.policy ?? null,
-          runPolicy: runPolicy ? { decision: runPolicy.decision, suppressedCount: runPolicy.suppressedCount, surfacedCount: runPolicy.surfacedFindings.length } : null,
+          // The single authoritative run verdict, persisted in full on the orchestrator_phase3 row.
+          // This is the SAME object handed to Guardian for the GitHub review (surfacedFindings +
+          // decision), so serving the dashboard from it makes the UI and the GitHub review read
+          // one source instead of each re-deriving a gate from local heuristics.
+          runPolicy: runPolicy
+            ? {
+                decision: runPolicy.decision,
+                reasons: runPolicy.reasons ?? [],
+                surfacedFindings: runPolicy.surfacedFindings,
+                suppressedCount: runPolicy.suppressedCount,
+                surfacedCount: runPolicy.surfacedFindings.length,
+              }
+            : null,
           toolsExecuted: result.toolsExecuted ?? [], summary: result.summary ?? null, autoFixPR, escalation, humanPrReview,
           // The agent's structured report minus findings — makes broken_code's testSuiteResult /
           // migrationRollbackPassed (and every other agent's top-level facts) readable by
@@ -1032,6 +1094,9 @@ Use these EXACT values for any tool parameter named runId/repoId — never inven
       await db.update(agentTasks)
         .set({
           status: 'failed',
+          // A crashed agent has no verified score. Nulling it here stops a stale/default value
+          // (e.g. a prior attempt's 100) from surviving the failure and reading as "clean".
+          score: null,
           error: err.message,
           checkpointState,
           completedAt: new Date(),
@@ -1053,7 +1118,13 @@ Use these EXACT values for any tool parameter named runId/repoId — never inven
             .innerJoin(user, eq(repositories.userId, user.id))
             .where(eq(repositories.id, runRowCatch.repoId));
 
-          if (repoOwner?.email) {
+          // "One PR, one email": individual agent crashes are NOT emailed — they are recorded on
+          // the agentTasks row (status: failed) and rendered in the final PR digest's agent table.
+          // This failure email is now only a run-level FALLBACK, sent when the pipeline dies before
+          // it can produce a digest — i.e. when the terminal orchestrator agent itself fails, so
+          // submit_orchestrator_decision never enqueues the digest. Gating on orchestrator_phase3
+          // is what collapses a 4-agent cascade crash from 4 emails to at most one.
+          if (repoOwner?.email && agentId === 'orchestrator_phase3') {
             // Deduplication checks
             const dedupeKey = `failure_email_sent:run:${runId}`;
             const throttleKey = `failure_email_throttle:repo:${repoFullName}`;
@@ -1068,20 +1139,16 @@ Use these EXACT values for any tool parameter named runId/repoId — never inven
             }
 
             try {
-              // Reuse the BullMQ ioredis client created at module load. `redis.js` exports no
-              // `redis` singleton — only createRedisConnection/BULLMQ_PREFIX/isRedisQuotaExceeded —
-              // so the previous destructured import resolved to undefined and broke the build.
-              // Opening a second connection here would also be wrong: every extra client counts
-              // against the Upstash connection cap for what is two key reads and two writes.
-              const alreadySent = await connection.get(dedupeKey);
-              const throttled = await connection.get(throttleKey);
-              if (alreadySent || throttled) {
+              // ATOMIC claim (SET ... NX EX). The previous get-then-set was a race: when several
+              // agents failed in the same millisecond they all read the key as null before any
+              // write landed, so all of them sent. `NX` makes the first caller the sole winner —
+              // it returns 'OK'; every other caller gets null and suppresses. Reuses the BullMQ
+              // ioredis client (no extra connection against the Upstash cap).
+              const claimedRun = await connection.set(dedupeKey, '1', 'EX', 86400, 'NX'); // 'OK' | null
+              const claimedThrottle = await connection.set(throttleKey, '1', 'EX', 900, 'NX');
+              if (!claimedRun || !claimedThrottle) {
                 shouldSend = false;
                 console.log(`[AgentWorker] Suppressing duplicate/throttled failure email for ${repoFullName} (run #${runId})`);
-              } else {
-                // Cache for 24h per run, and 15 mins per repo
-                await connection.set(dedupeKey, '1', 'EX', 86400);
-                await connection.set(throttleKey, '1', 'EX', 900);
               }
             } catch (redisErr) {
               // Non-fatal: if Redis is unreachable the email still goes out. Better a possible

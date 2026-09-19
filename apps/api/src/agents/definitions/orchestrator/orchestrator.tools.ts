@@ -3,6 +3,7 @@ import type { SandboxHandle } from '../../core/provider.js';
 import { createMemoryTools } from '../../tools/memory.tools.js';
 import { assessFinding } from '../../policy/finding-policy.js';
 import { scanDiff, type FloorResult, type SignatureClass } from './deterministic-floor.js';
+import { MODEL_TIER } from '../../../providers/engine.provider.js';
 
 export interface AgentRecommendation { agentType: string; recommend: boolean; mandatory: boolean; reason: string }
 
@@ -55,12 +56,32 @@ export function classifyDiff(rawDiff: string, changedFiles: string[]): DiffAnaly
     /\.(md|txt)$/i.test(f) || /^(docs?\/|\.github\/)/i.test(f) || (/\.(ya?ml)$/i.test(f) && !f.includes('workflow'))
   );
   const isCodeFile = (f: string) => /\.(ts|tsx|js|jsx|py|go|rb|java)$/i.test(f);
-  const touchedDataFiles = changedFiles.some(f => /migration|schema\.ts|pipeline|etl|analytics|tracking/i.test(f));
-  const touchedUiFiles = changedFiles.some(f => isCodeFile(f) && /\.(tsx|jsx)$/i.test(f));
-  const touchedAiCallSites = /openai|anthropic|chat\.completions|generateText|completion\(/i.test(rawDiff);
-  const touchedComplianceRelevant = changedFiles.some(f => /consent|gdpr|retention|pii|accessib/i.test(f)) || touchedUiFiles;
-  const touchedCiOrTooling = changedFiles.some(f => /\.github\/workflows|docker-compose|Dockerfile|\.nvmrc|package\.json/i.test(f));
   const anyCodeChanged = changedFiles.some(isCodeFile);
+
+  // Routing is driven by what the CODE actually contains, not by guessing at file names. The old
+  // heuristics dispatched data_dx only if a file was literally named "migration"/"analytics" and
+  // compliance only if a file was named "consent"/"gdpr" — so a raw SQL string in users.service.ts
+  // or a PII leak in profile.ts was never reviewed. These are content signals over the diff body,
+  // and they compose with the deterministic floor's signatures (merged in below), which cover the
+  // structural cases (S7 SQL, S9 secrets, S11 auth paths, S13 deps, S14 infra, S15 data-layer).
+  const sig = floor.signatureClasses;
+  // Content signals must read the ADDED CODE only, not the full unified diff — the diff's own
+  // `diff --git a/src/consent.ts` header lines contain file paths, so matching against rawDiff
+  // would silently re-introduce the filename guessing this refactor removes. addedBody is the
+  // added lines with the leading '+' and the '+++' file headers stripped.
+  const addedBody = (rawDiff.match(/^\+(?!\+).*/gm) ?? []).map((l) => l.slice(1)).join('\n');
+  const touchedAiCallSites = /openai|anthropic|chat\.completions|generateText|generateObject|completion\(|\.invoke\(|langchain|llm/i.test(addedBody);
+  const dataContentSignal =
+    /\b(create|alter|drop)\s+table\b|\badd\s+column\b|\bprisma\b|\bdrizzle\b|\bsequelize\b|\btypeorm\b|\bknex\b|\.raw\(|information_schema|\bmigration\b/i.test(addedBody)
+    || sig.includes('sql-injection') || sig.includes('data-layer-change') || hasMigrations;
+  // Privacy/compliance CONTENT — PII handling, consent, retention, residency, accessibility — read
+  // from the diff body. UI file extensions are kept as a structural (not name-guessing) signal
+  // because accessibility obligations attach to rendered components.
+  const complianceContentSignal =
+    /\b(gdpr|ccpa|hipaa|consent|personal\s+data|\bpii\b|\bssn\b|social\s+security|passport|date\s+of\s+birth|\bdob\b|data\s+subject|right\s+to\s+(be\s+forgotten|erasure)|data\s+retention|retention\s+policy|cookie\s+consent|tracking|wcag|aria-|accessib)\b/i.test(addedBody)
+    || changedFiles.some(f => /\.(tsx|jsx|vue|svelte)$/i.test(f))
+    || sig.includes('hardcoded-secret') || sig.includes('auth-surface-change');
+  const architectureContentSignal = linesAdded > 50 || sig.includes('infra-change');
 
   let overallRisk = 'LOW';
   if (floor.hasSecuritySignature || hasSecuritySensitivePatterns || hasMigrations || hasEnvChanges) overallRisk = 'HIGH';
@@ -85,13 +106,13 @@ export function classifyDiff(rawDiff: string, changedFiles: string[]): DiffAnaly
     },
     {
       agentType: 'architecture',
-      recommend: !isDocOrConfigOnly && (hasMigrations || linesAdded > 50),
+      recommend: !isDocOrConfigOnly && architectureContentSignal,
       mandatory: false,
-      reason: hasMigrations
-        ? 'Schema/migration files touched.'
+      reason: sig.includes('infra-change')
+        ? 'Infrastructure/IaC change detected in the diff — structural risk.'
         : linesAdded > 50 && !isDocOrConfigOnly
         ? `${linesAdded} lines added — large enough to risk structural/coupling issues.`
-        : 'Small diff, docs-only, or no migrations — low architectural risk.'
+        : 'Small, docs-only, or no structural signal — low architectural risk.'
     },
     {
       agentType: 'bloat',
@@ -103,28 +124,26 @@ export function classifyDiff(rawDiff: string, changedFiles: string[]): DiffAnaly
     },
     {
       agentType: 'data_dx',
-      recommend: !isDocOrConfigOnly && (touchedDataFiles || touchedCiOrTooling),
+      recommend: !isDocOrConfigOnly && dataContentSignal,
       mandatory: false,
-      reason: touchedDataFiles
-        ? 'Data pipeline/migration/analytics files touched.'
-        : touchedCiOrTooling
-        ? 'CI/tooling config touched.'
-        : 'No data pipeline or tooling files touched.'
+      reason: dataContentSignal
+        ? 'Diff contains data-layer operations (SQL/DDL, ORM, or a migration) — content-detected, not filename-guessed.'
+        : 'No data-layer operations found in the diff body.'
     },
     {
       agentType: 'compliance',
-      recommend: !isDocOrConfigOnly && touchedComplianceRelevant,
+      recommend: !isDocOrConfigOnly && complianceContentSignal,
       mandatory: false,
-      reason: touchedComplianceRelevant
-        ? 'UI or consent/PII/accessibility-related files touched.'
-        : 'No UI or compliance-relevant files touched.'
+      reason: complianceContentSignal
+        ? 'Diff contains privacy/PII/consent/accessibility content or a rendered UI component — content-detected.'
+        : 'No privacy/PII/compliance content found in the diff.'
     },
     {
       agentType: 'ai_era',
       recommend: !isDocOrConfigOnly && touchedAiCallSites,
       mandatory: false,
       reason: touchedAiCallSites
-        ? 'Diff contains an LLM call-site pattern (openai/anthropic/completions).'
+        ? 'Diff contains an LLM call-site pattern (openai/anthropic/completions/generateText).'
         : 'No LLM call-site changes detected in the diff.'
     },
   ];
@@ -360,14 +379,43 @@ export const createOrchestratorTools = (sandbox: SandboxHandle) => ({
       for (const a of removeSet) finalSet.delete(a as string);
       for (const a of analysis.mandatoryAgents) finalSet.add(a); // real backstop, redundant with agent.queue.ts's own but cheap to double-guarantee here
 
+      // Model-tier escalation. The security agent already defaults to the synthesis tier
+      // (security.agent.ts) because a scanner on the mechanical tier misses blatant vulns — run
+      // #140 had Haiku 4.5 report 0 findings on two RCEs, hardcoded AWS keys and a path traversal.
+      // This re-forces security onto synthesis at dispatch whenever Layer 0's deterministic floor
+      // flagged a signature or rated the diff HIGH, so a reverted default (or an operator override)
+      // cannot silently downgrade the one agent that must not run blind. The worker reads this
+      // `model` from the job payload (agent.queue.ts).
+      const floorFlagged =
+        (analysis.riskProfile.deterministicSignatures?.length ?? 0) > 0 ||
+        analysis.riskProfile.overallRisk === 'HIGH';
+      // Fleet-wide intelligence upgrade: on a high-risk / floor-flagged diff, NO finding-producing
+      // agent runs blind on the mechanical tier — every one that was dispatched is escalated to the
+      // synthesis tier for this run. Security is escalated whenever it is present (its default is
+      // already synthesis; this is the belt-and-suspenders guarantee). On a low-risk diff the fleet
+      // stays on the cheaper mechanical tier — the escalation is proportional to real risk, not blanket.
+      const FINDING_AGENTS = ['security', 'broken_code', 'architecture', 'bloat', 'data_dx', 'compliance', 'ai_era'];
+      const escalateToSynthesis = new Set<string>();
+      escalateToSynthesis.add('security');
+      if (floorFlagged) for (const a of FINDING_AGENTS) escalateToSynthesis.add(a);
+
       const dispatched: string[] = [];
+      const escalated: string[] = [];
       const skipped: Array<{ agentType: string; reason: string }> = [];
       for (const agentType of finalSet) {
         const [existing] = await db.select().from(agentTasks).where(and(eq(agentTasks.runId, Number(args.runId)), eq(agentTasks.agentId, agentType)));
         if (existing) { skipped.push({ agentType, reason: `Already dispatched (status: ${existing.status}).` }); continue; }
+        const modelOverride = escalateToSynthesis.has(agentType) ? MODEL_TIER.synthesis : undefined;
         await db.insert(agentTasks).values({ runId: Number(args.runId), agentId: agentType, status: 'queued', provider: 'openai' });
-        await agentQueue.add(`agent-${agentType}`, { agentId: agentType, commitSHA: args.commitSha, repoFullName: args.repoFullName, runId: Number(args.runId) });
+        await agentQueue.add(`agent-${agentType}`, {
+          agentId: agentType, commitSHA: args.commitSha, repoFullName: args.repoFullName, runId: Number(args.runId),
+          ...(modelOverride ? { model: modelOverride } : {}),
+        });
         dispatched.push(agentType);
+        if (modelOverride) escalated.push(agentType);
+      }
+      if (escalated.length > 0) {
+        console.log(`[Orchestrator] Layer-0 floor flagged high-risk signatures — escalated to synthesis tier: [${escalated.join(', ')}]`);
       }
 
       // Persist the diff analysis and risk profile onto runs.scope so downstream queue handlers
@@ -816,13 +864,19 @@ export const createOrchestratorTools = (sandbox: SandboxHandle) => ({
       // Enqueue the flagship Run Completed report email with idempotency guard
       try {
         const { emailQueue } = await import('../../../queue/email.queue.js');
+        // On a BLOCK, the escalation job runs in parallel and posts GitHub issues, then persists
+        // them onto reportMeta for the digest's escalation section. Delay the (single) digest so
+        // that write lands first; a non-blocking run has no escalation and sends immediately. If
+        // escalation is slow or crashes, the digest still fires after the delay with whatever is
+        // persisted — degraded, never dropped, and never a second email.
+        const isBlock = String(args.gateDecision ?? '').toUpperCase() === 'BLOCK';
         await emailQueue.add(
           'run-completed',
           { type: 'run-completed', runId: Number(args.runId) },
           // BullMQ rejects ':' in a custom job id ("Custom Id cannot contain :") because it is
           // the delimiter in its own Redis key scheme, so this threw on every completed run and
           // the run-completed email was never actually enqueued.
-          { jobId: `run-completed-${args.runId}` }
+          { jobId: `run-completed-${args.runId}`, delay: isBlock ? 45000 : 0 }
         );
       } catch (queueErr) {
         console.warn(`[Orchestrator] Failed to enqueue run-completed email:`, queueErr);

@@ -80,11 +80,3 @@ export function getProvider(name?: string): AgentProvider {
   
   return provider;
 }
-
-/**
- * List all registered provider names.
- * Useful for the Settings UI to show available options.
- */
-export function listProviders(): string[] {
-  return Object.keys(providers);
-}
