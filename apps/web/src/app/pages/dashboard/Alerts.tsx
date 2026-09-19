@@ -53,9 +53,16 @@ export function Alerts() {
   });
   const selected = alerts.find((a) => a.id === selectedId) || null;
 
-  // Inbox grouping (pure derivation from `filtered`): what gates the merge, what is advisory, what the agents did.
-  const findingsOnly = filtered.filter((a) => a.kind === 'finding');
-  const activity = filtered.filter((a) => a.kind !== 'finding');
+  // Sort newest-first so every group renders the most recent alerts at the top.
+  const sorted = [...filtered].sort((a, b) => {
+    const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+    const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+    return tb - ta;
+  });
+
+  // Inbox grouping (pure derivation from `sorted`): what gates the merge, what is advisory, what the agents did.
+  const findingsOnly = sorted.filter((a) => a.kind === 'finding');
+  const activity = sorted.filter((a) => a.kind !== 'finding');
   const { blocking, advisory } = groupByExposure<RealAlert>(findingsOnly);
 
   // Windowed rendering per group; any filter change snaps every group back to page 1.
@@ -98,20 +105,50 @@ export function Alerts() {
             </div>
           </div>
 
-          {/* Summary strip — real counts */}
+          {/* Summary strip — clickable severity/type gates */}
           {!loading && !error && alerts.length > 0 && (
             <div className="grid grid-cols-2 sm:grid-cols-4 border border-cw-bdr rounded-md overflow-hidden bg-cw-bg2">
-              {[
-                { label: 'Blocking', val: blocking.length, cls: blocking.length > 0 ? 'text-cw-red' : 'text-cw-txt' },
-                { label: 'Advisory', val: advisory.length, cls: 'text-cw-txt' },
-                { label: 'Critical', val: stats.critical, cls: stats.critical > 0 ? 'text-cw-red' : 'text-cw-txt' },
-                { label: 'Auto-fix PRs', val: stats.fixesOpened, cls: 'text-cw-txt' },
-              ].map((k) => (
-                <div key={k.label} className="px-4 py-3 border-r border-b sm:border-b-0 border-cw-bdr last:border-r-0 flex flex-col gap-1">
-                  <span className={EYEBROW}>{k.label}</span>
-                  <span className={`text-[22px] leading-7 font-semibold tabular-nums ${k.cls}`}>{k.val}</span>
-                </div>
-              ))}
+              {([
+                { label: 'Blocking', filterVal: 'all' as const, val: blocking.length, cls: blocking.length > 0 ? 'text-cw-red' : 'text-cw-txt' },
+                { label: 'Advisory', filterVal: 'all' as const, val: advisory.length, cls: 'text-cw-txt' },
+                { label: 'Critical', filterVal: 'CRITICAL' as const, val: stats.critical, cls: stats.critical > 0 ? 'text-cw-red' : 'text-cw-txt' },
+                { label: 'Auto-fix PRs', filterVal: 'autofix' as const, val: stats.fixesOpened, cls: 'text-cw-txt' },
+              ] as const).map((k) => {
+                const active = filter === k.filterVal && k.filterVal !== 'all';
+                return (
+                  <button
+                    key={k.label}
+                    type="button"
+                    onClick={() => setFilter(k.filterVal === 'all' ? 'all' : (filter === k.filterVal ? 'all' : k.filterVal))}
+                    className={`px-4 py-3 border-r border-b sm:border-b-0 border-cw-bdr last:border-r-0 flex flex-col gap-1 text-left transition-colors cursor-pointer ${active ? 'bg-cw-purple/5 ring-1 ring-inset ring-cw-purple/30' : 'hover:bg-cw-bg3'}`}
+                  >
+                    <span className={EYEBROW}>{k.label}</span>
+                    <span className={`text-[22px] leading-7 font-semibold tabular-nums ${k.cls}`}>{k.val}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Severity filter pills */}
+          {!loading && !error && alerts.length > 0 && (
+            <div className="flex items-center gap-3 flex-wrap">
+              <div role="group" aria-label="Severity filter" className="inline-flex items-center rounded-md border border-cw-bdr bg-cw-bg2 p-0.5">
+                {([['all', 'All'], ['CRITICAL', 'Critical'], ['HIGH', 'High'], ['autofix', 'Auto-fix PRs']] as const).map(([val, label]) => {
+                  const active = filter === val;
+                  return (
+                    <button
+                      key={val}
+                      type="button"
+                      aria-pressed={active}
+                      onClick={() => setFilter(val as any)}
+                      className={`px-2.5 py-1 rounded-[5px] text-[13px] font-medium transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-cw-purple/60 focus-visible:ring-offset-1 focus-visible:ring-offset-cw-bg ${active ? 'bg-cw-bg3 text-cw-txt' : 'text-cw-txt3 hover:text-cw-txt'}`}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           )}
 
